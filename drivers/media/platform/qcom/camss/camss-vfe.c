@@ -1460,6 +1460,8 @@ int msm_vfe_subdev_init(struct camss *camss, struct vfe_device *vfe,
 		return -EINVAL;
 
 	vfe->res = &res->vfe;
+	if (res->has_pd)
+		vfe->genpd = camss->genpd[id];
 
 	vfe->res->hw_ops->subdev_init(dev, vfe);
 
