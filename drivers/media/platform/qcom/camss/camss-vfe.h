@@ -129,6 +129,7 @@ struct vfe_isr_ops {
 struct vfe_subdev_resources {
 	u8 line_num;
 	bool is_lite;
+	bool has_pd;
 	const struct vfe_hw_ops *hw_ops;
 	const struct camss_formats *formats_rdi;
 	const struct camss_formats *formats_pix;
