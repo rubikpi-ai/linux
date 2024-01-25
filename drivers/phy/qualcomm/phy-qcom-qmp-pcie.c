@@ -22,6 +22,8 @@
 #include <linux/reset.h>
 #include <linux/slab.h>
 
+#include "phy-qcom-qmp-common.h"
+
 #include "phy-qcom-qmp.h"
 #include "phy-qcom-qmp-pcs-misc-v3.h"
 #include "phy-qcom-qmp-pcs-pcie-v4.h"
@@ -47,30 +49,6 @@
 #define EPCLK_ALWAYS_ON_EN			BIT(6)
 
 #define PHY_INIT_COMPLETE_TIMEOUT		10000
-
-struct qmp_phy_init_tbl {
-	unsigned int offset;
-	unsigned int val;
-	/*
-	 * mask of lanes for which this register is written
-	 * for cases when second lane needs different values
-	 */
-	u8 lane_mask;
-};
-
-#define QMP_PHY_INIT_CFG(o, v)		\
-	{				\
-		.offset = o,		\
-		.val = v,		\
-		.lane_mask = 0xff,	\
-	}
-
-#define QMP_PHY_INIT_CFG_LANE(o, v, l)	\
-	{				\
-		.offset = o,		\
-		.val = v,		\
-		.lane_mask = l,		\
-	}
 
 /* set of registers with offsets different per-PHY */
 enum qphy_reg_layout {
@@ -3264,32 +3242,6 @@ static const struct qmp_phy_cfg qcs8300_qmp_gen4x2_pciephy_cfg = {
 	.phy_status		= PHYSTATUS_4_20,
 };
 
-static void qmp_pcie_configure_lane(void __iomem *base,
-					const struct qmp_phy_init_tbl tbl[],
-					int num,
-					u8 lane_mask)
-{
-	int i;
-	const struct qmp_phy_init_tbl *t = tbl;
-
-	if (!t)
-		return;
-
-	for (i = 0; i < num; i++, t++) {
-		if (!(t->lane_mask & lane_mask))
-			continue;
-
-		writel(t->val, base + t->offset);
-	}
-}
-
-static void qmp_pcie_configure(void __iomem *base,
-					const struct qmp_phy_init_tbl tbl[],
-					int num)
-{
-	qmp_pcie_configure_lane(base, tbl, num, 0xff);
-}
-
 static void qmp_pcie_init_port_b(struct qmp_pcie *qmp, const struct qmp_phy_cfg_tbls *tbls)
 {
 	const struct qmp_phy_cfg *cfg = qmp->cfg;
@@ -3301,11 +3253,11 @@ static void qmp_pcie_init_port_b(struct qmp_pcie *qmp, const struct qmp_phy_cfg_
 	tx4 = qmp->port_b + offs->tx2;
 	rx4 = qmp->port_b + offs->rx2;
 
-	qmp_pcie_configure_lane(tx3, tbls->tx, tbls->tx_num, 1);
-	qmp_pcie_configure_lane(rx3, tbls->rx, tbls->rx_num, 1);
+	qmp_configure_lane(tx3, tbls->tx, tbls->tx_num, 1);
+	qmp_configure_lane(rx3, tbls->rx, tbls->rx_num, 1);
 
-	qmp_pcie_configure_lane(tx4, tbls->tx, tbls->tx_num, 2);
-	qmp_pcie_configure_lane(rx4, tbls->rx, tbls->rx_num, 2);
+	qmp_configure_lane(tx4, tbls->tx, tbls->tx_num, 2);
+	qmp_configure_lane(rx4, tbls->rx, tbls->rx_num, 2);
 }
 
 static void qmp_pcie_init_registers(struct qmp_pcie *qmp, const struct qmp_phy_cfg_tbls *tbls)
@@ -3323,29 +3275,29 @@ static void qmp_pcie_init_registers(struct qmp_pcie *qmp, const struct qmp_phy_c
 	if (!tbls)
 		return;
 
-	qmp_pcie_configure(serdes, tbls->serdes, tbls->serdes_num);
+	qmp_configure(serdes, tbls->serdes, tbls->serdes_num);
 
-	qmp_pcie_configure_lane(tx, tbls->tx, tbls->tx_num, 1);
-	qmp_pcie_configure_lane(rx, tbls->rx, tbls->rx_num, 1);
+	qmp_configure_lane(tx, tbls->tx, tbls->tx_num, 1);
+	qmp_configure_lane(rx, tbls->rx, tbls->rx_num, 1);
 
 	if (cfg->lanes >= 2) {
-		qmp_pcie_configure_lane(tx2, tbls->tx, tbls->tx_num, 2);
-		qmp_pcie_configure_lane(rx2, tbls->rx, tbls->rx_num, 2);
+		qmp_configure_lane(tx2, tbls->tx, tbls->tx_num, 2);
+		qmp_configure_lane(rx2, tbls->rx, tbls->rx_num, 2);
 	}
 
-	qmp_pcie_configure(pcs, tbls->pcs, tbls->pcs_num);
-	qmp_pcie_configure(pcs_misc, tbls->pcs_misc, tbls->pcs_misc_num);
+	qmp_configure(pcs, tbls->pcs, tbls->pcs_num);
+	qmp_configure(pcs_misc, tbls->pcs_misc, tbls->pcs_misc_num);
 
 	if (qmp->refclk_always_on && cfg->regs[QPHY_PCS_ENDPOINT_REFCLK_CNTRL])
 		qphy_setbits(pcs_misc, cfg->regs[QPHY_PCS_ENDPOINT_REFCLK_CNTRL],
 			     EPCLK_ALWAYS_ON_EN);
 
 	if (cfg->lanes >= 4 && qmp->tcsr_4ln_config) {
-		qmp_pcie_configure(serdes, cfg->serdes_4ln_tbl, cfg->serdes_4ln_num);
+		qmp_configure(serdes, cfg->serdes_4ln_tbl, cfg->serdes_4ln_num);
 		qmp_pcie_init_port_b(qmp, tbls);
 	}
 
-	qmp_pcie_configure(ln_shrd, tbls->ln_shrd, tbls->ln_shrd_num);
+	qmp_configure(ln_shrd, tbls->ln_shrd, tbls->ln_shrd_num);
 }
 
 static int qmp_pcie_init(struct phy *phy)
