@@ -429,4 +429,14 @@ config USB_F_QDSS
 	  application SW messaging and transferring it to the host machine
 	  to which the device is connected.
 
+config QCOM_RPROC_MINIDUMP
+	tristate "QCOM Remoteproc Minidump Support"
+	depends on ARCH_QCOM || COMPILE_TEST
+	depends on QCOM_SMEM
+	help
+	  Enablement of core Minidump feature is controlled from boot firmware
+	  side, so if it is enabled from firmware, this config allow Linux to
+	  query predefined Minidump segments associated with the remote processor
+	  and check its validity and end up collecting the dump on remote processor
+	  crash during its recovery.
 endmenu
