@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2015,2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/io.h>
@@ -11,7 +12,6 @@
 #include <linux/firmware/qcom/qcom_scm.h>
 #include <linux/arm-smccc.h>
 #include <linux/dma-mapping.h>
-#include <linux/qtee_shmbridge.h>
 
 #include "qcom_scm.h"
 
@@ -153,8 +153,8 @@ int __scm_smc_call(struct device *dev, const struct qcom_scm_desc *desc,
 {
 	int arglen = desc->arginfo & 0xf;
 	int i, ret;
-	struct qtee_shm shm = {0};
-	bool use_qtee_shmbridge;
+	dma_addr_t args_phys = 0;
+	void *args_virt = NULL;
 	size_t alloc_len;
 	gfp_t flag = atomic ? GFP_ATOMIC : GFP_KERNEL;
 	u32 smccc_call_type = atomic ? ARM_SMCCC_FAST_CALL : ARM_SMCCC_STD_CALL;
@@ -174,56 +174,42 @@ int __scm_smc_call(struct device *dev, const struct qcom_scm_desc *desc,
 
 	if (unlikely(arglen > SCM_SMC_N_REG_ARGS)) {
 		alloc_len = SCM_SMC_N_EXT_ARGS * sizeof(u64);
+		args_virt = kzalloc(PAGE_ALIGN(alloc_len), flag);
 
-		use_qtee_shmbridge = qtee_shmbridge_is_enabled();
-		if (use_qtee_shmbridge) {
-			ret = qtee_shmbridge_allocate_shm(alloc_len, &shm);
-			if (ret)
-				return ret;
-		} else {
-			shm.vaddr = kzalloc(PAGE_ALIGN(alloc_len), flag);
-			if (!shm.vaddr)
-				return -ENOMEM;
-		}
+		if (!args_virt)
+			return -ENOMEM;
 
 		if (qcom_smccc_convention == ARM_SMCCC_SMC_32) {
-			__le32 *args = shm.vaddr;
+			__le32 *args = args_virt;
 
 			for (i = 0; i < SCM_SMC_N_EXT_ARGS; i++)
 				args[i] = cpu_to_le32(desc->args[i +
 						      SCM_SMC_FIRST_EXT_IDX]);
 		} else {
-			__le64 *args = shm.vaddr;
+			__le64 *args = args_virt;
 
 			for (i = 0; i < SCM_SMC_N_EXT_ARGS; i++)
 				args[i] = cpu_to_le64(desc->args[i +
 						      SCM_SMC_FIRST_EXT_IDX]);
 		}
 
-		shm.paddr = dma_map_single(dev, shm.vaddr, alloc_len,
+		args_phys = dma_map_single(dev, args_virt, alloc_len,
 					   DMA_TO_DEVICE);
 
-		if (dma_mapping_error(dev, shm.paddr)) {
-			if (use_qtee_shmbridge)
-				qtee_shmbridge_free_shm(&shm);
-			else
-				kfree(shm.vaddr);
+		if (dma_mapping_error(dev, args_phys)) {
+			kfree(args_virt);
 			return -ENOMEM;
 		}
 
-		smc.args[SCM_SMC_LAST_REG_IDX] = shm.paddr;
+		smc.args[SCM_SMC_LAST_REG_IDX] = args_phys;
 	}
 
 	/* ret error check follows after args_virt cleanup*/
 	ret = __scm_smc_do(dev, &smc, &smc_res, atomic);
 
-	if (shm.vaddr) {
-		dma_unmap_single(dev, shm.paddr, alloc_len, DMA_TO_DEVICE);
-
-		if (use_qtee_shmbridge)
-			qtee_shmbridge_free_shm(&shm);
-		else
-			kfree(shm.vaddr);
+	if (args_virt) {
+		dma_unmap_single(dev, args_phys, alloc_len, DMA_TO_DEVICE);
+		kfree(args_virt);
 	}
 
 	if (ret)
