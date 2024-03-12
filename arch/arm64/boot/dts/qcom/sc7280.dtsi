@@ -5525,6 +5525,8 @@
 			      <0 0x88e2000 0 0x1000>;
 			interrupts-extended = <&pdc 11 IRQ_TYPE_LEVEL_HIGH>;
 
+			phys = <&usb_1_hsphy>;
+			phy-names = "usb2-phy";
 			status = "disabled";
 
 			ports {
