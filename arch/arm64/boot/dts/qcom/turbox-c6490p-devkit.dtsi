@@ -1,1 +1,25 @@
 #include "qcm6490-addons-idp.dts"
+
+&tlmm {
+	/delete-property/ gpio-reserved-ranges;
+};
+
+&soc {
+	tca64_22_vreg: tca64_22_regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "tca64_22_vreg";
+		startup-delay-us = <1000>;
+		enable-active-high;
+	};
+};
+
+&i2c12 {
+	status = "ok";
+	tca64_22: tca6424@22 {
+		compatible = "ti,tca6424";
+		reg = <0x22>;
+		vcc-supply = <&tca64_22_vreg>;
+		gpio-controller;
+		#gpio-cells = <2>;
+	};
+};
