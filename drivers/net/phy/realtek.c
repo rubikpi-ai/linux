@@ -45,6 +45,23 @@
 
 #define RTL8211F_CLKOUT_EN			BIT(0)
 
+#define RTL8211F_LED_CONTROL_REGISTER		0x10
+
+#define RTL8211F_LED_MODE_A			0x0000
+#define RTL8211F_LED_MODE_B			0x8000
+#define RTL8211F_LED2_ACK			0x4000
+#define RTL8211F_LED2_LINK_1000			0x2000
+#define RTL8211F_LED2_LINK_100			0x0800
+#define RTL8211F_LED2_LINK_10			0x0400
+#define RTL8211F_LED1_ACK			0x0200
+#define RTL8211F_LED1_LINK_1000			0x0100
+#define RTL8211F_LED1_LINK_100			0x0040
+#define RTL8211F_LED1_LINK_10			0x0020
+#define RTL8211F_LED0_ACK			0x0010
+#define RTL8211F_LED0_LINK_1000			0x0008
+#define RTL8211F_LED0_LINK_100			0x0002
+#define RTL8211F_LED0_LINK_10			0x0001
+
 #define RTL8201F_ISR				0x1e
 #define RTL8201F_ISR_ANERR			BIT(15)
 #define RTL8201F_ISR_DUPLEX			BIT(13)
@@ -358,31 +375,39 @@ static int rtl8211f_config_init(struct phy_device *phydev)
 		return ret;
 	}
 
+	ret = phy_read(phydev, RTL821x_PAGE_SELECT);
+	if (ret < 0) {
+		dev_err(dev, "Failed to read page select register\n");
+		return ret;
+	}
+
+	phy_write(phydev, RTL821x_PAGE_SELECT, 0xd04); /* page 0xd04 */
+	phy_write(phydev, RTL8211F_LED_CONTROL_REGISTER, RTL8211F_LED_MODE_A |
+					RTL8211F_LED2_ACK | RTL8211F_LED2_LINK_1000 |
+					RTL8211F_LED2_LINK_100 | RTL8211F_LED2_LINK_10 |
+					RTL8211F_LED1_LINK_1000 | RTL8211F_LED1_LINK_100 |
+					RTL8211F_LED1_LINK_10 | RTL8211F_LED0_ACK |
+					RTL8211F_LED0_LINK_10);
+	phy_write(phydev, RTL821x_PAGE_SELECT, ret);
+
 	switch (phydev->interface) {
 	case PHY_INTERFACE_MODE_RGMII:
-		val_txdly = 0;
-		val_rxdly = 0;
-		break;
-
 	case PHY_INTERFACE_MODE_RGMII_RXID:
-		val_txdly = 0;
+		val_txdly = RTL8211F_TX_DELAY;
 		val_rxdly = RTL8211F_RX_DELAY;
 		break;
-
+	case PHY_INTERFACE_MODE_RGMII_ID:
 	case PHY_INTERFACE_MODE_RGMII_TXID:
 		val_txdly = RTL8211F_TX_DELAY;
 		val_rxdly = 0;
 		break;
-
-	case PHY_INTERFACE_MODE_RGMII_ID:
-		val_txdly = RTL8211F_TX_DELAY;
-		val_rxdly = RTL8211F_RX_DELAY;
-		break;
-
 	default: /* the rest of the modes imply leaving delay as is. */
 		return 0;
 	}
 
+	/* enable TX-delay for rgmii-{id,txid}, and disable it for rgmii and
+	 * rgmii-rxid. The RX-delay can be enabled by the external RXDLY pin.
+	 */
 	ret = phy_modify_paged_changed(phydev, 0xd08, 0x11, RTL8211F_TX_DELAY,
 				       val_txdly);
 	if (ret < 0) {
@@ -413,17 +438,7 @@ static int rtl8211f_config_init(struct phy_device *phydev)
 			val_rxdly ? "enabled" : "disabled");
 	}
 
-	if (priv->has_phycr2) {
-		ret = phy_modify_paged(phydev, 0xa43, RTL8211F_PHYCR2,
-				       RTL8211F_CLKOUT_EN, priv->phycr2);
-		if (ret < 0) {
-			dev_err(dev, "clkout configuration failed: %pe\n",
-				ERR_PTR(ret));
-			return ret;
-		}
-	}
-
-	return genphy_soft_reset(phydev);
+	return 0;
 }
 
 static int rtl821x_suspend(struct phy_device *phydev)
@@ -1088,6 +1103,7 @@ module_phy_driver(realtek_drvs);
 
 static const struct mdio_device_id __maybe_unused realtek_tbl[] = {
 	{ PHY_ID_MATCH_VENDOR(0x001cc800) },
+	{ PHY_ID_MATCH_VENDOR(0x001cc916) },
 	{ }
 };
 

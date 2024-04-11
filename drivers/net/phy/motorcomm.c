@@ -213,6 +213,30 @@
 #define YT8521_RC1R_RGMII_2_100_NS		14
 #define YT8521_RC1R_RGMII_2_250_NS		15
 
+
+#define YT8521_LED0_CFG                    0xa00c
+#define YT8521_LED1_CFG                    0xa00d
+#define YT8521_LED2_CFG                    0xa00e
+
+#define YT8521_LED_SRC_SEL_UTP             0x0000
+#define YT8521_LED_SRC_SEL_SERDES          0x4000
+#define YT8521_LED_SRC_SEL_UTP_AND_SERDES  0x8000
+#define YT8521_LED_SRC_SEL_UTP_OR_SERDES   0xc000
+#define YT8521_LED_ACT_BLK_IND             0x2000
+#define YT8521_LED_FDX_ON_EN               0x1000
+#define YT8521_LED_HDX_ON_EN               0x0800
+#define YT8521_LED_TXACT_BLK_EN            0x0400
+#define YT8521_LED_RXACT_BLK_EN            0x0200
+#define YT8521_LED_TXACT_ON_EN             0x0100
+#define YT8521_LED_RXACT_ON_EN             0x0080
+#define YT8521_LED_GT_ON_EN                0x0040
+#define YT8521_LED_HT_ON_EN                0x0020
+#define YT8521_LED_BT_ON_EN                0x0010
+#define YT8521_LED_COL_BLK_EN              0x0008
+#define YT8521_LED_GT_BLK_EN               0x0004
+#define YT8521_LED_HT_BLK_EN               0x0002
+#define YT8521_LED_BT_BLK_EN               0x0001
+
 #define YTPHY_MISC_CONFIG_REG			0xA006
 #define YTPHY_MCR_FIBER_SPEED_MASK		BIT(0)
 #define YTPHY_MCR_FIBER_1000BX			(0x1 << 0)
@@ -1601,6 +1625,20 @@ static int yt8521_config_init(struct phy_device *phydev)
 		if (ret < 0)
 			goto err_restore_page;
 	}
+
+	ret = ytphy_write_ext(phydev, YT8521_LED1_CFG,
+				YT8521_LED_SRC_SEL_UTP_OR_SERDES | YT8521_LED_FDX_ON_EN |
+				YT8521_LED_HDX_ON_EN | YT8521_LED_TXACT_BLK_EN |
+				YT8521_LED_RXACT_BLK_EN);
+	if (ret < 0)
+		goto err_restore_page;
+
+	ret = ytphy_write_ext(phydev, YT8521_LED2_CFG,
+				YT8521_LED_SRC_SEL_UTP_OR_SERDES | YT8521_LED_FDX_ON_EN |
+				YT8521_LED_HDX_ON_EN);
+	if (ret < 0)
+		goto err_restore_page;
+
 err_restore_page:
 	return phy_restore_page(phydev, old_page, ret);
 }
