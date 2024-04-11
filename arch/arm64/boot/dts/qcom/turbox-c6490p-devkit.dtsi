@@ -1,7 +1,93 @@
 #include "qcm6490-addons-idp.dts"
 
+/ {
+	qps615_1p8_vreg: qps615-1p8-vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "qps615_1p8_vreg";
+		gpio = <&tlmm 133 0>;
+		regulator-min-microvolt = <1799999>;
+		regulator-max-microvolt = <1799999>;
+		enable-active-high;
+	};
+
+	yt8521_1p8_vreg: yt8521_1p8_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "yt8521_1p8_vreg";
+		gpio = <&tca64_22 6 0>;
+		vin-supply = <&qps615_1p8_vreg>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+	};
+
+	rtl8211_1p8_vreg: rtl8211_1p8_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "rtl8211_1p8_vreg";
+		gpio = <&tca64_22 23 0>;
+		vin-supply = <&yt8521_1p8_vreg>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+	};
+
+	usb_hub_1p8_vreg: usb_hub_1p8_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "usb_hub_1p8_vreg";
+		gpio = <&tlmm 62 0>;
+		vin-supply = <&rtl8211_1p8_vreg>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+	};
+
+	M2_1p8_vreg: M2_1p8_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "M2_1p8_vreg";
+		gpio = <&tlmm 38 0>;
+		vin-supply = <&usb_hub_1p8_vreg>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+		regulator-enable-ramp-delay = <50000>;
+	};
+
+	usb_hub_rest_vreg: usb_hub_rest_vreg {
+		pinctrl-0 = <&pcie1_reset_n>;
+		pinctrl-names = "default";
+		compatible = "regulator-fixed";
+		regulator-name = "usb_hub_rest_vreg";
+		gpio = <&tlmm 6 0>;
+		vin-supply = <&M2_1p8_vreg>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+		regulator-enable-ramp-delay = <50000>;
+	};
+};
+
 &tlmm {
 	/delete-property/ gpio-reserved-ranges;
+	pcie1_wake_n: pcie1-wake-n-state {
+		pins = "gpio3";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	pcie1_clkreq_n: pcie1-clkreq-n-state {
+		pins = "gpio79";
+		function = "pcie1_clkreqn";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	pcie1_reset_n: pcie1-reset-n-state {
+		pins = "gpio2";
+		function = "gpio";
+		drive-strength = <16>;
+		output-high;
+		bias-disable;
+	};
 };
 
 &soc {
@@ -10,6 +96,27 @@
 		regulator-name = "tca64_22_vreg";
 		startup-delay-us = <1000>;
 		enable-active-high;
+	};
+};
+
+&gcc {
+	protected-clocks = <GCC_QSPI_CNOC_PERIPH_AHB_CLK>, <GCC_QSPI_CORE_CLK>,
+			<GCC_QSPI_CORE_CLK_SRC>, <GCC_CFG_NOC_LPASS_CLK>,
+			<GCC_MSS_GPLL0_MAIN_DIV_CLK_SRC>, <GCC_MSS_CFG_AHB_CLK>,
+			<GCC_MSS_OFFLINE_AXI_CLK>, <GCC_MSS_SNOC_AXI_CLK>,
+			<GCC_MSS_Q6_MEMNOC_AXI_CLK>, <GCC_MSS_Q6SS_BOOT_CLK_SRC>,
+			<GCC_SEC_CTRL_CLK_SRC>, <GCC_WPSS_AHB_CLK>,
+			<GCC_WPSS_AHB_BDG_MST_CLK>, <GCC_WPSS_RSCP_CLK>;
+};
+
+&i2c2 {
+	clock-frequency = <100000>;
+	status = "okay";
+	qps615_switch: pcie-switch@77 {
+		compatible = "qcom,switch-i2c";
+		reg = <0x77>;
+		vdda-supply = <&usb_hub_rest_vreg>;
+		status = "okay";
 	};
 };
 
@@ -23,3 +130,64 @@
 		#gpio-cells = <2>;
 	};
 };
+
+&apps_rsc {
+	regulators-0 {
+		vreg_l6b_1p2: ldo6 {
+			regulator-min-microvolt = <1140000>;
+			regulator-max-microvolt = <1260000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+	};
+
+	regulators-1 {
+		vreg_l10c_0p88:ldo10 {
+			regulator-min-microvolt = <880000>;
+			regulator-max-microvolt = <1050000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+	};
+};
+
+&pcie1 {
+	status = "okay";
+	perst-gpios = <&tlmm 2 GPIO_ACTIVE_LOW>;
+	dummy-supply = <&qps615_switch>;
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie1_clkreq_n>, <&pcie1_wake_n>;
+	iommu-map = <0x0 &apps_smmu 0x1c80 0x1>,
+		<0x100 &apps_smmu 0x1c81 0x1>,
+		<0x208 &apps_smmu 0x1c84 0x1>,
+		<0x210 &apps_smmu 0x1c85 0x1>,
+		<0x218 &apps_smmu 0x1c86 0x1>,
+		<0x300 &apps_smmu 0x1c87 0x1>,
+		<0x400 &apps_smmu 0x1c88 0x1>,
+		<0x500 &apps_smmu 0x1c89 0x1>,
+		<0x501 &apps_smmu 0x1c90 0x1>;
+};
+
+&pcie1_phy {
+	status = "okay";
+	vdda-phy-supply = <&vreg_l10c_0p88>;
+	vdda-pll-supply = <&vreg_l6b_1p2>;
+	qcom,refclk-always-on;
+};
+
+&swr2 {
+	status = "disabled";
+};
+
+&sound {
+	wsa-dai-link {
+		codec {
+			sound-dai = <&lpass_wsa_macro 0>;
+		};
+	};
+
+	vi-feedback-dai-link {
+		codec {
+			sound-dai = <&lpass_wsa_macro 2>;
+		};
+	};
+};
+
