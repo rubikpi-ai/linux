@@ -31,6 +31,7 @@
 #include <linux/slab.h>
 #include <linux/types.h>
 #include <soc/qcom/cmd-db.h>
+#include <linux/notifier.h>
 
 #include "../../pci.h"
 #include "pcie-designware.h"
@@ -1192,6 +1193,9 @@ static int qcom_pcie_link_up(struct dw_pcie *pci)
 	return !!(val & PCI_EXP_LNKSTA_DLLLA);
 }
 
+extern struct blocking_notifier_head qps615_chain_head;
+int qps615_notifier_call_chain(unsigned long val, void *v);
+
 static int qcom_pcie_host_init(struct dw_pcie_rp *pp)
 {
 	struct dw_pcie *pci = to_dw_pcie_from_pp(pp);
@@ -1219,6 +1223,9 @@ static int qcom_pcie_host_init(struct dw_pcie_rp *pp)
 	}
 
 	qcom_ep_reset_deassert(pcie);
+	usleep_range(PERST_DELAY_US, PERST_DELAY_US + 500);
+	qps615_notifier_call_chain(0, NULL);
+	msleep(20);
 
 	if (pcie->cfg->ops->config_sid) {
 		ret = pcie->cfg->ops->config_sid(pcie);

@@ -5,6 +5,7 @@
 #include <linux/firmware.h>
 #include <linux/i2c.h>
 #include <linux/module.h>
+#include <linux/notifier.h>
 
 #define DRV_NAME		"qps615-switch-i2c"
 
@@ -17,7 +18,11 @@ struct pcie_switch_i2c_setting {
 struct qps615_switch_i2c {
 	struct i2c_client *client;
 	struct regulator *vdda;
+	struct notifier_block nb;
 };
+
+BLOCKING_NOTIFIER_HEAD(qps615_chain_head);
+EXPORT_SYMBOL_GPL(qps615_chain_head);
 
 static const struct of_device_id qps615_switch_of_match[] = {
 	{.compatible = "qcom,switch-i2c" },
@@ -181,6 +186,31 @@ static int qps615_resume_noirq(struct device *dev)
 	return 0;
 }
 
+static int qps615_chain_notify(struct notifier_block *nb,
+					unsigned long action, void *data)
+{
+	struct qps615_switch_i2c *qps615 =
+		container_of(nb, struct qps615_switch_i2c, nb);
+
+	qps615_switch_init(qps615->client);
+
+	return 0;
+}
+
+static void qps615_notifier_register(struct blocking_notifier_head *notifiers,
+					struct qps615_switch_i2c *qps615)
+{
+	qps615->nb.notifier_call = qps615_chain_notify;
+	blocking_notifier_chain_register(notifiers, &qps615->nb);
+}
+
+int qps615_notifier_call_chain(unsigned long val, void *v)
+{
+	int ret = blocking_notifier_call_chain(&qps615_chain_head, val, v);
+	return notifier_to_errno(ret);
+}
+EXPORT_SYMBOL_GPL(qps615_notifier_call_chain);
+
 static int qps615_switch_probe(struct i2c_client *client)
 {
 	struct qps615_switch_i2c *qps615;
@@ -194,13 +224,14 @@ static int qps615_switch_probe(struct i2c_client *client)
 
 	i2c_set_clientdata(client, qps615);
 
+	qps615_notifier_register(&qps615_chain_head, qps615);
+
 	qps615->vdda = devm_regulator_get(&client->dev, "vdda");
 
 	ret = regulator_enable(qps615->vdda);
 	if (ret)
 		dev_err(&client->dev, "cannot enable vdda regulator\n");
 
-	qps615_switch_init(client);
 	return 0;
 }
 
