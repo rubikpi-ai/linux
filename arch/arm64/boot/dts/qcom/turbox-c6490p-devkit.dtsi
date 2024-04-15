@@ -63,6 +63,42 @@
 		enable-active-high;
 		regulator-enable-ramp-delay = <50000>;
 	};
+
+	pmic-glink {
+		compatible = "qcom,sm8350-pmic-glink", "qcom,pmic-glink";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		orientation-gpios = <&tlmm 140 GPIO_ACTIVE_HIGH>;
+		qcom,thermal-mitigation = <3000000 1500000 1000000 500000>;
+
+		connector@0 {
+			compatible = "usb-c-connector";
+			reg = <0>;
+			power-role = "dual";
+			data-role = "dual";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					pmic_glink_hs_in: endpoint {
+						remote-endpoint = <&usb_1_dwc3_hs>;
+					};
+				};
+
+				port@1 {
+					reg = <1>;
+					pmic_glink_ss_in: endpoint {
+						remote-endpoint = <&redriver_ss_out>;
+					};
+				};
+
+				/delete-node/ port@2;
+			};
+		};
+	};
 };
 
 &tlmm {
@@ -97,6 +133,13 @@
 		startup-delay-us = <1000>;
 		enable-active-high;
 	};
+
+	retimer_1c_vreg: retimer_1c_regulator {
+		compatible = "regulator-fixed";
+		regulator-name = "retimer_1c_vreg";
+		startup-delay-us = <1000>;
+		enable-active-high;
+	};
 };
 
 &gcc {
@@ -107,6 +150,41 @@
 			<GCC_MSS_Q6_MEMNOC_AXI_CLK>, <GCC_MSS_Q6SS_BOOT_CLK_SRC>,
 			<GCC_SEC_CTRL_CLK_SRC>, <GCC_WPSS_AHB_CLK>,
 			<GCC_WPSS_AHB_BDG_MST_CLK>, <GCC_WPSS_RSCP_CLK>;
+};
+
+&i2c1 {
+	clock-frequency = <100000>;
+	status = "okay";
+
+	/delete-node/ typec-mux@42;
+
+	typec-retimer@1c {
+		compatible = "onnn,nb7vpq904m";
+		reg = <0x1c>;
+		vcc-supply = <&retimer_1c_vreg>;
+		retimer-switch;
+		orientation-switch;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				redriver_ss_out: endpoint {
+					remote-endpoint = <&pmic_glink_ss_in>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				redriver_ss_in: endpoint {
+					data-lanes = <3 2 1 0>;
+					remote-endpoint = <&usb_1_qmpphy_out>;
+				};
+			};
+		};
+	};
 };
 
 &i2c2 {
@@ -191,3 +269,11 @@
 	};
 };
 
+&usb_1 {
+	snps,dis-u2-entry-quirk;
+	snps,dis-u1-entry-quirk;
+};
+
+&usb_1_qmpphy_out {
+	remote-endpoint = <&redriver_ss_in>;
+};
