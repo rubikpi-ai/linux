@@ -262,14 +262,14 @@ static unsigned int mac1_txq0_size = TX_QUEUE0_SIZE;
 static unsigned int mac1_txq1_size = TX_QUEUE1_SIZE;
 
 static unsigned int port0_mdc = TC956XMAC_XGMAC_MDC_CSR_12;
-static int port0_c45_state = 1; /* C45 selected by default */
+static int port0_c45_state; /* C45 selected by default */
 
 static unsigned int port1_mdc = TC956XMAC_XGMAC_MDC_CSR_62;
 static int port1_c45_state; /* C22 selected by default */
 
 static unsigned int port0_phyaddr;
 static unsigned int port1_phyaddr;
-unsigned int mac0_link_down_macrst = ENABLE;
+unsigned int mac0_link_down_macrst = DISABLE;
 unsigned int mac1_link_down_macrst = DISABLE;
 
 #endif

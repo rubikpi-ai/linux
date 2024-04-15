@@ -1610,21 +1610,17 @@ static int yt8521_config_init(struct phy_device *phydev)
 			goto err_restore_page;
 	}
 
-	if (of_property_read_bool(node, "motorcomm,auto-sleep-disabled")) {
-		/* disable auto sleep */
-		ret = ytphy_modify_ext(phydev, YT8521_EXTREG_SLEEP_CONTROL1_REG,
-				       YT8521_ESC1R_SLEEP_SW, 0);
-		if (ret < 0)
-			goto err_restore_page;
-	}
+	/* disable auto sleep */
+	ret = ytphy_modify_ext(phydev, YT8521_EXTREG_SLEEP_CONTROL1_REG,
+			YT8521_ESC1R_SLEEP_SW, 0);
+	if (ret < 0)
+		goto err_restore_page;
 
-	if (of_property_read_bool(node, "motorcomm,keep-pll-enabled")) {
-		/* enable RXC clock when no wire plug */
-		ret = ytphy_modify_ext(phydev, YT8521_CLOCK_GATING_REG,
-				       YT8521_CGR_RX_CLK_EN, 0);
-		if (ret < 0)
-			goto err_restore_page;
-	}
+	/* enable RXC clock when no wire plug */
+	ret = ytphy_modify_ext(phydev, YT8521_CLOCK_GATING_REG,
+			YT8521_CGR_RX_CLK_EN, 0);
+	if (ret < 0)
+		goto err_restore_page;
 
 	ret = ytphy_write_ext(phydev, YT8521_LED1_CFG,
 				YT8521_LED_SRC_SEL_UTP_OR_SERDES | YT8521_LED_FDX_ON_EN |
