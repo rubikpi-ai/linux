@@ -52,7 +52,7 @@ static int qcm6490_snd_init(struct snd_soc_pcm_runtime *rtd)
 
 	switch (cpu_dai->id) {
 	case TX_CODEC_DMA_TX_3:
-	case LPASS_CDC_DMA_TX3:
+	/* case LPASS_CDC_DMA_TX3: */
 	case RX_CODEC_DMA_RX_0:
 		return qcom_snd_wcd_jack_setup(rtd, &data->jack, &data->jack_setup);
 	case VA_CODEC_DMA_TX_0:
@@ -60,6 +60,10 @@ static int qcm6490_snd_init(struct snd_soc_pcm_runtime *rtd)
 	case WSA_CODEC_DMA_TX_0:
 	case PRIMARY_MI2S_RX:
 	case PRIMARY_MI2S_TX:
+	case SECONDARY_MI2S_RX:
+	case SECONDARY_MI2S_TX:
+	case TERTIARY_MI2S_RX:
+	case TERTIARY_MI2S_TX:
 	case PRIMARY_TDM_RX_0:
 	case PRIMARY_TDM_TX_0:
 		return 0;
