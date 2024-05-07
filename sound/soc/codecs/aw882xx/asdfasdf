@@ -1,0 +1,12 @@
+obj-$(CONFIG_QCOM_QPS615_PCIE_SWITCH) += qps615.o
+
+
+	AW882XX_OBJS += aw882xx.o
+	AW882XX_OBJS += aw882xx_monitor.o
+	AW882XX_OBJS += aw882xx_init.o
+	AW882XX_OBJS += aw882xx_dsp.o
+	AW882XX_OBJS += aw882xx_device.o
+	AW882XX_OBJS += aw882xx_calib.o
+	AW882XX_OBJS += aw882xx_bin_parse.o
+	AW882XX_OBJS += aw882xx_spin.o
+

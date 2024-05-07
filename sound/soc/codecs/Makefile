@@ -51,6 +51,14 @@ snd-soc-aw88395-lib-objs := aw88395/aw88395_lib.o
 snd-soc-aw88395-objs := aw88395/aw88395.o \
 			aw88395/aw88395_device.o
 snd-soc-aw88261-objs := aw88261.o
+snd-soc-aw88266a-objs := aw882xx/aw882xx.o \
+			aw882xx/aw882xx_monitor.o \
+			aw882xx/aw882xx_init.o \
+			aw882xx/aw882xx_dsp.o \
+			aw882xx/aw882xx_device.o \
+			aw882xx/aw882xx_calib.o \
+			aw882xx/aw882xx_bin_parse.o \
+			aw882xx/aw882xx_spin.o
 snd-soc-bd28623-objs := bd28623.o
 snd-soc-bt-sco-objs := bt-sco.o
 snd-soc-chv3-codec-objs := chv3-codec.o
@@ -440,6 +448,7 @@ obj-$(CONFIG_SND_SOC_AW8738)	+= snd-soc-aw8738.o
 obj-$(CONFIG_SND_SOC_AW88395_LIB) += snd-soc-aw88395-lib.o
 obj-$(CONFIG_SND_SOC_AW88395)	+=snd-soc-aw88395.o
 obj-$(CONFIG_SND_SOC_AW88261)	+=snd-soc-aw88261.o
+obj-$(CONFIG_SND_SOC_AW88266A)	+=snd-soc-aw88266a.o
 obj-$(CONFIG_SND_SOC_BD28623)	+= snd-soc-bd28623.o
 obj-$(CONFIG_SND_SOC_BT_SCO)	+= snd-soc-bt-sco.o
 obj-$(CONFIG_SND_SOC_CHV3_CODEC) += snd-soc-chv3-codec.o
