@@ -124,6 +124,110 @@
 		output-high;
 		bias-disable;
 	};
+
+	mi2s2_data0: mi2s2-data0-state {
+		pins = "gpio102";
+		function = "mi2s2_data0";
+	};
+
+	mi2s2_data1: mi2s2-data1-state {
+		pins = "gpio104";
+		function = "mi2s2_data1";
+	};
+
+	mi2s2_sclk: mi2s2-sclk-state {
+		pins = "gpio101";
+		function = "mi2s2_sck";
+	};
+
+	mi2s2_ws: mi2s2-ws-state {
+		pins = "gpio103";
+		function = "mi2s2_ws";
+	};
+
+	mi2s2_data0_sleep: mi2s2-data0-sleep {
+		pins = "gpio102";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s2_data1_sleep: mi2s2-data1-sleep {
+		pins = "gpio104";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s2_sclk_sleep: mi2s2-sclk-sleep {
+		pins = "gpio101";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s2_ws_sleep: mi2s2-ws-sleep {
+		pins = "gpio103";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s1_data0_sleep: mi2s1-data0-sleep {
+		pins = "gpio107";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s1_data1_sleep: mi2s1-data1-sleep {
+		pins = "gpio105";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s1_sclk_sleep: mi2s1-sclk-sleep {
+		pins = "gpio106";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s1_ws_sleep: mi2s1-ws-sleep {
+		pins = "gpio108";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s1_data0: mi2s1-data0-state {
+		pins = "gpio107";
+		function = "mi2s1_data0";
+	};
+
+	mi2s1_data1: mi2s1-data1-state {
+		pins = "gpio105";
+		function = "mi2s1_data1";
+	};
+
+	mi2s1_sclk: mi2s1-sclk-state {
+		pins = "gpio106";
+		function = "mi2s1_sck";
+	};
+
+	mi2s1_ws: mi2s1-ws-state {
+		pins = "gpio108";
+		function = "mi2s1_ws";
+	};
 };
 
 &soc {
@@ -251,21 +355,162 @@
 	qcom,refclk-always-on;
 };
 
+&lpass_rx_macro {
+	status = "disabled";
+};
+
+&lpass_tx_macro {
+	status = "disabled";
+};
+
+&lpass_wsa_macro {
+	status = "disabled";
+};
+
 &swr2 {
 	status = "disabled";
 };
 
+&wcd9370 {
+	status = "disabled";
+};
+
+&swr0 {
+	status = "disabled";
+};
+
+&swr1 {
+	status = "disabled";
+};
+
+&remoteproc_adsp {
+	firmware-name = "qcom/qcs6490/adsp.mdt";
+	status = "okay";
+};
+
+&remoteproc_cdsp {
+	firmware-name = "qcom/qcs6490/cdsp.mdt";
+	status = "okay";
+};
+
+&remoteproc_mpss {
+	firmware-name = "qcom/qcs6490/modem.mdt";
+	status = "okay";
+};
+
+&remoteproc_wpss {
+	firmware-name = "qcom/qcs6490/wpss.mdt";
+	status = "okay";
+};
+
+&i2c8 {
+	status = "okay";
+	aw88266_1: aw88266-1@34 {
+		compatible = "awinic,aw882xx_smartpa";
+		#sound-dai-cells = <0>;
+		reg = <0x34>;
+		power-gpio = <&tca64_22 22 0>;
+		reset-gpio = <&tlmm 134 0>;
+		irq-gpio = <&tlmm 123 0>;
+		aw-tx-topo-id = <0x1000ff00>;
+		aw-rx-topo-id = <0x1000ff01>;
+		aw-tx-port-id = <0x1007>;
+		aw-rx-port-id = <0x1006>;
+		aw-re-min = <4000>;
+		aw-re-max= <30000>;
+		status = "ok";
+	};
+};
+
 &sound {
-	wsa-dai-link {
+	pinctrl-names = "default", "stub_aif1_active", "stub_aif1_sleep";
+	pinctrl-0 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
+				<&mi2s2_data0_sleep>, <&mi2s2_data1_sleep>,
+				<&mi2s2_sclk_sleep>, <&mi2s2_ws_sleep>,
+				<&mi2s1_data0_sleep>, <&mi2s1_data1_sleep>,
+				<&mi2s1_sclk_sleep>, <&mi2s1_ws_sleep>;
+	pinctrl-1 = <&mi2s0_data0>, <&mi2s0_data1>, <&mi2s0_mclk>,
+				<&mi2s0_sclk>, <&mi2s0_ws>,
+				<&mi2s2_data0>, <&mi2s2_data1>,
+				<&mi2s2_sclk>, <&mi2s2_ws>,
+				<&mi2s1_data0>, <&mi2s1_data1>,
+				<&mi2s1_sclk>, <&mi2s1_ws>;
+	pinctrl-2 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
+				<&mi2s2_data0_sleep>, <&mi2s2_data1_sleep>,
+				<&mi2s2_sclk_sleep>, <&mi2s2_ws_sleep>,
+				<&mi2s1_data0_sleep>, <&mi2s1_data1_sleep>,
+				<&mi2s1_sclk_sleep>, <&mi2s1_ws_sleep>;
+
+	audio-routing =
+		"VA DMIC0", "vdd-micb",
+		"VA DMIC1", "vdd-micb",
+		"VA DMIC2", "vdd-micb",
+		"VA DMIC3", "vdd-micb";
+
+	mi2s1-playback-dai-link {
+		link-name = "MI2S-LPAIF-RX-SECONDARY";
+		cpu {
+			sound-dai = <&q6apmbedai SECONDARY_MI2S_RX>;
+		};
 		codec {
-			sound-dai = <&lpass_wsa_macro 0>;
+			sound-dai = <&msm_stub_codec 0>, <&aw88266_1>;
 		};
 	};
 
-	vi-feedback-dai-link {
-		codec {
-			sound-dai = <&lpass_wsa_macro 2>;
+	mi2s1-capture-dai-link {
+		link-name = "MI2S-LPAIF-TX-SECONDARY";
+		cpu {
+			sound-dai = <&q6apmbedai SECONDARY_MI2S_TX>;
 		};
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	mi2s2-playback-dai-link {
+		link-name = "MI2S-LPAIF-RX-TERTIARY";
+		cpu {
+			sound-dai = <&q6apmbedai TERTIARY_MI2S_RX>;
+		};
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+
+	mi2s2-capture-dai-link {
+		link-name = "MI2S-LPAIF-TX-TERTIARY";
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_MI2S_TX>;
+		};
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	wsa-dai-link {
+		status = "disabled";
+	};
+
+	vi-feedback-dai-link {
+		status = "disabled";
+	};
+
+	wcd-playback-dai-link {
+		status = "disabled";
+	};
+
+	wcd-capture-dai-link {
+		status = "disabled";
+	};
+
+	slimbus-rx0-dai-link {
+		status = "disabled";
+	};
+
+	slimbus-tx0-dai-link {
+		status = "disabled";
 	};
 };
 
