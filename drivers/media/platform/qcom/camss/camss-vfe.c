@@ -272,6 +272,7 @@ const struct camss_formats vfe_formats_rdi_845 = {
 	.formats = formats_rdi_845
 };
 
+/* TODO: Replace with pix formats */
 const struct camss_formats vfe_formats_pix_845 = {
 	.nformats = ARRAY_SIZE(formats_rdi_845),
 	.formats = formats_rdi_845
@@ -332,12 +333,12 @@ static u32 vfe_src_pad_code(struct vfe_line *line, u32 sink_code,
 			return sink_code;
 		}
 		break;
-	case CAMSS_8x96:
 	case CAMSS_660:
-	case CAMSS_845:
+	case CAMSS_7280:
+	case CAMSS_8x96:
 	case CAMSS_8250:
 	case CAMSS_8280XP:
-	case CAMSS_7280:
+	case CAMSS_845:
 		switch (sink_code) {
 		case MEDIA_BUS_FMT_YUYV8_1X16:
 		{
@@ -413,7 +414,7 @@ int vfe_reset(struct vfe_device *vfe)
 	time = wait_for_completion_timeout(&vfe->reset_complete,
 		msecs_to_jiffies(VFE_RESET_TIMEOUT_MS));
 	if (!time) {
-		dev_err(vfe->camss->dev, "VFE%d reset timeout\n", vfe->id);
+		dev_err(vfe->camss->dev, "VFE reset timeout\n");
 		return -EIO;
 	}
 
@@ -662,8 +663,6 @@ static int vfe_set_clock_rates(struct vfe_device *vfe)
 		if (vfe_match_clock_names(vfe, clock)) {
 			u64 min_rate = 0;
 			long rate;
-			if (!clock->nfreqs || !clock->freq)
-				continue;
 
 			for (j = VFE_LINE_RDI0; j < vfe->res->line_num; j++) {
 				u32 tmp;
@@ -1496,18 +1495,20 @@ int msm_vfe_subdev_init(struct camss *camss, struct vfe_device *vfe,
 		return -EINVAL;
 
 	vfe->res = &res->vfe;
+	vfe->res->hw_ops->subdev_init(dev, vfe);
 
 	/* Power domain */
-	if (res->pd_name) {
+
+	if (res->vfe.pd_name) {
 		vfe->genpd = dev_pm_domain_attach_by_name(camss->dev,
-							  res->pd_name);
+							  res->vfe.pd_name);
 		if (IS_ERR(vfe->genpd)) {
 			ret = PTR_ERR(vfe->genpd);
 			return ret;
 		}
 	}
 
-	if (!vfe->genpd && res->has_pd) {
+	if (!vfe->genpd && res->vfe.has_pd) {
 		/*
 		 * Legacy magic index.
 		 * Requires
@@ -1524,10 +1525,8 @@ int msm_vfe_subdev_init(struct camss *camss, struct vfe_device *vfe,
 			return PTR_ERR(vfe->genpd);
 	}
 
-	vfe->line_num = res->line_num;
-	vfe->res->hw_ops->subdev_init(dev, vfe);
-
 	/* Memory */
+
 	vfe->base = devm_platform_ioremap_resource_byname(pdev, res->reg[0]);
 	if (IS_ERR(vfe->base)) {
 		dev_err(dev, "could not map memory\n");
@@ -1696,10 +1695,10 @@ static int vfe_bpl_align(struct vfe_device *vfe)
 	int ret = 8;
 
 	switch (vfe->camss->res->version) {
-	case CAMSS_845:
+	case CAMSS_7280:
 	case CAMSS_8250:
 	case CAMSS_8280XP:
-	case CAMSS_7280:
+	case CAMSS_845:
 		ret = 16;
 		break;
 	default:
@@ -1853,5 +1852,5 @@ void msm_vfe_unregister_entities(struct vfe_device *vfe)
 
 bool vfe_is_lite(struct vfe_device *vfe)
 {
-	return vfe->camss->res->vfe_res[vfe->id].is_lite;
+	return vfe->camss->res->vfe_res[vfe->id].vfe.is_lite;
 }

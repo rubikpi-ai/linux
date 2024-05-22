@@ -21,6 +21,7 @@
  * interface support. As a result of that it has an
  * alternate register layout.
  */
+
 #define CSID_HW_VERSION		0x0
 #define		HW_VERSION_STEPPING	0
 #define		HW_VERSION_REVISION	16
@@ -178,9 +179,13 @@
 static void __csid_configure_rx(struct csid_device *csid,
 				struct csid_phy_config *phy, int vc)
 {
+	u8 lane_cnt = csid->phy.lane_cnt;
 	int val;
 
-	val = (phy->lane_cnt - 1) << CSI2_RX_CFG0_NUM_ACTIVE_LANES;
+	if (!lane_cnt)
+		lane_cnt = 4;
+
+	val = (lane_cnt - 1) << CSI2_RX_CFG0_NUM_ACTIVE_LANES;
 	val |= phy->lane_assign << CSI2_RX_CFG0_DL0_INPUT_SEL;
 	val |= phy->csiphy_id << CSI2_RX_CFG0_PHY_NUM_SEL;
 	writel_relaxed(val, csid->base + CSID_CSI2_RX_CFG0);
@@ -212,6 +217,9 @@ static void __csid_configure_testgen(struct csid_device *csid, u8 enable, u8 vc)
 								   input_format->code);
 	u8 lane_cnt = csid->phy.lane_cnt;
 	u32 val;
+
+	if (!lane_cnt)
+		lane_cnt = 4;
 
 	/* configure one DT, infinite frames */
 	val = vc << TPG_VC_CFG0_VC_NUM;
@@ -252,21 +260,12 @@ static void __csid_configure_testgen(struct csid_device *csid, u8 enable, u8 vc)
 
 static void __csid_configure_rdi_stream(struct csid_device *csid, u8 enable, u8 vc)
 {
-	struct csid_testgen_config *tg = &csid->testgen;
-	u32 val;
-	u32 phy_sel = 0;
-	u8 lane_cnt = csid->phy.lane_cnt;
 	/* Source pads matching RDI channels on hardware. Pad 1 -> RDI0, Pad 2 -> RDI1, etc. */
 	struct v4l2_mbus_framefmt *input_format = &csid->fmt[MSM_CSID_PAD_FIRST_SRC + vc];
 	const struct csid_format_info *format = csid_get_fmt_entry(csid->res->formats->formats,
 								   csid->res->formats->nformats,
 								   input_format->code);
-
-	if (!lane_cnt)
-		lane_cnt = 4;
-
-	if (!tg->enabled)
-		phy_sel = csid->phy.csiphy_id;
+	u32 val;
 
 	/*
 	 * DT_ID is a two bit bitfield that is concatenated with

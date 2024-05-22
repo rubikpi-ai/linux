@@ -17,7 +17,6 @@
 
 #define VFE_HW_VERSION			(0x00)
 
-
 #define VFE_GLOBAL_RESET_CMD		(vfe_is_lite(vfe) ? 0x0c : 0x1c)
 #define	    GLOBAL_RESET_HW_AND_REG	(vfe_is_lite(vfe) ? BIT(1) : BIT(0))
 

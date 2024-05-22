@@ -702,7 +702,8 @@ static int msm_video_init_format(struct camss_video *video)
  * Return 0 on success or a negative error code otherwise
  */
 
-int msm_video_register(struct camss_video *video, struct v4l2_device *v4l2_dev, const char *name)
+int msm_video_register(struct camss_video *video, struct v4l2_device *v4l2_dev,
+		       const char *name)
 {
 	struct media_pad *pad = &video->pad;
 	struct video_device *vdev;

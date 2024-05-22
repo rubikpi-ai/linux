@@ -127,8 +127,8 @@ struct vfe_isr_ops {
 };
 
 struct vfe_subdev_resources {
-	u8 line_num;
 	bool is_lite;
+	u8 line_num;
 	bool has_pd;
 	char *pd_name;
 	const struct vfe_hw_ops *hw_ops;

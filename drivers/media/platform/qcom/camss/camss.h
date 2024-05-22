@@ -42,13 +42,6 @@
 
 #define CAMSS_RES_MAX 17
 
-enum camss_subdev_type {
-	CAMSS_SUBDEV_TYPE_CSIPHY,
-	CAMSS_SUBDEV_TYPE_CSID,
-	CAMSS_SUBDEV_TYPE_ISPIF,
-	CAMSS_SUBDEV_TYPE_VFE,
-};
-
 struct camss_subdev_resources {
 	char *regulators[CAMSS_RES_MAX];
 	char *clock[CAMSS_RES_MAX];
@@ -56,7 +49,6 @@ struct camss_subdev_resources {
 	u32 clock_rate[CAMSS_RES_MAX][CAMSS_RES_MAX];
 	char *reg[CAMSS_RES_MAX];
 	char *interrupt[CAMSS_RES_MAX];
-	enum camss_subdev_type type;
 	union {
 		struct csiphy_subdev_resources csiphy;
 		struct csid_subdev_resources csid;
@@ -84,16 +76,15 @@ enum camss_version {
 	CAMSS_8x16,
 	CAMSS_8x96,
 	CAMSS_660,
+	CAMSS_7280,
 	CAMSS_845,
 	CAMSS_8250,
 	CAMSS_8280XP,
-	CAMSS_7280,
 };
 
 enum icc_count {
 	ICC_DEFAULT_COUNT = 0,
 	ICC_SM8250_COUNT = 4,
-	ICC_SM7280_COUNT = 4,
 };
 
 struct camss_resources {
@@ -145,6 +136,12 @@ struct camss_clock {
 	u32 nfreqs;
 };
 
+struct parent_dev_ops {
+	int (*get)(struct camss *camss, int id);
+	int (*put)(struct camss *camss, int id);
+	void __iomem *(*get_base_address)(struct camss *camss, int id);
+};
+
 void camss_add_clock_margin(u64 *rate);
 int camss_enable_clocks(int nclocks, struct camss_clock *clock,
 			struct device *dev);
@@ -155,6 +152,8 @@ s64 camss_get_link_freq(struct media_entity *entity, unsigned int bpp,
 int camss_get_pixel_clock(struct media_entity *entity, u64 *pixel_clock);
 int camss_pm_domain_on(struct camss *camss, int id);
 void camss_pm_domain_off(struct camss *camss, int id);
+int camss_vfe_get(struct camss *camss, int id);
+void camss_vfe_put(struct camss *camss, int id);
 void camss_delete(struct camss *camss);
 
 #endif /* QC_MSM_CAMSS_H */

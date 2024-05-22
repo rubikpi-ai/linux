@@ -29,8 +29,6 @@
 #define VFE_480_CSID_OFFSET 0x1200
 #define VFE_480_LITE_CSID_OFFSET 0x200
 
-#define VFE_165_CSID_OFFSET 0x4000
-
 #define MSM_CSID_NAME "msm_csid"
 
 const char * const csid_testgen_modes[] = {
@@ -604,7 +602,6 @@ static int csid_set_power(struct v4l2_subdev *sd, int on)
 	struct csid_device *csid = v4l2_get_subdevdata(sd);
 	struct camss *camss = csid->camss;
 	struct device *dev = camss->dev;
-	struct vfe_device *vfe = &camss->vfe[csid->id];
 	int ret = 0;
 
 	if (on) {
@@ -613,7 +610,7 @@ static int csid_set_power(struct v4l2_subdev *sd, int on)
 		 * switching on the CSID. Do so unconditionally, as there is no
 		 * drawback in following the same powering order on older SoCs.
 		 */
-		ret = vfe_get(vfe);
+		ret = csid->res->parent_dev_ops->get(camss, csid->id);
 		if (ret < 0)
 			return ret;
 
@@ -665,7 +662,7 @@ static int csid_set_power(struct v4l2_subdev *sd, int on)
 		regulator_bulk_disable(csid->num_supplies,
 				       csid->supplies);
 		pm_runtime_put_sync(dev);
-		vfe_put(vfe);
+		csid->res->parent_dev_ops->put(camss, csid->id);
 	}
 
 	return ret;
@@ -1024,38 +1021,29 @@ int msm_csid_subdev_init(struct camss *camss, struct csid_device *csid,
 	csid->id = id;
 	csid->res = &res->csid;
 
+	if (dev_WARN_ONCE(dev, !csid->res->parent_dev_ops,
+			  "Error: CSID depends on VFE/IFE device ops!\n")) {
+		return -EINVAL;
+	}
+
 	csid->res->hw_ops->subdev_init(csid);
 
 	/* Memory */
-	switch (camss->res->version) {
-	case CAMSS_8250:
+	if (camss->res->version == CAMSS_8250) {
 		/* for titan 480, CSID registers are inside the VFE region,
 		 * between the VFE "top" and "bus" registers. this requires
 		 * VFE to be initialized before CSID
 		 */
 		if (id >= 2) /* VFE/CSID lite */
-			csid->base = camss->vfe[id].base + VFE_480_LITE_CSID_OFFSET;
+			csid->base = csid->res->parent_dev_ops->get_base_address(camss, id)
+				+ VFE_480_LITE_CSID_OFFSET;
 		else
-			csid->base = camss->vfe[id].base + VFE_480_CSID_OFFSET;
-
-		break;
-
-	case CAMSS_7280:
-		/* for titan 165, CSID registers are inside the VFE region,
-		 * between the VFE "top" and "bus" registers. this requires
-		 * VFE to be initialized before CSID
-		 */
-		csid->base = camss->vfe[id].base + VFE_165_CSID_OFFSET;
-
-		break;
-
-	default:
+			csid->base = csid->res->parent_dev_ops->get_base_address(camss, id)
+				 + VFE_480_CSID_OFFSET;
+	} else {
 		csid->base = devm_platform_ioremap_resource_byname(pdev, res->reg[0]);
 		if (IS_ERR(csid->base))
 			return PTR_ERR(csid->base);
-
-		break;
-
 	}
 
 	/* Interrupt */
@@ -1361,5 +1349,5 @@ void msm_csid_unregister_entity(struct csid_device *csid)
 
 inline bool csid_is_lite(struct csid_device *csid)
 {
-	return csid->camss->res->csid_res[csid->id].is_lite;
+	return csid->camss->res->csid_res[csid->id].csid.is_lite;
 }
