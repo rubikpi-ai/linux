@@ -271,6 +271,7 @@ int qcom_cc_really_probe(struct platform_device *pdev,
 		scd->dev = dev;
 		scd->scs = desc->gdscs;
 		scd->num = desc->num_gdscs;
+		scd->pmdomains = desc->pmdomains;
 		ret = gdsc_register(scd, &reset->rcdev, regmap);
 		if (ret)
 			return ret;

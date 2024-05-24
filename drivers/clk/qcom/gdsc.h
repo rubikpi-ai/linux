@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2015, 2017-2018, 2022, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef __QCOM_GDSC_H__
@@ -78,6 +79,7 @@ struct gdsc {
 struct gdsc_desc {
 	struct device *dev;
 	struct gdsc **scs;
+	struct dev_pm_domain_list *pmdomains;
 	size_t num;
 };
 
