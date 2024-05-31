@@ -1,6 +1,11 @@
 #include "qcm6490-addons-idp.dts"
 
 / {
+	aliases {
+		serial1 = &uart4;
+		serial2 = &uart14;
+	};
+
 	qps615_1p8_vreg: qps615-1p8-vreg {
 		compatible = "regulator-fixed";
 		regulator-name = "qps615_1p8_vreg";
@@ -311,6 +316,14 @@
 		gpio-controller;
 		#gpio-cells = <2>;
 	};
+};
+
+&uart4 {
+	status = "okay";
+};
+
+&uart14 {
+	status = "okay";
 };
 
 &apps_rsc {
