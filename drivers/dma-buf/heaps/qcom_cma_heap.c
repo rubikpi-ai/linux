@@ -7,7 +7,7 @@
  * Copyright (C) 2012, 2019 Linaro Ltd.
  * Author: <benjamin.gaignard@linaro.org> for ST-Ericsson.
  * Copyright (c) 2020-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/cma.h>
@@ -52,8 +52,8 @@ static void cma_heap_free(struct qcom_sg_buffer *buffer)
 /* dmabuf heap CMA operations functions */
 struct dma_buf *cma_heap_allocate(struct dma_heap *heap,
 				  unsigned long len,
-				  unsigned long fd_flags,
-				  unsigned long heap_flags)
+				  u32 fd_flags,
+				  u64 heap_flags)
 {
 	struct cma_heap *cma_heap;
 	struct qcom_sg_buffer *helper_buffer;
