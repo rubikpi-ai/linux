@@ -206,7 +206,7 @@ static void dwmac4_prog_mtl_rx_algorithms(struct mac_device_info *hw,
 	writel(value, ioaddr + MTL_OPERATION_MODE);
 }
 
-static void dwmac4_prog_mtl_tx_algorithms(struct mac_device_info *hw,
+static void dwmac4_prog_mtl_tx_algorithms(struct stmmac_priv *priv, struct mac_device_info *hw,
 					  u32 tx_alg)
 {
 	void __iomem *ioaddr = hw->pcsr;
@@ -310,7 +310,7 @@ static void dwmac4_config_cbs(struct stmmac_priv *priv,
 	writel(value, ioaddr + mtl_low_credx_base_addr(dwmac4_addrs, queue));
 }
 
-static void dwmac4_dump_regs(struct mac_device_info *hw, u32 *reg_space)
+static void dwmac4_dump_regs(struct stmmac_priv *priv, struct mac_device_info *hw, u32 *reg_space)
 {
 	void __iomem *ioaddr = hw->pcsr;
 	int i;
