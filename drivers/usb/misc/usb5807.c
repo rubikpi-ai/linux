@@ -109,8 +109,8 @@ static int usb5807_i2c_probe(struct i2c_client *i2c)
 	reset_gpio = devm_gpiod_get_optional(&i2c->dev, "reset",
 					     GPIOD_OUT_HIGH);
 	if (IS_ERR(reset_gpio)) {
-		return dev_err_probe(&i2c->dev, PTR_ERR(reset_gpio),
-				     "Failed to request reset GPIO\n");
+		dev_warn(&i2c->dev, "Failed to request reset GPIO\n");
+		reset_gpio = NULL;
 	}
 	/* Reset timing: Assert for >= 5 us */
 	usleep_range(5, 10);
@@ -118,7 +118,9 @@ static int usb5807_i2c_probe(struct i2c_client *i2c)
 	/* Lock the bus for >= 1ms while the hub reads the I2C strapping */
 	i2c_lock_bus(i2c->adapter, I2C_LOCK_SEGMENT);
 
-	gpiod_set_value_cansleep(reset_gpio, 0);
+	if (reset_gpio)
+		gpiod_set_value_cansleep(reset_gpio, 0);
+
 	usleep_range(1000, 2000);
 
 	i2c_unlock_bus(i2c->adapter, I2C_LOCK_SEGMENT);
