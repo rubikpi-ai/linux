@@ -495,11 +495,20 @@ static int setup_gsi_xfer(struct spi_transfer *xfer, struct spi_geni_master *mas
 		mas->cur_speed_hz = xfer->speed_hz;
 	}
 
+	/*
+	 * Setting QCOM_GPI_IMMEDIATE_DMA flag for SPI transfer with data
+	 * up to 8 bytes in length and so GPI DMA will make sure to
+	 * directly copy SPI transfers data into DMA TRE buffers.
+	 */
 	if (xfer->tx_buf && xfer->rx_buf) {
 		peripheral.cmd = SPI_DUPLEX;
+		if (xfer->len <= QCOM_GPI_IMMEDIATE_DMA_LEN)
+			peripheral.flags |= QCOM_GPI_IMMEDIATE_DMA;
 	} else if (xfer->tx_buf) {
 		peripheral.cmd = SPI_TX;
 		peripheral.rx_len = 0;
+		if (xfer->len <= QCOM_GPI_IMMEDIATE_DMA_LEN)
+			peripheral.flags |= QCOM_GPI_IMMEDIATE_DMA;
 	} else if (xfer->rx_buf) {
 		peripheral.cmd = SPI_RX;
 		if (!(mas->cur_bits_per_word % MIN_WORD_LEN)) {
