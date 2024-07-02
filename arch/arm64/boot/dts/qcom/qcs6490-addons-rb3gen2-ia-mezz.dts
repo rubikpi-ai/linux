@@ -45,6 +45,17 @@
 		enable-active-high;
 		regulator-enable-ramp-delay = <10000>;
 	};
+
+	qps615_rc1_resx_vreg: qps615-rc1-resx-vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "qps615_rc1_resx_vreg";
+		gpio = <&tlmm 124 0>;
+		vin-supply = <&qps615_1p8_vreg>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+		regulator-enable-ramp-delay = <10000>;
+	};
 };
 
 &i2c1 {
@@ -157,6 +168,12 @@
 			#size-cells = <0>;
 			reg = <4>;
 		};
+	};
+
+	qps615_rc1_switch: pcie-switch-1@77 {
+		compatible = "qcom,switch-i2c";
+		reg = <0x77>;
+		status = "okay";
 	};
 };
 
@@ -272,6 +289,63 @@
 	status = "okay";
 };
 
+&pcie1 {
+	iommu-map = <0x0 &apps_smmu 0x1c80 0x1>,
+		    <0x100 &apps_smmu 0x1c81 0x1>,
+		    <0x208 &apps_smmu 0x1c84 0x1>,
+		    <0x210 &apps_smmu 0x1c85 0x1>,
+		    <0x218 &apps_smmu 0x1c86 0x1>,
+		    <0x300 &apps_smmu 0x1c87 0x1>,
+		    <0x408 &apps_smmu 0x1c90 0x1>,
+		    <0x410 &apps_smmu 0x1c91 0x1>,
+		    <0x418 &apps_smmu 0x1c92 0x1>,
+		    <0x500 &apps_smmu 0x1c93 0x1>,
+		    <0x600 &apps_smmu 0x1c94 0x1>,
+		    <0x700 &apps_smmu 0x1c95 0x1>,
+		    <0x701 &apps_smmu 0x1c96 0x1>,
+		    <0x800 &apps_smmu 0x1c97 0x1>,
+		    <0x900 &apps_smmu 0x1c98 0x1>,
+		    <0x901 &apps_smmu 0x1c99 0x1>;
+};
+
+&pcie1_bus3_dev0_fn0 {
+	reg = <0x0 0x0 0x0 0x0 0x0>;
+
+	/* BDF 4.1.0 */
+	pcie1_bus4_dev1_fn0: pcie1-bus4-dev1-fn0 {
+		reg = <0x800 0x0 0x0 0x0 0x0>;
+
+		/* BDF 5.0.0 */
+		pcie1_bus5_rc1_dev0_fn0: pcie1-bus5-rc1-dev0-fn0 {
+			reg = <0x0 0x0 0x0 0x0 0x0>;
+		};
+	};
+
+	/* BDF 4.2.0 */
+	pcie1_bus4_dev2_fn0: pcie1-bus4-dev2-fn0 {
+		reg = <0x1000 0x0 0x0 0x0 0x0>;
+
+		/* BDF 6.0.0 */
+		pcie1_bus6_dev0_fn0: pcie1-bus6-dev0-fn0 {
+			reg = <0x0 0x0 0x0 0x0 0x0>;
+		};
+	};
+
+	/* BDF 4.3.0 */
+	pcie1_bus4_dev3_fn0: pcie1-bus4-dev3-fn0 {
+		reg = <0x1800 0x0 0x0 0x0 0x0>;
+		/* BDF 7.0.0 */
+		pcie1_bus7_dev0_fn0: pcie1-bus7-dev0-fn0 {
+			reg = <0x0 0x0 0x0 0x0 0x0>;
+		};
+
+		/* BDF 7.0.1 */
+		pcie1_bus7_dev0_fn1: pcie1-bus7-dev0-fn1 {
+			reg = <0x100 0x0 0x0 0x0 0x0>;
+		};
+	};
+};
+
 &pm7250b_gpios {
 	gpio5_tpm_dig_out {
 		gpio5_dig_out_default: gpio5_dig_out_default {
@@ -284,6 +358,10 @@
 			qcom,drive-strength = <3>;
 		};
 	};
+};
+
+&qps615_rsex_vreg {
+	vin-supply = <&qps615_rc1_resx_vreg>;
 };
 
 &qupv3_id_1 {
@@ -523,6 +601,15 @@
 
 		napa_rc0_intn_wol_sig: napa-rc0-intn-wol-sig {
 			pins = "gpio142";
+			function = "gpio";
+			input-enable;
+			bias-disable;
+		};
+	};
+
+	qps615_rc1_intn_wol {
+		napa_rc1_intn_wol_sig: napa-rc1-intn-wol-sig {
+			pins = "gpio6";
 			function = "gpio";
 			input-enable;
 			bias-disable;
