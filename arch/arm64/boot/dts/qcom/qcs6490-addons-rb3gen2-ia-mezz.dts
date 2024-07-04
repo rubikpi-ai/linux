@@ -50,12 +50,24 @@
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <1>;
+			usb-hub@2d {
+				compatible = "microchip,usb5807";
+				reg = <0x2d>;
+				/* Swapped D+/D- on port 0 */
+				swap-dx-lanes = <1>;
+			};
 		};
 
 		i2c@2 {
 			#address-cells = <1>;
 			#size-cells = <0>;
 			reg = <2>;
+			usb-hub@2d {
+				compatible = "microchip,usb5807";
+				reg = <0x2d>;
+				/* Swapped D+/D- on port 0 */
+				swap-dx-lanes = <1>;
+			};
 		};
 
 		i2c@3 {
