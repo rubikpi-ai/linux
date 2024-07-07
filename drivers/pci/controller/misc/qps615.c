@@ -5,6 +5,7 @@
 #include <linux/firmware.h>
 #include <linux/i2c.h>
 #include <linux/module.h>
+#include <linux/pci.h>
 #include <linux/notifier.h>
 
 #define DRV_NAME		"qps615-switch-i2c"
@@ -247,7 +248,7 @@ static const struct dev_pm_ops qps615_pm_ops = {
 static struct i2c_driver qps615_switch_driver = {
 	.driver = {
 		.name = DRV_NAME,
-		.pm = &qps615_pm_ops,
+		//.pm = &qps615_pm_ops,
 		.of_match_table = qps615_switch_of_match,
 	},
 	.probe = qps615_switch_probe,
@@ -265,6 +266,24 @@ static __init int qps615_i2c_init(void)
 	return ret;
 }
 module_init(qps615_i2c_init);
+
+static void qcom_pcie_resume_early(struct pci_dev *pdev)
+{
+	pci_restore_state(pdev);
+}
+
+DECLARE_PCI_FIXUP_CLASS_RESUME_EARLY(PCI_ANY_ID,
+				PCI_ANY_ID, PCI_CLASS_BRIDGE_PCI_NORMAL, 0,
+				qcom_pcie_resume_early);
+
+static void qcom_pcie_suspend_late(struct pci_dev *pdev)
+{
+	pci_save_state(pdev);
+}
+
+DECLARE_PCI_FIXUP_CLASS_SUSPEND_LATE(PCI_ANY_ID,
+				PCI_ANY_ID, PCI_CLASS_BRIDGE_PCI_NORMAL, 0,
+				qcom_pcie_suspend_late);
 
 MODULE_AUTHOR("Krishna Chaitanya Chundru <quic_krichai@quicinc.com>");
 MODULE_DESCRIPTION("QPS615 PCIE Switch driver");

@@ -59,6 +59,7 @@
 #define PARF_SLV_ADDR_SPACE_SIZE		0x358
 #define PARF_DEVICE_TYPE			0x1000
 #define PARF_BDF_TO_SID_TABLE_N			0x2000
+#define PARF_BDF_TO_SID_CFG			0x2c00
 
 /* ELBI registers */
 #define ELBI_SYS_CTRL				0x04
@@ -128,6 +129,9 @@
 
 /* PARF_DEVICE_TYPE register fields */
 #define DEVICE_TYPE_RC				0x4
+
+/* PARF_BDF_TO_SID_CFG fields */
+#define BDF_TO_SID_BYPASS			BIT(0)
 
 /* ELBI_SYS_CTRL register fields */
 #define ELBI_SYS_CTRL_LT_ENABLE			BIT(0)
@@ -1020,10 +1024,16 @@ static int qcom_pcie_config_sid_1_9_0(struct qcom_pcie *pcie)
 	u8 qcom_pcie_crc8_table[CRC8_TABLE_SIZE];
 	int i, nr_map, size = 0;
 	u32 smmu_sid_base;
+	u32 val;
 
 	of_get_property(dev->of_node, "iommu-map", &size);
 	if (!size)
 		return 0;
+
+	/* Enable BDF to SID translation by disabling bypass mode (default) */
+	val = readl(pcie->parf + PARF_BDF_TO_SID_CFG);
+	val &= ~BDF_TO_SID_BYPASS;
+	writel(val, pcie->parf + PARF_BDF_TO_SID_CFG);
 
 	map = kzalloc(size, GFP_KERNEL);
 	if (!map)
@@ -1185,6 +1195,9 @@ static int qcom_pcie_post_init_2_9_0(struct qcom_pcie *pcie)
 	return 0;
 }
 
+extern struct blocking_notifier_head qps615_chain_head;
+int qps615_notifier_call_chain(unsigned long val, void *v);
+
 static int qcom_pcie_link_up(struct dw_pcie *pci)
 {
 	u16 offset = dw_pcie_find_capability(pci, PCI_CAP_ID_EXP);
@@ -1192,9 +1205,6 @@ static int qcom_pcie_link_up(struct dw_pcie *pci)
 
 	return !!(val & PCI_EXP_LNKSTA_DLLLA);
 }
-
-extern struct blocking_notifier_head qps615_chain_head;
-int qps615_notifier_call_chain(unsigned long val, void *v);
 
 static int qcom_pcie_host_init(struct dw_pcie_rp *pp)
 {
@@ -1223,6 +1233,7 @@ static int qcom_pcie_host_init(struct dw_pcie_rp *pp)
 	}
 
 	qcom_ep_reset_deassert(pcie);
+
 	usleep_range(PERST_DELAY_US, PERST_DELAY_US + 500);
 	qps615_notifier_call_chain(0, NULL);
 	msleep(20);

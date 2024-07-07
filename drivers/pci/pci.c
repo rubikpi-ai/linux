@@ -1563,24 +1563,6 @@ static int pci_save_pcie_state(struct pci_dev *dev)
 	return 0;
 }
 
-void pci_bridge_reconfigure_ltr(struct pci_dev *dev)
-{
-#ifdef CONFIG_PCIEASPM
-	struct pci_dev *bridge;
-	u32 ctl;
-
-	bridge = pci_upstream_bridge(dev);
-	if (bridge && bridge->ltr_path) {
-		pcie_capability_read_dword(bridge, PCI_EXP_DEVCTL2, &ctl);
-		if (!(ctl & PCI_EXP_DEVCTL2_LTR_EN)) {
-			pci_dbg(bridge, "re-enabling LTR\n");
-			pcie_capability_set_word(bridge, PCI_EXP_DEVCTL2,
-						 PCI_EXP_DEVCTL2_LTR_EN);
-		}
-	}
-#endif
-}
-
 static void pci_restore_pcie_state(struct pci_dev *dev)
 {
 	int i = 0;
@@ -2434,29 +2416,36 @@ static void pci_pme_list_scan(struct work_struct *work)
 		if (pdev->pme_poll) {
 			struct pci_dev *bridge = pdev->bus->self;
 			struct device *dev = &pdev->dev;
-			int pm_status;
+			struct device *bdev = bridge ? &bridge->dev : NULL;
+			int bref = 0;
 
 			/*
-			 * If bridge is in low power state, the
-			 * configuration space of subordinate devices
-			 * may be not accessible
+			 * If we have a bridge, it should be in an active/D0
+			 * state or the configuration space of subordinate
+			 * devices may not be accessible or stable over the
+			 * course of the call.
 			 */
-			if (bridge && bridge->current_state != PCI_D0)
-				continue;
+			if (bdev) {
+				bref = pm_runtime_get_if_active(bdev, true);
+				if (!bref)
+					continue;
+
+				if (bridge->current_state != PCI_D0)
+					goto put_bridge;
+			}
 
 			/*
-			 * If the device is in a low power state it
-			 * should not be polled either.
+			 * The device itself should be suspended but config
+			 * space must be accessible, therefore it cannot be in
+			 * D3cold.
 			 */
-			pm_status = pm_runtime_get_if_active(dev, true);
-			if (!pm_status)
-				continue;
-
-			if (pdev->current_state != PCI_D3cold)
+			if (pm_runtime_suspended(dev) &&
+			    pdev->current_state != PCI_D3cold)
 				pci_pme_wakeup(pdev, NULL);
 
-			if (pm_status > 0)
-				pm_runtime_put(dev);
+put_bridge:
+			if (bref > 0)
+				pm_runtime_put(bdev);
 		} else {
 			list_del(&pme_dev->list);
 			kfree(pme_dev);
