@@ -359,6 +359,76 @@
 		<0x400 &apps_smmu 0x1c88 0x1>,
 		<0x500 &apps_smmu 0x1c89 0x1>,
 		<0x501 &apps_smmu 0x1c90 0x1>;
+	pcieport0: pcie@0 {
+		device_type = "pci";
+		reg = <0x0 0x0 0x0 0x0 0x0>;
+		#address-cells = <5>;
+		#size-cells = <0>;
+		/* BDF 1.0.0 */
+		pcie1_bus1_dev0_fn0: pcie1_bus1_dev0_fn0 {
+			reg = <0 0 0 0 0>;
+			/* BDF 2.1.0 */
+			pcie1_bus2_dev1_fn0: pcie1_bus2_dev1_fn0 {
+				reg = <0x800 0x0 0x0 0x0 0x0>;
+				/* BDF 3.0.0 */
+				pcie1_bus3_dev0_fn0: pcie1_bus3_dev0_fn0 {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+				};
+			};
+			/* BDF 2.2.0 */
+			pcie1_bus2_dev2_fn0: pcie1_bus2_dev2_fn0 {
+				reg = <0x1000 0x0 0x0 0x0 0x0>;
+				/* BDF 4.0.0 */
+				pcie1_bus4_dev0_fn0: pcie1_bus4_dev0_fn0 {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+				};
+			};
+			/* BDF 2.3.0 */
+			pcie1_bus2_dev3_fn0: pcie1_bus2_dev3_fn0 {
+				reg = <0x1800 0x0 0x0 0x0 0x0>;
+				qps615_eth0,qps615_eth0@pcie1_rp {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+					//pinctrl-names = "default";
+					//pinctrl-0 = <&aqr_intn_wol_sig>;
+					qcom,phy-rst-gpio = <0>;
+					//interrupts-extended = <&tlmm 141 IRQ_TYPE_EDGE_FALLING>;
+					//interrupt-names = "wol_irq";
+					//phy-supply = <&aqr_vreg>;
+					qcom,phy-rst-delay-us = <20000>;
+					#address-cells = <1>;
+					#size-cells = <1>;
+				};
+				/* BDF 5.0.0 */
+				pcie1_bus5_dev0_fn0: pcie1_qps_eth0 {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+					qcom,iommu-group = <&eth0_pci_iommu_group>;
+					eth0_pci_iommu_group: eth0_pci_iommu_group {
+						qcom,iommu-dma = "atomic";
+					};
+				};
+				qps615_eth1,qps615_eth1@pcie1_rp {
+					reg = <0x100 0x0 0x0 0x0 0x0>;
+					//pinctrl-names = "default";
+					//pinctrl-0 = <&napa_intn_wol_sig>;
+					qcom,phy-rst-gpio = <1>;
+					//interrupts-extended = <&tlmm 101 IRQ_TYPE_EDGE_FALLING>;
+					//interrupt-names = "wol_irq";
+					//phy-supply = <&qep_vreg>;
+					qcom,phy-rst-delay-us = <20000>;
+					#address-cells = <1>;
+					#size-cells = <1>;
+				};
+				/* BDF 5.0.1 */
+				pcie1_bus5_dev0_fn1: pcie1_qps_eth1 {
+					reg = <0x100 0x0 0x0 0x0 0x0>;
+					qcom,iommu-group = <&eth1_pci_iommu_group>;
+					eth1_pci_iommu_group: eth1_pci_iommu_group {
+						qcom,iommu-dma = "atomic";
+					};
+				};
+			};
+		};
+	};
 };
 
 &pcie1_phy {

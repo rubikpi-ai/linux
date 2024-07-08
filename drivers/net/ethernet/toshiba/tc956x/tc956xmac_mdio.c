@@ -740,7 +740,12 @@ int tc956xmac_mdio_register(struct net_device *ndev)
 			phy_attached_info(phydev);
 #endif
 			found = 1;
-			break;
+
+			struct phy_device *phydev = mdiobus_get_phy(new_bus, addr);
+			if (true == priv->plat->phy_interrupt_mode
+					&& (phydev->drv->config_intr)) {
+				phydev->interrupts = PHY_INTERRUPT_ENABLED;
+			}
 #ifdef TC956X
 			}
 		} else {
