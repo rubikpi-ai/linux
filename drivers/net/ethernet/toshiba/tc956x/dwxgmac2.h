@@ -4,7 +4,7 @@
  * dwxgmac2.h
  *
  * Copyright (C) 2018 Synopsys, Inc. and/or its affiliates.
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro and Synopsys Linux driver,
  * and developed or modified for TC956X.
@@ -25,22 +25,21 @@
  */
 
 /*! History:
- *  17 July 2020 : 1. Filtering updates
- *  VERSION	 : 00-01
- *
+ *  17 Jul 2020 : 1. Filtering updates
+ *  VERSION     : 00-01
  *  15 Mar 2021 : Base lined
  *  VERSION     : 01-00
  *  29 Jul 2021 : 1. Add support to set MAC Address register
  *  VERSION     : 01-00-07
  *  14 Sep 2021 : 1. Synchronization between ethtool vlan features
- *  		  "rx-vlan-offload", "rx-vlan-filter", "tx-vlan-offload" output and register settings.
- * 		  2. Added ethtool support to update "rx-vlan-offload", "rx-vlan-filter",
- *  		  and "tx-vlan-offload".
- * 		  3. Removed IOCTL TC956XMAC_VLAN_STRIP_CONFIG.
- * 		  4. Removed "Disable VLAN Filter" option in IOCTL TC956XMAC_VLAN_FILTERING.
+ *                   "rx-vlan-offload", "rx-vlan-filter", "tx-vlan-offload" output and register settings.
+ *                2. Added ethtool support to update "rx-vlan-offload", "rx-vlan-filter",
+ *                   and "tx-vlan-offload".
+ *                3. Removed IOCTL TC956XMAC_VLAN_STRIP_CONFIG.
+ *                4. Removed "Disable VLAN Filter" option in IOCTL TC956XMAC_VLAN_FILTERING.
  *  VERSION     : 01-00-13
  *  19 Oct 2021 : 1. Adding M3 SRAM Debug counters to ethtool statistics
- * 		  2. Adding MTL RX Overflow/packet miss count, TX underflow counts,Rx Watchdog value to ethtool statistics.
+ *                2. Adding MTL RX Overflow/packet miss count, TX underflow counts,Rx Watchdog value to ethtool statistics.
  *  VERSION     : 01-00-17
  *  25 Oct 2021 : 1. Added EEE macros for MAC controlled EEE.
  *  VERSION     : 01-00-19
@@ -48,6 +47,13 @@
  *  VERSION     : 01-00-39
  *  02 Feb 2022 : 1. Macros added for Tx Queue flush and Rx DMA flush
  *  VERSION     : 01-00-40
+ *  18 Dec 2023 : 1. IOCTL/TC/IPA/ModuleParams register write bug fixes.
+ *  VERSION     : 01-00-41
+ *  13 Feb 2024 : 1. Merged CPE and Automotive package
+ *                2. Updated with Register Configuration Check.
+ *  VERSION     : 04-00
+ *  29 Mar 2024 : 1. Support for without MDIO and without PHY case
+ *  VERSION     : 04-00
  */
 
 
@@ -191,6 +197,7 @@
 #define XGMAC_PT			GENMASK(31, 16)
 #define XGMAC_PT_SHIFT			16
 #define XGMAC_TFE			BIT(1)
+#define XGMAC_FCB			BIT(0)
 #define XGMAC_RX_FLOW_CTRL		(MAC_OFFSET + 0x00000090)
 #define XGMAC_PFCE			BIT(8)
 #define XGMAC_RFE			BIT(0)
@@ -214,9 +221,13 @@
 #define XGMAC_TLPIEX			BIT(1)
 #define XGMAC_TLPIEN			BIT(0)
 #define XGMAC_LPI_TIMER_CTRL		(MAC_OFFSET + 0x000000d4)
+#define XGMAC_LPI_TIMER_CTRL_TWT_MASK	GENMASK(15, 0)
+#define XGMAC_LPI_TIMER_CTRL_LST_MASK	GENMASK(25, 16)
+#define XGMAC_LPI_TIMER_CTRL_LST_SHIFT	16
 
 #ifdef EEE_MAC_CONTROLLED_MODE
 #define XGMAC_LPI_1US_Tic_Counter	(MAC_OFFSET + 0x000000dc)
+#define XGMAC_LPI_1US_Tic_Counter_MASK		GENMASK(11, 0)
 #define XGMAC_LPI_Auto_Entry_Timer	(MAC_OFFSET + 0x000000d8)
 #define XGMAC_LPIET			0xFFFF8
 #endif
@@ -234,7 +245,7 @@
 #define XGMAC_HWFEAT_MMCSEL		BIT(8)
 #define XGMAC_HWFEAT_MGKSEL		BIT(7)
 #define XGMAC_HWFEAT_RWKSEL		BIT(6)
-#ifdef TC956X_WITHOUT_MDIO
+#ifdef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 #define XGMAC_HWFEAT_SMASEL		BIT(5)
 #endif
 #define XGMAC_HWFEAT_VLHASH		BIT(4)
@@ -253,6 +264,7 @@
 #define XGMAC_HWFEAT_RXFIFOSIZE	GENMASK(4, 0)
 #define XGMAC_HW_FEATURE2		(MAC_OFFSET + 0x00000124)
 #define XGMAC_HW_FEATURE2_BASE		(0x00000124)
+#define XGMAC_HWFEAT_AUXSNAPNUM		GENMASK(30, 28)
 #define XGMAC_HWFEAT_PPSOUTNUM		GENMASK(26, 24)
 #define XGMAC_HWFEAT_TXCHCNT		GENMASK(21, 18)
 #define XGMAC_HWFEAT_TXCHCNT_SHIFT	(18)
@@ -499,9 +511,13 @@
 #define XGMAC_MTL_DEBUG_TCPAUSED	BIT(0)
 #define XGMAC_MTL_TCx_ETS_CONTROL(x)	(MAC_OFFSET + (0x00001110 + (0x80 * (x))))
 #define XGMAC_MTL_TCx_QUANTUM_WEIGHT(x) (MAC_OFFSET + (0x00001118 + (0x80 * (x))))
+#define XGMAC_MTL_TCx_QUANTUM_WEIGHT_ISCQW_MASK	GENMASK(20, 0)
 #define XGMAC_MTL_TCx_SENDSLOPE(x)	(MAC_OFFSET + (0x0000111c + (0x80 * (x))))
+#define XGMAC_MTL_TCx_SENDSLOPE_CRED_SSC_MASK	GENMASK(15, 0)
 #define XGMAC_MTL_TCx_HICREDIT(x)	(MAC_OFFSET + (0x00001120 + (0x80 * (x))))
+#define XGMAC_MTL_TCx_HICREDIT_HC_MASK		GENMASK(28, 0)
 #define XGMAC_MTL_TCx_LOCREDIT(x)	(MAC_OFFSET + (0x00001124 + (0x80 * (x))))
+#define XGMAC_MTL_TCx_LOCREDIT_LC_MASK		GENMASK(28, 0)
 #define XGMAC_CC			BIT(3)
 #define XGMAC_TSA			GENMASK(1, 0)
 #define XGMAC_SP			(0x0 << 0)
@@ -673,12 +689,19 @@
 #define XGMAC_DMA_CH_INT_EN(x)		(MAC_OFFSET + (0x00003138 + (0x80 * (x))))
 #define XGMAC_NIE			BIT(15)
 #define XGMAC_AIE			BIT(14)
+#define XGMAC_FBEE			BIT(12)
+#define XGMAC_RSE			BIT(8)
 #define XGMAC_RBUE			BIT(7)
 #define XGMAC_RIE			BIT(6)
 #define XGMAC_TBUE			BIT(2)
 #define XGMAC_TIE			BIT(0)
+#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_ENABLE_MAC2MAC_BRIDGE) || defined(TC956X_CPE_CONFIG)
 #define XGMAC_DMA_INT_DEFAULT_EN	(XGMAC_NIE | XGMAC_AIE | XGMAC_RBUE | \
 					XGMAC_RIE | XGMAC_TIE)
+#else
+#define XGMAC_DMA_INT_DEFAULT_EN	(XGMAC_NIE | XGMAC_AIE | XGMAC_RBUE | \
+					XGMAC_RIE | XGMAC_TIE | XGMAC_RSE | XGMAC_FBEE)
+#endif
 #define XGMAC_DMA_INT_DEFAULT_RX	(XGMAC_RBUE | XGMAC_RIE)
 #define XGMAC_DMA_INT_DEFAULT_TX	(XGMAC_TIE)
 #define XGMAC_DMA_CH_Rx_WATCHDOG(x)	(MAC_OFFSET + (0x0000313c + (0x80 * (x))))

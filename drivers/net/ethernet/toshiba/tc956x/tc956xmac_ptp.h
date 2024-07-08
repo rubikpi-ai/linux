@@ -4,7 +4,7 @@
  * tc956xmac_ptp.h
  *
  * Copyright (C) 2013  Vayavya Labs Pvt Ltd
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro and Vayavya Linux driver,
  * and developed or modified for TC956X.
@@ -30,6 +30,10 @@
  *
  *  15 Mar 2021 : Base lined
  *  VERSION     : 01-00
+ *
+ *  13 Feb 2024 : 1. Merged CPE and Automotive package
+ *                2. Updated with Register Configuration Check.
+ *  VERSION     : 04-00
  */
 
 #ifndef	__TC956XMAC_PTP_H__
@@ -51,6 +55,9 @@
 #define	PTP_STSUR	0x10	/* System Time – Seconds Update Reg */
 #define	PTP_STNSUR	0x14	/* System Time – Nanoseconds Update Reg */
 #define	PTP_TAR		0x18	/* Timestamp Addend Reg */
+#define	PTP_ATNR	0x48	/* Auxiliary Timestamp - Nanoseconds Reg */
+#define	PTP_ATSR	0x4c	/* Auxiliary Timestamp - Seconds Reg */
+
 #define PTP_TS_STATUS	0x20	/* Timestamp status Reg */
 
 #define PTP_ATS_NSEC	0x48	/* MAC_Auxiliary_Timestamp_Seconds */
@@ -107,5 +114,9 @@
 #define PTP_SSIR_SNSINC_MASK		0xff
 #define GMAC4_PTP_SSIR_SNSINC_SHIFT	8
 //#endif
+
+/* MAC Timestamp Status */
+#define MAC_TS_ATSNS_MASK	GENMASK(29, 25)
+#define MAC_TS_ATSNS_SHIFT	25
 
 #endif	/* __TC956XMAC_PTP_H__ */

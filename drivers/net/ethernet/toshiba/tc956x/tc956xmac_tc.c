@@ -303,7 +303,7 @@ static int tc_setup_cls_u32(struct tc956xmac_priv *priv,
 #ifdef TC956X_SRIOV_VF
 	/* This is feature not supported from VF as this will impact
 	 * the entire MAC
-	 * */
+	 */
 	return -EOPNOTSUPP;
 #endif
 	switch (cls->command) {
@@ -1041,7 +1041,7 @@ static int tc_setup_cls(struct tc956xmac_priv *priv,
 	return ret;
 }
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 5, 0))
+#if LINUX_VERSION_CODE > KERNEL_VERSION(5, 5, 0)
 struct timespec64 tc956x_calc_basetime(ktime_t old_base_time,
 					   ktime_t current_time,
 					   u64 cycle_time)
@@ -1121,7 +1121,7 @@ static int tc_setup_taprio(struct tc956xmac_priv *priv,
 	default:
 		return -EOPNOTSUPP;
 	}
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 5))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 5)
 	if (!qopt->enable)
 		goto disable;
 #else
@@ -1149,7 +1149,7 @@ static int tc_setup_taprio(struct tc956xmac_priv *priv,
 	size = qopt->num_entries;
 
 	priv->plat->est->gcl_size = size;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 5))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 4, 5)
 	priv->plat->est->enable = qopt->enable;
 #else
 	priv->plat->est->enable = qopt->cmd == TAPRIO_CMD_REPLACE;
@@ -1246,7 +1246,7 @@ disable:
 	return ret;
 }
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 2, 16))
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6, 2, 16)
 static int tc_query_caps(struct tc956xmac_priv *priv,
 			 struct tc_query_caps_base *base)
 {
@@ -1328,9 +1328,9 @@ const struct tc956xmac_tc_ops dwmac510_tc_ops = {
 	.setup_cls_u32 = tc_setup_cls_u32,
 	.setup_cbs = tc_setup_cbs,
 	.setup_cls = tc_setup_cls,
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(5, 5, 0))
+#if LINUX_VERSION_CODE > KERNEL_VERSION(5, 5, 0)
 	.setup_taprio = tc_setup_taprio,
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 2, 16))
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6, 2, 16)
 	.query_caps = tc_query_caps,
 #endif
 #endif

@@ -4,7 +4,7 @@
  * dwxgmac2_dma.c
  *
  * Copyright (C) 2018 Synopsys, Inc. and/or its affiliates.
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro and Synopsys Linux driver,
  * and developed or modified for TC956X.
@@ -35,19 +35,22 @@
  *  20 Jul 2021 : 1. Debug prints removed
  *  VERSION     : 01-00-03
  *  23 Sep 2021 : 1. Updating RX Queue Threshold Limits for Flow control
- *  		  Threshold Limit for Activating Flow control 
- *  		  Threshold Limit for Deactivating Flow control 
+ *                   Threshold Limit for Activating Flow control
+ *                   Threshold Limit for Deactivating Flow control
  *  VERSION     : 01-00-14
  *  08 Dec 2021 : 1. Added module parameter for Flow control thresholds per Queue
  *  VERSION     : 01-00-30
  *  02 Feb 2022 : 1. Tx Queue flushed and checked for status after Tx DMA stop
  *  VERSION     : 01-00-40
  *  29 Apr 2022 : 1. Checking for DMA status update as stop after TX DMA stop
- *  		  2. Checking for Tx MTL Queue Read/Write contollers in idle state after TX DMA stop
+ *                2. Checking for Tx MTL Queue Read/Write contollers in idle state after TX DMA stop
  *  VERSION     : 01-00-51
  *  26 Dec 2023 : 1. Kernel 6.6 Porting changes
  *  VERSION     : 01-03-59
- *
+ *  13 Feb 2024 : 1. IOCTL/TC/IPA/ModuleParams register write bug fixes.
+ *  VERSION     : 04-00
+ *  29 Mar 2024 : 1. Support for without MDIO and without PHY case
+ *  VERSION     : 04-00
  */
 
 #include <linux/iopoll.h>
@@ -408,22 +411,22 @@ static void dwxgmac2_dma_stop_tx(struct tc956xmac_priv *priv,
 		udelay(1);
 	}
 	if (limit == -1)
-		KPRINT_ERR("Tx DMA (%d) is not in stop state\n",chan);
+		KPRINT_ERR("Tx DMA (%d) is not in stop state\n", chan);
 
-	DBGPR_FUNC(priv->device, "%s DMA chnl status : 0x%x, chnl : %d, limit [%d]\n", __func__, readl(ioaddr + XGMAC_DMA_CH_STATUS(chan)),chan, limit);
+	DBGPR_FUNC(priv->device, "%s DMA chnl status : 0x%x, chnl : %d, limit [%d]\n", __func__, readl(ioaddr + XGMAC_DMA_CH_STATUS(chan)), chan, limit);
 
 	/*Check whether MTL Tx Read/Write controller is in Idle state */
 	limit = 10000;
 	while (limit--) {
-		if (!(readl(ioaddr + XGMAC_MTL_TXQ_Debug(chan)) & (XGMAC_MTL_DEBUG_TWCSTS | 
+		if (!(readl(ioaddr + XGMAC_MTL_TXQ_Debug(chan)) & (XGMAC_MTL_DEBUG_TWCSTS |
 			XGMAC_MTL_DEBUG_TRCSTS_MASK)))
 			break;
 		udelay(1);
 	}
 	if (limit == -1)
-		KPRINT_ERR("MTL Tx Read/Write controller (%d) is not in idle state\n",chan);
+		KPRINT_ERR("MTL Tx Read/Write controller (%d) is not in idle state\n", chan);
 
-	DBGPR_FUNC(priv->device, "%s MTL TXQ status : 0x%x, chnl : %d, limit [%d]\n", __func__, readl(ioaddr + XGMAC_MTL_TXQ_Debug(chan)),chan, limit);
+	DBGPR_FUNC(priv->device, "%s MTL TXQ status : 0x%x, chnl : %d, limit [%d]\n", __func__, readl(ioaddr + XGMAC_MTL_TXQ_Debug(chan)), chan, limit);
 
 	/* Flush the Tx Queue */
 	value = readl(ioaddr + XGMAC_MTL_TXQ_OPMODE(chan));
@@ -553,7 +556,7 @@ static void dwxgmac2_get_hw_feature(struct tc956xmac_priv *priv,
 	dma_cap->rmon = (hw_cap & XGMAC_HWFEAT_MMCSEL) >> 8;
 	dma_cap->pmt_magic_frame = (hw_cap & XGMAC_HWFEAT_MGKSEL) >> 7;
 	dma_cap->pmt_remote_wake_up = (hw_cap & XGMAC_HWFEAT_RWKSEL) >> 6;
-#ifdef TC956X_WITHOUT_MDIO
+#ifdef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	dma_cap->sma_mdio = (hw_cap & XGMAC_HWFEAT_SMASEL) >> 5;
 #endif
 	dma_cap->vlhash = (hw_cap & XGMAC_HWFEAT_VLHASH) >> 4;
@@ -600,6 +603,9 @@ static void dwxgmac2_get_hw_feature(struct tc956xmac_priv *priv,
 	/* MAC HW feature 2 */
 	hw_cap = readl(ioaddr + XGMAC_HW_FEATURE2);
 	dma_cap->pps_out_num = (hw_cap & XGMAC_HWFEAT_PPSOUTNUM) >> 24;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
+	dma_cap->aux_snapshot_n = (hw_cap & XGMAC_HWFEAT_AUXSNAPNUM) >> 28;
+#endif
 	dma_cap->number_tx_channel =
 		((hw_cap & XGMAC_HWFEAT_TXCHCNT) >> 18) + 1;
 	dma_cap->number_rx_channel =
@@ -639,16 +645,15 @@ static void dwxgmac2_get_hw_feature(struct tc956xmac_priv *priv,
 		dma_cap->frpes = 256;
 		break;
 	}
-#ifdef TC956X_WITHOUT_MDIO
-	if (priv->plat->interface == PHY_INTERFACE_MODE_RGMII)
-		dma_cap->sma_mdio = 0;
+#ifdef TC956X_WITHOUT_MDIO_WITHOUT_PHY
+	dma_cap->sma_mdio = 0;
 #endif
 }
 
 static void dwxgmac2_rx_watchdog(struct tc956xmac_priv *priv,
 					void __iomem *ioaddr, u32 riwt, u32 nchan)
 {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
 #ifdef TC956X_SRIOV_PF
 	if (priv->plat->rx_ch_in_use[nchan] == TC956X_DISABLE_CHNL)
 		return;
@@ -687,7 +692,7 @@ static void dwxgmac2_set_rx_ring_len(struct tc956xmac_priv *priv,
 
 	val = readl(ioaddr + XGMAC_DMA_CH_RX_CONTROL2(chan));
 	val &= ~XGMAC_RDRL;
-	val |= (len << XGMAC_RDRL_SHIFT);
+	val |= (len << XGMAC_RDRL_SHIFT) & XGMAC_RDRL;
 	writel(val, ioaddr + XGMAC_DMA_CH_RX_CONTROL2(chan));
 }
 
@@ -754,7 +759,7 @@ static void dwxgmac2_set_bfsize(struct tc956xmac_priv *priv,
 
 	value = readl(ioaddr + XGMAC_DMA_CH_RX_CONTROL(chan));
 	value &= ~XGMAC_RBSZ;
-	value |= bfsize << XGMAC_RBSZ_SHIFT;
+	value |= (bfsize << XGMAC_RBSZ_SHIFT) & XGMAC_RBSZ;
 	writel(value, ioaddr + XGMAC_DMA_CH_RX_CONTROL(chan));
 }
 

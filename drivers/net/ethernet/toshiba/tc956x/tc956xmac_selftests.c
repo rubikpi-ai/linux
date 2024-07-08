@@ -4,7 +4,7 @@
  * tc956xmac_selftests.c
  *
  * Copyright (C) 2019 Synopsys, Inc. and/or its affiliates.
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro and Synopsys Linux driver,
  * and developed or modified for TC956X.
@@ -30,6 +30,12 @@
  *
  *  15 Mar 2021 : Base lined
  *  VERSION     : 01-00
+ *
+ *  13 Feb 2024 : 1. Merged CPE and Automotive package
+ *                2. Updated with Register Configuration Check.
+ *  VERSION     : 04-00
+ *  06 Mar 2024 : 1. Kernel 6.6.1 Porting changes
+ *  VERSION     : 04-00
  */
 
 #include <linux/bitrev.h>
@@ -59,13 +65,20 @@ struct tc956xmachdr {
 #define TC956XMAC_PTP_TIMEOUT	msecs_to_jiffies(2000)
 #define MMC_COUNTER_INITIAL_VALUE 0
 /*#define SELFTEST_NOT_SUPPORTED*/
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+static int filter_vlan_id;
+#endif
 
 struct tc956xmac_packet_attrs {
 	int vlan;
 	int vlan_id_in;
 	int vlan_id_out;
 	unsigned char *src;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 146)
 	unsigned char *dst;
+#else
+	const unsigned char *dst;
+#endif
 	u32 ip_src;
 	u32 ip_dst;
 	int tcp;
@@ -261,7 +274,11 @@ static int tc956xmac_test_loopback_validate(struct sk_buff *skb,
 {
 	struct tc956xmac_test_priv *tpriv = pt->af_packet_priv;
 	unsigned char *src = tpriv->packet->src;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 146)
 	unsigned char *dst = tpriv->packet->dst;
+#else
+	const unsigned char *dst = tpriv->packet->dst;
+#endif
 	struct tc956xmachdr *shdr;
 	struct ethhdr *ehdr;
 	struct udphdr *uhdr;
@@ -850,6 +867,13 @@ static int tc956xmac_test_vlan_validate(struct sk_buff *skb,
 
 	proto = tpriv->double_vlan ? ETH_P_8021AD : ETH_P_8021Q;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+	/* VLAN Fields of SKB buffer is not updated from Kernel 6.2.0
+	 * So VLAN fields of received packets are updated at Receiver.
+	 */
+	__vlan_hwaccel_put_tag(skb, htons(proto), filter_vlan_id);
+#endif
+
 	skb = skb_unshare(skb, GFP_ATOMIC);
 	if (!skb)
 		goto out;
@@ -858,6 +882,7 @@ static int tc956xmac_test_vlan_validate(struct sk_buff *skb,
 		goto out;
 	if (skb_headlen(skb) < (TC956XMAC_TEST_PKT_SIZE - ETH_HLEN))
 		goto out;
+
 	if (tpriv->vlan_id) {
 		if (skb->vlan_proto != htons(proto))
 			goto out;
@@ -933,7 +958,9 @@ static int __tc956xmac_test_vlanfilt(struct tc956xmac_priv *priv)
 		attr.dst = priv->dev->dev_addr;
 		attr.sport = 9;
 		attr.dport = 9;
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+		filter_vlan_id = attr.vlan_id_out;
+#endif
 		skb = tc956xmac_test_get_udp_skb(priv, &attr);
 		if (!skb) {
 			ret = -ENOMEM;
@@ -960,6 +987,9 @@ static int __tc956xmac_test_vlanfilt(struct tc956xmac_priv *priv)
 
 vlan_del:
 	vlan_vid_del(priv->dev, htons(ETH_P_8021Q), tpriv->vlan_id);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+	filter_vlan_id = 0;
+#endif
 cleanup:
 	dev_remove_pack(&tpriv->pt);
 	kfree(tpriv);
@@ -987,7 +1017,7 @@ static int tc956xmac_test_vlanfilt_perfect(struct tc956xmac_priv *priv)
 
 	return ret;
 }
-
+#ifdef SELFTEST_NOT_SUPPORTED
 static int __tc956xmac_test_dvlanfilt(struct tc956xmac_priv *priv)
 {
 	struct tc956xmac_packet_attrs attr = { };
@@ -1081,7 +1111,7 @@ static int tc956xmac_test_dvlanfilt_perfect(struct tc956xmac_priv *priv)
 
 	return ret;
 }
-
+#endif
 #ifdef TC956X_FRP_ENABLE
 static int tc956xmac_test_rxp(struct tc956xmac_priv *priv)
 {
@@ -1187,7 +1217,7 @@ static int tc956xmac_test_reg_sai(struct tc956xmac_priv *priv)
 	spin_lock_irqsave(&priv->spn_lock.mac_filter, flags);
 #endif
 
-	tc956xmac_set_umac_addr(priv, priv->hw, priv->dev->dev_addr, 0, PF_DRIVER);
+	tc956xmac_set_umac_addr(priv, priv->hw, (unsigned char*)priv->dev->dev_addr, 0, PF_DRIVER);
 
 #if defined(TC956X_SRIOV_PF) && defined(TC956X_SRIOV_LOCK)
 	spin_unlock_irqrestore(&priv->spn_lock.mac_filter, flags);
@@ -1220,7 +1250,7 @@ static int tc956xmac_test_reg_sar(struct tc956xmac_priv *priv)
 	spin_lock_irqsave(&priv->spn_lock.mac_filter, flags);
 #endif
 
-	tc956xmac_set_umac_addr(priv, priv->hw, priv->dev->dev_addr, 0, PF_DRIVER);
+	tc956xmac_set_umac_addr(priv, priv->hw, (unsigned char*)priv->dev->dev_addr, 0, PF_DRIVER);
 
 #if defined(TC956X_SRIOV_PF) && defined(TC956X_SRIOV_LOCK)
 	spin_unlock_irqrestore(&priv->spn_lock.mac_filter, flags);
@@ -1264,7 +1294,9 @@ static int tc956xmac_test_vlanoff_common(struct tc956xmac_priv *priv, bool svlan
 	tpriv->packet = &attr;
 	tpriv->vlan_id = 0x123;
 	dev_add_pack(&tpriv->pt);
-
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+	filter_vlan_id = tpriv->vlan_id;
+#endif
 	ret = vlan_vid_add(priv->dev, htons(proto), tpriv->vlan_id);
 	if (ret)
 		goto cleanup;
@@ -1289,6 +1321,9 @@ static int tc956xmac_test_vlanoff_common(struct tc956xmac_priv *priv, bool svlan
 
 vlan_del:
 	vlan_vid_del(priv->dev, htons(proto), tpriv->vlan_id);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)
+	filter_vlan_id = 0;
+#endif
 cleanup:
 	dev_remove_pack(&tpriv->pt);
 	kfree(tpriv);
@@ -1513,7 +1548,9 @@ static const struct tc956xmac_test {
 		.name = "VLAN Filtering (perf)      ",
 		.lb = TC956XMAC_LOOPBACK_PHY,
 		.fn = tc956xmac_test_vlanfilt_perfect,
-	}, {
+	},
+#ifdef SELFTEST_NOT_SUPPORTED
+	{
 		.name = "Double VLAN Filter         ",
 		.lb = TC956XMAC_LOOPBACK_PHY,
 		.fn = tc956xmac_test_dvlanfilt,
@@ -1522,6 +1559,7 @@ static const struct tc956xmac_test {
 		.lb = TC956XMAC_LOOPBACK_PHY,
 		.fn = tc956xmac_test_dvlanfilt_perfect,
 	},
+#endif
 #ifdef TC956X_FRP_ENABLE
 	{
 		.name = "Flexible RX Parser         ",
@@ -1598,7 +1636,7 @@ void tc956xmac_selftest_run(struct net_device *dev,
 
 			if (!ret)
 				break;
-			/* Fallthrough */
+			fallthrough;
 		case TC956XMAC_LOOPBACK_MAC:
 			ret = tc956xmac_set_mac_loopback(priv, priv->ioaddr, true);
 			break;

@@ -3,7 +3,7 @@
  *
  * tc956x_xpcs.c
  *
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2022 Toshiba Electronic Devices & Storage Corporation
  *
  *
  * This program is free software; you can redistribute it and/or modify
@@ -147,7 +147,7 @@ int tc956x_xpcs_init(struct tc956xmac_priv *priv, void __iomem *xpcsaddr)
 		}
 #ifdef TC956X_MAGIC_PACKET_WOL_CONF
 	} else { /* SerDES Configuration for WOL SGMII 1G when native interface other than SGMII. */
-		KPRINT_INFO("%s Port %d : Entered with flag priv->wol_config_enabled %d", __func__, priv->port_num, priv->wol_config_enabled);
+		KPRINT_INFO("%s Port %d %s: Entered with flag priv->wol_config_enabled %d", __func__, priv->port_num, priv->dev->name, priv->wol_config_enabled);
 		reg_value = tc956x_xpcs_read(xpcsaddr, XGMAC_SR_XS_PCS_CTRL2);
 			reg_value &= XGMAC_PCS_TYPE_SEL;
 			reg_value |= 0x1;
@@ -250,7 +250,7 @@ void tc956x_xpcs_ctrl_ane(struct tc956xmac_priv *priv, bool ane)
 #ifdef TC956X_MAGIC_PACKET_WOL_CONF
 	} else {
 		/* Configure SGMII 1Gbps when WOL flag is enabled and native interface is other than SGMII. */
-		KPRINT_INFO("%s Port %d : Entered with flag priv->wol_config_enabled %d", __func__, priv->port_num, priv->wol_config_enabled);
+		KPRINT_INFO("%s Port %d %s: Entered with flag priv->wol_config_enabled %d", __func__, priv->port_num, priv->dev->name, priv->wol_config_enabled);
 		reg_value |= XGMAC_AN_37_ENABLE;
 		KPRINT_INFO("%s Enable AN", __func__);
 	}

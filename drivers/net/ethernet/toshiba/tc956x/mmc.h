@@ -33,7 +33,7 @@
  *  26 Oct 2021 : 1. Added EEE mmc counters for MAC COntrolled mode.
  *  VERSION     : 01-00-19
  *  24 Nov 2021 : 1. EEE update for runtime configuration and LPI interrupt disabled.
- *  VERSION     : 01-00-24 
+ *  VERSION     : 01-00-24
  */
 
 #ifndef __MMC_H__

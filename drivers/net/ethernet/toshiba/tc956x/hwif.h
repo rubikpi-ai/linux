@@ -4,7 +4,7 @@
  * hwif.h
  *
  * Copyright (C) 2018 Synopsys, Inc. and/or its affiliates.
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro and Synopsys Linux driver,
  * and developed or modified for TC956X.
@@ -31,16 +31,19 @@
  *  15 Mar 2021 : Base lined
  *  VERSION     : 01-00
  *  14 Sep 2021 : 1. Synchronization between ethtool vlan features
- *  		  "rx-vlan-offload", "rx-vlan-filter", "tx-vlan-offload" output and register settings.
- * 		  2. Added ethtool support to update "rx-vlan-offload", "rx-vlan-filter",
- *  		  and "tx-vlan-offload".
- * 		  3. Removed IOCTL TC956XMAC_VLAN_STRIP_CONFIG.
- * 		  4. Removed "Disable VLAN Filter" option in IOCTL TC956XMAC_VLAN_FILTERING.
+ *                   "rx-vlan-offload", "rx-vlan-filter", "tx-vlan-offload" output and register settings.
+ *                2. Added ethtool support to update "rx-vlan-offload", "rx-vlan-filter",
+ *                   and "tx-vlan-offload".
+ *                3. Removed IOCTL TC956XMAC_VLAN_STRIP_CONFIG.
+ *                4. Removed "Disable VLAN Filter" option in IOCTL TC956XMAC_VLAN_FILTERING.
  *  VERSION     : 01-00-13
  *  04 Nov 2021 : 1. Added separate control functons for MAC TX and RX start/stop
  *  VERSION     : 01-00-20
  *  26 Dec 2023 : 1. Added the support for TC commands taprio and flower
  *  VERSION     : 01-03-59
+ *  13 Feb 2024 : 1. Merged CPE and Automotive package
+ *                2. Updated with Register Configuration Check.
+ *  VERSION     : 04-00
  */
 
 #ifndef __TC956XMAC_HWIF_H__
@@ -713,6 +716,10 @@ struct tc956xmac_hwtimestamp {
 	int (*adjust_systime)(struct tc956xmac_priv *priv, void __iomem *ioaddr, u32 sec, u32 nsec,
 			       int add_sub, int gmac4);
 	void (*get_systime)(struct tc956xmac_priv *priv, void __iomem *ioaddr, u64 *systime);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,13,0)
+	void (*get_ptptime)(void __iomem *ioaddr, u64 *ptp_time);
+	void (*timestamp_interrupt)(struct tc956xmac_priv *priv, void __iomem *ioaddr);
+#endif
 };
 
 #define tc956xmac_config_hw_tstamping(__priv, __args...) \
@@ -727,6 +734,10 @@ struct tc956xmac_hwtimestamp {
 	tc956xmac_do_callback(__priv, ptp, adjust_systime, __args)
 #define tc956xmac_get_systime(__priv, __args...) \
 	tc956xmac_do_void_callback(__priv, ptp, get_systime, __args)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5,13,0)
+#define tc956xmac_timestamp_interrupt(__priv, __args...) \
+	tc956xmac_do_void_callback(__priv, ptp, timestamp_interrupt, __args)
+#endif
 
 /* Helpers to manage the descriptors for chain and ring modes */
 struct tc956xmac_mode_ops {
@@ -798,7 +809,7 @@ struct tc956xmac_tc_ops {
 	tc956xmac_do_callback(__priv, tc, setup_taprio, __args)
 #define tc956xmac_tc_setup_etf(__priv, __args...) \
 	tc956xmac_do_callback(__priv, tc, setup_etf, __args)
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 2, 16))
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6,2,16)
 #define tc956xmac_tc_setup_query_cap(__priv, __args...) \
 	tc956xmac_do_callback(__priv, tc, query_caps, __args)
 #endif

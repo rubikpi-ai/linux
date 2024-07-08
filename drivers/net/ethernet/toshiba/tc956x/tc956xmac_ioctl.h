@@ -31,11 +31,11 @@
  *  15 Mar 2021 : Base lined
  *  VERSION     : 01-00
  *  14 Sep 2021 : 1. Synchronization between ethtool vlan features
- *  		  "rx-vlan-offload", "rx-vlan-filter", "tx-vlan-offload" output and register settings.
- * 		  2. Added ethtool support to update "rx-vlan-offload", "rx-vlan-filter",
- *  		  and "tx-vlan-offload".
- * 		  3. Removed IOCTL TC956XMAC_VLAN_STRIP_CONFIG.
- * 		  4. Removed "Disable VLAN Filter" option in IOCTL TC956XMAC_VLAN_FILTERING.
+ *                   "rx-vlan-offload", "rx-vlan-filter", "tx-vlan-offload" output and register settings.
+ *                2. Added ethtool support to update "rx-vlan-offload", "rx-vlan-filter",
+ *                   and "tx-vlan-offload".
+ *                3. Removed IOCTL TC956XMAC_VLAN_STRIP_CONFIG.
+ *                4. Removed "Disable VLAN Filter" option in IOCTL TC956XMAC_VLAN_FILTERING.
  *  VERSION     : 01-00-13
  */
 

@@ -47,7 +47,6 @@ tc956x_vf_pcie_eth-y := tc956xmac_main.o tc956xmac_ethtool.o \
 	      tc956x_vf_mbx_wrapper.o tc956x_msigen.o \
 	      tc956x_vf_rsc_mng.o tc956x_vf_mbx.o \
 	      tc956x_pcie_logstat.o
-
 else
 
 EXTRA_CFLAGS+=-DTC956X_SRIOV_PF
@@ -62,6 +61,8 @@ tc956x_pcie_eth-y := tc956xmac_main.o tc956xmac_ethtool.o tc956xmac_mdio.o \
 
 ifeq ($(pf), 1)
 	tc956x_pcie_eth-y += tc956x_pf_mbx_wrapper.o tc956x_pf_rsc_mng.o tc956x_pf_mbx.o
+else ifeq ($(cpe), 1)
+EXTRA_CFLAGS+=-DTC956X_CPE_CONFIG
 else ifeq ($(port_bridge), 1)
 EXTRA_CFLAGS+=-DTC956X_ENABLE_MAC2MAC_BRIDGE
 else 

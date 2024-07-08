@@ -154,19 +154,19 @@ int tc956x_pf_get_fn_idx_from_int_sts(struct tc956xmac_priv *priv,
 		writel(RSC_MNG_INT_MCU_MASK, ioaddr + RSCMNG_INT_ST_REG);
 		return mcu;
 	} else if ((rsc_mng_int_sts & RSC_MNG_INT_VF2_MASK) ==
-		 RSC_MNG_INT_VF2_MASK) {
-		 writel(RSC_MNG_INT_VF2_MASK, ioaddr + RSCMNG_INT_ST_REG);
+		RSC_MNG_INT_VF2_MASK) {
+		writel(RSC_MNG_INT_VF2_MASK, ioaddr + RSCMNG_INT_ST_REG);
 		return vf2;
 	} else if ((rsc_mng_int_sts & RSC_MNG_INT_VF1_MASK) ==
-		 RSC_MNG_INT_VF1_MASK) {
-		 writel(RSC_MNG_INT_VF1_MASK, ioaddr + RSCMNG_INT_ST_REG);
+		RSC_MNG_INT_VF1_MASK) {
+		writel(RSC_MNG_INT_VF1_MASK, ioaddr + RSCMNG_INT_ST_REG);
 		return vf1;
 	} else if ((rsc_mng_int_sts & RSC_MNG_INT_VF0_MASK) ==
-		 RSC_MNG_INT_VF0_MASK) {
-		 writel(RSC_MNG_INT_VF0_MASK, ioaddr + RSCMNG_INT_ST_REG);
+		RSC_MNG_INT_VF0_MASK) {
+		writel(RSC_MNG_INT_VF0_MASK, ioaddr + RSCMNG_INT_ST_REG);
 		return vf0;
 	} else if ((rsc_mng_int_sts & RSC_MNG_INT_OTHR_PF_MASK) ==
-		 RSC_MNG_INT_OTHR_PF_MASK) {
+		RSC_MNG_INT_OTHR_PF_MASK) {
 		if (fn_id_info->pf_no == 0) {
 			writel(RSC_MNG_INT_OTHR_PF_MASK, ioaddr + RSCMNG_INT_ST_REG);
 			return pf1;

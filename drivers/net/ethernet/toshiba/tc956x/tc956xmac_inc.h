@@ -4,7 +4,7 @@
  * tc956xmac_inc.h
  *
  * Copyright (C) 2009  STMicroelectronics Ltd
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro Linux driver,
  * and developed or modified for TC956X.
@@ -48,6 +48,8 @@
  *  VERSION     : 01-00-35
  *  26 Dec 2023 : 1. Added the support for TC commands taprio and flower
  *  VERSION     : 01-03-59
+ *  29 Mar 2024 : 1. Support for without MDIO and without PHY case
+ *  VERSION     : 04-00
  */
 
 #ifndef __TC956XMAC_PLATFORM_DATA
@@ -59,7 +61,9 @@
 
 //#define TC956X
 //#define TC956X_IOCTL_REG_RD_WR_ENABLE
-//#define TC956X_WITHOUT_MDIO
+
+/* Enable TC956X_WITHOUT_MDIO_WITHOUT_PHY macro to disable MDIO and remove PHY dependency */
+//#define TC956X_WITHOUT_MDIO_WITHOUT_PHY
 //#define TC956X_PCIE_GEN3_SETTING
 //#define TC956X_PCIE_DISABLE_DSP1 /*Enable this macro to disable DSP1 port*/
 //#define TC956X_PCIE_DISABLE_DSP2 /*Enable this macro to disable DSP2 port*/
@@ -75,10 +79,10 @@
 /* Enable this macro to use Systick timer instead of Kernel timers
  * for handling Tx completion periodically
  */
-#ifdef TC956X_AUTOMOTIVE_CONFIG
-//#define TX_COMPLETION_WITHOUT_TIMERS
-//#define TC956X_SW_MSI /*Enable this macro to process SW MSI when CM3 Systick Handler sends SW MSI*/
-#define ENABLE_TX_TIMER /*Enable this macro to use Kernel timer. TC956X_SW_MSI can be disabled in this case */
+#ifdef TC956X_CPE_CONFIG
+#define TX_COMPLETION_WITHOUT_TIMERS
+#define TC956X_SW_MSI /*Enable this macro to process SW MSI when CM3 Systick Handler sends SW MSI*/
+//#define ENABLE_TX_TIMER /*Enable this macro to use Kernel timer. TC956X_SW_MSI can be disabled in this case */
 #else
 //#define TX_COMPLETION_WITHOUT_TIMERS
 //#define TC956X_SW_MSI /*Enable this macro to process SW MSI when CM3 Systick Handler sends SW MSI*/
@@ -366,6 +370,13 @@ struct plat_tc956xmacenet_data {
 	int start_phy_addr;
 	bool gate_mask;
 };
+
+struct tx956x_shrd_mem {
+	uint16_t pci_bd;
+	uint16_t pci_dev_active_cnt;
+	uint16_t eth_link_down_cnt;
+};
+
 #ifdef TC956X_SRIOV_VF
 static const struct tc956xmac_vf_entry {
 	u32 rx_queues_to_use_actual;

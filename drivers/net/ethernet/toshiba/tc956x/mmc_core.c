@@ -31,7 +31,7 @@
  *  15 Mar 2021 : Base lined
  *  VERSION     : 01-00
  *  24 Nov 2021 : 1. EEE HW counter support.
- *  VERSION     : 01-00-24 
+ *  VERSION     : 01-00-24
  */
 
 #include <linux/kernel.h>
@@ -234,7 +234,7 @@ static void dwmac_mmc_ctrl(struct tc956xmac_priv *priv, void __iomem *mmcaddr,
 		 MMC_CNTRL, value);
 }
 
-/* To mask all all interrupts.*/
+/* To mask all interrupts.*/
 static void dwmac_mmc_intr_all_mask(struct tc956xmac_priv *priv,
 					void __iomem *mmcaddr)
 {

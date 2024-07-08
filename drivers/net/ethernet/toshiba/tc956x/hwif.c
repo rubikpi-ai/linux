@@ -4,7 +4,7 @@
  * hwif.c
  *
  * Copyright (C) 2018 Synopsys, Inc. and/or its affiliates.
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro and Synopsys Linux driver,
  * and developed or modified for TC956X.
@@ -30,6 +30,8 @@
  *
  *  15 Mar 2021 : Base lined
  *  VERSION     : 01-00
+ *  13 Feb 2024 : 1. Merged CPE and Automotive package
+ *  VERSION     : 04-00
  */
 
 #include "common.h"
@@ -272,7 +274,7 @@ static const struct tc956xmac_hwif_entry {
 		.rsc = &tc956xmac_rsc_mng_ops,
 #endif
 
-#if (defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE)) | defined(TC956X_SRIOV_VF)
+#if (defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)) | defined(TC956X_SRIOV_VF)
 		.mbx = &tc956xmac_mbx_ops,
 		.mbx_wrapper = &tc956xmac_mbx_wrapper_ops,
 #endif

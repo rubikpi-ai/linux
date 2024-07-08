@@ -4,7 +4,7 @@
  * tc956xmac_ptp.c
  *
  * Copyright (C) 2013  Vayavya Labs Pvt Ltd
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro and Vayavya Linux driver,
  * and developed or modified for TC956X.
@@ -33,10 +33,15 @@
  *
  *  26 Dec 2023 : 1. Kernel 6.6 Porting changes
  *  VERSION     : 01-03-59
+ *  13 Feb 2024 : 1. Merged CPE and Automotive package
+ *                2. Updated with Register Configuration Check.
+ *  VERSION     : 04-00
  */
 
 #include "tc956xmac.h"
 #include "tc956xmac_ptp.h"
+#include "dwxgmac2.h"
+#include "common.h"
 
 /**
  * tc956xmac_adjust_freq
@@ -46,7 +51,7 @@
  *
  * Description: this function will adjust the frequency of hardware clock.
  */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 static int tc956xmac_adjust_freq(struct ptp_clock_info *ptp, s32 ppb)
 #else
 static int tc956xmac_adjust_freq(struct ptp_clock_info *ptp, long scaled_ppm)
@@ -57,7 +62,7 @@ static int tc956xmac_adjust_freq(struct ptp_clock_info *ptp, long scaled_ppm)
 	    container_of(ptp, struct tc956xmac_priv, ptp_clock_ops);
 	unsigned long flags;
 	u32 addend;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 	u32 diff;
 	int neg_adj = 0;
 	u64 adj;
@@ -177,7 +182,7 @@ static int tc956xmac_set_time(struct ptp_clock_info *ptp,
 #endif
 }
 
-#ifdef TC956X_UNSUPPORTED_UNTESTED_FEATURE
+
 static int tc956xmac_enable(struct ptp_clock_info *ptp,
 			 struct ptp_clock_request *rq, int on)
 {
@@ -188,6 +193,9 @@ static int tc956xmac_enable(struct ptp_clock_info *ptp,
 	    container_of(ptp, struct tc956xmac_priv, ptp_clock_ops);
 	struct tc956xmac_pps_cfg *cfg;
 	unsigned long flags;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
+	u32 aux_cntrl_en, val, msi_out_val;
+#endif
 
 	switch (rq->type) {
 	case PTP_CLK_REQ_PEROUT:
@@ -209,13 +217,59 @@ static int tc956xmac_enable(struct ptp_clock_info *ptp,
 					     priv->systime_flags);
 		spin_unlock_irqrestore(&priv->ptp_lock, flags);
 		break;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
+/*Added Support for external timestamp event */
+	case PTP_CLK_REQ_EXTTS:
+		aux_cntrl_en = readl(priv->ioaddr + XGMAC_MAC_AUX_CTRL);
+		if (on)
+			aux_cntrl_en |= XGMAC_ATSEN0;
+		else
+			aux_cntrl_en &= ~XGMAC_ATSEN0;
+
+		/* Auxiliary timestamp FIFO clear */
+		aux_cntrl_en |= XGMAC_ATSFC;
+		writel(aux_cntrl_en, priv->ioaddr + XGMAC_MAC_AUX_CTRL);
+		msi_out_val = readl(priv->ioaddr + TC956X_MSI_OUT_EN_OFFSET(priv->port_num, 0));
+		if (on) {
+			if (priv->port_num == RM_PF0_ID) {
+				val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+				val &= ~TRIG00_MASK;
+				val |= (0x1 << TRIG00_SHIFT);	/* set bit 4 GPIO1 TRIG00 */
+				writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+			}
+			if (priv->port_num == RM_PF1_ID) {
+				val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+				val &= ~TRIG10_MASK;
+				val |= (0x1 << TRIG10_SHIFT);	/* set bit 12 GPIO3 TRIG10 */
+				writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+			}
+
+			spin_lock_irqsave(&priv->ptp_lock, flags);
+			msi_out_val |= (0x1 << TC956X_MSI_OUT_INTR_EVENT);
+			/* Enable the Trig interrupt */
+			val = readl(priv->ioaddr + XGMAC_INT_EN);
+			val |= (0x1 << TSIE_SHIFT); /* set bit 12req=50000000Hz */
+			writel(val, priv->ioaddr + XGMAC_INT_EN);
+			spin_unlock_irqrestore(&priv->ptp_lock, flags);
+			netdev_dbg(priv->dev, "Auxiliary Snapshot enabled.\n");
+		} else {
+			msi_out_val &= ~(0x1 << TC956X_MSI_OUT_INTR_EVENT);
+			netdev_dbg(priv->dev, "Auxiliary Snapshot disabled.\n");
+		}
+		writel(msi_out_val, priv->ioaddr + TC956X_MSI_OUT_EN_OFFSET(priv->port_num, 0));
+		/* wait for auxts fifo clear to finish */
+		ret = readl_poll_timeout(priv->ioaddr + XGMAC_MAC_AUX_CTRL, aux_cntrl_en,
+				 !(aux_cntrl_en & XGMAC_ATSFC),
+				 10, 10000);
+		break;
+#endif
 	default:
 		break;
 	}
 #endif
 	return ret;
 }
-#endif /* TC956X_UNSUPPORTED_UNTESTED_FEATURE */
+
 
 /* structure describing a PTP hardware clock */
 static struct ptp_clock_info tc956xmac_ptp_clock_ops = {
@@ -227,11 +281,11 @@ static struct ptp_clock_info tc956xmac_ptp_clock_ops = {
 #endif
 	.max_adj = 62500000,
 	.n_alarm = 0,
-	.n_ext_ts = 0,
+	.n_ext_ts = 0, /* will be overwritten in tc956xmac_ptp_register */
 	.n_per_out = 0, /* will be overwritten in tc956xmac_ptp_register */
 	.n_pins = 0,
 	.pps = 0,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)
 	.adjfreq = tc956xmac_adjust_freq,
 #else
 	.adjfine = tc956xmac_adjust_freq,
@@ -264,6 +318,9 @@ void tc956xmac_ptp_register(struct tc956xmac_priv *priv)
 		tc956xmac_ptp_clock_ops.max_adj = priv->plat->ptp_max_adj;
 #ifdef TC956X_SRIOV_PF
 	tc956xmac_ptp_clock_ops.n_per_out = priv->dma_cap.pps_out_num;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
+	tc956xmac_ptp_clock_ops.n_ext_ts = priv->dma_cap.aux_snapshot_n;
+#endif
 #endif
 	spin_lock_init(&priv->ptp_lock);
 	priv->ptp_clock_ops = tc956xmac_ptp_clock_ops;

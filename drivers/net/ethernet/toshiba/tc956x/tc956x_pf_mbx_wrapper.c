@@ -100,22 +100,22 @@ static void tc956x_mbx_phy_link(struct tc956xmac_priv *priv)
 	/* Send data to all VFs */
 	for (i = vf0; i <= vf2; i++) {
 
-	if (priv->clear_to_send[i-vf0] == VF_UP) {
-		msg_dst = (enum mbx_msg_fns) i;
+		if (priv->clear_to_send[i-vf0] == VF_UP) {
+			msg_dst = (enum mbx_msg_fns) i;
 
-		ret = tc956xmac_mbx_write(priv, &mbx[i-vf0][0], msg_dst,
+			ret = tc956xmac_mbx_write(priv, &mbx[i-vf0][0], msg_dst,
 							&priv->fn_id_info);
 
-		/* Validation of successfull message posting can be done
-		 * by reading the mbx buffer for ACK opcode (0xFE)
-		 */
+			/* Validation of successfull message posting can be done
+			* by reading the mbx buffer for ACK opcode (0xFE)
+			*/
 
-		if (ret > 0)
-			KPRINT_DEBUG1(
-				"mailbox write with ACK or NACK %d msgbuff %x %x\n",
-								ret, mbx[i-vf0][0], mbx[i-vf0][4]);
-		else
-			KPRINT_DEBUG1("mailbox write failed");
+			if (ret > 0)
+				KPRINT_DEBUG1(
+					"mailbox write with ACK or NACK %d msgbuff %x %x\n",
+									ret, mbx[i-vf0][0], mbx[i-vf0][4]);
+			else
+				KPRINT_DEBUG1("mailbox write failed");
 		} else
 			KPRINT_DEBUG1("VF %d not up", i-vf0);
 	}
@@ -1350,18 +1350,18 @@ static void tc956x_mbx_rx_csum(struct tc956xmac_priv *priv)
 	/* Send data to all VFs */
 	for (i = vf0; i <= vf2; i++) {
 		if (priv->clear_to_send[i-vf0] == VF_UP) {
-		msg_dst = (enum mbx_msg_fns) i;
-		ret = tc956xmac_mbx_write(priv, &mbx[i-vf0][0], msg_dst,
+			msg_dst = (enum mbx_msg_fns) i;
+			ret = tc956xmac_mbx_write(priv, &mbx[i-vf0][0], msg_dst,
 							&priv->fn_id_info);
 
 		/* Validation of successfull message posting can be done
 		 * by reading the mbx buffer for ACK opcode (0xFE)
 		 */
-		if (ret > 0)
-			KPRINT_DEBUG1(
-			"mailbox write with ACK or NACK %d msgbuff %x %x\n", ret, mbx[i-vf0][0], mbx[i-vf0][4]);
-		else
-			KPRINT_DEBUG1("mailbox write failed");
+			if (ret > 0)
+				KPRINT_DEBUG1(
+				"mailbox write with ACK or NACK %d msgbuff %x %x\n", ret, mbx[i-vf0][0], mbx[i-vf0][4]);
+			else
+				KPRINT_DEBUG1("mailbox write failed");
 		} else
 			KPRINT_DEBUG1("VF %d not up", i-vf0);
 	}

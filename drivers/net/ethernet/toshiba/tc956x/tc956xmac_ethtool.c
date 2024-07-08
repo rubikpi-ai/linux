@@ -4,7 +4,7 @@
  * tc956xmac_ethtool.c - Ethtool support
  *
  * Copyright (C) 2007-2009  STMicroelectronics Ltd
- * Copyright (C) 2023 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro Linux driver,
  * and developed or modified for TC956X.
@@ -44,7 +44,7 @@
  *  26 Oct 2021 : 1. Added set_wol and get_wol support using ethtool.
  *  VERSION     : 01-00-19
  *  24 Nov 2021 : 1. EEE update for runtime configuration through ethtool.
-		  2. ethtool driver name display corrected
+ *                2. ethtool driver name display corrected
  *  VERSION     : 01-00-24
  *  10 Dec 2021 : 1. Added link partner pause frame count debug counters to ethtool statistics.
  *  VERSION     : 01-00-31
@@ -54,6 +54,12 @@
  *  VERSION     : 01-00-46
  *  10 Nov 2023 : 1. Kernel 6.1 Porting changes
  *  VERSION     : 01-02-59
+ *  13 Feb 2024 : 1. Merged CPE and Automotive package
+ *                2. Updated with Register Configuration Check.
+ *  VERSION     : 04-00
+ *  29 Mar 2024 : 1. Support for without MDIO and without PHY case
+ *                2. Added support for 5G and 2.5G EEE activation (applicable for Kernel 6.3 onwards)
+ *  VERSION     : 04-00
  */
 
 #include <linux/etherdevice.h>
@@ -1243,6 +1249,9 @@ tc956xmac_set_pauseparam(struct net_device *netdev,
 	u32 tx_cnt = priv->plat->tx_queues_to_use;
 	struct phy_device *phy = netdev->phydev;
 
+	if (!netdev->phydev)
+		return -ENODEV;
+
 	if ((priv->plat->port_interface == ENABLE_XFI_INTERFACE) && (priv->speed != SPEED_10000) && (!(pause->rx_pause))) {
 		KPRINT_ERR("RX Flow ctrl shouldn't be disabled for 10G lower speed in XFI Interface\n");
 		return -EOPNOTSUPP;
@@ -1279,13 +1288,15 @@ static void tc956xmac_m3fw_stats_read(struct tc956xmac_priv *priv)
 
 	for (chno = 0; chno < tx_queues_count; chno++) {
 		/* Tx Underflow count may not match with actual value, as it is 11bit value
-		accumulation happening only when reading ethool statistics, not after overflow of counter*/
+		 * accumulation happening only when reading ethool statistics, not after overflow of counter
+		 */
 		priv->xstats.mtl_tx_underflow[chno] +=
 			readl(priv->ioaddr + XGMAC_MTL_TXQ_UFPKT_CNT(chno));
 	}
 	for (chno = 0; chno < rx_queues_count; chno++) {
 		/* Rx overflow/missed pkt count may not match with actual values, as these are 11bit values
-		accumulation happening only when reading ethool statistics, not after overflow of counters*/
+		 * accumulation happening only when reading ethool statistics, not after overflow of counters
+		 */
 		reg_val = readl(priv->ioaddr + XGMAC_MTL_RXQ_MISS_PKT_OF_CNT_OFFSET(chno));
 
 		priv->xstats.mtl_rx_miss_pkt_cnt[chno] += ((reg_val & XGMAC_MISPKTCNT_MASK) >>
@@ -1582,6 +1593,204 @@ static int tc956xmac_set_wol(struct net_device *dev, struct ethtool_wolinfo *wol
 	return ret;
 }
 
+/* Added Support for 5G and 2.5G EEE support */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+/**
+ * mii_eee_cap2_mod_linkmode_t_local()
+ * @adv: target the linkmode advertisement settings
+ * @val: register value
+ */
+static inline void mii_eee_cap2_mod_linkmode_t_local(unsigned long *adv, u32 val)
+{
+	linkmode_mod_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+			 adv, val & MDIO_EEE_2_5GT);
+	linkmode_mod_bit(ETHTOOL_LINK_MODE_5000baseT_Full_BIT,
+			 adv, val & MDIO_EEE_5GT);
+}
+
+/**
+ * genphy_c45_read_eee_adv_local - read advertised EEE link modes
+ * @phydev: target phy_device struct
+ * @adv: the linkmode advertisement status
+ */
+int genphy_c45_read_eee_adv_local(struct phy_device *phydev, unsigned long *adv)
+{
+	int val;
+
+	if (linkmode_intersects(phydev->supported_eee, PHY_EEE_CAP1_FEATURES)) {
+		/* IEEE 802.3-2018 45.2.7.13 EEE advertisement 1
+		 * (Register 7.60)
+		 */
+		val = phy_read_mmd(phydev, MDIO_MMD_AN, MDIO_AN_EEE_ADV);
+		if (val < 0)
+			return val;
+
+		mii_eee_cap1_mod_linkmode_t(adv, val);
+	}
+
+	/* IEEE 802.3-2018 45.2.7.13 EEE advertisement 1
+	 * (Register 7.60)
+	 */
+	val = phy_read_mmd(phydev, MDIO_MMD_AN, MDIO_AN_EEE_ADV2);
+	if (val < 0)
+		return val;
+
+	mii_eee_cap2_mod_linkmode_t_local(adv, val);
+
+	return 0;
+}
+
+/**
+ * genphy_c45_read_eee_lpa_local - read advertised LP EEE link modes
+ * @phydev: target phy_device struct
+ * @lpa: the linkmode LP advertisement status
+ */
+static int genphy_c45_read_eee_lpa_local(struct phy_device *phydev,
+				   unsigned long *lpa)
+{
+	int val;
+
+	if (linkmode_intersects(phydev->supported_eee, PHY_EEE_CAP1_FEATURES)) {
+		/* IEEE 802.3-2018 45.2.7.14 EEE link partner ability 1
+		 * (Register 7.61)
+		 */
+		val = phy_read_mmd(phydev, MDIO_MMD_AN, MDIO_AN_EEE_LPABLE);
+		if (val < 0)
+			return val;
+
+		mii_eee_cap1_mod_linkmode_t(lpa, val);
+	}
+
+	val = phy_read_mmd(phydev, MDIO_MMD_AN, MDIO_AN_EEE_LPABLE2);
+	if (val < 0)
+		return val;
+
+	mii_eee_cap2_mod_linkmode_t_local(lpa, val);
+
+	return 0;
+}
+
+/**
+ * genphy_c45_eee_is_active_local - get EEE status
+ * @phydev: target phy_device struct
+ * @adv: variable to store advertised linkmodes
+ * @lp: variable to store LP advertised linkmodes
+ * @is_enabled: variable to store EEE enabled/disabled configuration value
+ *
+ * Description: this function will read local and link partner PHY
+ * advertisements. Compare them return current EEE state.
+ */
+int genphy_c45_eee_is_active_local(struct phy_device *phydev, unsigned long *adv,
+			     unsigned long *lp, bool *is_enabled)
+{
+	__ETHTOOL_DECLARE_LINK_MODE_MASK(tmp_adv) = {};
+	__ETHTOOL_DECLARE_LINK_MODE_MASK(tmp_lp) = {};
+	__ETHTOOL_DECLARE_LINK_MODE_MASK(common);
+	bool eee_enabled, eee_active;
+	int ret;
+
+	ret = genphy_c45_read_eee_adv_local(phydev, tmp_adv);
+	if (ret)
+		return ret;
+
+	ret = genphy_c45_read_eee_lpa_local(phydev, tmp_lp);
+	if (ret)
+		return ret;
+
+	eee_enabled = !linkmode_empty(tmp_adv);
+	linkmode_and(common, tmp_adv, tmp_lp);
+	if (eee_enabled && !linkmode_empty(common))
+		eee_active = phy_check_valid(phydev->speed, phydev->duplex,
+					     common);
+	else
+		eee_active = false;
+
+	if (adv)
+		linkmode_copy(adv, tmp_adv);
+	if (lp)
+		linkmode_copy(lp, tmp_lp);
+	if (is_enabled)
+		*is_enabled = eee_enabled;
+
+	return eee_active;
+}
+
+/**
+ * genphy_c45_ethtool_get_eee_local - get EEE supported and status
+ * @phydev: target phy_device struct
+ * @data: ethtool_eee data
+ *
+ * Description: it reports the Supported/Advertisement/LP Advertisement
+ * capabilities.
+ */
+int genphy_c45_ethtool_get_eee_local(struct phy_device *phydev,
+			       struct ethtool_eee *data)
+{
+	__ETHTOOL_DECLARE_LINK_MODE_MASK(adv) = {};
+	__ETHTOOL_DECLARE_LINK_MODE_MASK(lp) = {};
+	bool overflow = false, is_enabled;
+	int ret;
+
+	ret = genphy_c45_eee_is_active_local(phydev, adv, lp, &is_enabled);
+	if (ret < 0)
+		return ret;
+
+	data->eee_enabled = is_enabled;
+	data->eee_active = ret;
+
+	if (!ethtool_convert_link_mode_to_legacy_u32(&data->supported,
+						     phydev->supported_eee))
+		overflow = true;
+	if (!ethtool_convert_link_mode_to_legacy_u32(&data->advertised, adv))
+		overflow = true;
+	if (!ethtool_convert_link_mode_to_legacy_u32(&data->lp_advertised, lp))
+		overflow = true;
+
+	if (overflow)
+		phydev_warn(phydev, "Not all supported or advertised EEE link modes were passed to the user space\n");
+
+	return 0;
+}
+
+/**
+ * phy_ethtool_get_eee_local - get EEE supported and status
+ * @phydev: target phy_device struct
+ * @data: ethtool_eee data
+ *
+ * Description: it reportes the Supported/Advertisement/LP Advertisement
+ * capabilities.
+ */
+int phy_ethtool_get_eee_local(struct phy_device *phydev, struct ethtool_eee *data)
+{
+	int ret;
+
+	if (!phydev->drv)
+		return -EIO;
+
+	mutex_lock(&phydev->lock);
+	ret = genphy_c45_ethtool_get_eee_local(phydev, data);
+	mutex_unlock(&phydev->lock);
+
+	return ret;
+}
+
+/**
+ * phylink_ethtool_get_eee_local() - read the energy efficient ethernet parameters
+ * @pl: a pointer to a &struct phylink returned from phylink_create()
+ * @eee: a pointer to a &struct ethtool_eee for the read parameters
+ */
+int phylink_ethtool_get_eee_local(struct phy_device *phydev, struct ethtool_eee *eee)
+{
+	int ret = -EOPNOTSUPP;
+
+	ASSERT_RTNL();
+
+	if (phydev)
+		ret = phy_ethtool_get_eee_local(phydev, eee);
+
+	return ret;
+}
+#endif
 #ifdef DEBUG_EEE
 int phy_ethtool_get_eee_local(struct phy_device *phydev, struct ethtool_eee *data)
 {
@@ -1785,19 +1994,25 @@ int tc956xmac_ethtool_op_get_eee(struct net_device *dev,
 	edata->eee_enabled = priv->eee_enabled;
 	edata->eee_active = priv->eee_active;
 	edata->tx_lpi_timer = priv->tx_lpi_timer;
+	edata->tx_lpi_enabled = edata->eee_enabled;
 
 	DBGPR_FUNC(priv->device, "1--> %s edata->eee_active: %d\n", __func__, edata->eee_active);
 #ifndef DEBUG_EEE
-	ret = phylink_ethtool_get_eee(priv->phylink, edata);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
+	/* From Kernel Version 6.3 and above, the current speed will be checked for EEE advertisement
+	 * EEE adverstise and LP registers, are checked only for 10G and 1G speed in Kernel API.
+	 * So, added a local API to check the advertise and LP for 5G and 2.5G Speeds for EEE support.
+	 */
+	ret = phylink_ethtool_get_eee_local(priv->dev->phydev, edata);
 #else
+	ret = phylink_ethtool_get_eee(priv->phylink, edata);
+#endif
+#else
+	if (!priv->dev->phydev)
+		return -EIO;
+
 	ret = phy_ethtool_get_eee_local(priv->dev->phydev, edata);
 #endif
-
-	edata->eee_enabled = priv->eee_enabled;
-	edata->eee_active = priv->eee_active;
-	edata->tx_lpi_timer = priv->tx_lpi_timer;
-	edata->tx_lpi_enabled = edata->eee_enabled;
-
 	DBGPR_FUNC(priv->device, "2--> %s edata->eee_active: %d\n", __func__, edata->eee_active);
 
 	return ret;
@@ -1821,6 +2036,10 @@ static int tc956xmac_ethtool_op_set_eee(struct net_device *dev,
 #ifndef TC956X_SRIOV_VF
 	int ret;
 #endif
+
+	if (!priv->dev->phydev)
+		return -EIO;
+
 	if (!edata->eee_enabled) {
 		DBGPR_FUNC(priv->device, "%s Disable EEE\n", __func__);
 		tc956xmac_disable_eee_mode(priv);
@@ -1904,7 +2123,7 @@ static u32 tc956xmac_riwt2usec(u32 riwt, struct tc956xmac_priv *priv)
 
 	return (riwt * mult) / (clk / 1000000);
 }
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
 static int __tc956xmac_get_coalesce(struct net_device *dev,
 				 struct ethtool_coalesce *ec,
 				 int queue)
@@ -2054,7 +2273,7 @@ static int tc956xmac_set_coalesce(struct net_device *dev,
 	u32 rx_cnt = priv->plat->rx_queues_to_use;
 	unsigned int rx_riwt;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 7, 0)
 	/* Check not supported parameters  */
 	if ((ec->rx_coalesce_usecs_irq) ||
 	    (ec->rx_max_coalesced_frames_irq) || (ec->tx_coalesce_usecs_irq) ||
@@ -2292,9 +2511,9 @@ static u32 tc956x_get_priv_flag(struct net_device *dev)
 #endif
 
 static const struct ethtool_ops tc956xmac_ethtool_ops = {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
-	// .supported_coalesce_params = ETHTOOL_COALESCE_USECS |
-	//     ETHTOOL_COALESCE_MAX_FRAMES,
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
+	//.supported_coalesce_params = ETHTOOL_COALESCE_USECS |
+	//    ETHTOOL_COALESCE_MAX_FRAMES,
 	.supported_coalesce_params = ETHTOOL_COALESCE_RX_USECS,
 #endif
 	.begin = tc956xmac_check_if_running,

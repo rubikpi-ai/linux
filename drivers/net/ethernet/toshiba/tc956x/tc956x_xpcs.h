@@ -3,7 +3,7 @@
  *
  * tc956x_xpcs.h
  *
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2022 Toshiba Electronic Devices & Storage Corporation
  *
  *
  * This program is free software; you can redistribute it and/or modify

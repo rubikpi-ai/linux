@@ -3,7 +3,7 @@
  *
  * tc956x_ipa_intf.c
  *
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2022 Toshiba Electronic Devices & Storage Corporation
  *
  *
  * This program is free software; you can redistribute it and/or modify
@@ -903,7 +903,7 @@ int release_channel(struct net_device *ndev, struct channel_info *channel)
 	}
 
 	/* If all channels are freed, call API for power saving*/
-	if(priv->port_release == true && offload_release_sts == true) {
+	if (priv->port_release == true && offload_release_sts == true) {
 		tc956xmac_link_change_set_power(priv, LINK_DOWN); /* Save, Assert and Disable Reset and Clock */
 	}
 	mutex_unlock(&priv->port_ld_release_lock);

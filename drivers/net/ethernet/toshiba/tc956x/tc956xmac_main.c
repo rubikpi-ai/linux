@@ -4,7 +4,7 @@
  * tc956xmac_main.c
  *
  * Copyright(C) 2007-2011 STMicroelectronics Ltd
- * Copyright (C) 2023 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro Linux driver,
  * and developed or modified for TC956X.
@@ -37,7 +37,7 @@
  *  15 Jul 2021 : 1. USXGMII/XFI/SGMII/RGMII interface supported without module parameter
  *  VERSION     : 01-00-02
  *  20 Jul 2021 : 1. Flash MDIO ioctl supported
- *		  2. Rxp statistics function removed
+ *                2. Rxp statistics function removed
  *  VERSION     : 01-00-03
  *  22 Jul 2021 : 1. USXGMII/XFI/SGMII/RGMII interface supported with module parameters
  *  VERSION     : 01-00-04
@@ -50,20 +50,20 @@
  *  24 Aug 2021 : 1. Platform API supported
  *  VERSION     : 01-00-10
  *  14 Sep 2021 : 1. Synchronization between ethtool vlan features
- *  		  "rx-vlan-offload", "rx-vlan-filter", "tx-vlan-offload" output and register settings.
- * 		  2. Added ethtool support to update "rx-vlan-offload", "rx-vlan-filter",
- *  		  and "tx-vlan-offload".
- * 		  3. Removed IOCTL TC956XMAC_VLAN_STRIP_CONFIG.
- * 		  4. Removed "Disable VLAN Filter" option in IOCTL TC956XMAC_VLAN_FILTERING.
+ *                   "rx-vlan-offload", "rx-vlan-filter", "tx-vlan-offload" output and register settings.
+ *                2. Added ethtool support to update "rx-vlan-offload", "rx-vlan-filter",
+ *                   and "tx-vlan-offload".
+ *                3. Removed IOCTL TC956XMAC_VLAN_STRIP_CONFIG.
+ *                4. Removed "Disable VLAN Filter" option in IOCTL TC956XMAC_VLAN_FILTERING.
  *  VERSION     : 01-00-13
  *  23 Sep 2021 : 1. Capturing RBU status using MAC EVENT Interupt and updating to ethtool statistics for both S/W & IPA DMA channels
  *  VERSION     : 01-00-14
  *  21 Oct 2021 : 1. Added support for GPIO configuration API
  *  VERSION     : 01-00-18
  *  26 Oct 2021 : 1. Added support for EEE PHY and MAC Control Mode.
-		  2. Added dev_pm_ops interface support for suspend-resume.
-		  3. Changed IRQF_SHARED to IRQF_NO_SUSPEND and added WOL Interrupt Handler support.
-		  4. Added Platform Apis.
+ *                2. Added dev_pm_ops interface support for suspend-resume.
+ *                3. Changed IRQF_SHARED to IRQF_NO_SUSPEND and added WOL Interrupt Handler support.
+ *                4. Added Platform Apis.
  *  VERSION     : 01-00-19
  *  04 Nov 2021 : 1. Stopped disabling/enabling of MAC TX during Link down/up.
  *  VERSION     : 01-00-20
@@ -72,8 +72,8 @@
  *  24 Nov 2021 : 1. Private member used instead of global for wol interrupt indication
  *  VERSION     : 01-00-22
  *  24 Nov 2021 : 1. EEE update for runtime configuration and LPI interrupt disabled.
- 		  2. EEE SW timers removed. Only HW timers used to control EEE LPI entry/exit
- 		  3. USXGMII support during link change
+ *                2. EEE SW timers removed. Only HW timers used to control EEE LPI entry/exit
+ *                3. USXGMII support during link change
  *  VERSION     : 01-00-24
  *  30 Nov 2021 : 1. Added PHY Workqueue Cancel during suspend only if network interface available.
  *  VERSION     : 01-00-26
@@ -86,16 +86,16 @@
  *  10 Dec 2021 : 1. Added Module parameter to count Link partner pause frames and output to ethtool.
  *  VERSION     : 01-00-31
  *  27 Dec 2021 : 1. Support for eMAC Reset and unused clock disable during Suspend and restoring it back during resume.
-		  2. Resetting and disabling of unused clocks for eMAC Port, when no-found PHY for that particular port.
-		  3. Valid phy-address and mii-pointer NULL check in tc956xmac_suspend().
-		  4. Version update.
+ *                2. Resetting and disabling of unused clocks for eMAC Port, when no-found PHY for that particular port.
+ *                3. Valid phy-address and mii-pointer NULL check in tc956xmac_suspend().
+ *                4. Version update.
  *  VERSION     : 01-00-32
  *  06 Jan 2022 : 1. Null check added while freeing skb buff data
  *  VERSION     : 01-00-33
  *  07 Jan 2022 : 1. During emac resume, attach the net device after initializing the queues
  *  VERSION     : 01-00-34
  *  11 Jan 2022 : 1. Fixed phymode support added
- *	          2. Error return when no phy driver found during ISR work queue execution
+ *                2. Error return when no phy driver found during ISR work queue execution
  *  VERSION     : 01-00-35
  *  18 Jan 2022 : 1. IRQ device name change
  *  VERSION     : 01-00-36
@@ -110,22 +110,22 @@
  *  22 Feb 2022 : 1. Supported GPIO configuration save and restoration
  *  VERSION     : 01-00-43
  *  25 Feb 2022 : 1. XPCS module is re-initialized after link-up as MACxPONRST is asserted during link-down.
- *		  2. Disable Rx side EEE LPI before configuring Rx Parser (FRP). Enable the same after Rx Parser configuration.
+ *                2. Disable Rx side EEE LPI before configuring Rx Parser (FRP). Enable the same after Rx Parser configuration.
  *  VERSION     : 01-00-44
  *  09 Mar 2022 : 1. Handling of Non S/W path DMA channel abnormal interrupts in Driver and only TI & RI interrupts handled in FW.
- *		  2. Reading MSI status for checking interrupt status of SW MSI.
+ *                2. Reading MSI status for checking interrupt status of SW MSI.
  *  VERSION     : 01-00-45
  *  05 Apr 2022 : 1. Disable MSI and flush phy work queue during driver release.
  *  VERSION     : 01-00-47
  *  06 Apr 2022 : 1. Dynamic MTU change supported. Max MTU supported is 2000 bytes.
- *		  2. Constant buffer size of 2K used, so that during MTU change there is no buffer reconfiguration.
+ *                2. Constant buffer size of 2K used, so that during MTU change there is no buffer reconfiguration.
  *  VERSION     : 01-00-48
  *  14 Apr 2022 : 1. Ignoring error from tc956xmac_hw_setup in tc956xmac_open API.
  *  VERSION     : 01-00-49
  *  25 Apr 2022 : 1. Perform platform remove after MDIO deregistration.
  *  VERSION     : 01-00-50
  *  29 Apr 2022 : 1. Added Lock for syncing linkdown, port rlease and release of offloaded DMA channels.
- *		  2. Added kernel Module parameter for selecting Power saving at Link down.
+ *                2. Added kernel Module parameter for selecting Power saving at Link down.
  *  VERSION     : 01-00-51
  *  15 Jun 2022 : 1. Added debugfs support for module specific register dump
  *  VERSION     : 01-00-52
@@ -138,15 +138,25 @@
  *  09 Nov 2022 : 1. Update of fix for configuring Rx Parser when EEE is enabled
  *  VERSION     : 01-00-57
  *  22 Dec 2022 : 1. Support for SW reset during link down.
-                  2. Module parameters introduced for the control of SW reset and by default SW reset is disabled.
+ *                2. Module parameters introduced for the control of SW reset and by default SW reset is disabled.
  *  VERSION     : 01-00-58
  *  10 Nov 2023 : 1. Kernel 6.1 Porting changes.
-                  2. DSP Cascade related modifications.
+ *                2. DSP Cascade related modifications.
  *  VERSION     : 01-02-59
- *
  *  26 Dec 2023 : 1. Kernel 6.6 Porting changes
  *                2. Added the support for TC commands taprio and flower
  *  VERSION     : 01-03-59
+ *  13 Feb 2024 : 1. Merged CPE and Automotive package
+ *                2. Updated with Register Configuration Check.
+ *                3. Added support for board device RBTC9563_3MA
+ *  VERSION     : 04-00
+ *  29 Mar 2024 : 1. Support for without MDIO and without PHY case
+ *                2. Bug fix for SGMII 1Gbps speed change
+ *                3. Support for TC956x switch to switch connection (upto 2 level) over DSP ports
+ *  VERSION     : 04-00
+ *  20 Jun 2024 : 1. PHY_INTERFACE_MODE_2500BASEX added to "supported" interface when SGMII interface is used.
+ *                2. Coding guideline changes
+ *  VERSION     : 04-00-01
  */
 
 #include <linux/clk.h>
@@ -169,10 +179,12 @@
 #include <linux/phy.h>
 #include <linux/linkmode.h>
 #include <linux/phylink.h>
+#ifdef TC956X_SRIOV_PF
 #ifdef CONFIG_DEBUG_FS
 #include <linux/debugfs.h>
 #include <linux/seq_file.h>
 #endif /* CONFIG_DEBUG_FS */
+#endif /* TC956X_SRIOV_PF */
 #include <linux/net_tstamp.h>
 #ifdef TC956X_SRIOV_PF
 #include <linux/phylink.h>
@@ -269,6 +281,25 @@ MODULE_PARM_DESC(eee_timer, "LPI tx expiration time in msec");
 static bool port_brige_state;
 static DEFINE_MUTEX(tc956x_port_bridge_lock);
 #endif
+
+static unsigned int mac0_rx_watchdog_timeout = DEF_DMA_RIWT;
+module_param(mac0_rx_watchdog_timeout, uint, 0444);
+MODULE_PARM_DESC(mac0_rx_watchdog_timeout,
+				"Port-0 Receive Watchdog timeout Range: [0x1 - 0xFF]");
+
+static unsigned int mac1_rx_watchdog_timeout = DEF_DMA_RIWT;
+module_param(mac1_rx_watchdog_timeout, uint, 0444);
+MODULE_PARM_DESC(mac1_rx_watchdog_timeout,
+				"Port-1 Receive Watchdog timeout Range: [0x1 - 0xFF]");
+
+static unsigned int mac0_tx_interrupt_num = TC956XMAC_TX_FRAMES;
+module_param(mac0_tx_interrupt_num, int, 0444);
+MODULE_PARM_DESC(mac0_tx_interrupt_num, "Port-0 Tx interrupt number");
+
+static unsigned int mac1_tx_interrupt_num = TC956XMAC_TX_FRAMES;
+module_param(mac1_tx_interrupt_num, int, 0444);
+MODULE_PARM_DESC(mac1_tx_interrupt_num, "Port-1 Tx interrupt number");
+
 /* By default the driver will use the ring mode to manage tx and rx descriptors,
  * but allow user to force to use the chain instead of the ring
  */
@@ -277,20 +308,25 @@ module_param(chain_mode, int, 0444);
 MODULE_PARM_DESC(chain_mode, "To use chain instead of ring mode");
 #if defined(TC956X_SRIOV_PF)
 static irqreturn_t tc956xmac_interrupt_v0(int irq, void *dev_id);
+#if !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_CPE_CONFIG)
+/* One interrupt handler for Automotive, CPE config */
 static irqreturn_t tc956xmac_interrupt_v1(int irq, void *dev_id);
+#endif
 #elif defined(TC956X_SRIOV_VF)
 static irqreturn_t tc956xmac_interrupt_v0(int irq, void *dev_id);
 #endif
+#ifdef TC956X_SRIOV_PF
 #ifdef CONFIG_DEBUG_FS
 static const struct net_device_ops tc956xmac_netdev_ops;
 static void tc956xmac_init_fs(struct net_device *dev);
 static void tc956xmac_exit_fs(struct net_device *dev);
 #endif
+#endif /* TC956X_SRIOV_PF */
 #ifdef TC956X_5_G_2_5_G_EEE_SUPPORT
 extern int phy_ethtool_set_eee_2p5(struct phy_device *phydev, struct ethtool_eee *data);
 #endif
 #ifdef TC956X_SRIOV_PF
-static u32 tc956xmac_link_down_counter = 0; /* Counter to count Link Down/Up for both port */
+extern struct tx956x_shrd_mem tx956x_pci_shrd_mem[TC956X_TOT_CASCADE_DEV];
 
 extern void tc956x_pf_del_umac_addr(struct tc956xmac_priv *priv, int index, int vf);
 extern void tc956x_pf_del_mac_filter(struct net_device *dev, int vf, const u8 *mac);
@@ -316,13 +352,21 @@ extern int tc956x_pf_set_mac_filter(struct net_device *dev, int vf, const u8 *ma
 
 /* MAC address */
 #ifdef TC956X_SRIOV_PF
-static u8 dev_addr[6][6] = {
+static u8 dev_addr[14][6] = {
 				{0xEC, 0x21, 0xE5, 0x10, 0x4F, 0xEA},
 				{0xEC, 0x21, 0xE5, 0x11, 0x4F, 0xEA},
 				{0xEC, 0x21, 0xE5, 0x12, 0x4F, 0xEA},
 				{0xEC, 0x21, 0xE5, 0x13, 0x4F, 0xEA},
 				{0xEC, 0x21, 0xE5, 0x14, 0x4F, 0xEA},
 				{0xEC, 0x21, 0xE5, 0x15, 0x4F, 0xEA},
+				{0xEC, 0x21, 0xE5, 0x16, 0x4F, 0xEA},
+				{0xEC, 0x21, 0xE5, 0x17, 0x4F, 0xEA},
+				{0xEC, 0x21, 0xE5, 0x18, 0x4F, 0xEA},
+				{0xEC, 0x21, 0xE5, 0x19, 0x4F, 0xEA},
+				{0xEC, 0x21, 0xE5, 0x1A, 0x4F, 0xEA},
+				{0xEC, 0x21, 0xE5, 0x1B, 0x4F, 0xEA},
+				{0xEC, 0x21, 0xE5, 0x1C, 0x4F, 0xEA},
+				{0xEC, 0x21, 0xE5, 0x1D, 0x4F, 0xEA},
 			};
 
 #ifdef TC956X_ENABLE_MAC2MAC_BRIDGE
@@ -965,10 +1009,10 @@ static void dump_all_reg(struct tc956xmac_priv *priv)
 	spin_lock_irqsave(&reg_dump_lock, flags);
 
 	printk("--------------------------------------------------------\n");
-	printk("CNFREG dump \n");
-	for (i = 0; i <= 0x1800; i=i+4) {
-		if(i <= 0x20 || i >= 0x1000)
-		printk("CNFREG 0x%08x = 0x%08x\n", i, readl(priv->ioaddr + i));
+	printk("CNFREG dump\n");
+	for (i = 0; i <= 0x1800; i = i+4) {
+		if (i <= 0x20 || i >= 0x1000)
+			printk("CNFREG 0x%08x = 0x%08x\n", i, readl(priv->ioaddr + i));
 	}
 	printk("--------------------------------------------------------\n");
 	printk("PMATOP register dump\n");
@@ -988,6 +1032,7 @@ static void dump_all_reg(struct tc956xmac_priv *priv)
 	printk("PMATOP Reg 0x%08x = 0x%08x\n", 0x450cc, readl(priv->ioaddr + 0x450cc));
 	printk("PMATOP Reg 0x%08x = 0x%08x\n", 0x450d0, readl(priv->ioaddr + 0x450d0));
 	printk("PMATOP Reg 0x%08x = 0x%08x\n", 0x450e0, readl(priv->ioaddr + 0x450e0));
+#ifndef TC956X_SRIOV_VF
 	printk("--------------------------------------------------------\n");
 	printk("XPCS register dump\n");
 	printk("XPCS Reg 0x%08x = 0x%08x\n", XGMAC_SR_MII_CTRL, tc956x_xpcs_read(priv->xpcsaddr, XGMAC_SR_MII_CTRL));
@@ -996,29 +1041,30 @@ static void dump_all_reg(struct tc956xmac_priv *priv)
 	printk("XPCS Reg 0x%08x = 0x%08x\n", XGMAC_VR_MII_DIG_CTRL1, tc956x_xpcs_read(priv->xpcsaddr, XGMAC_VR_MII_DIG_CTRL1));
 	printk("XPCS Reg 0x%08x = 0x%08x\n", XGMAC_VR_XS_PCS_DIG_CTRL1, tc956x_xpcs_read(priv->xpcsaddr, XGMAC_VR_XS_PCS_DIG_CTRL1));
 	printk("XPCS Reg 0x%08x = 0x%08x\n", XGMAC_VR_MII_AN_INTR_STS, tc956x_xpcs_read(priv->xpcsaddr, XGMAC_VR_MII_AN_INTR_STS));
+#endif
 	printk("--------------------------------------------------------\n");
 	printk("XGMAC-MAC register dump\n");
-	for (i = 0; i <= 0x810; i=i+4) {
+	for (i = 0; i <= 0x810; i = i+4) {
 		printk("XGMAC MAC Reg 0x%08x = 0x%08x\n", MAC_OFFSET + i, readl(priv->ioaddr + MAC_OFFSET + i));
 	}
 	printk("--------------------------------------------------------\n");
 	printk("XGMAC-MTL register dump\n");
-	for (i = 0x1000; i <= 0x10B4; i=i+4) {
+	for (i = 0x1000; i <= 0x10B4; i = i+4) {
 		printk("XGMAC MTL Reg 0x%08x = 0x%08x\n", MAC_OFFSET + i, readl(priv->ioaddr + MAC_OFFSET + i));
 	}
-	for (i = 0x1100; i <= 0x1174; i=i+4) {
-		for(j = 0; j < 2; j++) {
-			printk("XGMAC MTL Reg 0x%08x = 0x%08x\n", MAC_OFFSET + i + (j*0x80), readl(priv->ioaddr + MAC_OFFSET + i + (j*0x80) ));
+	for (i = 0x1100; i <= 0x1174; i = i+4) {
+		for (j = 0; j < 2; j++) {
+			printk("XGMAC MTL Reg 0x%08x = 0x%08x\n", MAC_OFFSET + i + (j*0x80), readl(priv->ioaddr + MAC_OFFSET + i + (j*0x80)));
 		}
 	}
 	printk("--------------------------------------------------------\n");
 	printk("XGMAC-DMA register dump\n");
-	for (i = 0x3000; i <= 0x3084; i=i+4) {
+	for (i = 0x3000; i <= 0x3084; i = i+4) {
 		printk("XGMAC DMA Reg 0x%08x = 0x%08x\n", MAC_OFFSET + i, readl(priv->ioaddr + MAC_OFFSET + i));
 	}
-	for (i = 0x3100; i <= 0x317c; i=i+4) {
-		for(j = 0; j < 2; j++) {
-			printk("XGMAC DMA Reg 0x%08x = 0x%08x\n", MAC_OFFSET + i + (j*0x80), readl(priv->ioaddr + MAC_OFFSET + i + (j*0x80) ));
+	for (i = 0x3100; i <= 0x317c; i = i+4) {
+		for (j = 0; j < 2; j++) {
+			printk("XGMAC DMA Reg 0x%08x = 0x%08x\n", MAC_OFFSET + i + (j*0x80), readl(priv->ioaddr + MAC_OFFSET + i + (j*0x80)));
 		}
 	}
 	printk("--------------------------------------------------------\n");
@@ -1026,6 +1072,7 @@ static void dump_all_reg(struct tc956xmac_priv *priv)
 	spin_unlock_irqrestore(&reg_dump_lock, flags);
 }
 
+#ifdef TC956X_SRIOV_PF
 #ifdef CONFIG_DEBUG_FS
 /**
  * read_tc956x_status() - Debugfs read command for m3 status info
@@ -1041,64 +1088,64 @@ static ssize_t read_tc956x_m3_status(struct file *file,
 	u32 ch;
 
 	if (!priv) {
-		pr_err(" %s  ERROR: Invalid private data pointer\n",__func__);
+		pr_err(" %s  ERROR: Invalid private data pointer\n", __func__);
 		return -EINVAL;
 	}
 
 	/* PCIe register dump */
-	printk("pcie_reg.rsc_mng_id = 0x%x \n",readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
+	printk("pcie_reg.rsc_mng_id = 0x%x\n", readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
 
 	/* M3 SRAM dump */
 	for (ch = 0; ch < maxq; ch++) {
-		printk("sram_tx_pcie_addr[%d] = 0x%x \n", ch, readl(priv->tc956x_SRAM_pci_base_addr + SRAM_TX_PCIE_ADDR_LOC + 
+		printk("sram_tx_pcie_addr[%d] = 0x%x\n", ch, readl(priv->tc956x_SRAM_pci_base_addr + SRAM_TX_PCIE_ADDR_LOC +
 							(priv->port_num * TC956XMAC_CH_MAX * 4) + (ch * 4)));
-		printk("sram_rx_pcie_addr[%d] = 0x%x \n", ch, readl(priv->tc956x_SRAM_pci_base_addr + SRAM_RX_PCIE_ADDR_LOC + 
+		printk("sram_rx_pcie_addr[%d] = 0x%x\n", ch, readl(priv->tc956x_SRAM_pci_base_addr + SRAM_RX_PCIE_ADDR_LOC +
 							(priv->port_num * TC956XMAC_CH_MAX * 4) + (ch * 4)));
 	}
 
-	printk("m3_fw_init_done = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + TC956X_M3_INIT_DONE));
-	printk("m3_fw_exit	= 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + TC956X_M3_FW_EXIT));
+	printk("m3_fw_init_done = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr + TC956X_M3_INIT_DONE));
+	printk("m3_fw_exit	= 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr + TC956X_M3_FW_EXIT));
 
-	printk("m3_debug_cnt0 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT0 ))));
-	printk("m3_debug_cnt1 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT1 ))));
-	printk("m3_debug_cnt2 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT2 ))));
-	printk("m3_debug_cnt3 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT3 ))));
-	printk("m3_debug_cnt4 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT4 ))));
-	printk("m3_debug_cnt5 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT5 ))));
-	printk("m3_debug_cnt6 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT6 ))));
-	printk("m3_debug_cnt7 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT7 ))));
-	printk("m3_debug_cnt8 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT8 ))));
-	printk("m3_debug_cnt9 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT9 ))));
-	printk("m3_debug_cnt10 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT10 ))));
-	printk("m3_watchdog_exp_cnt = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT11 ))));
-	printk("m3_watchdog_monitor_cnt = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT12 ))));
-	printk("m3_debug_cnt13 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT13 ))));
-	printk("m3_debug_cnt14 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT14 ))));
-	printk("m3_systick_cnt_upper_value = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT16 ))));
-	printk("m3_systick_cnt_lower_value = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT15 ))));
-	printk("m3_tx_timeout_port0 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT17 ))));
-	printk("m3_tx_timeout_port1 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT18 ))));
-	printk("m3_debug_cnt19 = 0x%x \n", readl(priv->tc956x_SRAM_pci_base_addr + 
-				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT19 ))));
+	printk("m3_debug_cnt0 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT0))));
+	printk("m3_debug_cnt1 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT1))));
+	printk("m3_debug_cnt2 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT2))));
+	printk("m3_debug_cnt3 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT3))));
+	printk("m3_debug_cnt4 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT4))));
+	printk("m3_debug_cnt5 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT5))));
+	printk("m3_debug_cnt6 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT6))));
+	printk("m3_debug_cnt7 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT7))));
+	printk("m3_debug_cnt8 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT8))));
+	printk("m3_debug_cnt9 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT9))));
+	printk("m3_debug_cnt10 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT10))));
+	printk("m3_watchdog_exp_cnt = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT11))));
+	printk("m3_watchdog_monitor_cnt = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT12))));
+	printk("m3_debug_cnt13 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT13))));
+	printk("m3_debug_cnt14 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT14))));
+	printk("m3_systick_cnt_upper_value = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT16))));
+	printk("m3_systick_cnt_lower_value = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT15))));
+	printk("m3_tx_timeout_port0 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT17))));
+	printk("m3_tx_timeout_port1 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT18))));
+	printk("m3_debug_cnt19 = 0x%x\n", readl(priv->tc956x_SRAM_pci_base_addr +
+				(TC956X_M3_SRAM_DEBUG_CNTS_OFFSET + (DB_CNT_LEN * DB_CNT19))));
 
 	return 0;
 }
@@ -1120,19 +1167,19 @@ static ssize_t read_tc956x_mac_status(struct file *file,
 	struct tc956xmac_priv *priv = file->private_data;
 
 	if (!priv) {
-		pr_err(" %s  ERROR: Invalid private data pointer\n",__func__);
+		pr_err(" %s  ERROR: Invalid private data pointer\n", __func__);
 		return -EINVAL;
 	}
 
 	/* PCIe register dump */
-	printk("pcie_reg.rsc_mng_id = 0x%x \n",readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
+	printk("pcie_reg.rsc_mng_id = 0x%x\n", readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
 
 	/* MAC register dump */
-	printk("mac_reg.mac_tx_config = 0x%x \n", readl(priv->ioaddr + XGMAC_TX_CONFIG));
-	printk("mac_reg.mac_rx_config = 0x%x \n", readl(priv->ioaddr + XGMAC_RX_CONFIG));
-	printk("mac_reg.mac_pkt_filter = 0x%x \n", readl(priv->ioaddr + XGMAC_PACKET_FILTER));
-	printk("mac_reg.mac_tx_rx_status = 0x%x \n", readl(priv->ioaddr + XGMAC_RX_TX_STS));
-	printk("mac_reg.mac_debug = 0x%x \n", readl(priv->ioaddr + XGMAC_DEBUG));
+	printk("mac_reg.mac_tx_config = 0x%x\n", readl(priv->ioaddr + XGMAC_TX_CONFIG));
+	printk("mac_reg.mac_rx_config = 0x%x\n", readl(priv->ioaddr + XGMAC_RX_CONFIG));
+	printk("mac_reg.mac_pkt_filter = 0x%x\n", readl(priv->ioaddr + XGMAC_PACKET_FILTER));
+	printk("mac_reg.mac_tx_rx_status = 0x%x\n", readl(priv->ioaddr + XGMAC_RX_TX_STS));
+	printk("mac_reg.mac_debug = 0x%x\n", readl(priv->ioaddr + XGMAC_DEBUG));
 
 	return 0;
 
@@ -1156,30 +1203,30 @@ static ssize_t read_tc956x_mtl_status(struct file *file,
 	u32 queue;
 
 	if (!priv) {
-		pr_err(" %s  ERROR: Invalid private data pointer\n",__func__);
+		pr_err(" %s  ERROR: Invalid private data pointer\n", __func__);
 		return -EINVAL;
 	}
 
 	/* PCIe register dump */
-	printk("pcie_reg.rsc_mng_id = 0x%x \n",readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
+	printk("pcie_reg.rsc_mng_id = 0x%x\n", readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
 
 
 	/* MTL register dump */
-	printk("mtl_reg.op_mode = 0x%x \n", readl(priv->ioaddr + XGMAC_MTL_OPMODE));
-	printk("mtl_reg.mtl_rxq_dma_map0 = 0x%x \n", readl(priv->ioaddr + XGMAC_MTL_RXQ_DMA_MAP0));
-	printk("mtl_reg.mtl_rxq_dma_map1 = 0x%x \n", readl(priv->ioaddr + XGMAC_MTL_RXQ_DMA_MAP1));
+	printk("mtl_reg.op_mode = 0x%x\n", readl(priv->ioaddr + XGMAC_MTL_OPMODE));
+	printk("mtl_reg.mtl_rxq_dma_map0 = 0x%x\n", readl(priv->ioaddr + XGMAC_MTL_RXQ_DMA_MAP0));
+	printk("mtl_reg.mtl_rxq_dma_map1 = 0x%x\n", readl(priv->ioaddr + XGMAC_MTL_RXQ_DMA_MAP1));
 
 	for (queue = 0; queue < MTL_MAX_TX_QUEUES; queue++) {
-		printk("mtl_reg.tx_info[%d].op_mode = 0x%x \n", queue, readl(priv->ioaddr + XGMAC_MTL_TXQ_OPMODE(queue)));
-		printk("mtl_reg.tx_info[%d].underflow = 0x%x \n", queue, readl(priv->ioaddr + XGMAC_MTL_TXQ_UF_OFFSET(queue)));
-		printk("mtl_reg.tx_info[%d].debug = 0x%x \n", queue, readl(priv->ioaddr + XGMAC_MTL_TXQ_Debug(queue)));
+		printk("mtl_reg.tx_info[%d].op_mode = 0x%x\n", queue, readl(priv->ioaddr + XGMAC_MTL_TXQ_OPMODE(queue)));
+		printk("mtl_reg.tx_info[%d].underflow = 0x%x\n", queue, readl(priv->ioaddr + XGMAC_MTL_TXQ_UF_OFFSET(queue)));
+		printk("mtl_reg.tx_info[%d].debug = 0x%x\n", queue, readl(priv->ioaddr + XGMAC_MTL_TXQ_Debug(queue)));
 	}
 
 	for (queue = 0; queue < MTL_MAX_RX_QUEUES; queue++) {
-		printk("mtl_reg.rx_info[%d].op_mode = 0x%x \n", queue, readl(priv->ioaddr + XGMAC_MTL_RXQ_OPMODE(queue)));
-		printk("mtl_reg.rx_info[%d].miss_pkt_overflow = 0x%x \n", queue, readl(priv->ioaddr + XGMAC_MTL_RXQ_MISS_PKT_OF_CNT_OFFSET(queue)));		
-		printk("mtl_reg.rx_info[%d].debug = 0x%x \n", queue, readl(priv->ioaddr + XGMAC_MTL_RXQ_Debug(queue)));
-		printk("mtl_reg.rx_info[%d].flow_control = 0x%x \n", queue, readl(priv->ioaddr + XGMAC_MTL_RXQ_FLOW_CONTROL(queue)));
+		printk("mtl_reg.rx_info[%d].op_mode = 0x%x\n", queue, readl(priv->ioaddr + XGMAC_MTL_RXQ_OPMODE(queue)));
+		printk("mtl_reg.rx_info[%d].miss_pkt_overflow = 0x%x\n", queue, readl(priv->ioaddr + XGMAC_MTL_RXQ_MISS_PKT_OF_CNT_OFFSET(queue)));
+		printk("mtl_reg.rx_info[%d].debug = 0x%x\n", queue, readl(priv->ioaddr + XGMAC_MTL_RXQ_Debug(queue)));
+		printk("mtl_reg.rx_info[%d].flow_control = 0x%x\n", queue, readl(priv->ioaddr + XGMAC_MTL_RXQ_FLOW_CONTROL(queue)));
 	}
 
 	return 0;
@@ -1208,69 +1255,69 @@ static ssize_t read_tc956x_dma_status(struct file *file,
 	struct tc956xmac_rx_queue *rx_q;
 
 	if (!priv) {
-		pr_err(" %s  ERROR: Invalid private data pointer\n",__func__);
+		pr_err(" %s  ERROR: Invalid private data pointer\n", __func__);
 		return -EINVAL;
 	}
 
 	/* PCIe register dump */
-	printk("pcie_reg.rsc_mng_id = 0x%x \n",readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
+	printk("pcie_reg.rsc_mng_id = 0x%x\n", readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
 
 	/* DMA channel register dump */
-	printk("dma_reg.debug_sts0 = 0x%x \n", readl(priv->ioaddr + XGMAC_DMA_DEBUG_STATUS0)); 
+	printk("dma_reg.debug_sts0 = 0x%x\n", readl(priv->ioaddr + XGMAC_DMA_DEBUG_STATUS0));
 
 	for (ch = 0; ch < maxq; ch++) {
-		printk("dma_reg.ch_control[%d] = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_CONTROL(ch)));
-		printk("dma_reg.interrupt_enable[%d] = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_INT_EN(ch)));
-		printk("dma_reg.ch_status[%d] = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_STATUS(ch)));
-		printk("dma_reg.debug_status[%d] = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_DBG_STATUS(ch)));
-		printk("dma_reg.rxch_watchdog_timer[%d] = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Rx_WATCHDOG(ch)));
+		printk("dma_reg.ch_control[%d] = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_CONTROL(ch)));
+		printk("dma_reg.interrupt_enable[%d] = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_INT_EN(ch)));
+		printk("dma_reg.ch_status[%d] = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_STATUS(ch)));
+		printk("dma_reg.debug_status[%d] = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_DBG_STATUS(ch)));
+		printk("dma_reg.rxch_watchdog_timer[%d] = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Rx_WATCHDOG(ch)));
 	}
 
 	for (ch = 0; ch < tx_queues_cnt; ch++) {
-		printk("dma_reg.tx_ch[%d].control = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_TX_CONTROL(ch)));
-		printk("dma_reg.tx_ch[%d].list_haddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_TxDESC_HADDR(ch)));
-		printk("dma_reg.tx_ch[%d].list_laddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_TxDESC_LADDR(ch)));
-		printk("dma_reg.tx_ch[%d].ring_len = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_TX_CONTROL2(ch)));
-		printk("dma_reg.tx_ch[%d].curr_haddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_TxDESC_HADDR(ch)));
-		printk("dma_reg.tx_ch[%d].curr_laddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_TxDESC_LADDR(ch)));
-		printk("dma_reg.tx_ch[%d].tail_ptr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_TxDESC_TAIL_LPTR(ch)));
-		printk("dma_reg.tx_ch[%d].buf_haddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_TxBuff_HADDR(ch)));
-		printk("dma_reg.tx_ch[%d].buf_laddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_TxBuff_LADDR(ch)));
+		printk("dma_reg.tx_ch[%d].control = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_TX_CONTROL(ch)));
+		printk("dma_reg.tx_ch[%d].list_haddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_TxDESC_HADDR(ch)));
+		printk("dma_reg.tx_ch[%d].list_laddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_TxDESC_LADDR(ch)));
+		printk("dma_reg.tx_ch[%d].ring_len = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_TX_CONTROL2(ch)));
+		printk("dma_reg.tx_ch[%d].curr_haddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_TxDESC_HADDR(ch)));
+		printk("dma_reg.tx_ch[%d].curr_laddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_TxDESC_LADDR(ch)));
+		printk("dma_reg.tx_ch[%d].tail_ptr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_TxDESC_TAIL_LPTR(ch)));
+		printk("dma_reg.tx_ch[%d].buf_haddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_TxBuff_HADDR(ch)));
+		printk("dma_reg.tx_ch[%d].buf_laddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_TxBuff_LADDR(ch)));
 	}
 
 	for (ch = 0; ch < rx_queues_cnt; ch++) {
-		printk("dma_reg.rx_ch[%d].control = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_RX_CONTROL(ch)));
-		printk("dma_reg.rx_ch[%d].list_haddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_RxDESC_HADDR(ch)));
-		printk("dma_reg.rx_ch[%d].list_laddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_RxDESC_LADDR(ch)));
-		printk("dma_reg.rx_ch[%d].ring_len = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_RX_CONTROL2(ch)));
-		printk("dma_reg.rx_ch[%d].curr_haddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_RxDESC_HADDR(ch)));
-		printk("dma_reg.rx_ch[%d].curr_laddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_RxDESC_LADDR(ch)));
-		printk("dma_reg.rx_ch[%d].tail_ptr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_RxDESC_TAIL_LPTR(ch)));
-		printk("dma_reg.rx_ch[%d].buf_haddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_RxBuff_HADDR(ch)));
-		printk("dma_reg.rx_ch[%d].buf_laddr = 0x%x \n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_RxBuff_LADDR(ch)));
+		printk("dma_reg.rx_ch[%d].control = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_RX_CONTROL(ch)));
+		printk("dma_reg.rx_ch[%d].list_haddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_RxDESC_HADDR(ch)));
+		printk("dma_reg.rx_ch[%d].list_laddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_RxDESC_LADDR(ch)));
+		printk("dma_reg.rx_ch[%d].ring_len = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_RX_CONTROL2(ch)));
+		printk("dma_reg.rx_ch[%d].curr_haddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_RxDESC_HADDR(ch)));
+		printk("dma_reg.rx_ch[%d].curr_laddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_RxDESC_LADDR(ch)));
+		printk("dma_reg.rx_ch[%d].tail_ptr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_RxDESC_TAIL_LPTR(ch)));
+		printk("dma_reg.rx_ch[%d].buf_haddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_RxBuff_HADDR(ch)));
+		printk("dma_reg.rx_ch[%d].buf_laddr = 0x%x\n", ch, readl(priv->ioaddr + XGMAC_DMA_CH_Cur_RxBuff_LADDR(ch)));
 	}
 
 	for (ch = 0; ch < tx_queues_cnt; ch++) {
 		tx_q = &priv->tx_queue[ch];
-		printk("dma_reg.tx_queue[%d].desc_phy_addr = 0x%lx \n", ch, (unsigned long)tx_q->dma_tx_phy);
-		printk("dma_reg.tx_queue[%d].desc_va_addr = 0x%lx \n", ch, (unsigned long)tx_q->dma_tx);
+		printk("dma_reg.tx_queue[%d].desc_phy_addr = 0x%lx\n", ch, (unsigned long)tx_q->dma_tx_phy);
+		printk("dma_reg.tx_queue[%d].desc_va_addr = 0x%lx\n", ch, (unsigned long)tx_q->dma_tx);
 		#ifdef TC956X_DMA_OFFLOAD_ENABLE
-		printk("dma_reg.tx_queue[%d].buff_phy_addr = 0x%lx \n", ch, (unsigned long)tx_q->buff_tx_phy);
-		printk("dma_reg.tx_queue[%d].buff_va_addr = 0x%lx \n", ch, (unsigned long)tx_q->buffer_tx_va_addr);
+		printk("dma_reg.tx_queue[%d].buff_phy_addr = 0x%lx\n", ch, (unsigned long)tx_q->buff_tx_phy);
+		printk("dma_reg.tx_queue[%d].buff_va_addr = 0x%lx\n", ch, (unsigned long)tx_q->buffer_tx_va_addr);
 		#endif
-		printk("dma_reg.tx_queue[%d].tx_skbuff = 0x%lx \n", ch, (unsigned long)tx_q->tx_skbuff);
-		printk("dma_reg.tx_queue[%d].tx_skbuff_dma = 0x%lx \n", ch, (unsigned long)tx_q->tx_skbuff_dma);
+		printk("dma_reg.tx_queue[%d].tx_skbuff = 0x%lx\n", ch, (unsigned long)tx_q->tx_skbuff);
+		printk("dma_reg.tx_queue[%d].tx_skbuff_dma = 0x%lx\n", ch, (unsigned long)tx_q->tx_skbuff_dma);
 	}
 
 	for (ch = 0; ch < rx_queues_cnt; ch++) {
 		rx_q = &priv->rx_queue[ch];
-		printk("dma_reg.rx_queue[%d].desc_phy_addr = 0x%lx \n", ch, (unsigned long)rx_q->dma_rx_phy);
-		printk("dma_reg.rx_queue[%d].desc_va_addr = 0x%lx \n", ch, (unsigned long)rx_q->dma_rx);
+		printk("dma_reg.rx_queue[%d].desc_phy_addr = 0x%lx\n", ch, (unsigned long)rx_q->dma_rx_phy);
+		printk("dma_reg.rx_queue[%d].desc_va_addr = 0x%lx\n", ch, (unsigned long)rx_q->dma_rx);
 		#ifdef TC956X_DMA_OFFLOAD_ENABLE
-		printk("dma_reg.rx_queue[%d].buff_phy_addr = 0x%lx \n", ch, (unsigned long)rx_q->buff_rx_phy);
-		printk("dma_reg.rx_queue[%d].buff_va_addr = 0x%lx \n", ch, (unsigned long)(void *)rx_q->buffer_rx_va_addr);
+		printk("dma_reg.rx_queue[%d].buff_phy_addr = 0x%lx\n", ch, (unsigned long)rx_q->buff_rx_phy);
+		printk("dma_reg.rx_queue[%d].buff_va_addr = 0x%lx\n", ch, (unsigned long)(void *)rx_q->buffer_rx_va_addr);
 		#endif
-		printk("dma_reg.rx_queue[%d].buf_pool = 0x%lx \n", ch, (unsigned long)rx_q->buf_pool);
+		printk("dma_reg.rx_queue[%d].buf_pool = 0x%lx\n", ch, (unsigned long)rx_q->buf_pool);
 	}
 
 	return 0;
@@ -1293,34 +1340,34 @@ static ssize_t read_tc956x_intr_status(struct file *file,
 	struct tc956xmac_priv *priv = file->private_data;
 
 	if (!priv) {
-		pr_err(" %s  ERROR: Invalid private data pointer\n",__func__);
+		pr_err(" %s  ERROR: Invalid private data pointer\n", __func__);
 		return -EINVAL;
 	}
 
 	/* PCIe register dump */
-	printk("pcie_reg.rsc_mng_id = 0x%x \n",readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
+	printk("pcie_reg.rsc_mng_id = 0x%x\n", readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
 
 	/* MSI register dump */
-	printk("msi_reg.msi_out_en = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_OUT_EN_OFFSET(priv->port_num, 0)));
-	printk("msi_reg.msi_mask_set = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_MASK_SET_OFFSET(priv->port_num, 0)));
-	printk("msi_reg.msi_mask_clr = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_MASK_CLR_OFFSET(priv->port_num, 0)));
-	printk("msi_reg.int_sts = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_INT_STS_OFFSET(priv->port_num, 0)));
-	printk("msi_reg.int_raw_sts = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_INT_RAW_STS_OFFSET(priv->port_num, 0)));
-	printk("msi_reg.msi_sts = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_STS_OFFSET(priv->port_num, 0)));
-	printk("msi_reg.cnt_int0 = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_CNT0(priv->port_num, 0)));
-	printk("msi_reg.cnt_int1 = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_CNT1(priv->port_num, 0)));
-	printk("msi_reg.cnt_int2 = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_CNT2(priv->port_num, 0)));
-	printk("msi_reg.cnt_int3 = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_CNT3(priv->port_num, 0)));
-	printk("msi_reg.cnt_int4 = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_CNT4(priv->port_num, 0)));
-	printk("msi_reg.cnt_int11 = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_CNT11(priv->port_num, 0)));
-	printk("msi_reg.cnt_int12 = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_CNT12(priv->port_num, 0)));
-	printk("msi_reg.cnt_int20 = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_CNT20(priv->port_num, 0)));
-	printk("msi_reg.cnt_int24 = 0x%x \n", readl(priv->ioaddr + TC956X_MSI_CNT24(priv->port_num, 0)));
+	printk("msi_reg.msi_out_en = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_OUT_EN_OFFSET(priv->port_num, 0)));
+	printk("msi_reg.msi_mask_set = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_MASK_SET_OFFSET(priv->port_num, 0)));
+	printk("msi_reg.msi_mask_clr = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_MASK_CLR_OFFSET(priv->port_num, 0)));
+	printk("msi_reg.int_sts = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_INT_STS_OFFSET(priv->port_num, 0)));
+	printk("msi_reg.int_raw_sts = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_INT_RAW_STS_OFFSET(priv->port_num, 0)));
+	printk("msi_reg.msi_sts = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_STS_OFFSET(priv->port_num, 0)));
+	printk("msi_reg.cnt_int0 = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_CNT0(priv->port_num, 0)));
+	printk("msi_reg.cnt_int1 = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_CNT1(priv->port_num, 0)));
+	printk("msi_reg.cnt_int2 = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_CNT2(priv->port_num, 0)));
+	printk("msi_reg.cnt_int3 = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_CNT3(priv->port_num, 0)));
+	printk("msi_reg.cnt_int4 = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_CNT4(priv->port_num, 0)));
+	printk("msi_reg.cnt_int11 = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_CNT11(priv->port_num, 0)));
+	printk("msi_reg.cnt_int12 = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_CNT12(priv->port_num, 0)));
+	printk("msi_reg.cnt_int20 = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_CNT20(priv->port_num, 0)));
+	printk("msi_reg.cnt_int24 = 0x%x\n", readl(priv->ioaddr + TC956X_MSI_CNT24(priv->port_num, 0)));
 
 	/* INTC register dump */
-	printk("intc_reg.intmcumask0 = 0x%x \n", readl(priv->ioaddr + INTMCUMASK0));
-	printk("intc_reg.intmcumask1 = 0x%x \n", readl(priv->ioaddr + INTMCUMASK1));
-	printk("intc_reg.intmcumask2 = 0x%x \n", readl(priv->ioaddr + INTMCUMASK2));
+	printk("intc_reg.intmcumask0 = 0x%x\n", readl(priv->ioaddr + INTMCUMASK0));
+	printk("intc_reg.intmcumask1 = 0x%x\n", readl(priv->ioaddr + INTMCUMASK1));
+	printk("intc_reg.intmcumask2 = 0x%x\n", readl(priv->ioaddr + INTMCUMASK2));
 
 	return 0;
 }
@@ -1342,26 +1389,26 @@ static ssize_t read_tc956x_cnfg_status(struct file *file,
 	struct tc956xmac_priv *priv = file->private_data;
 
 	if (!priv) {
-		pr_err(" %s  ERROR: Invalid private data pointer\n",__func__);
+		pr_err(" %s  ERROR: Invalid private data pointer\n", __func__);
 		return -EINVAL;
 	}
 
 	/* PCIe register dump */
-	printk("pcie_reg.rsc_mng_id = 0x%x \n",readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
+	printk("pcie_reg.rsc_mng_id = 0x%x\n",readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
 
 	/* Configuration register dump */
-	printk("config_reg.ncid = 0x%x \n", readl(priv->ioaddr + NCID_OFFSET));
-	printk("config_reg.nclkctrl0 = 0x%x \n", readl(priv->ioaddr + NCLKCTRL0_OFFSET));
-	printk("config_reg.nrstctrl0 = 0x%x \n", readl(priv->ioaddr + NRSTCTRL0_OFFSET));
-	printk("config_reg.nclkctrl1 = 0x%x \n", readl(priv->ioaddr + NCLKCTRL1_OFFSET));
+	printk("config_reg.ncid = 0x%x\n", readl(priv->ioaddr + NCID_OFFSET));
+	printk("config_reg.nclkctrl0 = 0x%x\n", readl(priv->ioaddr + NCLKCTRL0_OFFSET));
+	printk("config_reg.nrstctrl0 = 0x%x\n", readl(priv->ioaddr + NRSTCTRL0_OFFSET));
+	printk("config_reg.nclkctrl1 = 0x%x\n", readl(priv->ioaddr + NCLKCTRL1_OFFSET));
 	printk("config_reg.nrstctrl1 = 0x%x\n", readl(priv->ioaddr + NRSTCTRL1_OFFSET));
-	printk("config_reg.nemac0ctl = 0x%x \n", readl(priv->ioaddr + NEMAC0CTL_OFFSET));
-	printk("config_reg.nemac1ctl = 0x%x \n", readl(priv->ioaddr + NEMAC1CTL_OFFSET));
-	printk("config_reg.nemacsts = 0x%x \n", readl(priv->ioaddr + NEMACSTS_OFFSET));
-	printk("config_reg.gpioi0 = 0x%x \n", readl(priv->ioaddr + GPIOI0_OFFSET));
-	printk("config_reg.gpioi1 = 0x%x \n", readl(priv->ioaddr + GPIOI1_OFFSET));
-	printk("config_reg.gpioe0 = 0x%x \n", readl(priv->ioaddr + GPIOE0_OFFSET));
-	printk("config_reg.gpioe1 = 0x%x \n", readl(priv->ioaddr + GPIOE1_OFFSET));
+	printk("config_reg.nemac0ctl = 0x%x\n", readl(priv->ioaddr + NEMAC0CTL_OFFSET));
+	printk("config_reg.nemac1ctl = 0x%x\n", readl(priv->ioaddr + NEMAC1CTL_OFFSET));
+	printk("config_reg.nemacsts = 0x%x\n", readl(priv->ioaddr + NEMACSTS_OFFSET));
+	printk("config_reg.gpioi0 = 0x%x\n", readl(priv->ioaddr + GPIOI0_OFFSET));
+	printk("config_reg.gpioi1 = 0x%x\n", readl(priv->ioaddr + GPIOI1_OFFSET));
+	printk("config_reg.gpioe0 = 0x%x\n", readl(priv->ioaddr + GPIOE0_OFFSET));
+	printk("config_reg.gpioe1 = 0x%x\n", readl(priv->ioaddr + GPIOE1_OFFSET));
 
 	return 0;
 }
@@ -1388,32 +1435,32 @@ static ssize_t read_tc956x_other_status(struct file *file,
 	struct tc956xmac_rx_parser_cfg *rxp_cfg;
 
 	if (!priv) {
-		pr_err(" %s  ERROR: Invalid private data pointer\n",__func__);
+		pr_err(" %s  ERROR: Invalid private data pointer\n", __func__);
 		return -EINVAL;
 	}
 
 	/* PCIe register dump */
-	printk("pcie_reg.rsc_mng_id = 0x%x \n",readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
+	printk("pcie_reg.rsc_mng_id = 0x%x\n", readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + RSCMNG_ID_REG));
 
 	/* TAMAP Information */
-	for(table_entry = 0; table_entry <= MAX_CM3_TAMAP_ENTRIES; table_entry++) {
-		printk("TAMAP table %d, trsl_addr_hi = 0x%x \n", table_entry, (u32)readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + 
+	for (table_entry = 0; table_entry <= MAX_CM3_TAMAP_ENTRIES; table_entry++) {
+		printk("TAMAP table %d, trsl_addr_hi = 0x%x\n", table_entry, (u32)readl(priv->tc956x_BRIDGE_CFG_pci_base_addr +
 						TC956X_AXI4_SLV_TRSL_ADDR_HI(0, table_entry)));
-		printk("TAMAP table %d, trsl_addr_low = 0x%x \n", table_entry, (u32) readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + 
+		printk("TAMAP table %d, trsl_addr_low = 0x%x\n", table_entry, (u32) readl(priv->tc956x_BRIDGE_CFG_pci_base_addr +
 						TC956X_AXI4_SLV_TRSL_ADDR_LO(0, table_entry)));
-		printk("TAMAP table %d, src_addr_hi = 0x%x \n", table_entry, (u32)readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + 
+		printk("TAMAP table %d, src_addr_hi = 0x%x\n", table_entry, (u32)readl(priv->tc956x_BRIDGE_CFG_pci_base_addr +
 						TC956X_AXI4_SLV_SRC_ADDR_HI(0, table_entry)));
-		printk("TAMAP table %d, src_addr_low = 0x%x \n", table_entry, (u32)(readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + 
+		printk("TAMAP table %d, src_addr_low = 0x%x\n", table_entry, (u32)(readl(priv->tc956x_BRIDGE_CFG_pci_base_addr +
 						TC956X_AXI4_SLV_SRC_ADDR_LO(0, table_entry)) & TC956X_SRC_LO_MASK));
-		printk("TAMAP table %d, atr_size = 0x%x \n", table_entry,  (u32)((readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + 
+		printk("TAMAP table %d, atr_size = 0x%x\n", table_entry,  (u32)((readl(priv->tc956x_BRIDGE_CFG_pci_base_addr +
 						TC956X_AXI4_SLV_SRC_ADDR_LO(0, table_entry)) & TC956X_ATR_SIZE_MASK) >> 1));
-		printk("TAMAP table %d, atr_impl = 0x%x \n", table_entry,  (u32)(readl(priv->tc956x_BRIDGE_CFG_pci_base_addr + 
+		printk("TAMAP table %d, atr_impl = 0x%x\n", table_entry,  (u32)(readl(priv->tc956x_BRIDGE_CFG_pci_base_addr +
 						TC956X_AXI4_SLV_SRC_ADDR_LO(0, table_entry)) & TC956X_ATR_IMPL));
 	}
 
 	/* Driver & FW Information */
-	printk("info.driver = %s \n", TC956X_RESOURCE_NAME);
-	printk("info.version = %s \n", DRV_MODULE_VERSION);
+	printk("info.driver = %s\n", TC956X_RESOURCE_NAME);
+	printk("info.version = %s\n", DRV_MODULE_VERSION);
 
 	reg = readl(priv->tc956x_SRAM_pci_base_addr + TC956X_M3_DBG_VER_START);
 	fw_version = (struct tc956x_version *)(&reg);
@@ -1424,53 +1471,53 @@ static ssize_t read_tc956x_other_status(struct file *file,
 	/* Updating statistics */
 	tc956xmac_mmc_read(priv, priv->mmcaddr, &priv->mmc);
 	for (ch = 0; ch < tx_queues_cnt; ch++) {
-		printk("rx_buf_unav_irq[%d] = 0x%llx \n", ch, priv->xstats.rx_buf_unav_irq[ch]);
-		printk("tx_pkt_n[%d] = 0x%llx \n", ch, priv->xstats.tx_pkt_n[ch]);
-		printk("tx_pkt_errors_n[%d] = 0x%llx \n", ch, priv->xstats.tx_pkt_errors_n[ch]);
-		printk("rx_pkt_n[%d] = 0x%llx \n", ch, priv->xstats.rx_pkt_n[ch]);
+		printk("rx_buf_unav_irq[%d] = 0x%llx\n", ch, priv->xstats.rx_buf_unav_irq[ch]);
+		printk("tx_pkt_n[%d] = 0x%llx\n", ch, priv->xstats.tx_pkt_n[ch]);
+		printk("tx_pkt_errors_n[%d] = 0x%llx\n", ch, priv->xstats.tx_pkt_errors_n[ch]);
+		printk("rx_pkt_n[%d] = 0x%llx\n", ch, priv->xstats.rx_pkt_n[ch]);
 	}
-	printk("mmc_tx_broadcastframe_g = 0x%llx \n" , priv->mmc.mmc_tx_broadcastframe_g);
-	printk("mmc_tx_multicastframe_g = 0x%llx \n" , priv->mmc.mmc_tx_multicastframe_g);
-	printk("mmc_tx_64_octets_gb = 0x%llx \n" , priv->mmc.mmc_tx_64_octets_gb);
-	printk("mmc_tx_framecount_gb = 0x%llx \n" , priv->mmc.mmc_tx_framecount_gb);
-	printk("mmc_tx_65_to_127_octets_gb = 0x%llx \n" , priv->mmc.mmc_tx_65_to_127_octets_gb);
-	printk("mmc_tx_128_to_255_octets_gb = 0x%llx \n" , priv->mmc.mmc_tx_128_to_255_octets_gb);
-	printk("mmc_tx_256_to_511_octets_gb = 0x%llx \n" , priv->mmc.mmc_tx_256_to_511_octets_gb);
-	printk("mmc_tx_512_to_1023_octets_gb = 0x%llx \n" , priv->mmc.mmc_tx_512_to_1023_octets_gb);
-	printk("mmc_tx_1024_to_max_octets_gb = 0x%llx \n" , priv->mmc.mmc_tx_1024_to_max_octets_gb);
-	printk("mmc_tx_unicast_gb = 0x%llx \n" , priv->mmc.mmc_tx_unicast_gb);
-	printk("mmc_tx_underflow_error = 0x%llx \n" , priv->mmc.mmc_tx_underflow_error);
-	printk("mmc_tx_framecount_g = 0x%llx \n" , priv->mmc.mmc_tx_framecount_g);
-	printk("mmc_tx_pause_frame = 0x%llx \n" , priv->mmc.mmc_tx_pause_frame);
-	printk("mmc_tx_vlan_frame_g = 0x%llx \n" , priv->mmc.mmc_tx_vlan_frame_g);
-	printk("mmc_tx_lpi_us_cntr = 0x%llx \n" , priv->mmc.mmc_tx_lpi_us_cntr);
-	printk("mmc_tx_lpi_tran_cntr = 0x%llx \n" , priv->mmc.mmc_tx_lpi_tran_cntr);
+	printk("mmc_tx_broadcastframe_g = 0x%llx\n", priv->mmc.mmc_tx_broadcastframe_g);
+	printk("mmc_tx_multicastframe_g = 0x%llx\n", priv->mmc.mmc_tx_multicastframe_g);
+	printk("mmc_tx_64_octets_gb = 0x%llx\n", priv->mmc.mmc_tx_64_octets_gb);
+	printk("mmc_tx_framecount_gb = 0x%llx\n", priv->mmc.mmc_tx_framecount_gb);
+	printk("mmc_tx_65_to_127_octets_gb = 0x%llx\n", priv->mmc.mmc_tx_65_to_127_octets_gb);
+	printk("mmc_tx_128_to_255_octets_gb = 0x%llx\n", priv->mmc.mmc_tx_128_to_255_octets_gb);
+	printk("mmc_tx_256_to_511_octets_gb = 0x%llx\n", priv->mmc.mmc_tx_256_to_511_octets_gb);
+	printk("mmc_tx_512_to_1023_octets_gb = 0x%llx\n", priv->mmc.mmc_tx_512_to_1023_octets_gb);
+	printk("mmc_tx_1024_to_max_octets_gb = 0x%llx\n", priv->mmc.mmc_tx_1024_to_max_octets_gb);
+	printk("mmc_tx_unicast_gb = 0x%llx\n", priv->mmc.mmc_tx_unicast_gb);
+	printk("mmc_tx_underflow_error = 0x%llx\n", priv->mmc.mmc_tx_underflow_error);
+	printk("mmc_tx_framecount_g = 0x%llx\n", priv->mmc.mmc_tx_framecount_g);
+	printk("mmc_tx_pause_frame = 0x%llx\n", priv->mmc.mmc_tx_pause_frame);
+	printk("mmc_tx_vlan_frame_g = 0x%llx\n", priv->mmc.mmc_tx_vlan_frame_g);
+	printk("mmc_tx_lpi_us_cntr = 0x%llx\n", priv->mmc.mmc_tx_lpi_us_cntr);
+	printk("mmc_tx_lpi_tran_cntr = 0x%llx\n", priv->mmc.mmc_tx_lpi_tran_cntr);
 
-	printk("mmc_rx_framecount_gb = 0x%llx \n" , priv->mmc.mmc_rx_framecount_gb);
-	printk("mmc_rx_broadcastframe_g = 0x%llx \n" , priv->mmc.mmc_rx_broadcastframe_g);
-	printk("mmc_rx_multicastframe_g = 0x%llx \n" , priv->mmc.mmc_rx_multicastframe_g);
-	printk("mmc_rx_crc_error = 0x%llx \n" , priv->mmc.mmc_rx_crc_error);
-	printk("mmc_rx_jabber_error = 0x%llx \n" , priv->mmc.mmc_rx_jabber_error);
-	printk("mmc_rx_undersize_g = 0x%llx \n" , priv->mmc.mmc_rx_undersize_g);
-	printk("mmc_rx_oversize_g = 0x%llx \n" , priv->mmc.mmc_rx_oversize_g);
-	printk("mmc_rx_64_octets_gb = 0x%llx \n" , priv->mmc.mmc_rx_64_octets_gb);
-	printk("mmc_rx_65_to_127_octets_gb = 0x%llx \n" , priv->mmc.mmc_rx_65_to_127_octets_gb);
-	printk("mmc_rx_128_to_255_octets_gb = 0x%llx \n" , priv->mmc.mmc_rx_128_to_255_octets_gb);
-	printk("mmc_rx_256_to_511_octets_gb = 0x%llx \n" , priv->mmc.mmc_rx_256_to_511_octets_gb);
-	printk("mmc_rx_512_to_1023_octets_gb = 0x%llx \n" , priv->mmc.mmc_rx_512_to_1023_octets_gb);
-	printk("mmc_rx_1024_to_max_octets_gb = 0x%llx \n" , priv->mmc.mmc_rx_1024_to_max_octets_gb);
-	printk("mmc_rx_unicast_g = 0x%llx \n" , priv->mmc.mmc_rx_unicast_g);
-	printk("mmc_rx_length_error = 0x%llx \n" , priv->mmc.mmc_rx_length_error);
-	printk("mmc_rx_pause_frames = 0x%llx \n" , priv->mmc.mmc_rx_pause_frames);
-	printk("mmc_rx_fifo_overflow = 0x%llx \n" , priv->mmc.mmc_rx_fifo_overflow);
-	printk("mmc_rx_lpi_us_cntr = 0x%llx \n" , priv->mmc.mmc_rx_lpi_us_cntr);
-	printk("mmc_rx_lpi_tran_cntr = 0x%llx \n" , priv->mmc.mmc_rx_lpi_tran_cntr);
+	printk("mmc_rx_framecount_gb = 0x%llx\n", priv->mmc.mmc_rx_framecount_gb);
+	printk("mmc_rx_broadcastframe_g = 0x%llx\n", priv->mmc.mmc_rx_broadcastframe_g);
+	printk("mmc_rx_multicastframe_g = 0x%llx\n", priv->mmc.mmc_rx_multicastframe_g);
+	printk("mmc_rx_crc_error = 0x%llx\n", priv->mmc.mmc_rx_crc_error);
+	printk("mmc_rx_jabber_error = 0x%llx\n", priv->mmc.mmc_rx_jabber_error);
+	printk("mmc_rx_undersize_g = 0x%llx\n", priv->mmc.mmc_rx_undersize_g);
+	printk("mmc_rx_oversize_g = 0x%llx\n", priv->mmc.mmc_rx_oversize_g);
+	printk("mmc_rx_64_octets_gb = 0x%llx\n", priv->mmc.mmc_rx_64_octets_gb);
+	printk("mmc_rx_65_to_127_octets_gb = 0x%llx\n", priv->mmc.mmc_rx_65_to_127_octets_gb);
+	printk("mmc_rx_128_to_255_octets_gb = 0x%llx\n", priv->mmc.mmc_rx_128_to_255_octets_gb);
+	printk("mmc_rx_256_to_511_octets_gb = 0x%llx\n", priv->mmc.mmc_rx_256_to_511_octets_gb);
+	printk("mmc_rx_512_to_1023_octets_gb = 0x%llx\n", priv->mmc.mmc_rx_512_to_1023_octets_gb);
+	printk("mmc_rx_1024_to_max_octets_gb = 0x%llx\n", priv->mmc.mmc_rx_1024_to_max_octets_gb);
+	printk("mmc_rx_unicast_g = 0x%llx\n", priv->mmc.mmc_rx_unicast_g);
+	printk("mmc_rx_length_error = 0x%llx\n", priv->mmc.mmc_rx_length_error);
+	printk("mmc_rx_pause_frames = 0x%llx\n", priv->mmc.mmc_rx_pause_frames);
+	printk("mmc_rx_fifo_overflow = 0x%llx\n", priv->mmc.mmc_rx_fifo_overflow);
+	printk("mmc_rx_lpi_us_cntr = 0x%llx\n", priv->mmc.mmc_rx_lpi_us_cntr);
+	printk("mmc_rx_lpi_tran_cntr = 0x%llx\n", priv->mmc.mmc_rx_lpi_tran_cntr);
 
 	/* Reading FRP Table information from Registers */
 	rxp_cfg = (struct tc956xmac_rx_parser_cfg *)&priv->plat->rxp_cfg;
-	printk("rxp_cfg->nve = 0x%x \n" , (readl(priv->ioaddr + XGMAC_MTL_RXP_CONTROL_STATUS) & 0xFF));
-	printk("rxp_cfg->npe = 0x%x \n" , ((readl(priv->ioaddr + XGMAC_MTL_RXP_CONTROL_STATUS) >> 16) & 0xFF));
-	for(table_entry = 0; table_entry <= (rxp_cfg->nve); table_entry++) {
+	printk("rxp_cfg->nve = 0x%x\n", (readl(priv->ioaddr + XGMAC_MTL_RXP_CONTROL_STATUS) & 0xFF));
+	printk("rxp_cfg->npe = 0x%x\n", ((readl(priv->ioaddr + XGMAC_MTL_RXP_CONTROL_STATUS) >> 16) & 0xFF));
+	for (table_entry = 0; table_entry <= (rxp_cfg->nve); table_entry++) {
 		dwxgmac2_rx_parser_read_entry(priv,
 		&(rxp_cfg->entries[table_entry]), table_entry);
 
@@ -1505,7 +1552,7 @@ static ssize_t read_tc956x_reg_dump_status(struct file *file,
 	struct tc956xmac_priv *priv = file->private_data;
 
 	if (!priv) {
-		pr_err(" %s  ERROR: Invalid private data pointer\n",__func__);
+		pr_err(" %s  ERROR: Invalid private data pointer\n", __func__);
 		return -EINVAL;
 	}
 	dump_all_reg(priv);
@@ -1532,9 +1579,10 @@ int tc956xmac_create_debugfs(struct net_device *net_device)
 
 	struct tc956xmac_priv *priv;
 	static struct dentry *stats = NULL;
+	char dev_name[23];
 
-	if(!net_device) {
-		pr_err("%s: ERROR: Invalid netdevice pointer \n", __func__);
+	if (!net_device) {
+		pr_err("%s: ERROR: Invalid netdevice pointer\n", __func__);
 		return -1;
 	}
 
@@ -1544,77 +1592,79 @@ int tc956xmac_create_debugfs(struct net_device *net_device)
 		return -1;
 	}
 
-	if(RM_PF0_ID == priv->port_num) {
-		priv->debugfs_dir = debugfs_create_dir("tc956x_port0_debug", NULL);
+	if (RM_PF0_ID == priv->port_num) {
+		snprintf(dev_name, sizeof(dev_name), "tc956x_%s_debug", net_device->name);
+		priv->debugfs_dir = debugfs_create_dir(dev_name, NULL);
 		if (!priv->debugfs_dir) {
-			pr_err( "Cannot create TC956x debugfs dir for port-0 %ld \n", (long)priv->debugfs_dir);
+			pr_err("Cannot create TC956x debugfs dir for port-0 %ld %s\n", (long)priv->debugfs_dir, net_device->name);
 			return -1;
 		} else {
-			printk( "Created TC956x debugfs dir for port-0 \n");
+			printk("Created TC956x debugfs dir for port-0 %s\n", net_device->name);
 		}
 	} else {
-		priv->debugfs_dir = debugfs_create_dir("tc956x_port1_debug", NULL);
+		snprintf(dev_name, sizeof(dev_name), "tc956x_%s_debug", net_device->name);
+		priv->debugfs_dir = debugfs_create_dir(dev_name, NULL);
 		if (!priv->debugfs_dir) {
-			pr_err( "Cannot create TC956x debugfs dir for port-1 %ld \n", (long)priv->debugfs_dir);
+			pr_err("Cannot create TC956x debugfs dir for port-1 %ld %s \n", (long)priv->debugfs_dir, net_device->name);
 			return -1;
 		} else {
-			printk( "Created TC956x debugfs dir for port-1 \n");
+			printk("Created TC956x debugfs dir for port-1 %s\n", net_device->name);
 		}
 	}
 
 	stats = debugfs_create_file("m3_stats", S_IRUSR, priv->debugfs_dir,
 				priv, &fops_m3_stats);
 	if (!stats || IS_ERR(stats)) {
-		pr_err( "Cannot create TC956x m3 debugfs stats file%ld \n", (long)stats);
+		pr_err("Cannot create TC956x m3 debugfs stats file%ld for %s\n", (long)stats, net_device->name);
 		goto fail;
 	}
 
 	stats = debugfs_create_file("mac_stats", S_IRUSR, priv->debugfs_dir,
 				priv, &fops_mac_stats);
 	if (!stats || IS_ERR(stats)) {
-		pr_err( "Cannot create TC956x mac debugfs stats file%ld \n", (long)stats);
+		pr_err("Cannot create TC956x mac debugfs stats file%ld for %s\n", (long)stats, net_device->name);
 		goto fail;
 	}
 
 	stats = debugfs_create_file("mtl_stats", S_IRUSR, priv->debugfs_dir,
 				priv, &fops_mtl_stats);
 	if (!stats || IS_ERR(stats)) {
-		pr_err( "Cannot create TC956x mtl debugfs stats file%ld \n", (long)stats);
+		pr_err("Cannot create TC956x mtl debugfs stats file%ld for %s\n", (long)stats, net_device->name);
 		goto fail;
 	}
 
 	stats = debugfs_create_file("dma_stats", S_IRUSR, priv->debugfs_dir,
 				priv, &fops_dma_stats);
 	if (!stats || IS_ERR(stats)) {
-		pr_err( "Cannot create TC956x dma debugfs stats file%ld \n", (long)stats);
+		pr_err("Cannot create TC956x dma debugfs stats file%ld for %s\n", (long)stats, net_device->name);
 		goto fail;
 	}
 
 	stats = debugfs_create_file("interrupt_stats", S_IRUSR, priv->debugfs_dir,
 				priv, &fops_intr_stats);
 	if (!stats || IS_ERR(stats)) {
-		pr_err( "Cannot create TC956x interrupt debugfs stats file%ld \n", (long)stats);
+		pr_err("Cannot create TC956x interrupt debugfs stats file%ld for %s\n", (long)stats, net_device->name);
 		goto fail;
 	}
 
 	stats = debugfs_create_file("config_stats", S_IRUSR, priv->debugfs_dir,
 				priv, &fops_cnfg_stats);
 	if (!stats || IS_ERR(stats)) {
-		pr_err( "Cannot create TC956x cnfg debugfs stats file%ld \n", (long)stats);
+		pr_err("Cannot create TC956x cnfg debugfs stats file%ld for %s\n", (long)stats, net_device->name);
 		goto fail;
 	}
 
 	stats = debugfs_create_file("other_stats", S_IRUSR, priv->debugfs_dir,
 				priv, &fops_other_stats);
 	if (!stats || IS_ERR(stats)) {
-		pr_err( "Cannot create TC956x other debugfs stats file%ld \n", (long)stats);
+		pr_err("Cannot create TC956x other debugfs stats file%ld for %s\n", (long)stats, net_device->name);
 		goto fail;
 	}
 
 	stats = debugfs_create_file("reg_dump", S_IRUSR, priv->debugfs_dir,
 				priv, &fops_reg_dump_stats);
 	if (!stats || IS_ERR(stats)) {
-		pr_err( "Cannot create TC956x registers dump debugfs file%ld \n", (long)stats);
+		pr_err("Cannot create TC956x registers dump debugfs file%ld for %s\n", (long)stats, net_device->name);
 		goto fail;
 	}
 
@@ -1637,8 +1687,8 @@ int tc956xmac_cleanup_debugfs(struct net_device *net_device)
 {
 	struct tc956xmac_priv *priv;
 
-	if(!net_device) {
-		pr_err("%s: ERROR: Invalid netdevice pointer \n", __func__);
+	if (!net_device) {
+		pr_err("%s: ERROR: Invalid netdevice pointer\n", __func__);
 		return -1;
 	}
 
@@ -1651,11 +1701,12 @@ int tc956xmac_cleanup_debugfs(struct net_device *net_device)
 	if (priv->debugfs_dir)
 		debugfs_remove_recursive(priv->debugfs_dir);
 
-	printk("TC956x port-%d, debugfs Deleted Successfully \n", priv->port_num);
+	printk("TC956x port-%d %s, debugfs Deleted Successfully\n", priv->port_num, priv->dev->name);
 	return 0;
 
 }
 #endif/* End of CONFIG_DEBUG_FS */
+#endif /* TC956X_SRIOV_PF */
 
 /**
  *  tc956x_GPIO_OutputConfigPin - to configure GPIO as output and write the value
@@ -1670,69 +1721,75 @@ int tc956x_GPIO_OutputConfigPin(struct tc956xmac_priv *priv, u32 gpio_pin, u8 ou
 
 	/* Only GPIO0- GPIO06, GPI010-GPIO12 are allowed */
 	switch (gpio_pin) {
-		case GPIO_00:
-			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-			val &= ~NFUNCEN4_GPIO_00;
-			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_00_SHIFT);
-			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-			break;
-		case GPIO_01:
-			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-			val &= ~NFUNCEN4_GPIO_01;
-			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_01_SHIFT);
-			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-			break;
-		case GPIO_02:
-			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-			val &= ~NFUNCEN4_GPIO_02;
-			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_02_SHIFT);
-			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-			break;
-		case GPIO_03:
-			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-			val &= ~NFUNCEN4_GPIO_03;
-			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_03_SHIFT);
-			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-			break;
-		case GPIO_04:
-			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-			val &= ~NFUNCEN4_GPIO_04;
-			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_04_SHIFT);
-			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-			break;
-		case GPIO_05:
-			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-			val &= ~NFUNCEN4_GPIO_05;
-			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_05_SHIFT);
-			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-			break;
-		case GPIO_06:
-			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-			val &= ~NFUNCEN4_GPIO_06;
-			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_06_SHIFT);
-			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-			break;
-		case GPIO_10:
-			val = readl(priv->ioaddr + NFUNCEN5_OFFSET);
-			val &= ~NFUNCEN5_GPIO_10;
-			val |= (NFUNCEN_FUNC0 << NFUNCEN5_GPIO_10_SHIFT);
-			writel(val, priv->ioaddr + NFUNCEN5_OFFSET);
-			break;
-		case GPIO_11:
-			val = readl(priv->ioaddr + NFUNCEN5_OFFSET);
-			val &= ~NFUNCEN5_GPIO_11;
-			val |= (NFUNCEN_FUNC0 << NFUNCEN5_GPIO_11_SHIFT);
-			writel(val, priv->ioaddr + NFUNCEN5_OFFSET);
-			break;
-		case GPIO_12:
-			val = readl(priv->ioaddr + NFUNCEN6_OFFSET);
-			val &= ~NFUNCEN6_GPIO_12;
-			val |= (NFUNCEN_FUNC0 << NFUNCEN6_GPIO_12_SHIFT);
-			writel(val, priv->ioaddr + NFUNCEN6_OFFSET);
-			break;
-		default:
-			netdev_err(priv->dev, "Invalid GPIO pin - %d\n", gpio_pin);
-			return -EPERM;
+	case GPIO_00:
+		val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+		val &= ~NFUNCEN4_GPIO_00;
+		val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_00_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+		break;
+	case GPIO_01:
+		val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+		val &= ~NFUNCEN4_GPIO_01;
+		val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_01_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+		break;
+	case GPIO_02:
+		val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+		val &= ~NFUNCEN4_GPIO_02;
+		val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_02_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+		break;
+	case GPIO_03:
+		val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+		val &= ~NFUNCEN4_GPIO_03;
+		val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_03_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+		break;
+	case GPIO_04:
+		val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+		val &= ~NFUNCEN4_GPIO_04;
+		val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_04_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+		break;
+	case GPIO_05:
+		val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+		val &= ~NFUNCEN4_GPIO_05;
+		val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_05_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+		break;
+	case GPIO_06:
+		val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+		val &= ~NFUNCEN4_GPIO_06;
+		val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_06_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+		break;
+	case GPIO_10:
+		val = readl(priv->ioaddr + NFUNCEN5_OFFSET);
+		val &= ~NFUNCEN5_GPIO_10;
+		val |= (NFUNCEN_FUNC0 << NFUNCEN5_GPIO_10_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN5_OFFSET);
+		break;
+	case GPIO_11:
+		val = readl(priv->ioaddr + NFUNCEN5_OFFSET);
+		val &= ~NFUNCEN5_GPIO_11;
+		val |= (NFUNCEN_FUNC0 << NFUNCEN5_GPIO_11_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN5_OFFSET);
+		break;
+	case GPIO_12:
+		val = readl(priv->ioaddr + NFUNCEN6_OFFSET);
+		val &= ~NFUNCEN6_GPIO_12;
+		val |= (NFUNCEN_FUNC0 << NFUNCEN6_GPIO_12_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN6_OFFSET);
+		break;
+	case GPIO_13:
+		val = readl(priv->ioaddr + NFUNCEN7_OFFSET);
+		val &= ~NFUNCEN7_GPIO_13;
+		val |= (NFUNCEN_FUNC2 << NFUNCEN7_GPIO_13_SHIFT);
+		writel(val, priv->ioaddr + NFUNCEN7_OFFSET);
+		break;
+	default:
+		netdev_err(priv->dev, "Invalid GPIO pin - %d\n", gpio_pin);
+		return -EPERM;
 	}
 
 	priv->saved_gpio_config[gpio_pin].config = 1;
@@ -1794,79 +1851,85 @@ int tc956x_gpio_restore_configuration(struct tc956xmac_priv *priv)
 
 		/* Only GPIO0- GPIO06, GPI010-GPIO12 are allowed */
 		switch (gpio_pin) {
-			case GPIO_00:
-				val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-				val &= ~NFUNCEN4_GPIO_00;
-				val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_00_SHIFT);
-				writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-				break;
-			case GPIO_01:
-				val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-				val &= ~NFUNCEN4_GPIO_01;
-				val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_01_SHIFT);
-				writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-				break;
-			case GPIO_02:
-				val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-				val &= ~NFUNCEN4_GPIO_02;
-				val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_02_SHIFT);
-				writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-				break;
-			case GPIO_03:
-				val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-				val &= ~NFUNCEN4_GPIO_03;
-				val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_03_SHIFT);
-				writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-				break;
-			case GPIO_04:
-				val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-				val &= ~NFUNCEN4_GPIO_04;
-				val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_04_SHIFT);
-				writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-				break;
-			case GPIO_05:
-				val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-				val &= ~NFUNCEN4_GPIO_05;
-				val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_05_SHIFT);
-				writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-				break;
-			case GPIO_06:
-				val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
-				val &= ~NFUNCEN4_GPIO_06;
-				val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_06_SHIFT);
-				writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
-				break;
-			case GPIO_10:
-				val = readl(priv->ioaddr + NFUNCEN5_OFFSET);
-				val &= ~NFUNCEN5_GPIO_10;
-				val |= (NFUNCEN_FUNC0 << NFUNCEN5_GPIO_10_SHIFT);
-				writel(val, priv->ioaddr + NFUNCEN5_OFFSET);
-				break;
-			case GPIO_11:
-				val = readl(priv->ioaddr + NFUNCEN5_OFFSET);
-				val &= ~NFUNCEN5_GPIO_11;
-				val |= (NFUNCEN_FUNC0 << NFUNCEN5_GPIO_11_SHIFT);
-				writel(val, priv->ioaddr + NFUNCEN5_OFFSET);
-				break;
-			case GPIO_12:
-				val = readl(priv->ioaddr + NFUNCEN6_OFFSET);
-				val &= ~NFUNCEN6_GPIO_12;
-				val |= (NFUNCEN_FUNC0 << NFUNCEN6_GPIO_12_SHIFT);
-				writel(val, priv->ioaddr + NFUNCEN6_OFFSET);
-				break;
-			default :
-				netdev_err(priv->dev, "Invalid GPIO pin - %d\n", gpio_pin);
-				return -EPERM;
+		case GPIO_00:
+			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+			val &= ~NFUNCEN4_GPIO_00;
+			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_00_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+			break;
+		case GPIO_01:
+			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+			val &= ~NFUNCEN4_GPIO_01;
+			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_01_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+			break;
+		case GPIO_02:
+			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+			val &= ~NFUNCEN4_GPIO_02;
+			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_02_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+			break;
+		case GPIO_03:
+			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+			val &= ~NFUNCEN4_GPIO_03;
+			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_03_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+			break;
+		case GPIO_04:
+			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+			val &= ~NFUNCEN4_GPIO_04;
+			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_04_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+			break;
+		case GPIO_05:
+			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+			val &= ~NFUNCEN4_GPIO_05;
+			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_05_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+			break;
+		case GPIO_06:
+			val = readl(priv->ioaddr + NFUNCEN4_OFFSET);
+			val &= ~NFUNCEN4_GPIO_06;
+			val |= (NFUNCEN_FUNC0 << NFUNCEN4_GPIO_06_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
+			break;
+		case GPIO_10:
+			val = readl(priv->ioaddr + NFUNCEN5_OFFSET);
+			val &= ~NFUNCEN5_GPIO_10;
+			val |= (NFUNCEN_FUNC0 << NFUNCEN5_GPIO_10_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN5_OFFSET);
+			break;
+		case GPIO_11:
+			val = readl(priv->ioaddr + NFUNCEN5_OFFSET);
+			val &= ~NFUNCEN5_GPIO_11;
+			val |= (NFUNCEN_FUNC0 << NFUNCEN5_GPIO_11_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN5_OFFSET);
+			break;
+		case GPIO_12:
+			val = readl(priv->ioaddr + NFUNCEN6_OFFSET);
+			val &= ~NFUNCEN6_GPIO_12;
+			val |= (NFUNCEN_FUNC0 << NFUNCEN6_GPIO_12_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN6_OFFSET);
+			break;
+		case GPIO_13:
+			val = readl(priv->ioaddr + NFUNCEN7_OFFSET);
+			val &= ~NFUNCEN7_GPIO_13;
+			val |= (NFUNCEN_FUNC2 << NFUNCEN7_GPIO_13_SHIFT);
+			writel(val, priv->ioaddr + NFUNCEN7_OFFSET);
+			break;
+		default:
+			netdev_err(priv->dev, "Invalid GPIO pin - %d\n", gpio_pin);
+			return -EPERM;
 		}
 
 		out_value = priv->saved_gpio_config[gpio_pin].out_val;
 
 		/* Write data to GPIO pin */
-		if(gpio_pin < GPIO_32) {
+		if (gpio_pin < GPIO_32) {
 			config = 1 << gpio_pin;
 			val = readl(priv->ioaddr + GPIOO0_OFFSET);
 			val &= ~config;
-			if(out_value)
+			if (out_value)
 				val |= config;
 
 			writel(val, priv->ioaddr + GPIOO0_OFFSET);
@@ -1874,19 +1937,19 @@ int tc956x_gpio_restore_configuration(struct tc956xmac_priv *priv)
 			config = 1 << (gpio_pin - GPIO_32);
 			val = readl(priv->ioaddr + GPIOO1_OFFSET);
 			val &= ~config;
-			if(out_value)
+			if (out_value)
 				val |= config;
 
 			writel(val, priv->ioaddr + GPIOO1_OFFSET);
 		}
 
 		/* Configure the GPIO pin in output direction */
-		if(gpio_pin < GPIO_32) {
-			config = ~(1 << gpio_pin) ;
+		if (gpio_pin < GPIO_32) {
+			config = ~(1 << gpio_pin);
 			val = readl(priv->ioaddr + GPIOE0_OFFSET);
 			writel(val & config, priv->ioaddr + GPIOE0_OFFSET);
 		} else {
-			config = ~(1 << (gpio_pin - GPIO_32)) ;
+			config = ~(1 << (gpio_pin - GPIO_32));
 			val = readl(priv->ioaddr + GPIOE1_OFFSET);
 			writel(val & config, priv->ioaddr + GPIOE1_OFFSET);
 		}
@@ -2164,7 +2227,7 @@ static void tc956xmac_service_event_schedule(struct tc956xmac_priv *priv)
 }
 #endif
 
-#if defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE)
+#if defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)
 /**
  * tc956xmac_service_mbx_event_schedule - Schedule work queue
  * @priv: driver private structure
@@ -2363,7 +2426,9 @@ bool tc956xmac_eee_init(struct tc956xmac_priv *priv)
 	tc956xmac_enable_eee_mode(priv);
 #ifdef EEE_MAC_CONTROLLED_MODE
 	tc956xmac_set_eee_timer(priv, priv->hw, TC956XMAC_LIT_LS, TC956XMAC_TWT_LS);
-	value = TC956XMAC_TIC_1US_CNTR;
+	value = readl(priv->ioaddr + XGMAC_LPI_1US_Tic_Counter);
+	value &= ~XGMAC_LPI_1US_Tic_Counter_MASK;
+	value |= (TC956XMAC_TIC_1US_CNTR & XGMAC_LPI_1US_Tic_Counter_MASK); /* Setting  bit [11...0] */
 	writel(value, priv->ioaddr + XGMAC_LPI_1US_Tic_Counter);
 	value = readl(priv->ioaddr + XGMAC_LPI_Auto_Entry_Timer);
 	/* Setting LPIET bit [19...3] */
@@ -3001,8 +3066,8 @@ static void tc956xmac_validate(struct phylink_config *config,
 #endif  /* TC956X_SRIOV_VF */
 
 #ifndef TC956X_SRIOV_VF
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0))
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
 static void tc956xmac_mac_pcs_get_state(struct phylink_config *config,
 					struct phylink_link_state *state)
 {
@@ -3353,57 +3418,57 @@ static void tc956xmac_mac_config(struct phylink_config *config, unsigned int mod
 			}
 		if ((state->interface == PHY_INTERFACE_MODE_SGMII)
 			&& (priv->port_interface != ENABLE_2500BASE_X_INTERFACE)) { /* Autonegotiation not supported for SGMII */
-				reg_value = tc956x_xpcs_read(priv->xpcsaddr, XGMAC_VR_MII_AN_INTR_STS);
-				/* Clear autonegotiation only if completed. As for XPCS, 2.5G autonegotiation is not supported */
-				/* Switching from SGMII 2.5G to any speed doesn't cause AN completion */
-				if (reg_value & XGMAC_C37_AN_COMPL) {/*check if AN 37 is complete CL37_ANCMPLT_INTR*/
-					KPRINT_INFO("AN clause 37 completed");
-					reg_value &= ~(XGMAC_C37_AN_COMPL);
-					tc956x_xpcs_write(priv->xpcsaddr, XGMAC_VR_MII_AN_INTR_STS, reg_value);
-					KPRINT_INFO("AN clause 37 complete bit cleared");
-				}
-				/* Invoke this only during speed change */
-				if ((state->speed != SPEED_UNKNOWN) && (state->speed != 0)) {
-					if (state->speed != priv->speed)
-						tc956xmac_speed_change_init_mac(priv, state);
-				} else {
-					return;
-				}
-				val = tc956x_xpcs_read(priv->xpcsaddr, XGMAC_SR_MII_CTRL);
-				val &= ~XGMAC_SR_MII_CTRL_SPEED; /* Mask speed ss13, ss6, ss5 */
-				switch (state->speed) {
-				case SPEED_2500:
-					ctrl |= priv->hw->link.speed2500;
-					/* Program autonegotiated speed to SR_MII_CTRL */
-					val |= XPCS_SS_SGMII_1G; /*1000 Mbps setting only available, so set the same*/
-					emac_ctrl |= NEMACCTL_SP_SEL_SGMII_2500M;
-					break;
-				case SPEED_1000:
-					ctrl |= priv->hw->link.speed1000;
-					val |= XPCS_SS_SGMII_1G; /*1000 Mbps setting only available, so set the same*/
-					emac_ctrl |= NEMACCTL_SP_SEL_SGMII_1000M;
-					break;
-				case SPEED_100:
-					ctrl |= priv->hw->link.speed100;
-					val |= XPCS_SS_SGMII_100M; /*100 Mbps setting */
-					emac_ctrl |= NEMACCTL_SP_SEL_SGMII_100M;
-					break;
-				case SPEED_10:
-					ctrl |= priv->hw->link.speed10;
-					val |= XPCS_SS_SGMII_10M; /*10 Mbps setting */
-					emac_ctrl |= NEMACCTL_SP_SEL_SGMII_10M;
-					break;
-				default:
-					return;
-				}
-				tc956x_xpcs_write(priv->xpcsaddr, XGMAC_SR_MII_CTRL, val);
-				config_done = true;
+			reg_value = tc956x_xpcs_read(priv->xpcsaddr, XGMAC_VR_MII_AN_INTR_STS);
+			/* Clear autonegotiation only if completed. As for XPCS, 2.5G autonegotiation is not supported */
+			/* Switching from SGMII 2.5G to any speed doesn't cause AN completion */
+			if (reg_value & XGMAC_C37_AN_COMPL) {/*check if AN 37 is complete CL37_ANCMPLT_INTR*/
+				KPRINT_INFO("AN clause 37 completed");
+				reg_value &= ~(XGMAC_C37_AN_COMPL);
+				tc956x_xpcs_write(priv->xpcsaddr, XGMAC_VR_MII_AN_INTR_STS, reg_value);
+				KPRINT_INFO("AN clause 37 complete bit cleared");
 			}
+			/* Invoke this only during speed change */
+			if ((state->speed != SPEED_UNKNOWN) && (state->speed != 0)) {
+				if (state->speed != priv->speed)
+					tc956xmac_speed_change_init_mac(priv, state);
+			} else {
+				return;
+			}
+			val = tc956x_xpcs_read(priv->xpcsaddr, XGMAC_SR_MII_CTRL);
+			val &= ~XGMAC_SR_MII_CTRL_SPEED; /* Mask speed ss13, ss6, ss5 */
+			switch (state->speed) {
+			case SPEED_2500:
+				ctrl |= priv->hw->link.speed2500;
+				/* Program autonegotiated speed to SR_MII_CTRL */
+				val |= XPCS_SS_SGMII_1G; /*1000 Mbps setting only available, so set the same*/
+				emac_ctrl |= NEMACCTL_SP_SEL_SGMII_2500M;
+				break;
+			case SPEED_1000:
+				ctrl |= priv->hw->link.speed1000;
+				val |= XPCS_SS_SGMII_1G; /*1000 Mbps setting only available, so set the same*/
+				emac_ctrl |= NEMACCTL_SP_SEL_SGMII_1000M;
+				break;
+			case SPEED_100:
+				ctrl |= priv->hw->link.speed100;
+				val |= XPCS_SS_SGMII_100M; /*100 Mbps setting */
+				emac_ctrl |= NEMACCTL_SP_SEL_SGMII_100M;
+				break;
+			case SPEED_10:
+				ctrl |= priv->hw->link.speed10;
+				val |= XPCS_SS_SGMII_10M; /*10 Mbps setting */
+				emac_ctrl |= NEMACCTL_SP_SEL_SGMII_10M;
+				break;
+			default:
+				return;
+			}
+			tc956x_xpcs_write(priv->xpcsaddr, XGMAC_SR_MII_CTRL, val);
+			config_done = true;
+		}
 #ifdef TC956X_MAGIC_PACKET_WOL_CONF
 		} else {
 			/* Configure Speed for WOL SGMII 1Gbps */
-			KPRINT_INFO("%s Port %d : Entered with flag priv->wol_config_enabled %d", __func__, priv->port_num, priv->wol_config_enabled);
-			KPRINT_INFO("%s Port %d : Speed to configure %d", __func__, priv->port_num, state->speed);
+			KPRINT_INFO("%s Port %d %s: Entered with flag priv->wol_config_enabled %d", __func__, priv->port_num, priv->dev->name, priv->wol_config_enabled);
+			KPRINT_INFO("%s Port %d %s: Speed to configure %d", __func__, priv->port_num, priv->dev->name, state->speed);
 			reg_value = tc956x_xpcs_read(priv->xpcsaddr, XGMAC_VR_MII_AN_INTR_STS);
 			/* Clear autonegotiation only if completed. As for XPCS, 2.5G autonegotiation is not supported */
 			/* Switching from SGMII 2.5G to any speed doesn't cause AN completion */
@@ -3415,7 +3480,7 @@ static void tc956xmac_mac_config(struct phylink_config *config, unsigned int mod
 			}
 			ret = tc956x_xpcs_init(priv, priv->xpcsaddr);
 			if (ret < 0)
-			      KPRINT_INFO("XPCS initialization error\n");
+				KPRINT_INFO("XPCS initialization error\n");
 			tc956x_xpcs_ctrl_ane(priv, true);
 			val = tc956x_xpcs_read(priv->xpcsaddr, XGMAC_SR_MII_CTRL);
 			val &= ~XGMAC_SR_MII_CTRL_SPEED; /* Mask speed ss13, ss6, ss5 */
@@ -3497,7 +3562,7 @@ static void tc956xmac_mac_config(struct phylink_config *config, unsigned int mod
 	}
 #endif
 }
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
 static void tc956xmac_mac_an_restart(struct phylink_config *config)
 {
 #ifdef TC956X
@@ -3506,21 +3571,21 @@ static void tc956xmac_mac_an_restart(struct phylink_config *config)
 
 	if (priv->hw->xpcs) {
 		/*Enable XPCS Autoneg*/
-		if ((priv->plat->interface == PHY_INTERFACE_MODE_10GKR) || 
-			(priv->plat->interface == ENABLE_2500BASE_X_INTERFACE)) {
+		if ((priv->plat->interface == PHY_INTERFACE_MODE_10GKR) ||
+			(priv->port_interface == ENABLE_2500BASE_X_INTERFACE)) {
 			enable_en = false;
-			KPRINT_INFO("%s :Port %d AN Enable:%d", __func__, priv->port_num, enable_en);
+			KPRINT_INFO("%s :Port %d %s AN Enable:%d", __func__, priv->port_num, priv->dev->name, enable_en);
 		} else if (priv->plat->interface == PHY_INTERFACE_MODE_SGMII) {
 			if (priv->is_sgmii_2p5g == true) {
 				enable_en = false;
-				KPRINT_INFO("%s : Port %d AN Enable:%d", __func__, priv->port_num, enable_en);
+				KPRINT_INFO("%s : Port %d %s AN Enable:%d", __func__, priv->port_num, priv->dev->name, enable_en);
 			} else {
 				enable_en = true;
-				KPRINT_INFO("%s : Port %d AN Enable:%d", __func__, priv->port_num, enable_en);
+				KPRINT_INFO("%s : Port %d %s AN Enable:%d", __func__, priv->port_num, priv->dev->name, enable_en);
 			}
 		} else {
 			enable_en = true;
-			KPRINT_INFO("%s : Port %d AN Enable:%d", __func__, priv->port_num, enable_en);
+			KPRINT_INFO("%s : Port %d %s AN Enable:%d", __func__, priv->port_num, priv->dev->name, enable_en);
 		}
 		tc956x_xpcs_ctrl_ane(priv, enable_en);
 	}
@@ -3539,8 +3604,8 @@ static void tc956xmac_mac_link_down(struct phylink_config *config,
 	u32 offload_release_sts = true;
 	struct tc956xmac_priv *priv = netdev_priv(to_net_dev(config->dev));
 	struct net_device *ndev = to_net_dev(config->dev);
-	tc956xmac_mac_set_rx(priv, priv->ioaddr, false);
 
+	tc956xmac_mac_set_rx(priv, priv->ioaddr, false);
 	/* In SRIOV code, EEE is handled by PF driver */
 #ifndef TC956X_SRIOV_VF
 #ifdef EEE
@@ -3560,14 +3625,14 @@ static void tc956xmac_mac_link_down(struct phylink_config *config,
 	else
 		priv->link_down_rst = false;
 
-	KPRINT_INFO("link down1 priv->link_down_rst = %d \n", priv->link_down_rst);
+	KPRINT_INFO("link down1 priv->link_down_rst = %d\n", priv->link_down_rst);
 	if (priv->link_down_rst == true) {
 		tc956xmac_release(ndev);
 		tc956xmac_open(ndev);
 		priv->link_down_rst = false;
 	}
 
-	KPRINT_INFO("link down2 priv->link_down_rst = %d \n", priv->link_down_rst);
+	KPRINT_INFO("link down2 priv->link_down_rst = %d\n", priv->link_down_rst);
 	mutex_lock(&priv->port_ld_release_lock);
 	/* Checking whether all offload Tx channels released or not*/
 	for (ch = 0; ch < MAX_TX_QUEUES_TO_USE; ch++) {
@@ -3587,8 +3652,8 @@ static void tc956xmac_mac_link_down(struct phylink_config *config,
 	}
 
 	/* If all channels are freed, call API for power saving*/
-	if(priv->port_link_down == false && offload_release_sts == true) {
-	tc956xmac_link_change_set_power(priv, LINK_DOWN); /* Save, Assert and Disable Reset and Clock */
+	if (priv->port_link_down == false && offload_release_sts == true) {
+		tc956xmac_link_change_set_power(priv, LINK_DOWN); /* Save, Assert and Disable Reset and Clock */
 	}
 	priv->port_release = true; /* setting port release to true as link-down invoked, and clear from open or link-up */
 	mutex_unlock(&priv->port_ld_release_lock);
@@ -3798,7 +3863,7 @@ eee_exit_err:
 }
 #endif
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
 static void tc956xmac_mac_link_up(struct phylink_config *config,
 				   struct phy_device *phy,
 				   unsigned int mode, phy_interface_t interface,
@@ -3810,11 +3875,14 @@ static void tc956xmac_mac_link_up(struct phylink_config *config,
 #endif
 {
 	struct tc956xmac_priv *priv = netdev_priv(to_net_dev(config->dev));
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
 	u32 ctrl, emac_ctrl;
 	bool config_done = false;
 	u32 reg_value;
 	u32 val;
+#ifdef TC956X_MAGIC_PACKET_WOL_CONF
+	int ret;
+#endif
 	struct phylink_link_state state;
 
 	state.interface = interface;
@@ -3933,8 +4001,8 @@ static void tc956xmac_mac_link_up(struct phylink_config *config,
 #ifdef TC956X_MAGIC_PACKET_WOL_CONF
 		} else {
 			/* Configure Speed for WOL SGMII 1Gbps */
-			KPRINT_INFO("%s Port %d : Entered with flag priv->wol_config_enabled %d", __func__, priv->port_num, priv->wol_config_enabled);
-			KPRINT_INFO("%s Port %d : Speed to configure %d", __func__, priv->port_num, speed);
+			KPRINT_INFO("%s Port %d %s : Entered with flag priv->wol_config_enabled %d", __func__, priv->port_num, priv->dev->name, priv->wol_config_enabled);
+			KPRINT_INFO("%s Port %d %s : Speed to configure %d", __func__, priv->port_num, priv->dev->name, speed);
 			reg_value = tc956x_xpcs_read(priv->xpcsaddr, XGMAC_VR_MII_AN_INTR_STS);
 
 			/* Clear autonegotiation only if completed. As for XPCS, 2.5G autonegotiation is not supported */
@@ -4101,15 +4169,15 @@ static void tc956xmac_mac_link_up(struct phylink_config *config,
 
 static const struct phylink_mac_ops tc956xmac_phylink_mac_ops = {
 	.validate = tc956xmac_validate,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0))
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
 	.mac_pcs_get_state = tc956xmac_mac_pcs_get_state,
 #endif
 #else	/* Required when using with Kernel v5.4 */
 	.mac_link_state = tc956xmac_mac_link_state,
 #endif
 	.mac_config = tc956xmac_mac_config,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
 	.mac_an_restart = tc956xmac_mac_an_restart,
 #endif
 	.mac_link_down = tc956xmac_mac_link_down,
@@ -4173,7 +4241,7 @@ static void tc956xmac_check_pcs_mode(struct tc956xmac_priv *priv)
  */
 static void tc956xmac_defer_phy_isr_work(struct work_struct *work)
 {
-	struct phy_device *phydev;
+	struct phy_device *phydev = NULL;
 	int rd_val = 0;
 	struct tc956xmac_priv *priv =
 		container_of(work, struct tc956xmac_priv, emac_phy_work);
@@ -4181,7 +4249,9 @@ static void tc956xmac_defer_phy_isr_work(struct work_struct *work)
 
 	DBGPR_FUNC(priv->device, "Entry: tc956xmac_defer_phy_isr_work\n");
 
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	phydev = mdiobus_get_phy(priv->mii, addr);
+#endif
 
 	if (!phydev) {
 		netdev_err(priv->dev, "no phy at addr %d\n", addr);
@@ -4194,7 +4264,7 @@ static void tc956xmac_defer_phy_isr_work(struct work_struct *work)
 	}
 
 	/* Call ack interrupt to clear the WOL interrupt status fields */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 	if (phydev->drv->handle_interrupt)
 		phydev->drv->handle_interrupt(phydev);
 #else
@@ -4224,13 +4294,15 @@ static int tc956xmac_init_phy(struct net_device *dev)
 	struct tc956xmac_priv *priv = netdev_priv(dev);
 	struct device_node *node;
 	int ret;
-	struct phy_device *phydev;
+	struct phy_device *phydev = NULL;
 	int addr = priv->plat->phy_addr;
 	struct ethtool_eee edata;
 
 	node = priv->plat->phylink_node;
 
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	phydev = mdiobus_get_phy(priv->mii, addr);
+#endif
 
 	if (!phydev) {
 		netdev_err(priv->dev, "no phy at addr %d\n", addr);
@@ -4238,7 +4310,7 @@ static int tc956xmac_init_phy(struct net_device *dev)
 	}
 	if (phydev->drv != NULL) {
 		if (true == priv->plat->phy_interrupt_mode && (phydev->drv->config_intr)) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0)
 			phydev->irq = PHY_MAC_INTERRUPT;
 #else
 			phydev->irq = PHY_IGNORE_INTERRUPT;
@@ -4297,7 +4369,7 @@ static int tc956xmac_init_phy(struct net_device *dev)
 	if (phydev->interrupts ==  PHY_INTERRUPT_ENABLED) {
 		if (!(phydev->drv->config_intr &&
 			!phydev->drv->config_intr(phydev))) {
-			KPRINT_ERR("Failed to configure PHY interrupt port number is %d", priv->port_num);
+			KPRINT_ERR("Failed to configure PHY interrupt port number is %d %s", priv->port_num, dev->name);
 		}
 	}
 	/* Enable or disable EEE Advertisement based on eee_enabled settings which might be set using module param */
@@ -4322,13 +4394,13 @@ static int tc956xmac_init_phy(struct net_device *dev)
 
 	return ret;
 }
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 static void tc956xmac_phylink_fixed_state(struct phylink_config *config, struct phylink_link_state *state)
 #else
 static void tc956xmac_phylink_fixed_state(struct net_device *dev, struct phylink_link_state *state)
 #endif
 {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
 	struct net_device *dev = to_net_dev(config->dev);
 #endif
 	struct tc956xmac_priv *priv = netdev_priv(dev);
@@ -4351,8 +4423,13 @@ static int tc956xmac_phy_setup(struct tc956xmac_priv *priv)
 	priv->phylink_config.dev = &priv->dev->dev;
 	priv->phylink_config.type = PHYLINK_NETDEV;
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 16, 0)
 	/* Set the platform/firmware specified interface mode */
+	/*If SGMII interface, add 2500BASEX also in supported interface as in some PHY, 
+	 * 2500Base-X and SGMII are used interchangeably
+	 */
+	if(mode == PHY_INTERFACE_MODE_SGMII)
+		__set_bit(PHY_INTERFACE_MODE_2500BASEX, priv->phylink_config.supported_interfaces);
 	__set_bit(mode, priv->phylink_config.supported_interfaces);
 #endif
 
@@ -4364,8 +4441,8 @@ static int tc956xmac_phy_setup(struct tc956xmac_priv *priv)
 	/* Fixed phy mode should be set using device tree, driver just registers callback here */
 	if (((priv->port_num == RM_PF1_ID) && (mac1_force_speed_mode == ENABLE)) ||
 		((priv->port_num == RM_PF0_ID) && (mac0_force_speed_mode == ENABLE)))
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0))
-		priv->phylink_config.get_fixed_state=tc956xmac_phylink_fixed_state;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 8, 0)
+		priv->phylink_config.get_fixed_state = tc956xmac_phylink_fixed_state;
 #else
 		phylink_fixed_state_cb(phylink, tc956xmac_phylink_fixed_state);
 #endif
@@ -4620,7 +4697,7 @@ static void tc956xmac_free_rx_buffer(struct tc956xmac_priv *priv, u32 queue, int
 	struct tc956xmac_rx_buffer *buf = &rx_q->buf_pool[i];
 
 	if (buf->page)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
 		page_pool_put_full_page(rx_q->page_pool, buf->page, false);
 #else
 		page_pool_put_page(rx_q->page_pool, buf->page, false);
@@ -4628,7 +4705,7 @@ static void tc956xmac_free_rx_buffer(struct tc956xmac_priv *priv, u32 queue, int
 	buf->page = NULL;
 
 	if (buf->sec_page)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 7, 0)
 		page_pool_put_full_page(rx_q->page_pool, buf->sec_page, false);
 #else
 		page_pool_put_page(rx_q->page_pool, buf->sec_page, false);
@@ -5035,7 +5112,7 @@ static int alloc_dma_rx_desc_resources(struct tc956xmac_priv *priv)
 		pp_params.nid = dev_to_node(priv->device);
 		pp_params.dev = priv->device;
 		pp_params.dma_dir = DMA_FROM_DEVICE;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 5, 0)
 		pp_params.offset = 0;
 		pp_params.max_len = TC956X_MAX_RX_BUF_SIZE(num_pages);
 #endif
@@ -5405,14 +5482,14 @@ static void tc956xmac_dma_operation_mode(struct tc956xmac_priv *priv)
 #endif
 		switch (chan) {
 		case 0:
-#if defined(TC956X_AUTOMOTIVE_CONFIG)
+#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_CPE_CONFIG)
 			rxfifosz = priv->plat->rx_queues_cfg[0].size;
 #else
 			rxfifosz = RX_QUEUE0_SIZE;
 #endif
 			break;
 		case 1:
-#if defined(TC956X_AUTOMOTIVE_CONFIG)
+#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_CPE_CONFIG)
 			rxfifosz = priv->plat->rx_queues_cfg[1].size;
 #else
 			rxfifosz = RX_QUEUE1_SIZE;
@@ -5477,14 +5554,14 @@ static void tc956xmac_dma_operation_mode(struct tc956xmac_priv *priv)
 
 		switch (chan) {
 		case 0:
-#if defined(TC956X_AUTOMOTIVE_CONFIG)
+#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_CPE_CONFIG)
 			txfifosz = priv->plat->tx_queues_cfg[0].size;
 #else
 			txfifosz = TX_QUEUE0_SIZE;
 #endif
 			break;
 		case 1:
-#if defined(TC956X_AUTOMOTIVE_CONFIG)
+#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_CPE_CONFIG)
 			txfifosz = priv->plat->tx_queues_cfg[1].size;
 #else
 			txfifosz = TX_QUEUE1_SIZE;
@@ -5643,7 +5720,7 @@ static int tc956xmac_tx_clean(struct tc956xmac_priv *priv, int budget, u32 queue
 #ifdef ENABLE_TX_TIMER
 	/* We still have pending packets, let's call for a new scheduling */
 	if (tx_q->dirty_tx != tx_q->cur_tx) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 		hrtimer_start(&tx_q->txtimer,
 			TC956XMAC_COAL_TIMER(priv->tx_coal_timer[queue]), HRTIMER_MODE_REL);
 #else
@@ -5718,7 +5795,7 @@ static void tc956xmac_set_dma_operation_mode(struct tc956xmac_priv *priv, u32 tx
 #ifdef TC956X
 	switch (chan) {
 	case 0:
-#if defined(TC956X_AUTOMOTIVE_CONFIG)
+#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_CPE_CONFIG)
 		rxfifosz = priv->plat->rx_queues_cfg[0].size;
 		txfifosz = priv->plat->tx_queues_cfg[0].size;
 #else
@@ -5727,7 +5804,7 @@ static void tc956xmac_set_dma_operation_mode(struct tc956xmac_priv *priv, u32 tx
 #endif
 		break;
 	case 1:
-#if defined(TC956X_AUTOMOTIVE_CONFIG)
+#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_CPE_CONFIG)
 		rxfifosz = priv->plat->rx_queues_cfg[1].size;
 		txfifosz = priv->plat->tx_queues_cfg[1].size;
 #else
@@ -5966,7 +6043,7 @@ static int tc956xmac_get_hw_features(struct tc956xmac_priv *priv)
  */
 static void tc956xmac_check_ether_addr(struct tc956xmac_priv *priv)
 {
-#if ( LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	u8 addr[ETH_ALEN];
 #endif
 #if defined(TC956X_SRIOV_PF) && defined(TC956X_SRIOV_LOCK)
@@ -5979,7 +6056,7 @@ static void tc956xmac_check_ether_addr(struct tc956xmac_priv *priv)
 #if defined(TC956X_SRIOV_PF) && defined(TC956X_SRIOV_LOCK)
 		spin_lock_irqsave(&priv->spn_lock.mac_filter, flags);
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 		tc956xmac_get_umac_addr(priv, priv->hw, addr, 0);
 #else
 		tc956xmac_get_umac_addr(priv, priv->hw, priv->dev->dev_addr, 0);
@@ -5990,7 +6067,7 @@ static void tc956xmac_check_ether_addr(struct tc956xmac_priv *priv)
 #endif
 
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 		if (is_valid_ether_addr(addr))
 			eth_hw_addr_set(priv->dev, addr);
 		else
@@ -6117,7 +6194,7 @@ static int tc956xmac_init_dma_engine(struct tc956xmac_priv *priv)
 static void tc956xmac_tx_timer_arm(struct tc956xmac_priv *priv, u32 queue)
 {
 	struct tc956xmac_tx_queue *tx_q = &priv->tx_queue[queue];
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 	hrtimer_start(&tx_q->txtimer,
 		TC956XMAC_COAL_TIMER(priv->tx_coal_timer[queue]), HRTIMER_MODE_REL);
 #else
@@ -6131,13 +6208,13 @@ static void tc956xmac_tx_timer_arm(struct tc956xmac_priv *priv, u32 queue)
  * Description:
  * This is the timer handler to directly invoke the tc956xmac_tx_clean.
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 static enum hrtimer_restart tc956xmac_tx_timer(struct hrtimer *t)
 #else
 static void tc956xmac_tx_timer(struct timer_list *t)
 #endif
 {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 	struct tc956xmac_tx_queue *tx_q = container_of(t, struct tc956xmac_tx_queue, txtimer);
 #else
 	struct tc956xmac_tx_queue *tx_q = from_timer(tx_q, t, txtimer);
@@ -6149,21 +6226,21 @@ static void tc956xmac_tx_timer(struct timer_list *t)
 
 #ifdef TC956X_SRIOV_PF
 	if (priv->plat->tx_ch_in_use[tx_q->queue_index] == TC956X_DISABLE_CHNL)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 		return HRTIMER_NORESTART;
 #else
 		return;
 #endif
 #elif defined TC956X_SRIOV_VF
 	if (priv->plat->ch_in_use[tx_q->queue_index] == 0)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 		return HRTIMER_NORESTART;
 #else
 		return;
 #endif
 #else
 	if (priv->plat->tx_dma_ch_owner[tx_q->queue_index] != USE_IN_TC956X_SW)
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 		return HRTIMER_NORESTART;
 #else
 		return;
@@ -6181,7 +6258,7 @@ static void tc956xmac_tx_timer(struct timer_list *t)
 		spin_unlock_irqrestore(&ch->lock, flags);
 		__napi_schedule(&ch->tx_napi);
 	}
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 		return HRTIMER_NORESTART;
 #else
 		return;
@@ -6200,27 +6277,41 @@ static void tc956xmac_tx_timer(struct timer_list *t)
  */
 static void tc956xmac_init_coalesce(struct tc956xmac_priv *priv)
 {
-#ifdef ENABLE_TX_TIMER
+
 	u32 tx_channel_count = priv->plat->tx_queues_to_use;
 	u32 chan;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
 	u32 rx_channel_count = priv->plat->rx_queues_to_use;
 #endif
-#endif
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0))
-	priv->tx_coal_frames = TC956XMAC_TX_FRAMES;
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 13, 0)
+	if (priv->port_num == RM_PF0_ID)
+		priv->tx_coal_frames = mac0_tx_interrupt_num;
+
+	if (priv->port_num == RM_PF1_ID)
+		priv->tx_coal_frames = mac1_tx_interrupt_num;
 	priv->tx_coal_timer = TC956XMAC_COAL_TX_TIMER;
 	priv->rx_coal_frames = TC956XMAC_RX_FRAMES;
+#else
+
+	for (chan = 0; chan < tx_channel_count; chan++) {
+
+		if (priv->port_num == RM_PF0_ID)
+			priv->tx_coal_frames[chan] = mac0_tx_interrupt_num;
+
+		if (priv->port_num == RM_PF1_ID)
+			priv->tx_coal_frames[chan] = mac1_tx_interrupt_num;
+		priv->tx_coal_timer[chan] = TC956XMAC_COAL_TX_TIMER;
+	}
+
+	for (chan = 0; chan < rx_channel_count; chan++) {
+		priv->rx_coal_frames[chan] = TC956XMAC_RX_FRAMES;
+	}
 #endif
 
 #ifdef ENABLE_TX_TIMER
 	for (chan = 0; chan < tx_channel_count; chan++) {
 		struct tc956xmac_tx_queue *tx_q = &priv->tx_queue[chan];
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
-		priv->tx_coal_frames[chan] = TC956XMAC_TX_FRAMES;
-		priv->tx_coal_timer[chan] = TC956XMAC_COAL_TX_TIMER;
-#endif
 #ifdef TC956X_SRIOV_PF
 		if (priv->plat->tx_ch_in_use[chan] == TC956X_DISABLE_CHNL)
 			continue;
@@ -6232,17 +6323,13 @@ static void tc956xmac_init_coalesce(struct tc956xmac_priv *priv)
 		if (priv->plat->tx_dma_ch_owner[chan] != USE_IN_TC956X_SW)
 			continue;
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 		hrtimer_init(&tx_q->txtimer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 		tx_q->txtimer.function = tc956xmac_tx_timer;
 #else
 		timer_setup(&tx_q->txtimer, tc956xmac_tx_timer, 0);
 #endif
 	}
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
-	for (chan = 0; chan < rx_channel_count; chan++)
-		priv->rx_coal_frames[chan] = TC956XMAC_RX_FRAMES;
-#endif
 #endif
 }
 
@@ -6626,7 +6713,7 @@ static int tc956xmac_hw_setup(struct net_device *dev, bool init_ptp)
 #endif
 #endif
 	u8 dev_addr[6] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
 	u32 queue;
 #endif
 	u32 tx_cnt = priv->plat->tx_queues_to_use;
@@ -6644,8 +6731,8 @@ static int tc956xmac_hw_setup(struct net_device *dev, bool init_ptp)
 	/* DMA initialization and SW reset */
 	ret = tc956xmac_init_dma_engine(priv);
 	if (ret < 0) {
-		netdev_err(priv->dev, 
-		"%s: DMA engine initialization failed check availability of clock if supplied from external source/PHY \n",
+		netdev_err(priv->dev,
+		"%s: DMA engine initialization failed check availability of clock if supplied from external source/PHY\n",
 			   __func__);
 		return ret;
 	}
@@ -6786,16 +6873,26 @@ static int tc956xmac_hw_setup(struct net_device *dev, bool init_ptp)
 	}
 #endif
 	if (priv->use_riwt) {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
 		for (queue = 0; queue < rx_cnt; queue++) {
-			if (!priv->rx_riwt[queue])
-				priv->rx_riwt[queue] = DEF_DMA_RIWT;
+			if (!priv->rx_riwt[queue]) {
+				if (priv->port_num == RM_PF0_ID)
+					priv->rx_riwt[queue] = mac0_rx_watchdog_timeout;
+
+				if (priv->port_num == RM_PF1_ID)
+					priv->rx_riwt[queue] = mac1_rx_watchdog_timeout;
+			}
 
 			ret = tc956xmac_rx_watchdog(priv, priv->ioaddr, priv->rx_riwt[queue], queue);
 		}
 #else
-		if (!priv->rx_riwt)
-			priv->rx_riwt = DEF_DMA_RIWT;
+		if (!priv->rx_riwt) {
+			if (priv->port_num == RM_PF0_ID)
+				priv->rx_riwt = mac0_rx_watchdog_timeout;
+
+			if (priv->port_num == RM_PF1_ID)
+				priv->rx_riwt = mac1_rx_watchdog_timeout;
+		}
 
 		ret = tc956xmac_rx_watchdog(priv, priv->ioaddr, priv->rx_riwt, rx_cnt);
 
@@ -6810,7 +6907,7 @@ static int tc956xmac_hw_setup(struct net_device *dev, bool init_ptp)
 	if (priv->hw->xpcs) {
 		/*C37 AN enable*/
 		if ((priv->plat->interface == PHY_INTERFACE_MODE_10GKR) ||
-			(priv->plat->interface == ENABLE_2500BASE_X_INTERFACE))
+			(priv->port_interface == ENABLE_2500BASE_X_INTERFACE))
 			enable_en = false;
 		else if (priv->plat->interface == PHY_INTERFACE_MODE_SGMII) {
 			if (priv->is_sgmii_2p5g == true)
@@ -6917,7 +7014,7 @@ static void tc956xmac_hw_teardown(struct net_device *dev)
 	clk_disable_unprepare(priv->plat->clk_ptp_ref);
 }
 
-
+#if !defined(TC956X_CPE_CONFIG)
 static void tc956xmac_set_cbs_default(struct tc956xmac_priv *priv)
 {
 	u32 queue_idx;
@@ -6954,6 +7051,7 @@ static void tc956xmac_set_cbs_default(struct tc956xmac_priv *priv)
 	}
 
 }
+#endif
 
 #ifdef TC956X_SRIOV_PF
 /**
@@ -7003,16 +7101,21 @@ static int tc956xmac_open(struct net_device *dev)
 #endif
 
 #ifndef TC956X_SRIOV_VF
-	struct phy_device *phydev;
+	struct phy_device *phydev = NULL;
 	int addr = priv->plat->phy_addr;
+	char wol_dev_name[15];
 
-	KPRINT_INFO("---> light weight = %d %s : Port %d", priv->link_down_rst, __func__, priv->port_num);
+	KPRINT_INFO("---> light weight = %d %s : Port %d interface %s", priv->link_down_rst, __func__, priv->port_num, dev->name);
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	phydev = mdiobus_get_phy(priv->mii, addr);
+#endif
 	KPRINT_INFO("Open priv->link_down_rst = %d priv->tc956x_port_pm_suspend = %d\n", priv->link_down_rst, priv->tc956x_port_pm_suspend);
+#ifdef TC956X_SRIOV_PF
 #ifdef CONFIG_DEBUG_FS
 	if (priv->link_down_rst == false)
 		tc956xmac_create_debugfs(priv->dev);/*Creating Debugfs*/
 #endif
+#endif /* TC956X_SRIOV_PF */
 
 
 #ifndef TC956X_SRIOV_VF
@@ -7027,7 +7130,9 @@ static int tc956xmac_open(struct net_device *dev)
 
 	if (!phydev) {
 		netdev_err(priv->dev, "no phy at addr %d\n", addr);
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 		return -ENODEV;
+#endif
 	}
 
 	if (priv->link_down_rst == false) {
@@ -7039,12 +7144,14 @@ static int tc956xmac_open(struct net_device *dev)
 				netdev_err(priv->dev,
 					   "%s: Cannot attach to PHY (error: %d)\n",
 					   __func__, ret);
-				KPRINT_INFO("<--- %s(1) : Port %d", __func__, priv->port_num);
+				KPRINT_INFO("<--- %s(1) : Port %d %s", __func__, priv->port_num, dev->name);
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 				return ret;
+#endif
 			}
 		}
 	}
-#ifdef TC956X_AUTOMOTIVE_CONFIG
+#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_CPE_CONFIG)
 	/* Do not re-allocate host resources during resume sequence. Only re-initialize resources */
 	if (priv->tc956x_port_pm_suspend == false) {
 		/* Extra statistics */
@@ -7058,6 +7165,12 @@ static int tc956xmac_open(struct net_device *dev)
 		if (bfsize < BUF_SIZE_16KiB)
 			bfsize = tc956xmac_set_bfsize(dev->mtu, priv->dma_buf_sz);
 
+#if defined(TC956X_CPE_CONFIG)
+		/* Overwrite buff size allocated to 2K, to accomodate max mtu supported of 2000 bytes,
+		 * so that no buffer reconfiguration required during MTU change
+		 */
+		bfsize = BUF_SIZE_2KiB;
+#endif
 		priv->dma_buf_sz = bfsize;
 		buf_sz = bfsize;
 
@@ -7102,26 +7215,30 @@ static int tc956xmac_open(struct net_device *dev)
 		}
 	}
 #endif
-#ifdef TC956X_SRIOV_PF
-	priv->dma_vf_map[0] = 0;	//vf1
-	priv->dma_vf_map[1] = 1;	//vf2
-	priv->dma_vf_map[2] = 2;	//vf3
-	priv->dma_vf_map[3] = 3;	//pf
-	priv->dma_vf_map[4] = 3;
-	priv->dma_vf_map[5] = 0;
-	priv->dma_vf_map[6] = 2;
-	priv->dma_vf_map[7] = 2;
 
-	priv->pf_queue_dma_map[0] = 3;
-	priv->pf_queue_dma_map[1] = 3;
-	priv->pf_queue_dma_map[2] = 4;
-	priv->pf_queue_dma_map[3] = 3;
-	priv->pf_queue_dma_map[4] = 8;	//NA to	PF
-	priv->pf_queue_dma_map[5] = 8;	//NA to	PF
-	priv->pf_queue_dma_map[6] = 8;	//NA to	PF
-	priv->pf_queue_dma_map[7] = 3;
+#if defined(TC956X_SRIOV_PF)
+#if !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)
+	priv->dma_vf_map[0] = TC956X_DMA0_VF_MAP;	//vf1
+	priv->dma_vf_map[1] = TC956X_DMA1_VF_MAP;	//vf2
+	priv->dma_vf_map[2] = TC956X_DMA2_VF_MAP;	//vf3
+	priv->dma_vf_map[3] = TC956X_DMA3_VF_MAP;	//pf
+	priv->dma_vf_map[4] = TC956X_DMA4_VF_MAP;
+	priv->dma_vf_map[5] = TC956X_DMA5_VF_MAP;
+	priv->dma_vf_map[6] = TC956X_DMA6_VF_MAP;
+	priv->dma_vf_map[7] = TC956X_DMA7_VF_MAP;
 #endif
-#ifdef TC956X_SRIOV_PF
+
+	priv->pf_queue_dma_map[0] = TC956X_RXQ0_CH_MAP;
+	priv->pf_queue_dma_map[1] = TC956X_RXQ1_CH_MAP;
+	priv->pf_queue_dma_map[2] = TC956X_RXQ2_CH_MAP;
+	priv->pf_queue_dma_map[3] = TC956X_RXQ3_CH_MAP;
+	priv->pf_queue_dma_map[4] = TC956X_RXQ4_CH_MAP;	//NA to	PF
+	priv->pf_queue_dma_map[5] = TC956X_RXQ5_CH_MAP;	//NA to	PF
+	priv->pf_queue_dma_map[6] = TC956X_RXQ6_CH_MAP;	//NA to	PF
+	priv->pf_queue_dma_map[7] = TC956X_RXQ7_CH_MAP;
+#endif
+
+#if defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)
 	tc956xmac_mbx_init(priv, NULL);
 #endif
 
@@ -7151,7 +7268,7 @@ static int tc956xmac_open(struct net_device *dev)
 	priv->dma_buf_sz = bfsize;
 	buf_sz = bfsize;
 
-#ifdef TC956X_SRIOV_PF
+#if defined(TC956X_SRIOV_PF) && !defined(TC956X_CPE_CONFIG)
 	tc956xmac_set_cbs_default(priv);
 #endif
 
@@ -7253,7 +7370,7 @@ static int tc956xmac_open(struct net_device *dev)
 
 		/* Request the IRQ lines */
 		ret = request_irq(irq_no, tc956xmac_interrupt_v0,
-				  IRQF_NO_SUSPEND, dev->name, dev);
+			  IRQF_NO_SUSPEND, dev->name, dev);
 		if (unlikely(ret < 0)) {
 			netdev_err(priv->dev,
 				   "%s: ERROR: allocating the IRQ 0 : %d (error: %d)\n",
@@ -7265,8 +7382,9 @@ static int tc956xmac_open(struct net_device *dev)
 		if (priv->tc956x_port_pm_suspend == false) {
 			/* Request the Wake IRQ in case of another line is used for WoL */
 			if (priv->wol_irq != dev->irq) {
+				snprintf(wol_dev_name, sizeof(wol_dev_name), "%s_wol", dev->name);
 				ret = request_irq(priv->wol_irq, tc956xmac_wol_interrupt,
-						  IRQF_NO_SUSPEND, WOL_IRQ_DEV_NAME(priv->port_num), dev);
+						  IRQF_NO_SUSPEND, wol_dev_name, dev);
 				if (unlikely(ret < 0)) {
 					netdev_err(priv->dev,
 						   "%s: ERROR: allocating the WoL IRQ %d (%d)\n",
@@ -7292,7 +7410,7 @@ static int tc956xmac_open(struct net_device *dev)
 	}
 #endif /* TC956X_SRIOV_PF */
 
-#if defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE)
+#if defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)
 	irq_no = pci_irq_vector(pdev, TC956X_MSI_VECTOR_1);
 
 	ret = request_irq(irq_no, tc956xmac_interrupt_v1,
@@ -7332,7 +7450,7 @@ static int tc956xmac_open(struct net_device *dev)
 
 	/* MSI_MASK_CLR: unmask vector 0 & 1*/
 	tc956x_msi_intr_clr(priv, dev, TC956X_MSI_VECTOR_0);
-#if !defined(TC956X_AUTOMOTIVE_CONFIG)
+#if !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_CPE_CONFIG)
 	tc956x_msi_intr_clr(priv, dev, TC956X_MSI_VECTOR_1);
 #endif
 
@@ -7392,7 +7510,7 @@ static int tc956xmac_open(struct net_device *dev)
 		writel(0, priv->tc956x_SRAM_pci_base_addr
 				+ TX_TIMER_SRAM_OFFSET(priv->port_num));
 #endif
-	KPRINT_INFO("<--- light weight = %d %s(2) : Port %d", priv->link_down_rst,__func__, priv->port_num);
+	KPRINT_INFO("<--- light weight = %d %s(2) : Port %d %s", priv->link_down_rst, __func__, priv->port_num, dev->name);
 	return 0;
 #ifdef TC956X_SRIOV_PF
 #ifndef TC956X
@@ -7419,7 +7537,7 @@ irq_error:
 #else
 		if (priv->plat->tx_dma_ch_owner[chan] == USE_IN_TC956X_SW)
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 			hrtimer_cancel(&priv->tx_queue[chan].txtimer);
 #else
 			del_timer_sync(&priv->tx_queue[chan].txtimer);
@@ -7435,7 +7553,7 @@ init_error:
 dma_desc_error:
 #ifndef TC956X_SRIOV_VF
 	phylink_disconnect_phy(priv->phylink);
-	KPRINT_INFO("<--- light weight = %d %s(3) : Port %d", priv->link_down_rst,__func__, priv->port_num);
+	KPRINT_INFO("<--- light weight = %d %s(3) : Port %d %s", priv->link_down_rst, __func__, priv->port_num, dev->name);
 #endif
 	return ret;
 }
@@ -7451,9 +7569,12 @@ static int tc956xmac_release(struct net_device *dev)
 	struct tc956xmac_priv *priv = netdev_priv(dev);
 	struct pci_dev *pdev = container_of(priv->device, struct pci_dev, dev);
 #ifdef TC956X_SRIOV_PF
-#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_ENABLE_MAC2MAC_BRIDGE)
-	struct phy_device *phydev;
+#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_ENABLE_MAC2MAC_BRIDGE) || defined(TC956X_CPE_CONFIG)
+	struct phy_device *phydev = NULL;
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	int addr = priv->plat->phy_addr;
+#endif
+
 #endif
 	struct tc956x_mac_addr *mac_table = &priv->mac_table[0];
 	struct tc956x_vlan_id *vlan_table = &priv->vlan_table[0];
@@ -7470,7 +7591,7 @@ static int tc956xmac_release(struct net_device *dev)
 	unsigned long flags;
 #endif
 
-	KPRINT_INFO(" ---> light weight = %d %s : Port %d", priv->link_down_rst, __func__, priv->port_num);
+	KPRINT_INFO(" ---> light weight = %d %s : Port %d interface %s", priv->link_down_rst, __func__, priv->port_num, dev->name);
 #ifdef TX_COMPLETION_WITHOUT_TIMERS
 	writel(0, priv->tc956x_SRAM_pci_base_addr
 			+ TX_TIMER_SRAM_OFFSET(priv->port_num));
@@ -7501,13 +7622,12 @@ static int tc956xmac_release(struct net_device *dev)
 #endif
 
 #ifndef TC956X_SRIOV_VF
-	/*if (priv->eee_enabled)
-		del_timer_sync(&priv->eee_ctrl_timer);*/
-
+#ifdef TC956X_SRIOV_PF
 #ifdef CONFIG_DEBUG_FS
 	if (priv->link_down_rst == false)
-	tc956xmac_cleanup_debugfs(priv->dev);
+		tc956xmac_cleanup_debugfs(priv->dev);
 #endif
+#endif /* TC956X_SRIOV_PF */
 
 
 	/* Stop and disconnect the PHY */
@@ -7520,7 +7640,7 @@ static int tc956xmac_release(struct net_device *dev)
 
 	mutex_lock(&priv->port_ld_release_lock);
 	if (priv->port_link_down == true) {
-		KPRINT_INFO("Link down happened before %s, restoring clocks to stop DMA\n",__func__);
+		KPRINT_INFO("Link down happened before %s, restoring clocks to stop DMA\n", __func__);
 		tc956xmac_link_change_set_power(priv, LINK_UP); /* Restore, De-assert and Enable Reset and Clock */
 	}
 
@@ -7545,7 +7665,7 @@ static int tc956xmac_release(struct net_device *dev)
 #else
 		if (priv->plat->tx_dma_ch_owner[chan] == USE_IN_TC956X_SW)
 #endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
 			hrtimer_cancel(&priv->tx_queue[chan].txtimer);
 #else
 			del_timer_sync(&priv->tx_queue[chan].txtimer);
@@ -7569,18 +7689,23 @@ static int tc956xmac_release(struct net_device *dev)
 		}
 	}
 
-#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_ENABLE_MAC2MAC_BRIDGE)
+#if defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_ENABLE_MAC2MAC_BRIDGE) || defined(TC956X_CPE_CONFIG)
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	phydev = mdiobus_get_phy(priv->mii, addr);
-
-	if(phydev->drv != NULL) {
-		if ((true == priv->plat->phy_interrupt_mode) && (phydev->drv->config_intr)) {
-			DBGPR_FUNC((priv->device), "-->%s Flush work queue\n", __func__);
-			flush_work(&priv->emac_phy_work);
-		}
-	}
 #endif
 
-#if !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE)
+	if (phydev) {
+		if (phydev->drv != NULL) {
+			if ((true == priv->plat->phy_interrupt_mode) && (phydev->drv->config_intr)) {
+				DBGPR_FUNC((priv->device), "-->%s Flush work queue\n", __func__);
+				flush_work(&priv->emac_phy_work);
+			}
+		}
+	}
+
+#endif
+
+#if !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)
 	irq_no = pci_irq_vector(pdev, TC956X_MSI_VECTOR_1);
 	free_irq(irq_no, dev);
 #endif
@@ -7628,7 +7753,7 @@ static int tc956xmac_release(struct net_device *dev)
 	}
 	/* If all channels are freed, call API for power saving*/
 	if (priv->port_link_down == false && offload_release_sts == true) {
-		KPRINT_INFO(" %s, Assert Reset and Disabling clock \n",__func__);
+		KPRINT_INFO(" %s, Assert Reset and Disabling clock\n", __func__);
 		tc956xmac_link_change_set_power(priv, LINK_DOWN); /* Save, Assert and Disable Reset and Clock */
 	}
 	priv->port_release = true; /* setting port release to true as release invoked, and clear from open or link-up */
@@ -7662,7 +7787,7 @@ static int tc956xmac_release(struct net_device *dev)
 	spin_unlock_irqrestore(&priv->spn_lock.vlan_filter, flags);
 #endif
 #endif
-	KPRINT_INFO("<--- light weight = %d %s : Port %d", priv->link_down_rst, __func__, priv->port_num);
+	KPRINT_INFO("<--- light weight = %d %s : Port %d %s", priv->link_down_rst, __func__, priv->port_num, dev->name);
 	return 0;
 }
 
@@ -7915,7 +8040,7 @@ static netdev_tx_t tc956xmac_tso_xmit(struct sk_buff *skb, struct net_device *de
 	/* Manage tx mitigation */
 	tx_packets = (tx_q->cur_tx + 1) - first_tx;
 	tx_q->tx_count_frames += tx_packets;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
 	if ((skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) && priv->hwts_tx_en)
 		set_ic = true;
 	else if (!priv->tx_coal_frames[queue])
@@ -8124,7 +8249,7 @@ static netdev_tx_t tc956xmac_xmit(struct sk_buff *skb, struct net_device *dev)
 		csum_insertion = priv->csum_insertion;
 #elif defined TC956X_SRIOV_VF
 	if (queue == priv->plat->best_effort_ch_no)
-	csum_insertion = priv->csum_insertion;
+		csum_insertion = priv->csum_insertion;
 #endif
 	else
 		csum_insertion = 0;
@@ -8198,7 +8323,7 @@ static netdev_tx_t tc956xmac_xmit(struct sk_buff *skb, struct net_device *dev)
 	 */
 	tx_packets = (entry + 1) - first_tx;
 	tx_q->tx_count_frames += tx_packets;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
 	if ((skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) && priv->hwts_tx_en)
 		set_ic = true;
 	else if (!priv->tx_coal_frames[queue])
@@ -8461,9 +8586,10 @@ static void tc956xmac_rx_vlan(struct net_device *dev,
 	/* Check for L2 Packet Type Encoding */
 	etlt = XGMAC_GET_BITS_LE(rdesc->des3, XGMAC_RDES3, ETLT);
 	if (!err) {
-		/* No error if err is 0 or etlt is 0 */
-		/* Check packet type is Single CVLAN tag and
-		netdev supports VLAN CTAG*/
+		/* No error if err is 0 or etlt is 0
+		 * Check packet type is Single CVLAN tag and
+		 * netdev supports VLAN CTAG
+		 */
 		if ((etlt == PKT_TYPE_SINGLE_CVLAN) &&
 		    (dev->features & NETIF_F_HW_VLAN_CTAG_RX)) {
 			vlanid = XGMAC_GET_BITS_LE(rdesc->des0,
@@ -8541,7 +8667,7 @@ static inline void tc956xmac_rx_refill(struct tc956xmac_priv *priv, u32 queue)
 		tc956xmac_refill_desc3(priv, rx_q, p);
 
 		rx_q->rx_count_frames++;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
 		rx_q->rx_count_frames += priv->rx_coal_frames[queue];
 		if (rx_q->rx_count_frames > priv->rx_coal_frames[queue])
 			rx_q->rx_count_frames = 0;
@@ -8754,7 +8880,7 @@ read_again:
 					priv->dma_buf_sz);
 
 			/* Data payload appended into SKB */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
 			page_pool_release_page(rx_q->page_pool, buf->page);
 #else
 			skb_mark_for_recycle(skb);
@@ -8770,7 +8896,7 @@ read_again:
 					priv->dma_buf_sz);
 
 			/* Data payload appended into SKB */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 6, 0)
 			page_pool_release_page(rx_q->page_pool, buf->sec_page);
 #else
 			skb_mark_for_recycle(skb);
@@ -8900,7 +9026,7 @@ static int tc956xmac_napi_poll_tx(struct napi_struct *napi, int budget)
  *   netdev structure and arrange for the device to be reset to a sane state
  *   in order to transmit a new packet.
  */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 6, 0)
 static void tc956xmac_tx_timeout(struct net_device *dev, unsigned int txqueue)
 #else
 static void tc956xmac_tx_timeout(struct net_device *dev)
@@ -8980,13 +9106,26 @@ static int tc956xmac_change_mtu(struct net_device *dev, int new_mtu)
 
 	txfifosz /= priv->plat->tx_queues_to_use;
 
+#ifndef TC956X_CPE_CONFIG
+	/* Dynamic MTU change is supported, so below condition is commented in CPE configuration */
 	if (netif_running(dev)) {
 		netdev_err(priv->dev, "must be stopped to change its MTU\n");
 		return -EBUSY;
 	}
 
+	/* Alignment of MTU reported to upper layers is not required in CPE configuration */
 	new_mtu = TC956XMAC_ALIGN(new_mtu);
+#endif
 #ifdef TC956X
+#ifdef TC956X_CPE_CONFIG
+	/* Supported frame sizes */
+	if ((new_mtu < MIN_SUPPORTED_MTU) || (new_mtu > MAX_SUPPORTED_MTU)) {
+		NMSGPR_ALERT(priv->device,
+		       "%s: invalid MTU, min %d and max %d MTU are supported\n",
+		       dev->name, MIN_SUPPORTED_MTU, MAX_SUPPORTED_MTU);
+		return -EINVAL;
+	}
+#else
 	/* Supported frame sizes */
 	if ((new_mtu < MIN_SUPPORTED_MTU) || (new_mtu > JUMBO_LEN)) {
 		NMSGPR_ALERT(priv->device,
@@ -8994,7 +9133,7 @@ static int tc956xmac_change_mtu(struct net_device *dev, int new_mtu)
 		       dev->name, MIN_SUPPORTED_MTU, JUMBO_LEN);
 		return -EINVAL;
 	}
-
+#endif
 #else
 	/* If condition true, FIFO is too small or MTU too large */
 	if ((txfifosz < new_mtu) || (new_mtu > BUF_SIZE_16KiB))
@@ -9097,10 +9236,10 @@ static int tc956xmac_set_features(struct net_device *netdev,
 	/* Keep the COE Type in case of csum is supporting */
 	if (features & NETIF_F_RXCSUM) {
 		if (priv->hw->rx_csum != priv->plat->rx_coe) {
-		priv->hw->rx_csum = priv->plat->rx_coe;
-		priv->rx_csum_state = priv->hw->rx_csum;
+			priv->hw->rx_csum = priv->plat->rx_coe;
+			priv->rx_csum_state = priv->hw->rx_csum;
 #ifdef TC956X_SRIOV_PF
-	tc956x_mbx_wrap_set_rx_csum(priv);
+			tc956x_mbx_wrap_set_rx_csum(priv);
 #endif
 		}
 	} else {
@@ -9182,7 +9321,7 @@ static int tc956xmac_set_features(struct net_device *netdev,
 	return 0;
 }
 
-#ifdef TC956X_SRIOV_PF
+#if defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_CPE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE)
 /**
  * tc956xmac_rx_dma_error_recovery
  *
@@ -9223,6 +9362,219 @@ static void tc956xmac_rx_dma_error_recovery(struct tc956xmac_priv *priv)
 	}
 }
 #endif
+
+
+
+
+#if defined(TC956X_SRIOV_PF) && (defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_CPE_CONFIG))
+static irqreturn_t tc956xmac_interrupt_v0(int irq, void *dev_id)
+{
+	struct net_device *dev = (struct net_device *)dev_id;
+	struct tc956xmac_priv *priv = netdev_priv(dev);
+#ifndef TC956X_SRIOV_VF
+	u32 val = 0;
+#endif
+	bool xmac;
+	u32 queue;
+#if defined(TC956X_DMA_OFFLOAD_ENABLE)
+	uint32_t uiIntSts, uiIntclr = 0;
+	u32 value = 0;
+#endif
+	u32 queues_count;
+#ifdef TC956X_SRIOV_VF
+	enum mbx_msg_fns msg_src;
+	u8 i;
+#endif
+
+#ifdef TC956X
+	u32 rx_cnt = priv->plat->rx_queues_to_use;
+	u32 tx_cnt = priv->plat->tx_queues_to_use;
+
+	queues_count = (rx_cnt > tx_cnt) ? rx_cnt : tx_cnt;
+#endif
+
+	xmac = priv->plat->has_gmac4 || priv->plat->has_xgmac;
+
+	if (priv->irq_wake)
+		pm_wakeup_event(priv->device, 0);
+
+	if (unlikely(!dev)) {
+		netdev_err(priv->dev, "%s: invalid dev pointer\n", __func__);
+		return IRQ_NONE;
+	}
+
+	/* Check if adapter is up */
+	if (test_bit(TC956XMAC_DOWN, &priv->state))
+		return IRQ_HANDLED;
+	/* Check if a fatal error happened */
+	if (tc956xmac_safety_feat_interrupt(priv))
+		return IRQ_HANDLED;
+
+	val = readl(priv->ioaddr + TC956X_MSI_INT_STS_OFFSET(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
+
+	priv->xstats.total_interrupts++;
+
+	if (val & (0xFF << 3))
+		priv->xstats.tx_intr_n++;
+
+	if (val & (0xFF << 11))
+		priv->xstats.rx_intr_n++;
+
+	/* Checking if any RBUs occurred and updating the statistics corresponding to channel */
+	if (val & (1 << 0))
+		priv->xstats.lpi_intr_n++;
+
+	if (val & (1 << 1))
+		priv->xstats.pmt_intr_n++;
+
+	if (val & (1 << 2))
+		priv->xstats.event_intr_n++;
+
+	if (val & (1 << 19))
+		priv->xstats.xpcs_intr_n++;
+
+	if (val & (1 << 20))
+		priv->xstats.phy_intr_n++;
+
+	if (val & (1 << 24))
+		priv->xstats.sw_msi_n++;
+
+#if defined(TC956X_DMA_OFFLOAD_ENABLE)
+	for (queue = 0; queue < queues_count; queue++) {
+		uiIntSts = readl(priv->ioaddr + XGMAC_DMA_CH_STATUS(queue));
+
+		/* Assuming DMA Tx and Rx channels are used as pairs */
+		if ((priv->plat->tx_ch_in_use[queue] != TC956X_ENABLE_CHNL) ||
+		    (priv->plat->rx_ch_in_use[queue] != TC956X_ENABLE_CHNL)) {
+			uiIntSts = readl(priv->ioaddr + XGMAC_DMA_CH_STATUS(queue));
+			/* Handling Abnormal interrupts of NON S/W path, TI & RI are handled in FW */
+			if (unlikely(uiIntSts & XGMAC_AIS)) {
+				if (unlikely(uiIntSts & XGMAC_RBU)) {
+					priv->xstats.rx_buf_unav_irq[queue]++;
+					uiIntclr |= XGMAC_RBU;
+				}
+				if (unlikely(uiIntSts & XGMAC_TPS)) {
+					priv->xstats.tx_process_stopped_irq[queue]++;
+					uiIntclr |= XGMAC_TPS;
+				}
+				if (unlikely(uiIntSts & XGMAC_FBE)) {
+					priv->xstats.fatal_bus_error_irq[queue]++;
+					uiIntclr |= XGMAC_FBE;
+				}
+				if (unlikely(uiIntSts & XGMAC_RPS)) {
+					uiIntclr |= XGMAC_RPS;
+				}
+				uiIntclr |= XGMAC_AIS;
+				writel(uiIntclr, (priv->ioaddr + XGMAC_DMA_CH_STATUS(queue)));
+			}
+			/* Disable RBU interrupt on RBU interrupt occurance. IPA SW should enable it back */
+			value = readl(priv->ioaddr + XGMAC_DMA_CH_INT_EN(queue));
+			if (((uiIntclr & XGMAC_RBU) == XGMAC_RBU) && (value & XGMAC_RBUE)) {
+				value = readl(priv->ioaddr + XGMAC_DMA_CH_INT_EN(queue));
+				value &= ~XGMAC_RBUE;
+				writel(value, priv->ioaddr + XGMAC_DMA_CH_INT_EN(queue));
+				printk("***RBU INT disabled***XGMAC_DMA_CH_INT_EN[%d]***** :0x%x\n", queue, readl(priv->ioaddr + XGMAC_DMA_CH_INT_EN(queue)));
+			}
+		}
+	}
+#endif
+
+/* To handle GMAC own interrupts */
+	if ((priv->plat->has_gmac) || xmac) {
+		int status = tc956xmac_host_irq_status(priv, priv->hw, &priv->xstats);
+		int mtl_status;
+
+		if (unlikely(status)) {
+			/* For LPI we need to save the tx status */
+			if (status & CORE_IRQ_TX_PATH_IN_LPI_MODE)
+				priv->tx_path_in_lpi_mode = true;
+			if (status & CORE_IRQ_TX_PATH_EXIT_LPI_MODE)
+				priv->tx_path_in_lpi_mode = false;
+		}
+
+		for (queue = 0; queue < queues_count; queue++) {
+
+			struct tc956xmac_rx_queue *rx_q;
+
+#ifdef TC956X_SRIOV_PF
+			if (priv->plat->rx_q_in_use[queue] == TC956X_DISABLE_QUEUE)
+				continue;
+
+#endif
+
+			mtl_status = tc956xmac_host_mtl_irq_status(priv, priv->hw,
+								queue);
+
+			if (mtl_status != -EINVAL)
+				status |= mtl_status;
+
+			if (status & CORE_IRQ_MTL_RX_OVERFLOW) {
+				u8 pf_dma_ch;
+
+				pf_dma_ch = priv->pf_queue_dma_map[queue];
+				rx_q = &priv->rx_queue[pf_dma_ch];
+
+				tc956xmac_set_rx_tail_ptr(priv, priv->ioaddr,
+						       rx_q->rx_tail_addr,
+						       pf_dma_ch);
+			}
+		}
+
+		/* PCS link status */
+		if (priv->hw->pcs) {
+			if (priv->xstats.pcs_link)
+				netif_carrier_on(dev);
+			else
+				netif_carrier_off(dev);
+		}
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
+		tc956xmac_timestamp_interrupt(priv, priv->ioaddr);
+#endif
+	}
+
+	/* To handle DMA interrupts */
+	tc956xmac_dma_interrupt(priv);
+
+
+	val = readl(priv->ioaddr + TC956X_MSI_INT_STS_OFFSET(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
+
+	if (val & TC956X_EXT_PHY_ETH_INT) {
+		KPRINT_INFO("PHY Interrupt %s\n", __func__);
+#ifndef TC956X_SRIOV_VF
+		if (priv->port_link_down == true)
+			tc956xmac_link_change_set_power(priv, LINK_UP); /* Restore, De-assert and Enable Reset and Clock */
+#endif
+		/* Queue the work in system_wq */
+		if (priv->tc956x_port_pm_suspend == true) {
+			KPRINT_INFO("%s : (Do not queue PHY Work during suspend. Set WOL Interrupt flag)\n", __func__);
+			priv->tc956xmac_pm_wol_interrupt = true;
+		} else {
+			KPRINT_INFO("%s : (Queue PHY Work.)\n", __func__);
+			queue_work(system_wq, &priv->emac_phy_work);
+		}
+		/* phy_mac_interrupt(priv->dev->phydev); */
+		/* MSI_OUT_EN: Reading */
+		val = readl(priv->ioaddr + TC956X_MSI_OUT_EN_OFFSET(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
+		val &= (~(1 << MSI_INT_EXT_PHY));
+		/* MSI_OUT_EN: Writing to disable MAC Ext Interrupt*/
+		writel(val, priv->ioaddr + TC956X_MSI_OUT_EN_OFFSET(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
+	}
+
+#ifdef TC956X_SW_MSI
+	val = readl(priv->ioaddr + TC956X_MSI_INT_STS_OFFSET(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
+	if (val & TC956X_SW_MSI_INT) {
+		/*Clear SW MSI*/
+		writel(1, priv->ioaddr + TC956X_MSI_SW_MSI_CLR(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
+
+		val = readl(priv->ioaddr + TC956X_MSI_SW_MSI_CLR(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
+	}
+#endif
+
+	/* unmask MSI vector 0 */
+	tc956x_msi_intr_clr(priv, dev, TC956X_MSI_VECTOR_0);
+	return IRQ_HANDLED;
+}
+#else
 
 /**
  *  tc956xmac_interrupt_v0 - main ISR
@@ -9301,7 +9653,7 @@ static irqreturn_t tc956xmac_interrupt_v0(int irq, void *dev_id)
 
 			/* Disable RBU interrupt on RBU interrupt occurance. IPA SW should enable it back */
 			value = readl(priv->ioaddr + XGMAC_DMA_CH_INT_EN(queue));
-			if ( ((uiIntclr & XGMAC_RBU) == XGMAC_RBU) && (value & XGMAC_RBUE)) {
+			if (((uiIntclr & XGMAC_RBU) == XGMAC_RBU) && (value & XGMAC_RBUE)) {
 				value = readl(priv->ioaddr + XGMAC_DMA_CH_INT_EN(queue));
 				value &= ~XGMAC_RBUE;
 				writel(value, priv->ioaddr + XGMAC_DMA_CH_INT_EN(queue));
@@ -9311,13 +9663,12 @@ static irqreturn_t tc956xmac_interrupt_v0(int irq, void *dev_id)
 	}
 #endif
 	/* To handle DMA interrupts */
-	tc956xmac_dma_interrupt(priv); /* TODO: To be compared sequence with Beta-2 */
+	tc956xmac_dma_interrupt(priv);
 
 
 #ifdef TC956X_SRIOV_PF
-#if defined(TC956X_SRIOV_PF) && (defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_ENABLE_MAC2MAC_BRIDGE))
 	tc956xmac_interrupt_v1(irq, dev_id);
-#endif
+
 	/* unmask MSI vector 0 */
 	tc956x_msi_intr_clr(priv, dev, TC956X_MSI_VECTOR_0);
 #elif defined TC956X_SRIOV_VF
@@ -9545,6 +9896,7 @@ static irqreturn_t tc956xmac_interrupt_v1(int irq, void *dev_id)
 	return IRQ_HANDLED;
 }
 #endif
+#endif
 
 #ifdef TC956X_UNSUPPORTED_UNTESTED_FEATURE
 #ifdef CONFIG_NET_POLL_CONTROLLER
@@ -9556,7 +9908,9 @@ static void tc956xmac_poll_controller(struct net_device *dev)
 	disable_irq(dev->irq);
 #ifdef TC956X_SRIOV_PF
 	tc956xmac_interrupt_v0(dev->irq, dev);
+#if !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_CPE_CONFIG)
 	tc956xmac_interrupt_v1(dev->irq, dev);
+#endif
 #elif defined TC956X_SRIOV_VF
 	tc956xmac_interrupt_v0(dev->irq, dev);
 	//tc956xmac_interrupt_v1(dev->irq, dev);
@@ -9583,9 +9937,9 @@ int tc956xmac_rx_parser_configuration(struct tc956xmac_priv *priv)
 
 			ret_val = phylink_ethtool_get_eee(priv->phylink, &edata);
 			if (ret_val)
-				KPRINT_INFO("Phylink get EEE error \n\r");
+				KPRINT_INFO("Phylink get EEE error\n\r");
 
-			KPRINT_INFO("Disabling EEE \n\r");
+			KPRINT_INFO("Disabling EEE\n\r");
 			priv->eee_enabled = 0;
 			edata.tx_lpi_enabled = priv->eee_enabled;
 			edata.tx_lpi_timer = priv->tx_lpi_timer;
@@ -9597,17 +9951,17 @@ int tc956xmac_rx_parser_configuration(struct tc956xmac_priv *priv)
 			ret_val = phylink_ethtool_set_eee(priv->phylink, &edata);
 			ret_val |= phy_ethtool_set_eee_2p5(priv->dev->phydev, &edata);
 			if (ret_val)
-				KPRINT_INFO("Phylink EEE config error \n\r");
+				KPRINT_INFO("Phylink EEE config error\n\r");
 
 			/* Wait for AN - link down, link up sequence */
 			while (test_bit(TC956XMAC_DOWN, &priv->link_state)) {
 				msleep(10);
 				if (dly_cnt++ >= TC956X_MAX_LINK_DELAY) {
-					KPRINT_INFO("Link Up Timeout \n\r");
+					KPRINT_INFO("Link Up Timeout\n\r");
 					break;
 				}
 			}
-			KPRINT_INFO("AN duration : %d \n\r", dly_cnt*10);
+			KPRINT_INFO("AN duration : %d\n\r", dly_cnt*10);
 
 			re_init_eee = 1;
 		}
@@ -9628,9 +9982,9 @@ int tc956xmac_rx_parser_configuration(struct tc956xmac_priv *priv)
 		else {
 			ret_val = phylink_ethtool_get_eee(priv->phylink, &edata);
 			if (ret_val)
-				KPRINT_INFO("Phylink get EEE error \n\r");
+				KPRINT_INFO("Phylink get EEE error\n\r");
 
-			KPRINT_INFO("Enabling EEE \n\r");
+			KPRINT_INFO("Enabling EEE\n\r");
 			edata.tx_lpi_enabled = priv->eee_enabled;
 			edata.tx_lpi_timer = priv->tx_lpi_timer;
 
@@ -9641,19 +9995,19 @@ int tc956xmac_rx_parser_configuration(struct tc956xmac_priv *priv)
 			edata.eee_enabled = tc956xmac_eee_init(priv);
 			priv->eee_enabled = edata.eee_enabled;
 			if (!edata.eee_enabled)
-				KPRINT_INFO("Error in init_eee \n\r");
+				KPRINT_INFO("Error in init_eee\n\r");
 
 			ret_val = phylink_ethtool_set_eee(priv->phylink, &edata);
 			ret_val |= phy_ethtool_set_eee_2p5(priv->dev->phydev, &edata);
 			if (ret_val)
-				KPRINT_INFO("Phylink EEE config error \n\r");
+				KPRINT_INFO("Phylink EEE config error\n\r");
 
 			/* Wait for AN - link down, link up sequence */
 			dly_cnt = 0;
 			while (test_bit(TC956XMAC_DOWN, &priv->link_state)) {
 				msleep(10);
 				if (dly_cnt++ >= TC956X_MAX_LINK_DELAY) {
-					KPRINT_INFO("Link Up Timeout \n\r");
+					KPRINT_INFO("Link Up Timeout\n\r");
 					break;
 				}
 			}
@@ -10639,8 +10993,13 @@ static void tc956x_ptp_configuration(struct tc956xmac_priv *priv, u32 tcr_config
 	u64 temp;
 
 	if (tcr_config == 0) {
+#if defined(TC956X_CPE_CONFIG)
+		control = PTP_TCR_TSENA | PTP_TCR_TSCTRLSSR
+				| PTP_TCR_TSCFUPDT;
+#else
 		control = PTP_TCR_TSENA | PTP_TCR_TSCTRLSSR
 				| PTP_TCR_TSCFUPDT | PTP_TCR_TSENALL;
+#endif
 		control |= PTP_TCR_PTGE;
 		control |= 0x10013e03;
 	} else {
@@ -11028,7 +11387,7 @@ static int tc956xmac_config_ptpoffload(struct tc956xmac_priv *priv, void __user 
 static int tc956xmac_aux_timestamp_enable(struct tc956xmac_priv *priv, void __user *data)
 {
 	struct tc956x_ioctl_aux_snapshot ioctl_data;
-	u32 aux_cntrl_en, val;
+	u32 aux_cntrl_en, val, msi_out_val;
 
 	DBGPR_FUNC(priv->device, "--> %s\n", __func__);
 
@@ -11063,6 +11422,9 @@ static int tc956xmac_aux_timestamp_enable(struct tc956xmac_priv *priv, void __us
 		writel(val, priv->ioaddr + NFUNCEN4_OFFSET);
 	}
 
+	msi_out_val = readl(priv->ioaddr + TC956X_MSI_OUT_EN_OFFSET(priv->port_num, 0));
+	msi_out_val |= (0x1 << TC956X_MSI_OUT_INTR_EVENT);
+	writel(msi_out_val, priv->ioaddr + TC956X_MSI_OUT_EN_OFFSET(priv->port_num, 0));
 	/* Enable the Trig interrupt */
 	val = readl(priv->ioaddr + XGMAC_INT_EN);
 	val |= (0x1 << TSIE_SHIFT); /* set bit 12req=50000000Hz */
@@ -13081,7 +13443,7 @@ static int tc956xmac_pcie_speed_change(struct tc956xmac_priv *priv, void __user 
 
 #endif /*#define TC956X*/
 #endif /*#ifdef TC956X_SRIOV_VF*/
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 static int tc956xmac_siocdevprivate(struct net_device *dev, struct ifreq *rq,
 			       void __user *data, int cmd)
 #else
@@ -13089,7 +13451,7 @@ static int tc956xmac_extension_ioctl(struct tc956xmac_priv *priv,
 				     void __user *data)
 #endif
 {
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	struct tc956xmac_priv *priv = netdev_priv(dev);
 #else
 	u32 cmd;
@@ -13143,7 +13505,7 @@ static int tc956xmac_extension_ioctl(struct tc956xmac_priv *priv,
 
 		est = kzalloc(sizeof(*est), GFP_KERNEL);
 		if (!est)
-		return -ENOMEM;
+			return -ENOMEM;
 
 		ret = tc956xmac_ioctl_get_est(priv, est);
 		if (ret == 0) {
@@ -13358,6 +13720,7 @@ static int tc956xmac_extension_ioctl(struct tc956xmac_priv *priv,
 }
 
 #ifndef TC956X_SRIOV_VF
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 static int tc956xmac_phy_fw_flash_mdio_ioctl(struct net_device *ndev,
 					     struct ifreq *ifr, int cmd)
 {
@@ -13365,7 +13728,7 @@ static int tc956xmac_phy_fw_flash_mdio_ioctl(struct net_device *ndev,
 	struct tc956xmac_priv *priv = netdev_priv(ndev);
 
 	int ret = -EINVAL;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	int prtad, devad;
 
 	if (mdio_phy_id_is_c45(mii->phy_id)) {
@@ -13383,7 +13746,7 @@ static int tc956xmac_phy_fw_flash_mdio_ioctl(struct net_device *ndev,
 		fallthrough;
 
 	case SIOCGMIIREG:
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 		ret = priv->mii->read(priv->mii, prtad, devad);
 #else
 		ret = phylink_mii_ioctl(priv->phylink, ifr, cmd);
@@ -13395,9 +13758,8 @@ static int tc956xmac_phy_fw_flash_mdio_ioctl(struct net_device *ndev,
 		break;
 
 	case SIOCSMIIREG:
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0))
-		ret = priv->mii->write(priv->mii, prtad, devad,
-					mii->val_in);
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
+		ret = priv->mii->write(priv->mii, prtad, devad, mii->val_in);
 #else
 		ret = phylink_mii_ioctl(priv->phylink, ifr, cmd);
 #endif
@@ -13409,6 +13771,7 @@ static int tc956xmac_phy_fw_flash_mdio_ioctl(struct net_device *ndev,
 
 	return ret;
 }
+#endif
 #endif
 
 /**
@@ -13422,7 +13785,9 @@ static int tc956xmac_phy_fw_flash_mdio_ioctl(struct net_device *ndev,
  */
 static int tc956xmac_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 {
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	struct tc956xmac_priv *priv = netdev_priv(dev);
+#endif
 	int ret = -EOPNOTSUPP;
 
 #ifdef TC956X_SRIOV_VF
@@ -13430,17 +13795,26 @@ static int tc956xmac_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 
 	enum mbx_msg_fns msg_dst = priv->fn_id_info.pf_no + 1;
 #endif
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	struct mii_ioctl_data *data = if_mii(rq);
+#endif
 
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	if (!netif_running(dev))
 #ifndef TC956X_SRIOV_VF
 		return tc956xmac_phy_fw_flash_mdio_ioctl(dev, rq, cmd);
 #else
 		return -EINVAL;
 #endif
+#else
+	ret = 0;
+#endif
 
 	switch (cmd) {
 	case SIOCGMIIPHY:
+#ifdef TC956X_WITHOUT_MDIO_WITHOUT_PHY
+		return 0;
+#else
 #ifndef TC956X_SRIOV_VF
 		data->phy_id = priv->plat->phy_addr;
 		NMSGPR_ALERT(priv->device, "PHY ID: SIOCGMIIPHY\n");
@@ -13470,11 +13844,17 @@ static int tc956xmac_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 		}
 #endif
 		ret = 0;
+#endif
+
 		break;
 #ifndef TC956X_SRIOV_VF
 	case SIOCGMIIREG:
 	case SIOCSMIIREG:
+#ifdef TC956X_WITHOUT_MDIO_WITHOUT_PHY
+		return 0;
+#else
 		ret = phylink_mii_ioctl(priv->phylink, rq, cmd);
+#endif
 		break;
 #elif defined TC956X_SRIOV_VF
 	case SIOCGMIIREG:
@@ -13555,7 +13935,7 @@ static int tc956xmac_ioctl(struct net_device *dev, struct ifreq *rq, int cmd)
 		}
 #endif
 		break;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 15, 0)
 	case SIOCSTIOCTL:
 		if (!priv || !rq)
 			return -EINVAL;
@@ -13614,7 +13994,7 @@ static int tc956xmac_setup_tc(struct net_device *ndev, enum tc_setup_type type,
 		return tc956xmac_tc_setup_taprio(priv, type_data);
 	case TC_SETUP_QDISC_ETF:
 		return tc956xmac_tc_setup_etf(priv, type_data);
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(6, 2, 16))
+#if LINUX_VERSION_CODE > KERNEL_VERSION(6, 2, 16)
 	case TC_QUERY_CAPS:
 		return tc956xmac_tc_setup_query_cap(priv, type_data);
 #endif
@@ -13738,6 +14118,7 @@ static int tc956xmac_set_mac_address(struct net_device *ndev, void *addr)
 	return ret;
 }
 
+#ifdef TC956X_SRIOV_PF
 #ifdef CONFIG_DEBUG_FS
 static struct dentry *tc956xmac_fs_dir;
 
@@ -13892,6 +14273,10 @@ static int tc956xmac_dma_cap_show(struct seq_file *seq, void *v)
 	seq_printf(seq, "\tTSO: %s\n", priv->dma_cap.tsoen ? "Y" : "N");
 	seq_printf(seq, "\tNumber of PPS Outputs: %d\n",
 		   priv->dma_cap.pps_out_num);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
+	seq_printf(seq, "\tNumber of Auxiliary Snapshot Inputs: %d\n",
+		   priv->dma_cap.aux_snapshot_n);
+#endif
 	seq_printf(seq, "\tSafety Features: %s\n",
 		   priv->dma_cap.asp ? "Y" : "N");
 	seq_printf(seq, "\tFlexible RX Parser: %s\n",
@@ -13983,6 +14368,7 @@ static void tc956xmac_exit_fs(struct net_device *dev)
 	debugfs_remove_recursive(priv->dbgfs_dir);
 }
 #endif /* CONFIG_DEBUG_FS */
+#endif /* TC956X_SRIOV_PF */
 
 #ifndef TC956X
 static u32 tc956xmac_vid_crc32_le(__le16 vid_le)
@@ -14074,7 +14460,7 @@ static const struct net_device_ops tc956xmac_vf_netdev_ops = {
 	.ndo_set_features = tc956xmac_set_features,
 	.ndo_set_rx_mode = tc956xmac_set_rx_mode,
 	.ndo_tx_timeout = tc956xmac_tx_timeout,
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)
 	.ndo_eth_ioctl = tc956xmac_ioctl,
 	.ndo_siocdevprivate = tc956xmac_siocdevprivate,
 #else
@@ -14124,7 +14510,7 @@ static void tc956xmac_service_task(struct work_struct *work)
 	clear_bit(TC956XMAC_SERVICE_SCHED, &priv->state);
 }
 #endif
-#if defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE)
+#if defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)
 /**
  * tc956xmac_service_mbx_task - Service mailbox task
  * @work: work structure
@@ -14490,23 +14876,26 @@ static bool lookfor_macid(char *file_buf, uint8_t port_id, uint8_t dev_id)
 			/* Extract the token based space character */
 			token_s = strsep(&token_n, " ");
 			if (token_s != NULL) {
-				if (strncmp(token_s, config_param_list[0]
-					.mdio_key, 9) == 0) {
+				if (strncmp(token_s, config_param_list[0].mdio_key, 9) == 0) {
 					token_s = strsep(&token_n, " ");
 					dev_no = &token_n[6];
 					port_no = &token_n[7];
 					token_m = strsep(&token_s, ":");
-					sscanf(token_m, "%d",
-						&tc956x_device_no);
+					sscanf(token_m, "%d", &tc956x_device_no);
+#if (!defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG))
 #ifdef TC956X_SRIOV_VF
 					if (((tc956x_device_no != mdio_bus_id) &&
 						(*port_no != (char)(port_id + 49))) ||
-						(*dev_no != (char)(dev_id + 49))) {
+						(*dev_no != (char)(dev_id + 49)))
 #else
 					if (((tc956x_device_no != mdio_bus_id) &&
 						(*port_no != (char)(port_id + 49))) ||
-						(*dev_no != (char)(dev_id + 48))) {
+						(*dev_no != (char)(dev_id + 48)))
 #endif
+#else
+					if (tc956x_device_no != mdio_bus_id)
+#endif
+					{
 						token_n = strsep(&string, "\n");
 						if (token_n == NULL)
 							break;
@@ -14521,8 +14910,7 @@ static bool lookfor_macid(char *file_buf, uint8_t port_id, uint8_t dev_id)
 				/* Compare if parsed string matches with
 				 * key listed in configuration table
 				 */
-				if (strncmp(token_s, config_param_list[0]
-					.mac_key, 6) == 0) {
+				if (strncmp(token_s, config_param_list[0].mac_key, 6) == 0) {
 
 					KPRINT_INFO("MAC_ID Key is found\n");
 					/* Read next word */
@@ -14534,8 +14922,7 @@ static bool lookfor_macid(char *file_buf, uint8_t port_id, uint8_t dev_id)
 						 */
 						if ((isMAC(token_s) == true)
 							&& (strlen(token_s) ==
-							config_param_list[0]
-							.mac_str_len)) {
+							config_param_list[0].mac_str_len)) {
 							/* If user configured
 							 * MAC ID is valid,
 							 * assign default MAC ID
@@ -14543,12 +14930,10 @@ static bool lookfor_macid(char *file_buf, uint8_t port_id, uint8_t dev_id)
 							extract_macid(token_s, dev_id);
 							total_valid_addr++;
 
-							if (total_valid_addr
-								> 1)
+							if (total_valid_addr > 1)
 								status = true;
 						} else {
-							KPRINT_INFO
-							("Valid Mac not found");
+							KPRINT_INFO ("Valid Mac not found");
 						}
 					}
 				}
@@ -14557,9 +14942,8 @@ static bool lookfor_macid(char *file_buf, uint8_t port_id, uint8_t dev_id)
 		/* Read next lile */
 		token_n = strsep(&string, "\n");
 
-	if (token_n == NULL)
-		break;
-
+		if (token_n == NULL)
+			break;
 	}
 	return status;
 }
@@ -14577,10 +14961,12 @@ static void parse_config_file(uint8_t port_id, uint8_t dev_id)
 	void *data = NULL;
 	char *cdata;
 	int ret, i;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0))
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)
 	ret = kernel_read_file_from_path("config.ini", 0, &data, INT_MAX, NULL, READING_POLICY);
 #else
 	loff_t size;
+
 	ret = kernel_read_file_from_path("config.ini", &data, &size, 1000, READING_POLICY);
 #endif
 	if (ret < 0) {
@@ -14631,7 +15017,34 @@ static int validate_rsc_mgr_alloc(struct tc956xmac_priv *priv, struct net_device
 	return ret;
 }
 #endif
-
+/**
+ * tc956x_platform_probe
+ * @priv: driver private structure
+ * @res: tc956xmac resource pointer
+ * Description: this is the platform specific function
+ * returns 0 on success
+ */
+int tc956x_platform_probe(struct tc956xmac_priv *priv, struct tc956xmac_resources *res)
+{
+#ifdef RBTC9563_3MA
+	tc956x_GPIO_OutputConfigPin(priv, GPIO_13, 0);
+#endif
+	return 0;
+}
+/**
+ * tc956x_platform_probe
+ * @priv: driver private structure
+ * @res: tc956xmac resource pointer
+ * Description: this is the platform specific function
+ * returns 0 on success
+ */
+int tc956x_platform_resume(struct tc956xmac_priv *priv)
+{
+#ifdef RBTC9563_3MA
+	tc956x_GPIO_OutputConfigPin(priv, GPIO_13, 0);
+#endif
+	return 0;
+}
 /**
  * tc956xmac_dvr_probe
  * @device: device pointer
@@ -14661,10 +15074,8 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 #ifdef EEPROM_MAC_ADDR
 	u32 mac_addr;
 #endif
-#ifndef TC956X_WITHOUT_MDIO
 	void *nrst_reg = NULL, *nclk_reg = NULL;
 	u32 nrst_val = 0, nclk_val = 0;
-#endif
 #ifdef TC956X
 	KPRINT_INFO("HFR0 Val = 0x%08x", readl(res->addr + mac_offset_base +
 							XGMAC_HW_FEATURE0_BASE));
@@ -14707,9 +15118,8 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 	priv->mac_loopback_mode = 0; /* Disable MAC loopback by default */
 	priv->phy_loopback_mode = 0; /* Disable PHY loopback by default */
 	priv->tc956x_port_pm_suspend = false; /* By Default Port suspend state set to false */
-	priv->link_down_rst= false; /* Disable MAC reset during link down by default */
+	priv->link_down_rst = false; /* Disable MAC reset during link down by default */
 #endif
-	/* ToDo : Firwmware load code here */
 
 	tc956xmac_set_ethtool_ops(ndev);
 	priv->pause = pause;
@@ -14739,6 +15149,7 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 	priv->port_interface = res->port_interface;
 	priv->eee_enabled = res->eee_enabled;
 	priv->tx_lpi_timer = res->tx_lpi_timer;
+	priv->pci_bd = res->pci_bd;
 
 #ifdef TC956X_SRIOV_PF
 	priv->pm_saved_linkdown_rst = 0;
@@ -14753,7 +15164,7 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 	priv->rsc_dma_ch_alloc[2] = TC956X_VF1_CH_ALLOC;
 	priv->rsc_dma_ch_alloc[3] = TC956X_VF2_CH_ALLOC;
 
-#if !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE)
+#if !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)
 	/* SRIOV PF 0/1 Queue configuration
 	 * Note:
 	 *	1. Channels used in PF/VF configurations are enabled
@@ -14766,6 +15177,7 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 	 *		as per current design.
 	 */
 
+	/* SRIOV PF */
 	/* Tx & Rx Channel Configuration */
 	priv->plat->tx_ch_in_use[0] = TC956X_DISABLE_CHNL;
 	priv->plat->tx_ch_in_use[1] = TC956X_DISABLE_CHNL;
@@ -14803,7 +15215,10 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 	priv->plat->rx_q_in_use[5] = TC956X_ENABLE_QUEUE;
 	priv->plat->rx_q_in_use[6] = TC956X_ENABLE_QUEUE;
 	priv->plat->rx_q_in_use[7] = TC956X_ENABLE_QUEUE;
-#else
+
+#elif defined(TC956X_AUTOMOTIVE_CONFIG) || defined(TC956X_ENABLE_MAC2MAC_BRIDGE)
+
+	/* Automotive, Port Bridge */
 	/* Tx & Rx Channel Configuration */
 	priv->plat->tx_ch_in_use[0] = TC956X_ENABLE_CHNL;
 	priv->plat->tx_ch_in_use[1] = TC956X_DISABLE_CHNL;
@@ -14849,6 +15264,52 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 	priv->plat->rx_q_in_use[5] = TC956X_ENABLE_QUEUE;
 	priv->plat->rx_q_in_use[6] = TC956X_ENABLE_QUEUE;
 	priv->plat->rx_q_in_use[7] = TC956X_ENABLE_QUEUE;
+
+#else
+
+	/* CPE */
+	KPRINT_INFO("****************************************************cpe q ch enable***************************\n");
+	/* Tx & Rx Channel Configuration */
+	priv->plat->tx_ch_in_use[0] = TC956X_ENABLE_CHNL;
+	priv->plat->tx_ch_in_use[1] = TC956X_DISABLE_CHNL;
+	priv->plat->tx_ch_in_use[2] = TC956X_DISABLE_CHNL;
+	priv->plat->tx_ch_in_use[3] = TC956X_DISABLE_CHNL;
+	priv->plat->tx_ch_in_use[4] = TC956X_DISABLE_CHNL;
+	priv->plat->tx_ch_in_use[5] = TC956X_DISABLE_CHNL;
+	priv->plat->tx_ch_in_use[6] = TC956X_DISABLE_CHNL;
+	priv->plat->tx_ch_in_use[7] = TC956X_DISABLE_CHNL;
+
+	priv->plat->rx_ch_in_use[0] = TC956X_ENABLE_CHNL;
+	priv->plat->rx_ch_in_use[1] = TC956X_DISABLE_CHNL;
+	priv->plat->rx_ch_in_use[2] = TC956X_DISABLE_CHNL;
+	priv->plat->rx_ch_in_use[3] = TC956X_DISABLE_CHNL;
+	priv->plat->rx_ch_in_use[4] = TC956X_DISABLE_CHNL;
+	priv->plat->rx_ch_in_use[5] = TC956X_DISABLE_CHNL;
+	priv->plat->rx_ch_in_use[6] = TC956X_DISABLE_CHNL;
+	priv->plat->rx_ch_in_use[7] = TC956X_DISABLE_CHNL;
+
+	/* Tx & Rx Queue Configuration */
+	priv->plat->tx_q_in_use[0] = TC956X_ENABLE_QUEUE;
+#ifdef TC956X_DMA_OFFLOAD_ENABLE
+	priv->plat->tx_q_in_use[1] = TC956X_ENABLE_QUEUE;
+#else
+	priv->plat->tx_q_in_use[1] = TC956X_DISABLE_QUEUE;
+#endif
+	priv->plat->tx_q_in_use[2] = TC956X_DISABLE_QUEUE;
+	priv->plat->tx_q_in_use[3] = TC956X_DISABLE_QUEUE;
+	priv->plat->tx_q_in_use[4] = TC956X_DISABLE_QUEUE;
+	priv->plat->tx_q_in_use[5] = TC956X_DISABLE_QUEUE;
+	priv->plat->tx_q_in_use[6] = TC956X_DISABLE_QUEUE;
+	priv->plat->tx_q_in_use[7] = TC956X_DISABLE_QUEUE;
+
+	priv->plat->rx_q_in_use[0] = TC956X_ENABLE_QUEUE;
+	priv->plat->rx_q_in_use[1] = TC956X_ENABLE_QUEUE;
+	priv->plat->rx_q_in_use[2] = TC956X_DISABLE_QUEUE;
+	priv->plat->rx_q_in_use[3] = TC956X_DISABLE_QUEUE;
+	priv->plat->rx_q_in_use[4] = TC956X_DISABLE_QUEUE;
+	priv->plat->rx_q_in_use[5] = TC956X_DISABLE_QUEUE;
+	priv->plat->rx_q_in_use[6] = TC956X_DISABLE_QUEUE;
+	priv->plat->rx_q_in_use[7] = TC956X_DISABLE_QUEUE;
 #endif /* TC956X_AUTOMOTIVE_CONFIG */
 #endif /* TC956X_SRIOV_PF */
 
@@ -14901,18 +15362,18 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 
 #else
 	mac_addr = readl(priv->tc956x_SRAM_pci_base_addr +
-			TC956X_M3_SRAM_EEPROM_MAC_ADDR + (priv->port_num * TC956X_EIGHT));
+		TC956X_M3_SRAM_EEPROM_MAC_ADDR + (TC956X_EIGHT * tc956xmac_pm_usage_counter));
 
 	if (mac_addr != 0) {
-		dev_addr[priv->port_num][0] = (mac_addr & EEPROM_MAC_ADDR_MASK1);
-		dev_addr[priv->port_num][1] = (mac_addr & EEPROM_MAC_ADDR_MASK2) >> TC956X_EIGHT;
-		dev_addr[priv->port_num][2] = (mac_addr & EEPROM_MAC_ADDR_MASK3) >> TC956X_SIXTEEN;
-		dev_addr[priv->port_num][3] = (mac_addr & EEPROM_MAC_ADDR_MASK4) >> TC956X_TWENTY_FOUR;
+		dev_addr[tc956xmac_pm_usage_counter][0] = (mac_addr & EEPROM_MAC_ADDR_MASK1);
+		dev_addr[tc956xmac_pm_usage_counter][1] = (mac_addr & EEPROM_MAC_ADDR_MASK2) >> TC956X_EIGHT;
+		dev_addr[tc956xmac_pm_usage_counter][2] = (mac_addr & EEPROM_MAC_ADDR_MASK3) >> TC956X_SIXTEEN;
+		dev_addr[tc956xmac_pm_usage_counter][3] = (mac_addr & EEPROM_MAC_ADDR_MASK4) >> TC956X_TWENTY_FOUR;
 
 		mac_addr = readl(priv->tc956x_SRAM_pci_base_addr +
-				TC956X_M3_SRAM_EEPROM_MAC_ADDR + TC956X_FOUR + (priv->port_num * TC956X_EIGHT));
-		dev_addr[priv->port_num][4] = (mac_addr & EEPROM_MAC_ADDR_MASK1);
-		dev_addr[priv->port_num][5] = (mac_addr & EEPROM_MAC_ADDR_MASK2) >> TC956X_EIGHT;
+			TC956X_M3_SRAM_EEPROM_MAC_ADDR + (TC956X_EIGHT * tc956xmac_pm_usage_counter) + TC956X_FOUR);
+		dev_addr[tc956xmac_pm_usage_counter][4] = (mac_addr & EEPROM_MAC_ADDR_MASK1);
+		dev_addr[tc956xmac_pm_usage_counter][5] = (mac_addr & EEPROM_MAC_ADDR_MASK2) >> TC956X_EIGHT;
 	}
 #endif /* TC956X_SRIOV_VF */
 #endif /* TC956X */
@@ -14946,7 +15407,7 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 
 #endif
 	if (!IS_ERR_OR_NULL(res->mac))
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 13, 0)
 		eth_hw_addr_set(priv->dev, res->mac);
 #else
 		memcpy(priv->dev->dev_addr, res->mac, ETH_ALEN);
@@ -14967,7 +15428,7 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 	INIT_WORK(&priv->service_task, tc956xmac_service_task);
 #endif
 
-#if defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE)
+#if defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)
 	/* Allocate workqueue */
 	priv->mbx_wq = create_singlethread_workqueue("tc956xmac_mbx_wq");
 	if (!priv->mbx_wq) {
@@ -15086,8 +15547,7 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 			ret = dma_set_mask_and_coherent(device,
 					DMA_BIT_MASK(32));
 			if (ret) {
-				dev_err(priv->device, "Failed to set\
-						DMA Mask\n");
+				dev_err(priv->device, "Failed to set DMA Mask\n");
 				goto error_hw_init;
 			}
 
@@ -15119,7 +15579,8 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 	KPRINT_DEBUG1("priv->pf_drv_cap.jumbo_en = %d\n", priv->pf_drv_cap.jumbo_en);
 
 	/* These features will be modified based on PF configuration and mailbox
-	 * request from PF */
+	 * request from PF
+	 */
 	if (priv->pf_drv_cap.csum_en) {
 		ndev->features |= NETIF_F_RXCSUM;
 		ndev->hw_features |= NETIF_F_RXCSUM;
@@ -15205,12 +15666,16 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 	/* Set MTU size based on Jumbo Frame feature enable */
 	if (priv->pf_drv_cap.jumbo_en) {
 #endif
-	if (priv->plat->has_xgmac)
-		ndev->max_mtu = XGMAC_JUMBO_LEN;
-	else if ((priv->plat->enh_desc) || (priv->synopsys_id >= DWMAC_CORE_4_00))
-		ndev->max_mtu = JUMBO_LEN;
-	else
-		ndev->max_mtu = SKB_MAX_HEAD(NET_SKB_PAD + NET_IP_ALIGN);
+		if (priv->plat->has_xgmac)
+#ifdef TC956X_CPE_CONFIG
+			ndev->max_mtu = MAX_SUPPORTED_MTU/*XGMAC_JUMBO_LEN*/;
+#else
+			ndev->max_mtu = XGMAC_JUMBO_LEN;
+#endif
+		else if ((priv->plat->enh_desc) || (priv->synopsys_id >= DWMAC_CORE_4_00))
+			ndev->max_mtu = JUMBO_LEN;
+		else
+			ndev->max_mtu = SKB_MAX_HEAD(NET_SKB_PAD + NET_IP_ALIGN);
 #ifdef TC956X_SRIOV_VF
 	} else
 		ndev->max_mtu = SKB_MAX_HEAD(NET_SKB_PAD + NET_IP_ALIGN);
@@ -15250,7 +15715,7 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 				continue;
 
 			/* Add napi only for applicable channels */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 1, 0)
 			netif_napi_add(ndev, &ch->rx_napi, tc956xmac_napi_poll_rx);
 #else
 			netif_napi_add(ndev, &ch->rx_napi, tc956xmac_napi_poll_rx,
@@ -15265,7 +15730,7 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 				continue;
 
 			/* Add napi only for applicable channels */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 0)
 			netif_napi_add_tx(ndev, &ch->tx_napi,
 					  tc956xmac_napi_poll_tx);
 #else
@@ -15384,14 +15849,14 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 		priv->hw->pcs != TC956XMAC_PCS_TBI &&
 		priv->hw->pcs != TC956XMAC_PCS_RTBI) {
 		/* MDIO bus Registration */
-#ifdef TC956X_WITHOUT_MDIO
+#ifdef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 		if (priv->dma_cap.sma_mdio == 1) {
 #endif
 			ret = tc956xmac_mdio_register(ndev);
 			if (ret < 0) {
 				/* tc956xmac_mdio_register() will return -ENODEV when No PHY is found */
 				if (ret == -ENODEV) {
-					dev_info(priv->device, "Port%d will not be registered as ethernet controller", priv->port_num);
+					dev_info(priv->device, "Port%d Bus id %x will not be registered as ethernet controller", priv->port_num, priv->plat->bus_id);
 					goto error_mdio_register;
 				} else {
 					dev_err(priv->device,
@@ -15399,11 +15864,12 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 					__func__, priv->plat->bus_id);
 					goto error_mdio_register;
 				}
+			}
+#ifdef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 		}
-	}
-#ifdef TC956X_WITHOUT_MDIO
-	}
 #endif
+	}
+
 	ret = tc956xmac_phy_setup(priv);
 	if (ret) {
 		netdev_err(ndev, "failed to setup phy (%d)\n", ret);
@@ -15417,9 +15883,11 @@ int tc956xmac_vf_dvr_probe(struct device *device,
 		goto error_netdev_register;
 	}
 
+#ifdef TC956X_SRIOV_PF
 #ifdef CONFIG_DEBUG_FS
 	tc956xmac_init_fs(ndev);
 #endif
+#endif /* TC956X_SRIOV_PF */
 
 #ifdef TC956X_ENABLE_MAC2MAC_BRIDGE
 	priv->pbridge_buffsize = DEFAULT_BUFSIZE * DMA_RX_SIZE;
@@ -15434,10 +15902,16 @@ error_netdev_register:
 #ifndef TC956X_SRIOV_VF
 	phylink_destroy(priv->phylink);
 error_phy_setup:
-	if (priv->hw->pcs != TC956XMAC_PCS_RGMII &&
-		priv->hw->pcs != TC956XMAC_PCS_TBI &&
-		priv->hw->pcs != TC956XMAC_PCS_RTBI)
-		tc956xmac_mdio_unregister(ndev);
+#ifdef TC956X_WITHOUT_MDIO_WITHOUT_PHY
+	if (priv->dma_cap.sma_mdio == 1) {
+#endif
+		if (priv->hw->pcs != TC956XMAC_PCS_RGMII &&
+			priv->hw->pcs != TC956XMAC_PCS_TBI &&
+			priv->hw->pcs != TC956XMAC_PCS_RTBI)
+			tc956xmac_mdio_unregister(ndev);
+#ifdef TC956X_WITHOUT_MDIO_WITHOUT_PHY
+	}
+#endif
 error_mdio_register:
 	for (queue = 0; queue < maxq; queue++) {
 		struct tc956xmac_channel *ch = &priv->channel[queue];
@@ -15465,7 +15939,6 @@ error_mdio_register:
 		}
 	}
 #endif /* TC956X_SRIOV_VF */
-#ifndef TC956X_WITHOUT_MDIO
 	if (priv->port_num == 0) {
 		nrst_reg = priv->tc956x_SFR_pci_base_addr + NRSTCTRL0_OFFSET;
 		nclk_reg = priv->tc956x_SFR_pci_base_addr + NCLKCTRL0_OFFSET;
@@ -15475,21 +15948,20 @@ error_mdio_register:
 	}
 	nrst_val = readl(nrst_reg);
 	nclk_val = readl(nclk_reg);
-	KPRINT_INFO("%s : Port %d Rd RST Reg:%x, CLK Reg:%x", __func__, priv->port_num,
+	KPRINT_INFO("%s : Port %d interface %s Rd RST Reg:%x, CLK Reg:%x", __func__, priv->port_num, ndev->name,
 		nrst_val, nclk_val);
 	/* Assert reset and Disable Clock for EMAC */
 	nrst_val = nrst_val | NRSTCTRL_EMAC_MASK;
 	nclk_val = nclk_val & ~NCLKCTRL_EMAC_MASK;
 	writel(nrst_val, nrst_reg);
 	writel(nclk_val, nclk_reg);
-	KPRINT_INFO("%s : Port %d Wr RST Reg:%x, CLK Reg:%x", __func__, priv->port_num,
+	KPRINT_INFO("%s : Port %d interface %s Wr RST Reg:%x, CLK Reg:%x", __func__, priv->port_num, ndev->name,
 		readl(nrst_reg), readl(nclk_reg));
-#endif
 error_hw_init:
 #ifndef TC956X
 	destroy_workqueue(priv->wq);
 #endif
-#if (defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE)) | defined(TC956X_SRIOV_VF)
+#if (defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)) | defined(TC956X_SRIOV_VF)
 	destroy_workqueue(priv->mbx_wq);
 #endif
 
@@ -15516,10 +15988,14 @@ int tc956xmac_vf_dvr_remove(struct device *dev)
 	struct tc956xmac_priv *priv = netdev_priv(ndev);
 #ifndef TC956X_SRIOV_VF
 	u32 val;
-	struct phy_device *phydev;
+	struct phy_device *phydev = NULL;
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	int addr = priv->plat->phy_addr;
+#endif
 
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	phydev = mdiobus_get_phy(priv->mii, addr);
+#endif
 
 #endif
 
@@ -15528,16 +16004,20 @@ int tc956xmac_vf_dvr_remove(struct device *dev)
 #ifdef TC956X_SRIOV_VF
 	tc956xmac_vf_reset(priv, VF_DOWN);
 #else
-	if (phydev->drv != NULL) {
-		if ((true == priv->plat->phy_interrupt_mode) && (phydev->drv->config_intr))
-			cancel_work_sync(&priv->emac_phy_work);
+	if (phydev) {
+		if (phydev->drv != NULL) {
+			if ((true == priv->plat->phy_interrupt_mode) && (phydev->drv->config_intr))
+				cancel_work_sync(&priv->emac_phy_work);
+		}
 	}
-
 #endif
 
+#ifdef TC956X_SRIOV_PF
 #ifdef CONFIG_DEBUG_FS
 	tc956xmac_exit_fs(ndev);
 #endif
+#endif /* TC956X_SRIOV_PF */
+
 	tc956xmac_stop_all_dma(priv);
 
 #ifndef TC956X_SRIOV_VF
@@ -15557,20 +16037,21 @@ int tc956xmac_vf_dvr_remove(struct device *dev)
 #ifndef TC956X_SRIOV_VF
 	clk_disable_unprepare(priv->plat->pclk);
 	clk_disable_unprepare(priv->plat->tc956xmac_clk);
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 	if (priv->hw->pcs != TC956XMAC_PCS_RGMII &&
 		priv->hw->pcs != TC956XMAC_PCS_TBI &&
 		priv->hw->pcs != TC956XMAC_PCS_RTBI)
 		tc956xmac_mdio_unregister(ndev);
+#endif
 
-	if (tc956x_platform_remove(priv)) {
+	if (tc956x_platform_remove(priv))
 		dev_err(priv->device, "Platform remove error\n");
-	}
 
 #endif
 #ifndef TC956X
 	destroy_workqueue(priv->wq);
 #endif
-#if (defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE)) | defined(TC956X_SRIOV_VF)
+#if (defined(TC956X_SRIOV_PF) && !defined(TC956X_AUTOMOTIVE_CONFIG) && !defined(TC956X_ENABLE_MAC2MAC_BRIDGE) && !defined(TC956X_CPE_CONFIG)) | defined(TC956X_SRIOV_VF)
 	destroy_workqueue(priv->mbx_wq);
 #endif
 	mutex_destroy(&priv->lock);
@@ -15620,7 +16101,7 @@ int tc956xmac_vf_suspend(struct device *dev)
 	struct phy_device *phydev = NULL; /* For cancelling Work queue */
 	int addr = priv->plat->phy_addr;
 #endif
-	KPRINT_INFO("---> %s : Port %d", __func__, priv->port_num);
+	KPRINT_INFO("---> %s : Port %d %s", __func__, priv->port_num, priv->dev->name);
 #ifndef TC956X_SRIOV_VF
 	if ((priv->plat->phy_addr != -1) && (priv->mii != NULL))
 		phydev = mdiobus_get_phy(priv->mii, addr);
@@ -15631,7 +16112,10 @@ int tc956xmac_vf_suspend(struct device *dev)
 	if (!phydev) {
 		DBGPR_FUNC(priv->device, "%s Error : No phy at Addr %d or MDIO Unavailable\n",
 			__func__, addr);
+#ifndef TC956X_WITHOUT_MDIO_WITHOUT_PHY
 		return 0;
+#endif
+
 	}
 #endif
 
@@ -15654,12 +16138,14 @@ int tc956xmac_vf_suspend(struct device *dev)
 		goto clean_exit;
 
 #ifndef TC956X_SRIOV_VF
-	/* Cancel all work-queues before suspend start only when net interface is up and running */
-	if (phydev->drv != NULL) {
-		if ((true == priv->plat->phy_interrupt_mode) &&
-		(phydev->drv->config_intr)) {
-			DBGPR_FUNC(priv->device, "%s : (Flush All PHY work-queues)\n", __func__);
-			cancel_work_sync(&priv->emac_phy_work);
+	if (phydev) {
+		/* Cancel all work-queues before suspend start only when net interface is up and running */
+		if (phydev->drv != NULL) {
+			if ((true == priv->plat->phy_interrupt_mode) &&
+			(phydev->drv->config_intr)) {
+				DBGPR_FUNC(priv->device, "%s : (Flush All PHY work-queues)\n", __func__);
+				cancel_work_sync(&priv->emac_phy_work);
+			}
 		}
 	}
 #endif
@@ -15676,7 +16162,7 @@ clean_exit:
 	priv->speed = SPEED_UNKNOWN;
 	priv->oldduplex = DUPLEX_UNKNOWN;
 
-	KPRINT_INFO("<--- %s : Port %d", __func__, priv->port_num);
+	KPRINT_INFO("<--- %s : Port %d %s", __func__, priv->port_num, priv->dev->name);
 	return 0;
 }
 #ifdef TC956X_SRIOV_PF
@@ -15700,7 +16186,7 @@ static void tc956xmac_reset_queues_param(struct tc956xmac_priv *priv)
 #ifdef TC956X_SRIOV_PF
 		if (priv->plat->rx_ch_in_use[queue] ==
 						TC956X_DISABLE_CHNL)
-				continue;
+			continue;
 #elif defined TC956X_SRIOV_VF
 		/* skip configuring for unallocated channel */
 		if (priv->plat->ch_in_use[queue] == 0)
@@ -15718,7 +16204,7 @@ static void tc956xmac_reset_queues_param(struct tc956xmac_priv *priv)
 #ifdef TC956X_SRIOV_PF
 		if (priv->plat->tx_ch_in_use[queue] ==
 						TC956X_DISABLE_CHNL)
-				continue;
+			continue;
 #elif defined TC956X_SRIOV_VF
 		/* skip configuring for unallocated channel */
 		if (priv->plat->ch_in_use[queue] == 0)
@@ -15751,22 +16237,20 @@ int tc956xmac_vf_resume(struct device *dev)
 #ifndef TC956X_SRIOV_VF
 	u32 cm3_reset_status = 0;
 	s32 fw_load_status = 0;
-#ifndef TC956X_WITHOUT_MDIO
 	void *nrst_reg = NULL, *nclk_reg = NULL;
 	u32 nrst_val = 0, nclk_val = 0;
-#endif
 #endif /* TC956X_SRIOV_VF */
 
-	KPRINT_INFO("---> %s : Port %d", __func__, priv->port_num);
+	KPRINT_INFO("---> %s : Port %d %s", __func__, priv->port_num, priv->dev->name);
 #ifdef TC956X
 	memset(&res, 0, sizeof(res));
 #ifndef TC956X_SRIOV_VF
 	cm3_reset_status = readl((priv->ioaddr + NRSTCTRL0_OFFSET));
 	if ((cm3_reset_status & NRSTCTRL0_MCURST) == NRSTCTRL0_MCURST) {
-	res.tc956x_SFR_pci_base_addr = priv->tc956x_SFR_pci_base_addr;
-	res.addr = priv->ioaddr;
-	res.tc956x_SRAM_pci_base_addr = priv->tc956x_SRAM_pci_base_addr;
-	res.irq = priv->dev->irq;
+		res.tc956x_SFR_pci_base_addr = priv->tc956x_SFR_pci_base_addr;
+		res.addr = priv->ioaddr;
+		res.tc956x_SRAM_pci_base_addr = priv->tc956x_SRAM_pci_base_addr;
+		res.irq = priv->dev->irq;
 		fw_load_status = tc956x_load_firmware(dev, &res);
 		if (fw_load_status < 0) {
 			KPRINT_ERR("Firmware load failed\n");
@@ -15812,9 +16296,8 @@ clean_exit:
 #ifndef TC956X_SRIOV_VF
 	/*  Reset eMAC when Port unavailable */
 	if ((priv->plat->phy_addr == -1) || (priv->mii == NULL)) {
-		KPRINT_ERR("%s : Port %d : Invalid PHY Address (%d)\n", __func__, priv->port_num,
+		KPRINT_ERR("%s : Port %d %s : Invalid PHY Address (%d)\n", __func__, priv->port_num, priv->dev->name,
 			priv->plat->phy_addr);
-#ifndef TC956X_WITHOUT_MDIO
 		/* Set Clocks same as before suspend */
 		if (priv->port_num == 0) {
 			nrst_reg = priv->tc956x_SFR_pci_base_addr + NRSTCTRL0_OFFSET;
@@ -15825,19 +16308,18 @@ clean_exit:
 		}
 		nrst_val = readl(nrst_reg);
 		nclk_val = readl(nclk_reg);
-		KPRINT_INFO("%s : Port %d Rd RST Reg:%x, CLK Reg:%x", __func__, priv->port_num,
+		KPRINT_INFO("%s : Port %d %s Rd RST Reg:%x, CLK Reg:%x", __func__, priv->port_num, priv->dev->name,
 			nrst_val, nclk_val);
 		/* Assert reset and Disable Clock for EMAC */
 		nrst_val = nrst_val | NRSTCTRL_EMAC_MASK;
 		nclk_val = nclk_val & ~NCLKCTRL_EMAC_MASK;
 		writel(nrst_val, nrst_reg);
 		writel(nclk_val, nclk_reg);
-		KPRINT_INFO("%s : Port %d Wr RST Reg:%x, CLK Reg:%x", __func__, priv->port_num,
+		KPRINT_INFO("%s : Port %d %s Wr RST Reg:%x, CLK Reg:%x", __func__, priv->port_num, priv->dev->name,
 			readl(nrst_reg), readl(nclk_reg));
-#endif
 	}
 #endif
-	KPRINT_INFO("<--- %s : Port %d", __func__, priv->port_num);
+	KPRINT_INFO("<--- %s : Port %d %s", __func__, priv->port_num, priv->dev->name);
 	return 0;
 }
 #ifdef TC956X_SRIOV_PF
@@ -15862,12 +16344,12 @@ void tc956xmac_link_change_set_power(struct tc956xmac_priv *priv, enum TC956X_PO
 {
 	void *nrst_reg = NULL, *nclk_reg = NULL, *commonrst_reg = NULL, *commonclk_reg = NULL;
 	u32 nrst_val = 0, nclk_val = 0, commonrst_val = 0, commonclk_val = 0;
-	static u32 pm_saved_cmn_linkdown_rst = 0, pm_saved_cmn_linkdown_clk = 0;
+	static u32 pm_saved_cmn_linkdown_rst, pm_saved_cmn_linkdown_clk;
 	int ret;
 	bool enable_en = true;
 
 	if (mac_power_save_at_link_down == ENABLE) {
-		KPRINT_INFO("-->%s : Port %d", __func__, priv->port_num);
+		KPRINT_INFO("-->%s : Port %d %s", __func__, priv->port_num, priv->dev->name);
 		/* Select register address by port */
 		if (priv->port_num == 0) {
 			nrst_reg = priv->tc956x_SFR_pci_base_addr + NRSTCTRL0_OFFSET;
@@ -15877,77 +16359,77 @@ void tc956xmac_link_change_set_power(struct tc956xmac_priv *priv, enum TC956X_PO
 			nclk_reg = priv->tc956x_SFR_pci_base_addr + NCLKCTRL1_OFFSET;
 		}
 		if (state == LINK_DOWN) {
-			KPRINT_INFO("%s : Port %d Set Power for Link Down", __func__, priv->port_num);
+			KPRINT_INFO("%s : Port %d %s Set Power for Link Down", __func__, priv->port_num, priv->dev->name);
 			nrst_val = readl(nrst_reg);
 			nclk_val = readl(nclk_reg);
-			KPRINT_INFO("%s : Port %d Rd RST Reg:%x, CLK Reg:%x", __func__, priv->port_num,
+			KPRINT_INFO("%s : Port %d %s Rd RST Reg:%x, CLK Reg:%x", __func__, priv->port_num, priv->dev->name,
 				nrst_val, nclk_val);
 			/* Save register values before Asserting reset and Clock Disable */
 			priv->pm_saved_linkdown_rst = ((~nrst_val) & NRSTCTRL_LINK_DOWN_SAVE); /* Save Non-Common De-Asserted Resets */
 			priv->pm_saved_linkdown_clk = (nclk_val & NCLKCTRL_LINK_DOWN_SAVE); /* Save Non-Common Enabled Clocks */
-			KPRINT_INFO("%s : Port %d priv->pm_saved_linkdown_rst %x priv->pm_saved_linkdown_clk %x", __func__,
-				priv->port_num, priv->pm_saved_linkdown_rst, priv->pm_saved_linkdown_clk);
+			KPRINT_INFO("%s : Port %d %s priv->pm_saved_linkdown_rst %x priv->pm_saved_linkdown_clk %x", __func__,
+				priv->port_num, priv->dev->name, priv->pm_saved_linkdown_rst, priv->pm_saved_linkdown_clk);
 			/* Assert Reset and Disable Clock */
 			nrst_val = nrst_val | NRSTCTRL_LINK_DOWN;
 			nclk_val = nclk_val & ~NCLKCTRL_LINK_DOWN;
-			KPRINT_INFO("%s : Port %d Wr RST Reg:%x, CLK Reg:%x", __func__, priv->port_num,
+			KPRINT_INFO("%s : Port %d %s Wr RST Reg:%x, CLK Reg:%x", __func__, priv->port_num, priv->dev->name,
 				nrst_val, nclk_val);
 			writel(nrst_val, nrst_reg);
 			writel(nclk_val, nclk_reg);
-			tc956xmac_link_down_counter++; /* Increment counter for Link Down */
-			if (tc956xmac_link_down_counter == TC956X_ALL_MAC_PORT_LINK_DOWN) {
+			tx956x_pci_shrd_mem[priv->pci_bd].eth_link_down_cnt++; /* Increment counter for Link Down */
+			if (tx956x_pci_shrd_mem[priv->pci_bd].eth_link_down_cnt == TC956X_ALL_MAC_PORT_LINK_DOWN) {
 				/* Save Common register values */
 				commonrst_reg = priv->tc956x_SFR_pci_base_addr + NRSTCTRL0_OFFSET;
 				commonclk_reg = priv->tc956x_SFR_pci_base_addr + NCLKCTRL0_OFFSET;
 				commonrst_val = readl(commonrst_reg);
 				commonclk_val = readl(commonclk_reg);
-				KPRINT_INFO("%s : Port %d Common Rd RST Reg:%x, CLK Reg:%x", __func__, priv->port_num,
+				KPRINT_INFO("%s : Port %d %s Common Rd RST Reg:%x, CLK Reg:%x", __func__, priv->port_num, priv->dev->name,
 					commonrst_val, commonclk_val);
 				pm_saved_cmn_linkdown_rst = ((~commonrst_val) & NRSTCTRL_LINK_DOWN_CMN_SAVE); /* Save Common De-Asserted Resets */
 				pm_saved_cmn_linkdown_clk = commonclk_val & NCLKCTRL_LINK_DOWN_CMN_SAVE; /* Save Common Enabled Clocks */
-				KPRINT_INFO("%s : Port %d pm_saved_cmn_linkdown_rst %x pm_saved_cmn_linkdown_clk %x", __func__,
-					priv->port_num, pm_saved_cmn_linkdown_rst, pm_saved_cmn_linkdown_clk);
+				KPRINT_INFO("%s : Port %d %s pm_saved_cmn_linkdown_rst %x pm_saved_cmn_linkdown_clk %x", __func__,
+					priv->port_num, priv->dev->name, pm_saved_cmn_linkdown_rst, pm_saved_cmn_linkdown_clk);
 			}
 			priv->port_link_down = true; /* Set per port flag to true */
 		} else if (state == LINK_UP) {
-			KPRINT_INFO("%s : Port %d Set Power for Link Up", __func__, priv->port_num);
-			if (tc956xmac_link_down_counter == TC956X_ALL_MAC_PORT_LINK_DOWN) {
+			KPRINT_INFO("%s : Port %d %s Set Power for Link Up", __func__, priv->port_num, priv->dev->name);
+			if (tx956x_pci_shrd_mem[priv->pci_bd].eth_link_down_cnt == TC956X_ALL_MAC_PORT_LINK_DOWN) {
 				/* Restore Common register values */
-				KPRINT_INFO("%s : Port %d pm_saved_cmn_linkdown_clk %x, pm_saved_cmn_linkdown_rst %x", __func__,
-					priv->port_num, pm_saved_cmn_linkdown_clk, pm_saved_cmn_linkdown_rst);
+				KPRINT_INFO("%s : Port %d %s pm_saved_cmn_linkdown_clk %x, pm_saved_cmn_linkdown_rst %x", __func__,
+					priv->port_num, priv->dev->name, pm_saved_cmn_linkdown_clk, pm_saved_cmn_linkdown_rst);
 				/* Enable Common Clock and De-Assert Common Resets */
 				commonclk_reg = priv->tc956x_SFR_pci_base_addr + NCLKCTRL0_OFFSET;
 				commonrst_reg = priv->tc956x_SFR_pci_base_addr + NRSTCTRL0_OFFSET;
 				commonclk_val = readl(commonclk_reg);
 				commonrst_val = readl(commonrst_reg);
-				KPRINT_INFO("%s : Port %d Common Rd CLK Reg:%x, RST Reg:%x ", __func__, priv->port_num,
+				KPRINT_INFO("%s : Port %d %s Common Rd CLK Reg:%x, RST Reg:%x ", __func__, priv->port_num, priv->dev->name,
 					commonclk_val, commonrst_val);
 				/* Clear Common Clocks only when both port suspends */
 				commonclk_val = (commonclk_val | pm_saved_cmn_linkdown_clk); /* Enable Common Saved Clock */
 				commonrst_val = (commonrst_val & (~pm_saved_cmn_linkdown_rst)); /* De-assert Common Saved Reset */
 				writel(commonclk_val, commonclk_reg);
 				writel(commonrst_val, commonrst_reg);
-				KPRINT_INFO("%s : Port %d Common Wr CLK Reg:%x, RST Reg:%x ", __func__, priv->port_num,
+				KPRINT_INFO("%s : Port %d %s Common Wr CLK Reg:%x, RST Reg:%x ", __func__, priv->port_num, priv->dev->name,
 					commonclk_val, commonrst_val);
-				KPRINT_INFO("%s : Port %d Common Rd CLK Reg:%x, RST Reg:%x", __func__, priv->port_num,
+				KPRINT_INFO("%s : Port %d %s Common Rd CLK Reg:%x, RST Reg:%x", __func__, priv->port_num, priv->dev->name,
 					readl(commonclk_reg), readl(commonrst_reg));
 			}
 			/* Restore register values */
-			KPRINT_INFO("%s : Port %d pm_saved_linkdown_clk %x, pm_saved_linkdown_rst %x", __func__,
-				priv->port_num, priv->pm_saved_linkdown_clk, priv->pm_saved_linkdown_rst);
+			KPRINT_INFO("%s : Port %d %s pm_saved_linkdown_clk %x, pm_saved_linkdown_rst %x", __func__,
+				priv->port_num, priv->dev->name, priv->pm_saved_linkdown_clk, priv->pm_saved_linkdown_rst);
 			nclk_val = readl(nclk_reg);
 			nrst_val = readl(nrst_reg);
-			KPRINT_INFO("%s : Port %d Rd CLK Reg:%x, RST Reg:%x", __func__, priv->port_num,
+			KPRINT_INFO("%s : Port %d %s Rd CLK Reg:%x, RST Reg:%x", __func__, priv->port_num, priv->dev->name,
 				nrst_val, nclk_val);
 			/* Restore values same as before link down */
 			nclk_val = (nclk_val | priv->pm_saved_linkdown_clk); /* Enable Saved Clock */
 			nrst_val = (nrst_val & (~(priv->pm_saved_linkdown_rst))); /* De-assert Saved Reset */
 			writel(nclk_val, nclk_reg);
 			writel(nrst_val, nrst_reg);
-			KPRINT_INFO("%s : Port %d Wr CLK Reg:%x, RST Reg:%x ", __func__, priv->port_num,
+			KPRINT_INFO("%s : Port %d %s Wr CLK Reg:%x, RST Reg:%x ", __func__, priv->port_num, priv->dev->name,
 				nclk_val, nrst_val);
 
-			tc956xmac_link_down_counter--; /* Decrement Counter Only when this api called */
+			tx956x_pci_shrd_mem[priv->pci_bd].eth_link_down_cnt--; /* Decrement Counter Only when this api called */
 			priv->port_link_down = false;
 
 			/* Re-Init XPCS module as MACxPONRST is asserted during link-down */
@@ -15956,8 +16438,8 @@ void tc956xmac_link_change_set_power(struct tc956xmac_priv *priv, enum TC956X_PO
 				KPRINT_INFO("XPCS initialization error\n");
 
 			/*C37 AN enable*/
-				if ((priv->plat->interface == PHY_INTERFACE_MODE_10GKR) ||
-					(priv->plat->interface == ENABLE_2500BASE_X_INTERFACE))
+			if ((priv->plat->interface == PHY_INTERFACE_MODE_10GKR) ||
+				(priv->port_interface == ENABLE_2500BASE_X_INTERFACE))
 				enable_en = false;
 			else if (priv->plat->interface == PHY_INTERFACE_MODE_SGMII) {
 				if (priv->is_sgmii_2p5g == true)
@@ -15969,9 +16451,9 @@ void tc956xmac_link_change_set_power(struct tc956xmac_priv *priv, enum TC956X_PO
 
 			tc956x_xpcs_ctrl_ane(priv, enable_en);
 		}
-		KPRINT_INFO("%s : Port %d Rd RST Reg:%x, CLK Reg:%x", __func__, priv->port_num,
+		KPRINT_INFO("%s : Port %d %s Rd RST Reg:%x, CLK Reg:%x", __func__, priv->port_num, priv->dev->name,
 			readl(nrst_reg), readl(nclk_reg));
-		KPRINT_INFO("<--%s : Port %d", __func__, priv->port_num);
+		KPRINT_INFO("<--%s : Port %d %s", __func__, priv->port_num,  priv->dev->name);
 	} else {
 		KPRINT_INFO("-->%s : status of Power saving at Link down %d", __func__, mac_power_save_at_link_down);
 	}
@@ -16029,20 +16511,24 @@ __setup("tc956xmaceth=", tc956xmac_cmdline_opt);
 #ifdef TC956X
 int tc956xmac_init(void)
 {
+#ifdef TC956X_SRIOV_PF
 #ifdef CONFIG_DEBUG_FS
 	/* Create debugfs main directory if it doesn't exist yet */
 	if (!tc956xmac_fs_dir)
 		tc956xmac_fs_dir = debugfs_create_dir(TC956X_RESOURCE_NAME, NULL);
 #endif
+#endif /* TC956X_SRIOV_PF */
 
 	return 0;
 }
 
 void tc956xmac_exit(void)
 {
+#ifdef TC956X_SRIOV_PF
 #ifdef CONFIG_DEBUG_FS
 	debugfs_remove_recursive(tc956xmac_fs_dir);
 #endif
+#endif /* TC956X_SRIOV_PF */
 }
 #endif
 

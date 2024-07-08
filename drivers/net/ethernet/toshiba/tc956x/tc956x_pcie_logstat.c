@@ -3,7 +3,7 @@
  *
  * tc956x_pcie_logstat.c
  *
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  *
  * This program is free software; you can redistribute it and/or modify
@@ -23,10 +23,13 @@
 
 /*! History:
  *  17 Sep 2020 : Base lined
- *  VERSION	 : 00-01
+ *  VERSION     : 00-01
  *
  *  15 Mar 2021 : Base lined
  *  VERSION     : 01-00
+ *  13 Feb 2024 : 1. Merged CPE and Automotive package
+ *                2. Updated with Register Configuration Check.
+ *  VERSION     : 04-00
  */
 
 /* ===================================
@@ -341,7 +344,9 @@ int tc956x_logstat_set_state_log_fifo_ptr(void __iomem *pbase_addr, enum ports n
 	if (ret == 0) {
 		port_offset = nport * STATE_LOG_REG_OFFSET;
 		/* Set FIFO Read Pointer Register */
-		regval = (((uint32_t)(fifo_pointer) & FIFO_READ_POINTER_MASK) >> FIFO_READ_POINTER_SHIFT);
+		regval = readl(pbase_addr + TC956X_CONF_REG_NPCIEUSPLOGRDCTRL + port_offset);
+		regval &= ~FIFO_READ_POINTER_MASK;
+		regval |= (((uint32_t)(fifo_pointer) & FIFO_READ_POINTER_MASK) >> FIFO_READ_POINTER_SHIFT);
 		writel(regval, pbase_addr + TC956X_CONF_REG_NPCIEUSPLOGRDCTRL + port_offset);
 		/* KPRINT_INFO("WR: Addr= 0x%08X, Val= 0x%08X\n", TC956X_CONF_REG_NPCIEUSPLOGRDCTRL + port_offset, regval); */
 	}

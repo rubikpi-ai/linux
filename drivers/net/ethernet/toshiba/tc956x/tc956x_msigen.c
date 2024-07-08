@@ -3,7 +3,7 @@
  *
  * tc956x_msigen.c
  *
- * Copyright (C) 2022 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -30,6 +30,8 @@
  *  20 May 2022 : 1. Automotive Driver, CPE fixes merged and IPA Features supported
  *                2. Base lined version
  *  VERSION     : 03-00
+ *  29 Mar 2024 : 1. Support for without MDIO and without PHY case
+ *  VERSION     : 04-00
  */
 
 #include <linux/kernel.h>
@@ -77,7 +79,8 @@ static void tc956x_msigen_init(struct tc956xmac_priv *priv, struct net_device *d
 	writel(TC956X_MSI_MASK_SET, priv->ioaddr + TC956X_MSI_MASK_SET_OFFSET(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
 	writel(TC956X_MSI_MASK_CLR, priv->ioaddr + TC956X_MSI_MASK_CLR_OFFSET(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
 	/* DMA Ch Tx-Rx Interrupt sources are assigned to Vector 0,
-	 * All other Interrupt sources are assigned to Vector 1 */
+	 * All other Interrupt sources are assigned to Vector 1
+	 */
 	writel(TC956X_MSI_SET0, priv->ioaddr + TC956X_MSI_VECT_SET0_OFFSET(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
 	writel(TC956X_MSI_SET1, priv->ioaddr + TC956X_MSI_VECT_SET1_OFFSET(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
 	writel(TC956X_MSI_SET2, priv->ioaddr + TC956X_MSI_VECT_SET2_OFFSET(priv->fn_id_info.pf_no, priv->fn_id_info.vf_no));
@@ -106,24 +109,27 @@ static void tc956x_interrupt_en(struct tc956xmac_priv *priv, struct net_device *
 
 	if (en) {
 
-	/* Disable MSI for Tx/Rx channels that is not enabled in the Function */
+		/* Disable MSI for Tx/Rx channels that is not enabled in the Function */
 
-	for (chan = 0; chan < priv->plat->tx_queues_to_use; chan++) {
+		for (chan = 0; chan < priv->plat->tx_queues_to_use; chan++) {
 #ifdef TC956X_SRIOV_PF
-		if (priv->plat->tx_ch_in_use[chan] != TC956X_ENABLE_CHNL)
+			if (priv->plat->tx_ch_in_use[chan] != TC956X_ENABLE_CHNL)
 #endif
-			mask_val |= (1 << (MSI_INT_TX_CH0 + chan));
-	}
+				mask_val |= (1 << (MSI_INT_TX_CH0 + chan));
+		}
 
-	for (chan = 0; chan < priv->plat->rx_queues_to_use; chan++) {
+		for (chan = 0; chan < priv->plat->rx_queues_to_use; chan++) {
 #ifdef TC956X_SRIOV_PF
-		if (priv->plat->rx_ch_in_use[chan] != TC956X_ENABLE_CHNL)
+			if (priv->plat->rx_ch_in_use[chan] != TC956X_ENABLE_CHNL)
 #endif
-			mask_val |= (1 << (MSI_INT_RX_CH0 + chan));
-	}
+				mask_val |= (1 << (MSI_INT_RX_CH0 + chan));
+		}
 #ifdef TC956X_SRIOV_PF
-		/* PHY MSI interrupt enabled */
-		mask_val &= ~(1 << MSI_INT_EXT_PHY);
+		if (priv->dev->phydev != NULL) {
+			/* PHY MSI interrupt enabled */
+			mask_val &= ~(1 << MSI_INT_EXT_PHY);
+		} else
+			mask_val |= (1 << MSI_INT_EXT_PHY); /* Disable PHY interrupt on PHY absence */
 #else
 		/* PHY MSI interrupt diabled */
 		mask_val |= (1 << MSI_INT_EXT_PHY);

@@ -372,7 +372,7 @@ static int tc956xmac_mbx_set_umac_addr(struct tc956xmac_priv *priv, unsigned cha
 
 	ret = tc956xmac_mbx_write(priv, mbx, msg_dst, &priv->fn_id_info);
 	if (ret > 0) {
-	KPRINT_DEBUG2("mailbox write with ACK or NACK %d msgbuff %x, %x\n"
+		KPRINT_DEBUG2("mailbox write with ACK or NACK %d msgbuff %x, %x\n"
 					, ret, mbx[0], mbx[4]);
 	} else
 		KPRINT_DEBUG2("mailbox write failed");
@@ -475,8 +475,8 @@ static int tc956xmac_vf_ioctl_get_connected_speed(struct tc956xmac_priv *priv,
 	ret = tc956xmac_mbx_write(priv, mbx, msg_dst, &priv->fn_id_info);
 
 	/* Validation of successfull message posting can be done
-	* by reading the mbx buffer for ACK opcode (0xFE)
-	*/
+	 * by reading the mbx buffer for ACK opcode (0xFE)
+	 */
 	if (ret > 0) {
 		if (ret == ACK) {
 			if ((mbx[4] == OPCODE_MBX_ACK_MSG) && (mbx[5] == sizeof(ioctl_data.connected_speed)))
@@ -622,8 +622,8 @@ static int tc956xmac_vf_ioctl_get_cbs(struct tc956xmac_priv *priv,
 								void __user *data)
 {
 	/* Prepare mailbox message and call mailbox API for posting
-	* and getting the ACK
-	*/
+	 * and getting the ACK
+	 */
 	u8 mbx[MBX_TOT_SIZE];
 	u8 mbx_loc[MBX_TOT_SIZE * 2], seq = 0, ack = 0;
 
@@ -983,8 +983,8 @@ static int tc956xmac_vf_ioctl_set_fpe(struct tc956xmac_priv *priv, void __user *
 static int tc956xmac_vf_ioctl_get_fpe(struct tc956xmac_priv *priv, void __user *data)
 {
 	/* Prepare mailbox message and call mailbox API for posting
-	* and getting the ACK
-	*/
+	 * and getting the ACK
+	 */
 	u8 mbx[MBX_TOT_SIZE];
 	int ret;
 	enum mbx_msg_fns msg_dst = priv->fn_id_info.pf_no + 1;

@@ -1,29 +1,34 @@
 # Toshiba Electronic Devices & Storage Corporation TC956X PCIe Ethernet Host Driver
-Release Date: 26 Dec 2023
+Release Date: 20 Jun 2024
 
-Release Version: V_01-03-59 : Limited-tested version
+Release Version: V_04-00-01
 
-TC956X PCIe EMAC driver is based on "Fedora 39, kernel-6.6.1".
+TC956X PCIe EMAC driver is based on "Fedora 30, kernel-5.4.19", "Fedora 36, kernel-6.1.18" and "Fedora 39, kernel-6.6.1"
 
 # Compilation & Run: Need to be root user to execute the following steps.
-1.  By default, DMA_OFFLOAD_ENABLE is enabled. Execute following commands:
+1.  Execute following commands:
 
     #make clean
 
     #make
-2.  If IPA offload is not needed, disable macro DMA_OFFLOAD_ENABLE in common.h. set DMA_OFFLOAD = 0 in Makefile and execute following commands:
+2.  By default, TC956X_DMA_OFFLOAD_ENABLE is disabled. If IPA offload is needed, execute following commands:
 
     #make clean
 
-    #make
+    #make TC956X_DMA_OFFLOAD_ENABLE=1
 
     To compile driver with load firmware header (fw.h) use the below command
     #make TC956X_LOAD_FW_HEADER=1 
 
     In order to compile the Driver to include the code for applying Gen3 setting, execute Make with below argument
     #make TC956X_PCIE_GEN3_SETTING=1
+	
+	By default code compiles with Automotive configuration, to compile code in CPE configuration use the following with any other arguments that may be needed,
+    #make cpe=1
 
     Please note, incase both fw.h and Gen3 settings are needed, then both arugments need to be specified.
+	To compile for board RBTC9563_3MA, Enable RBTC9563_3MA MACRO in common.h file.
+
 
 3.	Load phylink module
 
@@ -66,7 +71,7 @@ TC956X PCIe EMAC driver is based on "Fedora 39, kernel-6.6.1".
 	     mac0_interface: For PORT0 interface mode setting
 	     mac1_interface: For PORT1 interface mode setting
 	     x = [0: USXGMII, 1: XFI (default), 2: RGMII (unsupported), 3: SGMII, 4: 2500Base-X]
-	     y = [0: USXGMII (unsupported), 1: XFI (unsupported), 2: RGMII, 3: SGMII(default), 4: 2500Base-X]
+	     y = [0: USXGMII, 1: XFI, 2: RGMII, 3: SGMII(default), 4: 2500Base-X]
   
     If invalid and unsupported modes are passed as kernel module parameter, the default interface mode will be selected.
 
@@ -293,6 +298,9 @@ TC956X PCIe EMAC driver is based on "Fedora 39, kernel-6.6.1".
 		y = [0: DISABLE (default), 1: ENABLE]
 
 	If invalid values are passed as kernel module parameter, the default value will be selected.
+
+19. Uncomment TC956X_WITHOUT_MDIO_WITHOUT_PHY macro in tc956xmac_inc.h file to disable mdio and remove PHY dependency.
+	//#define TC956X_WITHOUT_MDIO_WITHOUT_PHY
 
 # Release Versions:
 
@@ -567,7 +575,20 @@ TC956X PCIe EMAC driver is based on "Fedora 39, kernel-6.6.1".
 1. Module parameters for SW reset (during link change) enabled by default for Port0.
 
 ## TC956X_Linux_Host_Driver_20230810_V_01-01-59
-1. Automotive AVB/TSN support
+1. Automotive AVB/TSN support (Merge of version V_03-00) with changes as mentioned below.
+ a. WOL platform related changes moved under user defined macro.
+ b. Enable EEE for 2.5G and 5G speeds, when driver is loaded with EEE ON module param.
+ c. USXGMII support for Port1.
+ d. Added IOCTL support for TC956XMAC_VLAN_STRIP_CONFIG. Ethtool status updated accordingly.
+ e. During resume, interface attach done irrespective of interface presence.
+ f. Added module param for configuration of phy device addr for phy detection, MDC clock and C45/C22 presence
+ g. By default IPA offload is disabled.
+ h. Default Port1 interface is set to RGMII.
+ i. All the entries of TAMAP table set for default values.
+ j. Kernel timers are used to process transmitted Tx descriptors. Systick timers are not used.
+ k. Dynamic change of MTU not supported. Max MTU supported is 9000.
+ l. IPA feaure support for Automotive usecase
+ m. Port2Port Feature support
 2. Default Port 0 interface is XFI and Port1 interface is SGMII 
 3. IPA (macro TC956X_DMA_OFFLOAD_ENABLE) enabled by default
 4. Kernel timers are used to process transmitted TX descriptor. Systick timers are not used.
@@ -581,3 +602,17 @@ TC956X PCIe EMAC driver is based on "Fedora 39, kernel-6.6.1".
 ## TC956X_Linux_Host_Driver_20231226_V_01-03-59
 1. Kernel 6.6.1 Porting changes
 2. Added the support for TC commands taprio and flower
+
+## TC956X_Linux_Host_Driver_20240213_V_04-00
+1. Merged CPE (V_02-00) and Automotive throughput package
+2. Added Support for external timestamp event
+
+## TC956X_Linux_Host_Driver_20240329_V_04-00
+1. Bug fix for SGMII interface 1Gbps speed change
+2. Support for without MDIO and without PHY scenarios
+3. Added support for 5G and 2.5G EEE activation (applicable for Kernel 6.3 onwards)
+4. TC956x switch to switch connection support (upto 2 level) over DSP ports
+
+## TC956X_Linux_Host_Driver_20240620_V_04-00-01
+1. PHY_INTERFACE_MODE_2500BASEX added to "supported" interface when SGMII interface is used.
+2. Coding guideline changes.

@@ -4,7 +4,7 @@
  * tc956xmac_mdio.c
  *
  * Copyright (C) 2007-2009  STMicroelectronics Ltd
- * Copyright (C) 2021 Toshiba Electronic Devices & Storage Corporation
+ * Copyright (C) 2024 Toshiba Electronic Devices & Storage Corporation
  *
  * This file has been derived from the STMicro Linux driver,
  * and developed or modified for TC956X.
@@ -48,6 +48,9 @@
  *
  *  26 Dec 2023 : 1. Kernel 6.6 Porting changes
  *  VERSION     : 01-03-59
+ *  13 Feb 2024 : 1. Merged CPE and Automotive package
+ *                2. Updated with Register Configuration Check.
+ *  VERSION     : 04-00
  */
 
 #include <linux/gpio/consumer.h>
@@ -151,7 +154,7 @@ static int __tc956xmac_xgmac2_mdio_read(struct mii_bus *bus, int phyaddr, int ph
 			       !(tmp & MII_XGMAC_BUSY), /*100*/1, 10000))
 		return -EBUSY;
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	if ((priv->plat->c45_needed == true) && (phyreg < 0x1F)) {
 		if (phyreg == 0)
 			phyreg = (MII_ADDR_C45 | ((PHY_CL45_CTRL_REG_MMD_BANK) << 16) | (PHY_CL45_CTRL_REG_ADDR));
@@ -225,7 +228,7 @@ static int tc956xmac_xgmac2_mdio_read(struct mii_bus *bus, int phyaddr, int phyr
 	return bus->priv ?
 		__tc956xmac_xgmac2_mdio_read(bus, phyaddr, phyreg) : -EIO;
 }
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 /**
  * tc956xmac_xgmac2_mdio_read_c45
  * @bus: points to the mii_bus structure
@@ -302,29 +305,29 @@ static int __tc956xmac_xgmac2_mdio_write(struct mii_bus *bus, int phyaddr,
 	/* NOTE: Following changes specific to AQR PHY while configuring WOL. */
 	if (priv->plat->interface != PHY_INTERFACE_MODE_SGMII) {
 		/* If we are updating SGMII configurtaion in Non-SGMII interface mode */
-			devtype = ((addr >> MII_XGMAC_DA_SHIFT) & MII_XGMAC_DA_MASK);
-			datareg = (addr & MII_XGMAC_PHYREG_MASK);
-			dataval = (value);
-			if (priv->wol_config_enabled == false) {
-				/* Check for 1e.31b = 0x0b and 1e.31c = 0x0b */
-				if (((devtype == MII_AQR113C_PHY_GLOBAL_DEV) &&
-					(datareg == MII_AQR113C_PHY_GLBL_100M_REG_ADDR) &&
-					((dataval & MII_AQR113C_AN_EN_SGMII_MODE_MASK) == MII_AQR113C_AN_EN_SGMII_MODE_MASK)) ||
-					((devtype == MII_AQR113C_PHY_GLOBAL_DEV) &&
-					(datareg == MII_AQR113C_PHY_GLBL_1G_REG_ADDR) &&
-					((dataval & MII_AQR113C_AN_EN_SGMII_MODE_MASK) == MII_AQR113C_AN_EN_SGMII_MODE_MASK))) {
-					priv->wol_config_enabled = true; /* Enable SGMII SERDES Flag */
-					KPRINT_INFO("%s Port %d : Changing flag priv->wol_config_enabled to %d\n", __func__, priv->port_num, priv->wol_config_enabled);
-				}
-			} else if (((devtype == MII_AQR113C_PHY_GLOBAL_DEV) && /* Check for 1e.31b = 0x00 and 1e.31c = 0x00 */
-					(datareg == MII_AQR113C_PHY_GLBL_100M_REG_ADDR) &&
-					((dataval & MII_AQR113C_AN_EN_SGMII_MODE_MASK) == MII_AQR113C_AN_DIS_SGMII_DIS)) ||
-					((devtype == MII_AQR113C_PHY_GLOBAL_DEV) &&
-					(datareg == MII_AQR113C_PHY_GLBL_1G_REG_ADDR) &&
-					((dataval & MII_AQR113C_AN_EN_SGMII_MODE_MASK) == MII_AQR113C_AN_DIS_SGMII_DIS))) {
-					priv->wol_config_enabled = false; /* Disable SGMII SERDES Flag */
-					KPRINT_INFO("%s Port %d : Changing flag priv->wol_config_enabled to %d\n", __func__, priv->port_num, priv->wol_config_enabled);
+		devtype = ((addr >> MII_XGMAC_DA_SHIFT) & MII_XGMAC_DA_MASK);
+		datareg = (addr & MII_XGMAC_PHYREG_MASK);
+		dataval = (value);
+		if (priv->wol_config_enabled == false) {
+			/* Check for 1e.31b = 0x0b and 1e.31c = 0x0b */
+			if (((devtype == MII_AQR113C_PHY_GLOBAL_DEV) &&
+				(datareg == MII_AQR113C_PHY_GLBL_100M_REG_ADDR) &&
+				((dataval & MII_AQR113C_AN_EN_SGMII_MODE_MASK) == MII_AQR113C_AN_EN_SGMII_MODE_MASK)) ||
+				((devtype == MII_AQR113C_PHY_GLOBAL_DEV) &&
+				(datareg == MII_AQR113C_PHY_GLBL_1G_REG_ADDR) &&
+				((dataval & MII_AQR113C_AN_EN_SGMII_MODE_MASK) == MII_AQR113C_AN_EN_SGMII_MODE_MASK))) {
+				priv->wol_config_enabled = true; /* Enable SGMII SERDES Flag */
+				KPRINT_INFO("%s Port %d %s: Changing flag priv->wol_config_enabled to %d\n", __func__, priv->port_num, priv->dev->name, priv->wol_config_enabled);
 			}
+		} else if (((devtype == MII_AQR113C_PHY_GLOBAL_DEV) && /* Check for 1e.31b = 0x00 and 1e.31c = 0x00 */
+			(datareg == MII_AQR113C_PHY_GLBL_100M_REG_ADDR) &&
+			((dataval & MII_AQR113C_AN_EN_SGMII_MODE_MASK) == MII_AQR113C_AN_DIS_SGMII_DIS)) ||
+			((devtype == MII_AQR113C_PHY_GLOBAL_DEV) &&
+			(datareg == MII_AQR113C_PHY_GLBL_1G_REG_ADDR) &&
+			((dataval & MII_AQR113C_AN_EN_SGMII_MODE_MASK) == MII_AQR113C_AN_DIS_SGMII_DIS))) {
+			priv->wol_config_enabled = false; /* Disable SGMII SERDES Flag */
+			KPRINT_INFO("%s Port %d %s: Changing flag priv->wol_config_enabled to %d\n", __func__, priv->port_num, priv->dev->name, priv->wol_config_enabled);
+		}
 	}
 #endif
 	/* Set the MII address register to write */
@@ -358,7 +361,7 @@ static int tc956xmac_xgmac2_mdio_write(struct mii_bus *bus, int phyaddr,
 		__tc956xmac_xgmac2_mdio_write(bus, phyaddr, phyreg, phydata) : -EIO;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 /**
  * tc956xmac_xgmac2_mdio_write_c45
  * @bus: points to the mii_bus structure
@@ -398,7 +401,7 @@ static int tc956xmac_mdio_read(struct mii_bus *bus, int phyaddr, int phyreg)
 	u32 value = MII_BUSY;
 	int data = 0;
 	u32 v;
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 	if ((priv->plat->c45_needed == true) && (phyreg < 0x1F)) {
 		if (phyreg == 0)
 			phyreg = (MII_ADDR_C45 | (PHY_CL45_CTRL_REG_MMD_BANK << 16) | PHY_CL45_CTRL_REG_ADDR);
@@ -450,7 +453,7 @@ static int tc956xmac_mdio_read(struct mii_bus *bus, int phyaddr, int phyreg)
 	return data;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 /**
  * tc956xmac_mdio_read_c45
  * @bus: points to the mii_bus structure
@@ -525,7 +528,7 @@ static int tc956xmac_mdio_write(struct mii_bus *bus, int phyaddr, int phyreg,
 				  100, 10000);
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 /**
  * tc956xmac_mdio_write_c45
  * @bus: points to the mii_bus structure
@@ -614,6 +617,7 @@ int tc956xmac_mdio_register(struct net_device *ndev)
 		return 0;
 
 	msleep(500);
+
 	new_bus = mdiobus_alloc();
 	if (!new_bus)
 		return -ENOMEM;
@@ -626,7 +630,7 @@ int tc956xmac_mdio_register(struct net_device *ndev)
 	if (priv->plat->has_xgmac) {
 		new_bus->read = &tc956xmac_xgmac2_mdio_read;
 		new_bus->write = &tc956xmac_xgmac2_mdio_write;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 		new_bus->read_c45 = &tc956xmac_xgmac2_mdio_read_c45;
 		new_bus->write_c45 = &tc956xmac_xgmac2_mdio_write_c45;
 #endif
@@ -641,7 +645,7 @@ int tc956xmac_mdio_register(struct net_device *ndev)
 	else {
 		new_bus->read = &tc956xmac_mdio_read;
 		new_bus->write = &tc956xmac_mdio_write;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0)
 		if (priv->plat->has_gmac4) {
 			new_bus->read_c45 = &tc956xmac_mdio_read_c45;
 			new_bus->write_c45 = &tc956xmac_mdio_write_c45;
@@ -671,7 +675,7 @@ int tc956xmac_mdio_register(struct net_device *ndev)
 
 	/* Looks like we need a dummy read for XGMAC only and C45 PHYs */
 	if (priv->plat->has_xgmac)
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 		tc956xmac_xgmac2_mdio_read(new_bus, 0, MII_ADDR_C45);
 #else
 		tc956xmac_xgmac2_mdio_read_c45(new_bus, 0, 0, 0);
@@ -690,6 +694,9 @@ int tc956xmac_mdio_register(struct net_device *ndev)
 
 #ifdef TC956X
 		int phy_reg_read;
+
+		if (priv->plat->c45_needed == true)
+			break;
 
 		/* For C22 based PHYs, check for Status to detect PHY */
 #ifdef TC956X
@@ -750,7 +757,7 @@ int tc956xmac_mdio_register(struct net_device *ndev)
 			int phy_reg_read1, phy_reg_read2, phy_id;
 
 			/* For C45 based PHYs, check for PHY ID to detect PHY */
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0))
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 3, 0)
 			phy_reg_read1 = tc956xmac_xgmac2_mdio_read(new_bus, addr,
 								((PHY_CL45_PHYID1_REG) | MII_ADDR_C45));
 			phy_reg_read2 = tc956xmac_xgmac2_mdio_read(new_bus, addr,
