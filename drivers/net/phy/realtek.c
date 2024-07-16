@@ -438,6 +438,18 @@ static int rtl8211f_config_init(struct phy_device *phydev)
 			val_rxdly ? "enabled" : "disabled");
 	}
 
+	if (priv->has_phycr2) {
+		ret = phy_modify_paged(phydev, 0xa43, RTL8211F_PHYCR2,
+				       RTL8211F_CLKOUT_EN, priv->phycr2);
+		if (ret < 0) {
+			dev_err(dev, "clkout configuration failed: %pe\n",
+				ERR_PTR(ret));
+			return ret;
+		}
+
+		return genphy_soft_reset(phydev);
+	}
+
 	return 0;
 }
 

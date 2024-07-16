@@ -10,6 +10,8 @@
 / {
 	model = "Qualcomm Technologies, Inc. qcs5430 fp1 addons rb3gen2 platform";
 	compatible = "qcom,qcs5430-fp1-addons-rb3gen2","qcom,qcs5430";
+	qcom,msm-id = <0x1023F 0x10000>;
+	qcom,board-id = <32 0x5>, <32 0x605>;
 
 	cpus {
 		cpu-map {
@@ -30,6 +32,6 @@
 };
 
 &pcie1 {
-	status = "disabled";
+	status = "ok";
 };
 

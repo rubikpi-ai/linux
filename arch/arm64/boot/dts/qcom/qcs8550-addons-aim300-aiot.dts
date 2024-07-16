@@ -6,7 +6,7 @@
 /dts-v1/;
 
 #include "qcs8550-aim300-aiot.dts"
-#include "qcm8550-addons.dtsi"
+#include "qcs8550-addons.dtsi"
 
 
 / {

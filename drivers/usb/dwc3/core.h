@@ -982,10 +982,11 @@ struct dwc3_scratchpad_array {
  * @mode_changed: Notify glue that mode change was done successfully
  */
 struct dwc3_glue_ops {
-	void	(*notify_cable_disconnect)(void *glue_data);
+	int	(*notify_cable_disconnect)(void *glue_data);
 	void	(*set_mode)(void *glue_data, u32 desired_dr_role);
 	void	(*mode_changed)(void *glue_data, u32 current_dr_role);
 	void    (*notify_run_stop)(void *glue_data, bool enable);
+	void    (*post_conndone)(void *glue_data);
 };
 
 struct dwc3_glue_data {
@@ -1143,6 +1144,7 @@ struct dwc3_glue_data {
  *	3	- Reserved
  * @dis_metastability_quirk: set to disable metastability quirk.
  * @dis_split_quirk: set to disable split boundary.
+ * @sys_wakeup: set if the device may do system wakeup.
  * @wakeup_configured: set if the device is configured for remote wakeup.
  * @suspended: set to track suspend event due to U3/L2.
  * @imod_interval: set the interrupt moderation interval in 250ns
@@ -1367,6 +1369,7 @@ struct dwc3 {
 
 	unsigned		dis_split_quirk:1;
 	unsigned		async_callbacks:1;
+	unsigned		sys_wakeup:1;
 	unsigned		wakeup_configured:1;
 	unsigned		suspended:1;
 
@@ -1605,10 +1608,11 @@ int dwc3_suspend(struct dwc3 *dwc);
 int dwc3_resume(struct dwc3 *dwc);
 void dwc3_complete(struct dwc3 *dwc);
 
-static inline void dwc3_notify_cable_disconnect(struct dwc3 *dwc)
+static inline int dwc3_notify_cable_disconnect(struct dwc3 *dwc)
 {
 	if (dwc->glue_ops && dwc->glue_ops->notify_cable_disconnect)
-		dwc->glue_ops->notify_cable_disconnect(dwc->glue_data);
+		return dwc->glue_ops->notify_cable_disconnect(dwc->glue_data);
+	return 0;
 }
 
 static inline void dwc3_notify_set_mode(struct dwc3 *dwc,
@@ -1629,6 +1633,12 @@ static inline void dwc3_notify_run_stop(struct dwc3 *dwc, bool enable)
 {
 	if (dwc->glue_ops && dwc->glue_ops->notify_run_stop)
 		dwc->glue_ops->notify_run_stop(dwc->glue_data, enable);
+}
+
+static inline void dwc3_notify_post_conndone(struct dwc3 *dwc)
+{
+	if (dwc->glue_ops && dwc->glue_ops->post_conndone)
+		dwc->glue_ops->post_conndone(dwc->glue_data);
 }
 
 #if IS_ENABLED(CONFIG_USB_DWC3_HOST) || IS_ENABLED(CONFIG_USB_DWC3_DUAL_ROLE)

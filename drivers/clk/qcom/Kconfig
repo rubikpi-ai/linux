@@ -417,6 +417,16 @@ config QCS_GCC_404
 	  Say Y if you want to use multimedia devices or peripheral
 	  devices such as UART, SPI, I2C, USB, SD/eMMC, PCIe etc.
 
+config SA_CAMCC_8775P
+	tristate "SA8775P Camera Clock Controller"
+	depends on ARM64 || COMPILE_TEST
+	select SA_GCC_8775P
+	help
+	  Support for the camera clock controller on Qualcomm Technologies, Inc
+	  SA8775P devices.
+	  Say Y if you want to support camera devices and functionality such as
+	  capturing pictures.
+
 config SC_CAMCC_7180
 	tristate "SC7180 Camera Clock Controller"
 	depends on ARM64 || COMPILE_TEST
@@ -436,6 +446,16 @@ config SC_CAMCC_7280
 	  SC7280 devices.
 	  Say Y if you want to support camera devices and functionality such as
 	  capturing pictures.
+
+config SA_DISPCC_8775P
+	tristate "SA8775P Display Clock Controller"
+	depends on ARM64 || COMPILE_TEST
+	select SA_GCC_8775P
+	help
+	  Support for the two display clock controllers on Qualcomm Technologies, Inc.
+	  SA8775P devices.
+	  Say Y if you want to support display devices and functionality such as
+	  splash screen.
 
 config SC_DISPCC_7180
 	tristate "SC7180 Display Clock Controller"
@@ -1062,6 +1082,17 @@ config SM_TCSRCC_8650
 	help
 	  Support for the TCSR clock controller on SM8650 devices.
 	  Say Y if you want to use peripheral devices such as SD/UFS.
+
+config SA_VIDEOCC_8775P
+	tristate "SA8775P Video Clock Controller"
+	depends on ARM64 || COMPILE_TEST
+	select SA_GCC_8775P
+	select QCOM_GDSC
+	help
+	  Support for the video clock controller on Qualcomm Technologies, Inc.
+	  SA8775P devices.
+	  Say Y if you want to support video devices and functionality such as
+	  video encode/decode.
 
 config SM_VIDEOCC_8150
 	tristate "SM8150 Video Clock Controller"

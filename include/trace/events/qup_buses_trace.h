@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #undef TRACE_SYSTEM
@@ -25,7 +25,7 @@ TRACE_EVENT(buses_log_info,
 	),
 
 	TP_fast_assign(
-		__assign_str(name, name);
+		__assign_str_len(name, name, strlen(name));
 		WARN_ON_ONCE(vsnprintf(__get_dynamic_array(msg),
 				       MAX_MSG_LEN, vaf->fmt,
 				       *vaf->va) >= MAX_MSG_LEN);
@@ -47,9 +47,9 @@ DECLARE_EVENT_CLASS(buses_info,
 	),
 
 	TP_fast_assign(
-		__assign_str(name, dev_name(dev));
-		__assign_str(string1, string1);
-		__assign_str(string2, string2);
+		__assign_str_len(name, dev_name(dev), strlen(dev_name(dev)));
+		__assign_str_len(string1, string1, strlen(string1));
+		__assign_str_len(string2, string2, strlen(string2));
 	),
 
 	TP_printk("%s: %s: %s", __get_str(name), __get_str(string1), __get_str(string2))
@@ -69,7 +69,7 @@ DECLARE_EVENT_CLASS(serial_transmit_data,
 	),
 
 	TP_fast_assign(
-		__assign_str(name, dev_name(dev));
+		__assign_str_len(name, dev_name(dev), strlen(dev_name(dev)));
 		__entry->len = min(32, size);
 		hex_dump_to_buffer(string, __entry->len, 32, 1, __entry->buf,
 				   sizeof(__entry->buf), false);
@@ -98,6 +98,13 @@ DEFINE_EVENT(serial_transmit_data, serial_transmit_data_rx,
 	TP_PROTO(struct device *dev, char *string, int size),
 
 	TP_ARGS(dev, string, size)
+);
+
+DEFINE_EVENT(buses_info, spi_info,
+
+	TP_PROTO(struct device *dev, const char *string1, char *string2),
+
+	TP_ARGS(dev, string1, string2)
 );
 
 #endif /* _TRACE_QUP_BUSES_TRACE_H */

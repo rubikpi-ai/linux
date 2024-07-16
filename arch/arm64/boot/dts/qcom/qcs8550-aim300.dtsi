@@ -4,7 +4,7 @@
  */
 
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
-#include "qcm8550.dtsi"
+#include "qcs8550.dtsi"
 #include "pm8550.dtsi"
 #include "pm8550b.dtsi"
 #define PMK8550VE_SID 5

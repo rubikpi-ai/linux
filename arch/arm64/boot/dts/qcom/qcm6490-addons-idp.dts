@@ -56,11 +56,11 @@
 			#size-cells = <0>;
 
 			pm8008_en-supply = <&PM8008I_EN>;
-			vdd_l1_l2-supply = <&vreg_s8b_1p2>;
-			vdd_l3_l4-supply = <&vreg_bob>;
-			vdd_l5-supply = <&vreg_s1b_1p8>;
-			vdd_l6-supply = <&vreg_bob>;
-			vdd_l7-supply = <&vreg_bob>;
+			vdd_l1_l2-supply = <&vreg_s8b_1p272>;
+			vdd_l3_l4-supply = <&vreg_bob_3p296>;
+			vdd_l5-supply = <&vreg_s1b_1p872>;
+			vdd_l6-supply = <&vreg_bob_3p296>;
+			vdd_l7-supply = <&vreg_bob_3p296>;
 
 			L1I: PM8008I_L1: regulator@4000 {
 				reg = <0x4000>;
@@ -153,11 +153,11 @@
 			#size-cells = <0>;
 
 			pm8008_en-supply = <&PM8008J_EN>;
-			vdd_l1_l2-supply = <&vreg_s8b_1p2>;
-			vdd_l3_l4-supply = <&vreg_s1b_1p8>;
-			vdd_l5-supply = <&vreg_bob>;
-			vdd_l6-supply = <&vreg_bob>;
-			vdd_l7-supply = <&vreg_bob>;
+			vdd_l1_l2-supply = <&vreg_s8b_1p272>;
+			vdd_l3_l4-supply = <&vreg_s1b_1p872>;
+			vdd_l5-supply = <&vreg_bob_3p296>;
+			vdd_l6-supply = <&vreg_bob_3p296>;
+			vdd_l7-supply = <&vreg_bob_3p296>;
 
 			L1J: PM8008J_L1: regulator@4000 {
 				reg = <0x4000>;

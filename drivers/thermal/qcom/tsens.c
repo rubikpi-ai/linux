@@ -1193,10 +1193,90 @@ static int tsens_register_irq(struct tsens_priv *priv, char *irqname,
 	return ret;
 }
 
+static void tsens_thermal_zone_trip_update(struct thermal_zone_device *tz,
+					  unsigned long trip_id)
+{
+	struct tsens_sensor *s = thermal_zone_device_priv(tz);
+	struct tsens_priv *priv = s->priv;
+	struct thermal_trip trip;
+	int ret;
+	u32 trip_delta = 0;
+
+	ret = __thermal_zone_get_trip(tz, trip_id, &trip);
+	if (ret) {
+		dev_err(priv->dev, "%s: failed to get trip %ld for %s\n",
+			__func__, trip_id, tz->type);
+		return;
+	}
+
+	if (trip.type == THERMAL_TRIP_CRITICAL)
+		return;
+
+	if (strnstr(tz->type, "cpu", sizeof(tz->type)))
+		trip_delta = TSENS_ELEVATE_CPU_DELTA;
+	else
+		trip_delta = TSENS_ELEVATE_DELTA;
+
+	trip.temperature += trip_delta;
+	ret = thermal_zone_set_trip(tz, trip_id, &trip);
+	if (ret) {
+		dev_err(priv->dev, "%s: failed to set trip %ld for %s\n",
+			__func__, trip_id, tz->type);
+	}
+}
+
+static int tsens_nvmem_trip_update(struct thermal_zone_device *tz)
+{
+	int i, num_trips = 0;
+
+	if (strnstr(tz->type, "mdmss", sizeof(tz->type)))
+		return 0;
+
+	num_trips = thermal_zone_get_num_trips(tz);
+	/* First trip is for userspace, update all other trips. */
+	for (i = 1; i < num_trips; i++)
+		thermal_zone_device_exec(tz, tsens_thermal_zone_trip_update, i);
+
+	return 0;
+}
+
+static bool tsens_is_nvmem_trip_update_needed(struct tsens_priv *priv)
+{
+	int ret;
+	u32 chipinfo, tsens_jtag;
+	u8 tsens_feat_id;
+
+	if (!of_property_read_bool(priv->dev->of_node, "nvmem-cells"))
+		return false;
+
+	ret = nvmem_cell_read_variable_le_u32(priv->dev,
+			"tsens_chipinfo", &chipinfo);
+	if (ret) {
+		dev_err(priv->dev,
+			"%s: Not able to read tsens_chipinfo nvmem, ret:%d\n",
+			__func__, ret);
+		return false;
+	}
+
+	tsens_jtag = chipinfo & GENMASK(19, 0);
+	tsens_feat_id = (chipinfo >> TSENS_FEAT_OFFSET) & GENMASK(7, 0);
+	dev_dbg(priv->dev, "chipinfo:0x%x tsens_jtag: 0x%x tsens_feat_id:0x%x",
+		chipinfo, tsens_jtag, tsens_feat_id);
+	if ((tsens_jtag == TSENS_CHIP_ID0 && tsens_feat_id == TSENS_FEAT_ID3) ||
+	    (tsens_jtag == TSENS_CHIP_ID1 && tsens_feat_id == TSENS_FEAT_ID4) ||
+	    (tsens_jtag == TSENS_CHIP_ID2 && tsens_feat_id == TSENS_FEAT_ID3) ||
+	    (tsens_jtag == TSENS_CHIP_ID3 && tsens_feat_id == TSENS_FEAT_ID2))
+		return true;
+
+	return false;
+}
+
 static int tsens_register(struct tsens_priv *priv)
 {
 	int i, ret;
 	struct thermal_zone_device *tzd;
+
+	priv->need_trip_update = tsens_is_nvmem_trip_update_needed(priv);
 
 	for (i = 0;  i < priv->num_sensors; i++) {
 		priv->sensor[i].priv = priv;
@@ -1208,6 +1288,10 @@ static int tsens_register(struct tsens_priv *priv)
 		priv->sensor[i].tzd = tzd;
 		if (priv->ops->enable)
 			priv->ops->enable(priv, i);
+
+		/* update tsens trip based on fuse register */
+		if (priv->need_trip_update)
+			ret = tsens_nvmem_trip_update(tzd);
 
 		devm_thermal_add_hwmon_sysfs(priv->dev, tzd);
 	}

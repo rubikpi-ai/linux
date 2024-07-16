@@ -52,8 +52,8 @@
 		i2c13 = &i2c13;
 		i2c14 = &i2c14;
 		i2c15 = &i2c15;
-		mmc1 = &sdhc_1;
-		mmc2 = &sdhc_2;
+		mmc0 = &sdhc_1;
+		mmc1 = &sdhc_2;
 		spi0 = &spi0;
 		spi1 = &spi1;
 		spi2 = &spi2;
@@ -1415,12 +1415,12 @@
 			};
 
 			uart5: serial@994000 {
-				compatible = "qcom,geni-uart";
+				compatible = "qcom,geni-debug-uart";
 				reg = <0 0x00994000 0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S5_CLK>;
 				clock-names = "se";
 				pinctrl-names = "default";
-				pinctrl-0 = <&qup_uart5_cts>, <&qup_uart5_rts>, <&qup_uart5_tx>, <&qup_uart5_rx>;
+				pinctrl-0 = <&qup_uart5_tx>, <&qup_uart5_rx>;
 				interrupts = <GIC_SPI 606 IRQ_TYPE_LEVEL_HIGH>;
 				power-domains = <&rpmhpd SC7280_CX>;
 				operating-points-v2 = <&qup_opp_table>;
@@ -2311,6 +2311,7 @@
 				 <&apps_smmu 0x4e4 0x0011>;
 			interconnects = <&aggre2_noc MASTER_CRYPTO 0 &mc_virt SLAVE_EBI1 0>;
 			interconnect-names = "memory";
+			qcom,icc_bw = <12473>;
 		};
 
 		ipa: ipa@1e40000 {
@@ -6069,6 +6070,11 @@
 				function = "mi2s1_data0";
 			};
 
+			mi2s1_mclk: mi2s1-mclk-state {
+				pins = "gpio105";
+				function = "sec_mi2s";
+			};
+
 			mi2s1_sclk: mi2s1-sclk-state {
 				pins = "gpio106";
 				function = "mi2s1_sck";
@@ -6532,16 +6538,6 @@
 			qup_uart4_rx: qup-uart4-rx-state {
 				pins = "gpio19";
 				function = "qup04";
-			};
-
-			qup_uart5_cts: qup-uart5-cts-state {
-				pins = "gpio20";
-				function = "qup05";
-			};
-
-			qup_uart5_rts: qup-uart5-rts-state {
-				pins = "gpio21";
-				function = "qup05";
 			};
 
 			qup_uart5_tx: qup-uart5-tx-state {

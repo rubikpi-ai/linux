@@ -392,10 +392,12 @@ config QCOM_WATCHDOG_IPI_PING
 
 config QCOM_SOC_DEBUG
        depends on RANDOMIZE_BASE
-       tristate "SOC Debug Module"
+       bool "SOC Debug Module"
        help
 	 This module will write kaslr address to imem to enable debug of
-	 crashes which require loading of vmlinux and ramdumps.
+	 crashes which require loading of vmlinux and ramdumps. It also
+	 keeps SoC watchdog device node enabled when Linux is booted in
+	 hyp mode.
 
 config QCOM_SECURE_BUFFER
 	tristate "Helper functions for secure buffers through TZ"

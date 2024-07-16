@@ -10,8 +10,10 @@
 / {
 	model = "Qualcomm Technologies, Inc. qcs5430 fp1p5 addons rb3gen2 platform";
 	compatible = "qcom,qcs5430-fp1p5-addons-rb3gen2","qcom,qcs5430";
+	qcom,msm-id = <0x9023F 0x10000>;
+	qcom,board-id = <32 0x5>, <32 0x605>;
 };
 
 &pcie1 {
-        status = "ok";
+	status = "ok";
 };

@@ -26,6 +26,10 @@
 		mode-edl = <0 0x1>;
 	};
 
+	reboot-mode {
+		status = "disabled";
+	};
+
 	reserved-memory {
 		camera_mem: camera@84300000 {
 			reg = <0x0 0x84300000 0x0 0x500000>;
@@ -602,9 +606,11 @@
 
 &venus {
 	compatible = "qcom,qcm6490-iris";
-	iommus = <&apps_smmu 0x2180 0x20>;
+	/delete-property/ iommus;
 	status = "okay";
 	interconnect-names = "iris-cnoc", "iris-ddr";
+	/delete-node/ video-decoder;
+	/delete-node/ video-encoder;
 };
 
 &video_mem {

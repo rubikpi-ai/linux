@@ -89,12 +89,14 @@ description: |
         sm8450
         sm8550
         sm8650
+        sm8650p
         x1e80100
 
   The 'board' element must be one of the following strings:
 
         adp
         aim300-aiot
+        aim500-aiot
         ap-al02-c2
         ap-al02-c6
         ap-al02-c7
@@ -1037,6 +1039,14 @@ properties:
           - enum:
               - qcom,sm8650-mtp
               - qcom,sm8650-qrd
+          - const: qcom,sm8650
+
+      - items:
+          - enum:
+              - qcom,sm8650p-addons-aim500-aiot
+              - qcom,sm8650p-aim500-aiot
+          - const: qcom,sm8650p-aim500
+          - const: qcom,sm8650p
           - const: qcom,sm8650
 
       - items:

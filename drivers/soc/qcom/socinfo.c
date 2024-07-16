@@ -124,7 +124,7 @@ static const char *const pmic_models[] = {
 	[50] = "PM8350B",
 	[51] = "PMR735A",
 	[52] = "PMR735B",
-	[55] = "PM2250",
+	[55] = "PM4125",
 	[58] = "PM8450",
 	[65] = "PM8010",
 };
@@ -418,6 +418,7 @@ static const struct soc_id soc_id[] = {
 	{ qcom_board_id(QDU1000) },
 	{ qcom_board_id(SM8650) },
 	{ qcom_board_id(SM4450) },
+	{ qcom_board_id(SM8650P) },
 	{ qcom_board_id(QDU1010) },
 	{ qcom_board_id(QRU1032) },
 	{ qcom_board_id(QRU1052) },

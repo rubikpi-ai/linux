@@ -9,6 +9,7 @@
 #include <linux/interrupt.h>
 #include <linux/module.h>
 #include <linux/mod_devicetable.h>
+#include <linux/of.h>
 #include <linux/platform_device.h>
 #include <linux/spinlock.h>
 #include <linux/types.h>
@@ -225,7 +226,12 @@ static int qce_crypto_probe(struct platform_device *pdev)
 	if (IS_ERR(qce->mem_path))
 		return PTR_ERR(qce->mem_path);
 
-	ret = icc_set_bw(qce->mem_path, QCE_DEFAULT_MEM_BANDWIDTH, QCE_DEFAULT_MEM_BANDWIDTH);
+	if (of_property_read_u32((&pdev->dev)->of_node, "qcom,icc_bw", &qce->icc_bw)) {
+		pr_warn("%s: No icc BW set, using default\n", __func__);
+		qce->icc_bw = QCE_DEFAULT_MEM_BANDWIDTH;
+	}
+
+	ret = icc_set_bw(qce->mem_path, qce->icc_bw, qce->icc_bw);
 	if (ret)
 		return ret;
 
@@ -280,10 +286,17 @@ err_mem_path_disable:
 static int qce_crypto_remove(struct platform_device *pdev)
 {
 	struct qce_device *qce = platform_get_drvdata(pdev);
+	int ret = 0;
 
 	tasklet_kill(&qce->done_tasklet);
 	qce_unregister_algs(qce);
+	ret = icc_set_bw(qce->mem_path, qce->icc_bw, qce->icc_bw);
+	if (ret)
+		return ret;
 	qce_dma_release(&qce->dma);
+	ret = icc_set_bw(qce->mem_path, 0, 0);
+	if (ret)
+		return ret;
 	clk_disable_unprepare(qce->bus);
 	clk_disable_unprepare(qce->iface);
 	clk_disable_unprepare(qce->core);
@@ -307,7 +320,7 @@ static int  qce_crypto_resume(struct platform_device *pdev)
 	struct qce_device *qce = platform_get_drvdata(pdev);
 	int ret = 0;
 
-	ret = icc_set_bw(qce->mem_path, QCE_DEFAULT_MEM_BANDWIDTH, QCE_DEFAULT_MEM_BANDWIDTH);
+	ret = icc_set_bw(qce->mem_path, qce->icc_bw, qce->icc_bw);
 	if (ret)
 		return ret;
 
@@ -322,6 +335,8 @@ static int  qce_crypto_resume(struct platform_device *pdev)
 	ret = clk_prepare_enable(qce->bus);
 	if (ret)
 		goto err_clks_iface;
+
+	return 0;
 
 err_clks_iface:
 	clk_disable_unprepare(qce->iface);

@@ -119,14 +119,22 @@ static int reconn_set_ipaddr_from_hostname(struct TCP_Server_Info *server)
 static void smb2_query_server_interfaces(struct work_struct *work)
 {
 	int rc;
+	int xid;
 	struct cifs_tcon *tcon = container_of(work,
 					struct cifs_tcon,
 					query_interfaces.work);
+	struct TCP_Server_Info *server = tcon->ses->server;
 
 	/*
 	 * query server network interfaces, in case they change
 	 */
-	rc = SMB3_request_interfaces(0, tcon, false);
+	if (!server->ops->query_server_interfaces)
+		return;
+
+	xid = get_xid();
+	rc = server->ops->query_server_interfaces(xid, tcon, false);
+	free_xid(xid);
+
 	if (rc) {
 		if (rc == -EOPNOTSUPP)
 			return;
@@ -170,6 +178,8 @@ cifs_signal_cifsd_for_reconnect(struct TCP_Server_Info *server,
 
 	spin_lock(&cifs_tcp_ses_lock);
 	list_for_each_entry(ses, &pserver->smb_ses_list, smb_ses_list) {
+		if (cifs_ses_exiting(ses))
+			continue;
 		spin_lock(&ses->chan_lock);
 		for (i = 0; i < ses->chan_count; i++) {
 			if (!ses->chans[i].server)
@@ -229,6 +239,12 @@ cifs_mark_tcp_ses_conns_for_reconnect(struct TCP_Server_Info *server,
 	list_for_each_entry_safe(ses, nses, &pserver->smb_ses_list, smb_ses_list) {
 		/* check if iface is still active */
 		spin_lock(&ses->chan_lock);
+		if (cifs_ses_get_chan_index(ses, server) ==
+		    CIFS_INVAL_CHAN_INDEX) {
+			spin_unlock(&ses->chan_lock);
+			continue;
+		}
+
 		if (!cifs_chan_is_iface_active(ses, server)) {
 			spin_unlock(&ses->chan_lock);
 			cifs_chan_update_iface(ses, server);
@@ -3426,8 +3442,18 @@ int cifs_mount_get_tcon(struct cifs_mount_ctx *mnt_ctx)
 	 * the user on mount
 	 */
 	if ((cifs_sb->ctx->wsize == 0) ||
-	    (cifs_sb->ctx->wsize > server->ops->negotiate_wsize(tcon, ctx)))
-		cifs_sb->ctx->wsize = server->ops->negotiate_wsize(tcon, ctx);
+	    (cifs_sb->ctx->wsize > server->ops->negotiate_wsize(tcon, ctx))) {
+		cifs_sb->ctx->wsize =
+			round_down(server->ops->negotiate_wsize(tcon, ctx), PAGE_SIZE);
+		/*
+		 * in the very unlikely event that the server sent a max write size under PAGE_SIZE,
+		 * (which would get rounded down to 0) then reset wsize to absolute minimum eg 4096
+		 */
+		if (cifs_sb->ctx->wsize == 0) {
+			cifs_sb->ctx->wsize = PAGE_SIZE;
+			cifs_dbg(VFS, "wsize too small, reset to minimum ie PAGE_SIZE, usually 4096\n");
+		}
+	}
 	if ((cifs_sb->ctx->rsize == 0) ||
 	    (cifs_sb->ctx->rsize > server->ops->negotiate_rsize(tcon, ctx)))
 		cifs_sb->ctx->rsize = server->ops->negotiate_rsize(tcon, ctx);
@@ -3957,13 +3983,14 @@ cifs_set_vol_auth(struct smb3_fs_context *ctx, struct cifs_ses *ses)
 }
 
 static struct cifs_tcon *
-cifs_construct_tcon(struct cifs_sb_info *cifs_sb, kuid_t fsuid)
+__cifs_construct_tcon(struct cifs_sb_info *cifs_sb, kuid_t fsuid)
 {
 	int rc;
 	struct cifs_tcon *master_tcon = cifs_sb_master_tcon(cifs_sb);
 	struct cifs_ses *ses;
 	struct cifs_tcon *tcon = NULL;
 	struct smb3_fs_context *ctx;
+	char *origin_fullpath = NULL;
 
 	ctx = kzalloc(sizeof(*ctx), GFP_KERNEL);
 	if (ctx == NULL)
@@ -3987,6 +4014,7 @@ cifs_construct_tcon(struct cifs_sb_info *cifs_sb, kuid_t fsuid)
 	ctx->sign = master_tcon->ses->sign;
 	ctx->seal = master_tcon->seal;
 	ctx->witness = master_tcon->use_witness;
+	ctx->dfs_root_ses = master_tcon->ses->dfs_root_ses;
 
 	rc = cifs_set_vol_auth(ctx, master_tcon->ses);
 	if (rc) {
@@ -4006,11 +4034,38 @@ cifs_construct_tcon(struct cifs_sb_info *cifs_sb, kuid_t fsuid)
 		goto out;
 	}
 
+#ifdef CONFIG_CIFS_DFS_UPCALL
+	spin_lock(&master_tcon->tc_lock);
+	if (master_tcon->origin_fullpath) {
+		spin_unlock(&master_tcon->tc_lock);
+		origin_fullpath = dfs_get_path(cifs_sb, cifs_sb->ctx->source);
+		if (IS_ERR(origin_fullpath)) {
+			tcon = ERR_CAST(origin_fullpath);
+			origin_fullpath = NULL;
+			cifs_put_smb_ses(ses);
+			goto out;
+		}
+	} else {
+		spin_unlock(&master_tcon->tc_lock);
+	}
+#endif
+
 	tcon = cifs_get_tcon(ses, ctx);
 	if (IS_ERR(tcon)) {
 		cifs_put_smb_ses(ses);
 		goto out;
 	}
+
+#ifdef CONFIG_CIFS_DFS_UPCALL
+	if (origin_fullpath) {
+		spin_lock(&tcon->tc_lock);
+		tcon->origin_fullpath = origin_fullpath;
+		spin_unlock(&tcon->tc_lock);
+		origin_fullpath = NULL;
+		queue_delayed_work(dfscache_wq, &tcon->dfs_cache_work,
+				   dfs_cache_get_ttl() * HZ);
+	}
+#endif
 
 #ifdef CONFIG_CIFS_ALLOW_INSECURE_LEGACY
 	if (cap_unix(ses))
@@ -4020,9 +4075,21 @@ cifs_construct_tcon(struct cifs_sb_info *cifs_sb, kuid_t fsuid)
 out:
 	kfree(ctx->username);
 	kfree_sensitive(ctx->password);
+	kfree(origin_fullpath);
 	kfree(ctx);
 
 	return tcon;
+}
+
+static struct cifs_tcon *
+cifs_construct_tcon(struct cifs_sb_info *cifs_sb, kuid_t fsuid)
+{
+	struct cifs_tcon *ret;
+
+	cifs_mount_lock();
+	ret = __cifs_construct_tcon(cifs_sb, fsuid);
+	cifs_mount_unlock();
+	return ret;
 }
 
 struct cifs_tcon *
@@ -4216,6 +4283,11 @@ int cifs_tree_connect(const unsigned int xid, struct cifs_tcon *tcon, const stru
 
 	/* only send once per connect */
 	spin_lock(&tcon->tc_lock);
+
+	/* if tcon is marked for needing reconnect, update state */
+	if (tcon->need_reconnect)
+		tcon->status = TID_NEED_TCON;
+
 	if (tcon->status == TID_GOOD) {
 		spin_unlock(&tcon->tc_lock);
 		return 0;

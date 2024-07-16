@@ -445,6 +445,7 @@ static int dwc3_usb_role_switch_set(struct usb_role_switch *sw,
 {
 	struct dwc3 *dwc = usb_role_switch_get_drvdata(sw);
 	u32 mode;
+	int ret = 0;
 
 	dwc->cable_disconnected = false;
 
@@ -471,7 +472,9 @@ static int dwc3_usb_role_switch_set(struct usb_role_switch *sw,
 	 */
 	if (role == USB_ROLE_NONE) {
 		dwc->cable_disconnected = true;
-		dwc3_notify_cable_disconnect(dwc);
+		ret = dwc3_notify_cable_disconnect(dwc);
+		if (ret < 0)
+			return ret;
 	}
 
 	dwc3_set_mode(dwc, mode);

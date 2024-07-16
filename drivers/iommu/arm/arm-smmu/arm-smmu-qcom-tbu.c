@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/interconnect.h>
@@ -64,12 +64,14 @@ static struct qsmmuv500_tbu *qsmmuv500_find_tbu(struct qcom_smmu *qsmmu, u32 sid
 
 	mutex_lock(&qsmmu->tbu_list_lock);
 
-	list_for_each_entry(tbu, &qsmmu->tbu_list, list) {
-		start = tbu->sid_range[0];
-		end = start + tbu->sid_range[1];
+	if (!list_empty(&qsmmu->tbu_list)) {
+		list_for_each_entry(tbu, &qsmmu->tbu_list, list) {
+			start = tbu->sid_range[0];
+			end = start + tbu->sid_range[1];
 
-		if (start <= sid && sid < end)
-			break;
+			if (start <= sid && sid < end)
+				break;
+		}
 	}
 
 	mutex_unlock(&qsmmu->tbu_list_lock);

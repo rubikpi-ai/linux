@@ -541,7 +541,8 @@ struct usb_qdss_ch *usb_qdss_open(const char *name, void *priv,
 	void (*notify)(void *priv, unsigned int event,
 		struct qdss_request *d_req, struct usb_qdss_ch *))
 {
-	struct usb_qdss_ch *ch, *tmp_ch;
+	struct usb_qdss_ch *ch = NULL;
+	struct usb_qdss_ch *tmp_ch;
 	struct f_qdss *qdss = NULL;
 	unsigned long flags;
 

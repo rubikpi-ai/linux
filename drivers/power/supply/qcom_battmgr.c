@@ -305,6 +305,8 @@ struct qcom_battmgr {
 	u32 thermal_fcc_ua;
 	u32 last_fcc_ua;
 
+	u32 usb_icl_ua;
+
 	struct completion ack;
 
 	bool service_up;
@@ -840,6 +842,51 @@ static int qcom_battmgr_usb_sm8350_update(struct qcom_battmgr *battmgr,
 	return ret;
 }
 
+static int usb_psy_set_icl(struct qcom_battmgr *battmgr, u32 prop_id, int val)
+{
+	u32 temp;
+	int ret;
+
+	ret = qcom_battmgr_request_property(battmgr, BATTMGR_USB_PROPERTY_GET,
+					    USB_ADAP_TYPE, 0);
+	if (ret < 0) {
+		dev_err(battmgr->dev, "Failed to read prop USB_ADAP_TYPE, ret=%d\n", ret);
+		return ret;
+	}
+
+	/* Allow this only for SDP, CDP or USB_PD and not for other charger types */
+	switch (battmgr->usb.usb_type) {
+	case POWER_SUPPLY_USB_TYPE_SDP:
+	case POWER_SUPPLY_USB_TYPE_PD:
+	case POWER_SUPPLY_USB_TYPE_CDP:
+		break;
+	default:
+		return -EINVAL;
+	}
+
+	/*
+	 * Input current limit (ICL) can be set by different clients. E.g. USB
+	 * driver can request for a current of 500/900 mA depending on the
+	 * port type. Also, clients like EUD driver can pass 0 or -22 to
+	 * suspend or unsuspend the input for its use case.
+	 */
+
+	temp = val;
+	if (val < 0)
+		temp = UINT_MAX;
+
+	ret = qcom_battmgr_request_property(battmgr, BATTMGR_USB_PROPERTY_SET, USB_INPUT_CURR_LIMIT,
+					   temp);
+	if (ret < 0) {
+		dev_err(battmgr->dev, "Failed to set ICL %u, ret=%d\n", val, ret);
+	} else {
+		dev_dbg(battmgr->dev, "Set ICL to %u uA\n", val);
+		battmgr->usb_icl_ua = val;
+	}
+
+	return ret;
+}
+
 static int qcom_battmgr_usb_get_property(struct power_supply *psy,
 					 enum power_supply_property psp,
 					 union power_supply_propval *val)
@@ -881,6 +928,37 @@ static int qcom_battmgr_usb_get_property(struct power_supply *psy,
 		break;
 	default:
 		return -EINVAL;
+	}
+
+	return 0;
+}
+
+static int qcom_battmgr_usb_set_property(struct power_supply *psy,
+					 enum power_supply_property prop,
+					 const union power_supply_propval *pval)
+{
+	struct qcom_battmgr *battmgr = power_supply_get_drvdata(psy);
+	int rc = -EINVAL;
+
+	switch (prop) {
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		rc = usb_psy_set_icl(battmgr, USB_INPUT_CURR_LIMIT, pval->intval);
+		break;
+	default:
+		break;
+	}
+
+	return rc;
+}
+
+static int qcom_battmgr_usb_prop_is_writeable(struct power_supply *psy,
+					      enum power_supply_property prop)
+{
+	switch (prop) {
+	case POWER_SUPPLY_PROP_INPUT_CURRENT_LIMIT:
+		return 1;
+	default:
+		break;
 	}
 
 	return 0;
@@ -929,6 +1007,8 @@ static const struct power_supply_desc sm8350_usb_psy_desc = {
 	.properties = sm8350_usb_props,
 	.num_properties = ARRAY_SIZE(sm8350_usb_props),
 	.get_property = qcom_battmgr_usb_get_property,
+	.set_property = qcom_battmgr_usb_set_property,
+	.property_is_writeable  = qcom_battmgr_usb_prop_is_writeable,
 	.usb_types = usb_psy_supported_types,
 	.num_usb_types = ARRAY_SIZE(usb_psy_supported_types),
 };
@@ -1283,6 +1363,7 @@ static void qcom_battmgr_sm8350_callback(struct qcom_battmgr *battmgr,
 		break;
 
 	case BATTMGR_BAT_PROPERTY_SET:
+	case BATTMGR_USB_PROPERTY_SET:
 		property = le32_to_cpu(resp->intval.property);
 		if (payload_len != sizeof(resp->intval)) {
 			dev_warn(battmgr->dev,
@@ -1493,7 +1574,7 @@ static int qcom_battmgr_register_thermal_cooling_device(struct qcom_battmgr *bat
 static int qcom_battmgr_parse_dt(struct qcom_battmgr *battmgr)
 {
 	struct device_node *node = battmgr->dev->of_node;
-	int len, rc, i;
+	int len, rc;
 
 	rc = of_property_count_elems_of_size(node, "qcom,thermal-mitigation", sizeof(u32));
 	if (rc <= 0)
@@ -1550,6 +1631,13 @@ static void qcom_battmgr_enable_worker(struct work_struct *work)
 		if (ret < 0)
 			dev_err(battmgr->dev, "Failed to set FCC (%u uA), ret:%d\n",
 				battmgr->last_fcc_ua, ret);
+	}
+
+	if (battmgr->usb_icl_ua) {
+		ret = usb_psy_set_icl(battmgr, USB_INPUT_CURR_LIMIT, battmgr->usb_icl_ua);
+		if (ret < 0)
+			dev_err(battmgr->dev, "failed to set ICL (%u uA), ret:%d\n",
+				battmgr->usb_icl_ua, ret);
 	}
 }
 

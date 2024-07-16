@@ -21,13 +21,12 @@
 #include "pm8350c.dtsi"
 #include "pmk8350.dtsi"
 
+/delete-node/ &usb_2_dwc3;
+
 / {
 	model = "Qualcomm Technologies, Inc. Robotics RB3gen2";
 	compatible = "qcom,qcs6490-rb3gen2", "qcom,qcm6490";
 
-	/* This will be deprecated soon */
-	qcom,msm-id = <497 0x10000>, <498 0x10000>, <475 0x10000>, <515 0x10000>;
-	qcom,board-id = <32 1>;
 
 	aliases {
 		serial0 = &uart5;
@@ -421,7 +420,7 @@
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
-		vreg_l10c_0p88:ldo10 {
+		vreg_l10c_0p88: ldo10 {
 			regulator-min-microvolt = <880000>;
 			regulator-max-microvolt = <1050000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
@@ -520,6 +519,10 @@
 			};
 		};
 	};
+};
+
+&ipa {
+	status = "disabled";
 };
 
 &lpasscc {
@@ -677,7 +680,7 @@
 &pcie1 {
 	perst-gpios = <&tlmm 2 GPIO_ACTIVE_LOW>;
 
-	pinctrl-0 = <&pcie1_reset_n>, <&pcie1_wake_n>;
+	pinctrl-0 = <&pcie1_reset_n>, <&pcie1_wake_n>, <&pcie1_clkreq_n>;
 	pinctrl-names = "default";
 
 	iommu-map = <0x0 &apps_smmu 0x1c80 0x1>,
@@ -933,6 +936,18 @@
 	status = "okay";
 };
 
+&sdhc_2 {
+	status = "okay";
+
+	pinctrl-0 = <&sdc2_clk>, <&sdc2_cmd>, <&sdc2_data>, <&sd_cd>;
+	pinctrl-1 = <&sdc2_clk_sleep>, <&sdc2_cmd_sleep>, <&sdc2_data_sleep>, <&sd_cd>;
+
+	vmmc-supply = <&vreg_l9c_2p96>;
+	vqmmc-supply = <&vreg_l6c_2p96>;
+
+	cd-gpios = <&tlmm 91 GPIO_ACTIVE_LOW>;
+};
+
 /delete-node/ &usb_1_dwc3;
 
 &usb_1 {
@@ -1018,7 +1033,7 @@
 /*     USB2 Related Start        */
 /*==============================*/
 
-&pm7250b_gpios {
+&pm7325_gpios {
 	usb2_vbus_det_default: usb2_vbus_det_state {
 		pins = "gpio9";
 		function = "normal";
@@ -1026,6 +1041,21 @@
 		input-enable;
 		power-source = <0>;
 	};
+};
+
+&sdc2_clk {
+	bias-disable;
+	drive-strength = <16>;
+};
+
+&sdc2_cmd {
+	bias-pull-up;
+	drive-strength = <10>;
+};
+
+&sdc2_data {
+	bias-pull-up;
+	drive-strength = <10>;
 };
 
 &tlmm {
@@ -1036,12 +1066,10 @@
 		bias-pull-up;
 	};
 
-	usb2_vbus_boost_default: usb2_vbus_boost_default {
-		pins = "gpio63";
+	sd_cd: sd-cd-state {
+		pins = "gpio91";
 		function = "gpio";
-		drive-strength = <8>;
-		bias-pull-down;
-		output-low;
+		bias-pull-up;
 	};
 };
 
@@ -1049,17 +1077,16 @@
 	vbus_supply_regulator: vbus_supply_regulator {
 	       compatible = "regulator-fixed";
 	       regulator-name = "vbus_supply";
-	       enable-active-high;
 	       gpio = <&tlmm 63 GPIO_ACTIVE_HIGH>;
 	       regulator-min-microvolt = <5000000>;
 	       regulator-max-microvolt = <5000000>;
-	       pinctrl-names = "default";
-	       pinctrl-0 = <&usb2_vbus_boost_default>;
+	       regulator-boot-on;
+	       enable-active-high;
 	};
 
 	connector_usb2: connector_usb2 {
 		compatible = "gpio-usb-b-connector";
-		vbus-gpio = <&pm7250b_gpios 9 GPIO_ACTIVE_HIGH>;
+		vbus-gpio = <&pm7325_gpios 9 GPIO_ACTIVE_HIGH>;
 		id-gpio = <&tlmm 61 GPIO_ACTIVE_HIGH>;
 		vbus-supply = <&vbus_supply_regulator>;
 
@@ -1080,10 +1107,34 @@
 	};
 };
 
-&usb_2_dwc3 {
-	/delete-property/ port;
+&usb_2 {
+	reg = <0x0 0x08c00000 0x0 0x100000>;
+
+	interrupts-extended = <&intc GIC_SPI 242 IRQ_TYPE_LEVEL_HIGH>,
+				<&intc GIC_SPI 240 IRQ_TYPE_LEVEL_HIGH>,
+				<&pdc 12 IRQ_TYPE_LEVEL_HIGH>,
+				<&pdc 13 IRQ_TYPE_EDGE_BOTH>;
+	interrupt-names = "dwc_usb2",
+			"hs_phy_irq",
+			"dp_hs_phy_irq",
+			"dm_hs_phy_irq";
+
+	iommus = <&apps_smmu 0xa0 0x0>;
+	snps,dis_u2_susphy_quirk;
+	snps,dis_enblslpm_quirk;
+	phys = <&usb_2_hsphy>;
+	phy-names = "usb2-phy";
+	maximum-speed = "high-speed";
+	snps,dis-u2-entry-quirk;
+	snps,dis-u1-entry-quirk;
+
 	usb-role-switch;
+	qcom,enable-rt;
+	wakeup-source;
 	dr_mode = "otg";
+
+	status = "okay";
+
 	ports {
 		#address-cells = <1>;
 		#size-cells = <0>;
@@ -1094,6 +1145,12 @@
 				remote-endpoint = <&usb2_port_connector>;
 			};
 		};
+
+		port@1 {
+			usb2_role_switch: endpoint {
+				remote-endpoint = <&eud_ep>;
+			};
+		};
 	};
 };
 
@@ -1102,9 +1159,5 @@
 	vdda18-supply = <&vreg_l1c_1p8>;
 	vdda33-supply = <&vreg_l2b_3p072>;
 
-	status = "okay";
-};
-
-&usb_2 {
 	status = "okay";
 };

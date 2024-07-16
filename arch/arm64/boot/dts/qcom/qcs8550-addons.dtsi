@@ -1,0 +1,67 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
+
+/{
+	reserved-memory {
+		qseecom_mem: qcom,qseecom {
+			compatible = "shared-dma-pool";
+			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
+			reusable;
+			alignment = <0x0 0x400000>;
+			size = <0x0 0x1400000>; /* 20M */
+		};
+
+		qseecom_ta_mem: qcom,qseecom-ta {
+			compatible = "shared-dma-pool";
+			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
+			reusable;
+			alignment = <0x0 0x400000>;
+			size = <0x0 0x1000000>; /* 16M */
+		};
+	};
+
+	/* Add overlay for firmware node containing qcom_scm in sm8550.dtsi */
+	firmware {
+		qtee_shmbridge {
+			compatible = "qcom,tee-shared-memory-bridge";
+		};
+
+		qcom_smcinvoke {
+			compatible = "qcom,smcinvoke";
+		};
+	};
+};
+
+&soc {
+	wdog_gh: qcom,wdt_gh {
+		compatible = "qcom,gh-watchdog";
+		interrupts = <0 0 IRQ_TYPE_LEVEL_HIGH>;
+	};
+
+	qcom_tzlog: tz-log@146aa720 {
+		compatible = "qcom,tz-log";
+		reg = <0x0 0x146aa720 0x0 0x3000>;
+		qcom,hyplog-enabled;
+		hyplog-address-offset = <0x410>;
+		hyplog-size-offset = <0x414>;
+	};
+
+	qcom,mem-buf {
+		compatible = "qcom,mem-buf";
+		qcom,mem-buf-capabilities = "supplier";
+		qcom,vmid = <3>;
+	};
+
+	qcom,mem-buf-msgq {
+		compatible = "qcom,mem-buf-msgq";
+	};
+
+	qcom,secure-buffer {
+		compatible = "qcom,secure-buffer";
+		qcom,vmid-cp-camera-preview-ro;
+	};
+};
+
+#include "qcs8550-dma-heaps.dtsi"

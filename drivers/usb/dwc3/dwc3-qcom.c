@@ -458,6 +458,7 @@ static int dwc3_qcom_suspend(struct dwc3_qcom *qcom, bool wakeup)
 	}
 
 	qcom->is_suspended = true;
+	pm_relax(qcom->dev);
 
 	return 0;
 }
@@ -469,6 +470,8 @@ static int dwc3_qcom_resume(struct dwc3_qcom *qcom, bool wakeup)
 
 	if (!qcom->is_suspended)
 		return 0;
+
+	pm_stay_awake(qcom->dev);
 
 	if (qcom->dwc) {
 		ret = reset_control_deassert(qcom->dwc->reset);
@@ -704,16 +707,21 @@ static int dwc3_xhci_event_notifier(struct notifier_block *nb,
 	return NOTIFY_DONE;
 }
 
-static void dwc3_qcom_handle_cable_disconnect(void *data)
+static int dwc3_qcom_handle_cable_disconnect(void *data)
 {
 	struct dwc3_qcom *qcom = (struct dwc3_qcom *)data;
+	int ret = 0;
+
 	/*
 	 * If we are in device mode and get a cable disconnect,
 	 * handle it by clearing OTG_VBUS_VALID bit in wrapper.
 	 * The next set_mode to default role can be ignored.
 	 */
 	if (qcom->current_role == USB_ROLE_DEVICE) {
-		pm_runtime_get_sync(qcom->dev);
+		ret = pm_runtime_get_sync(qcom->dev);
+		if ((ret < 0) || (qcom->is_suspended))
+			return ret;
+
 		dwc3_qcom_vbus_override_enable(qcom, false);
 		pm_runtime_put_autosuspend(qcom->dev);
 	} else if (qcom->current_role == USB_ROLE_HOST) {
@@ -722,6 +730,8 @@ static void dwc3_qcom_handle_cable_disconnect(void *data)
 
 	pm_runtime_mark_last_busy(qcom->dev);
 	qcom->current_role = USB_ROLE_NONE;
+
+	return 0;
 }
 
 static void dwc3_qcom_handle_set_mode(void *data, u32 desired_dr_role)
@@ -764,6 +774,14 @@ static void dwc3_qcom_handle_mode_changed(void *data, u32 current_dr_role)
 	}
 }
 
+static void dwc3_post_conndone_notification(void *data)
+{
+	struct dwc3_qcom *qcom = (struct dwc3_qcom *)data;
+
+	qcom->dwc->cable_disconnected = false;
+	qcom->current_role = USB_ROLE_DEVICE;
+}
+
 static void dwc3_qcom_handle_run_stop_notification(void *data, bool enable)
 {
 	struct dwc3_qcom *qcom = (struct dwc3_qcom *)data;
@@ -777,6 +795,7 @@ struct dwc3_glue_ops dwc3_qcom_glue_hooks = {
 	.set_mode = dwc3_qcom_handle_set_mode,
 	.mode_changed = dwc3_qcom_handle_mode_changed,
 	.notify_run_stop = dwc3_qcom_handle_run_stop_notification,
+	.post_conndone = dwc3_post_conndone_notification,
 };
 
 static int dwc3_qcom_probe_core(struct platform_device *pdev, struct dwc3_qcom *qcom)
@@ -1144,6 +1163,11 @@ static int __maybe_unused dwc3_qcom_pm_resume(struct device *dev)
 	struct dwc3_qcom *qcom = dev_get_drvdata(dev);
 	bool wakeup = device_may_wakeup(dev);
 	int ret;
+
+	if ((qcom->dwc) && (pm_runtime_suspended(qcom->dev))) {
+		qcom->pm_suspended = false;
+		return 0;
+	}
 
 	ret = dwc3_qcom_resume(qcom, wakeup);
 	if (ret)

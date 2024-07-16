@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2017-2018, The Linux foundation. All rights reserved.
+// Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/dmaengine.h>
@@ -75,6 +76,23 @@
 #define GSI_CPHA		BIT(4)
 #define GSI_CPOL		BIT(5)
 
+#define CREATE_TRACE_POINTS
+#include <trace/events/qup_buses_trace.h>
+
+void spi_trace_log(struct device *dev, const char *fmt, ...)
+{
+	struct va_format vaf = {
+		.fmt = fmt,
+	};
+
+	va_list args;
+
+	va_start(args, fmt);
+	vaf.va = &args;
+	trace_buses_log_info(dev_name(dev), &vaf);
+	va_end(args);
+}
+
 struct spi_geni_master {
 	struct geni_se se;
 	struct device *dev;
@@ -134,8 +152,8 @@ static int get_spi_clk_cfg(unsigned int speed_hz,
 	*clk_div = DIV_ROUND_UP(sclk_freq, mas->oversampling * speed_hz);
 	actual_hz = sclk_freq / (mas->oversampling * *clk_div);
 
-	dev_dbg(mas->dev, "req %u=>%u sclk %lu, idx %d, div %d\n", speed_hz,
-				actual_hz, sclk_freq, *clk_idx, *clk_div);
+	spi_trace_log(mas->dev, "req %u=>%u sclk %lu, idx %d, div %d\n", speed_hz,
+		      actual_hz, sclk_freq, *clk_idx, *clk_div);
 	ret = dev_pm_opp_set_rate(mas->dev, sclk_freq);
 	if (ret)
 		dev_err(mas->dev, "dev_pm_opp_set_rate failed %d\n", ret);
@@ -353,6 +371,8 @@ static void spi_setup_word_len(struct spi_geni_master *mas, u16 mode,
 								true, true);
 	word_len = (bits_per_word - MIN_WORD_LEN) & WORD_LEN_MSK;
 	writel(word_len, se->base + SE_SPI_WORD_LEN);
+	spi_trace_log(mas->dev, "%s: bits_per_word: %d, pack_words: %d, word_len: %d",
+		      __func__, bits_per_word, pack_words, word_len);
 }
 
 static int geni_spi_set_clock_and_bw(struct spi_geni_master *mas,
@@ -428,6 +448,9 @@ static int setup_fifo_params(struct spi_device *spi_slv,
 		mas->last_mode = spi_slv->mode;
 	}
 
+	spi_trace_log(mas->dev,
+		      "%s: loopback_cfg: %d, demux_sel: %d, cpha: %d, cpol: %d demux_output_inv: %d\n",
+		      __func__, loopback_cfg, demux_sel, cpha, cpol, demux_output_inv);
 	return geni_spi_set_clock_and_bw(mas, spi_slv->max_speed_hz);
 }
 
@@ -445,7 +468,7 @@ spi_gsi_callback_result(void *cb, const struct dmaengine_result *result)
 
 	if (!result->residue) {
 		spi->cur_msg->status = 0;
-		dev_dbg(&spi->dev, "DMA txn completed\n");
+		spi_trace_log(&spi->dev, "DMA txn completed\n");
 	} else {
 		dev_err(&spi->dev, "DMA xfer has pending: %d\n", result->residue);
 	}
@@ -695,7 +718,7 @@ static int spi_geni_init(struct spi_geni_master *mas)
 		if (!ret) { /* success case */
 			mas->cur_xfer_mode = GENI_GPI_DMA;
 			geni_se_select_mode(se, GENI_GPI_DMA);
-			dev_dbg(mas->dev, "Using GPI DMA mode for SPI\n");
+			spi_trace_log(mas->dev, "Using GPI DMA mode for SPI\n");
 			break;
 		} else if (ret == -EPROBE_DEFER) {
 			goto out_pm;
@@ -1182,6 +1205,7 @@ static int __maybe_unused spi_geni_runtime_suspend(struct device *dev)
 	struct spi_geni_master *mas = spi_master_get_devdata(spi);
 	int ret;
 
+	trace_spi_info(mas->dev, __func__, "start");
 	/* Drop the performance state vote */
 	dev_pm_opp_set_rate(dev, 0);
 
@@ -1198,6 +1222,7 @@ static int __maybe_unused spi_geni_runtime_resume(struct device *dev)
 	struct spi_geni_master *mas = spi_master_get_devdata(spi);
 	int ret;
 
+	trace_spi_info(mas->dev, __func__, "start");
 	ret = geni_icc_enable(&mas->se);
 	if (ret)
 		return ret;
@@ -1214,6 +1239,7 @@ static int __maybe_unused spi_geni_suspend(struct device *dev)
 	struct spi_master *spi = dev_get_drvdata(dev);
 	int ret;
 
+	trace_spi_info(dev, __func__, "start");
 	ret = spi_master_suspend(spi);
 	if (ret)
 		return ret;
@@ -1230,6 +1256,7 @@ static int __maybe_unused spi_geni_resume(struct device *dev)
 	struct spi_master *spi = dev_get_drvdata(dev);
 	int ret;
 
+	trace_spi_info(dev, __func__, "start");
 	ret = pm_runtime_force_resume(dev);
 	if (ret)
 		return ret;

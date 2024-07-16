@@ -13,6 +13,7 @@
 #include <linux/string.h>
 #include <linux/regulator/driver.h>
 #include <linux/regulator/machine.h>
+#include <linux/regulator/debug-regulator.h>
 #include <linux/regulator/of_regulator.h>
 
 #include <soc/qcom/cmd-db.h>
@@ -488,6 +489,10 @@ static int rpmh_regulator_init_vreg(struct rpmh_vreg *vreg, struct device *dev,
 			node, ret);
 		return ret;
 	}
+
+	ret = devm_regulator_debug_register(dev, rdev);
+	if (ret)
+		dev_err(dev, "failed to register debug regulator ret=%d\n", ret);
 
 	dev_dbg(dev, "%pOFn regulator registered for RPMh resource %s @ 0x%05X\n",
 		node, rpmh_resource_name, vreg->addr);

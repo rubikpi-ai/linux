@@ -1260,6 +1260,11 @@ static void quirk_usb_early_handoff(struct pci_dev *pdev)
 			return;
 	}
 
+	/* Skip handoff for Renesas PCI USB controller on QCOM SOC */
+	if ((pdev->vendor == PCI_VENDOR_ID_RENESAS) &&
+		(pcie_find_root_port(pdev)->vendor == PCI_VENDOR_ID_QCOM))
+		return;
+
 	if (pdev->class != PCI_CLASS_SERIAL_USB_UHCI &&
 			pdev->class != PCI_CLASS_SERIAL_USB_OHCI &&
 			pdev->class != PCI_CLASS_SERIAL_USB_EHCI &&

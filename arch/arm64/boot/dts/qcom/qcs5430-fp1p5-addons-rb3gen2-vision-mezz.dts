@@ -10,6 +10,8 @@
 / {
 	model = "Qualcomm Technologies, Inc. qcs5430 fp1p5 addons rb3gen2 vision mezz platform";
 	compatible = "qcom,qcs5430-fp1p5-addons-rb3gen2-vision-mezz","qcom,qcs5430";
+	qcom,msm-id = <0x9023F 0x10000>;
+	qcom,board-id = <32 0x2>, <32 0x602>;
 };
 
 &mi2s0_data0 {

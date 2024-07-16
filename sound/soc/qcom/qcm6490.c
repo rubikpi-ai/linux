@@ -36,7 +36,7 @@ static int qcm6490_slim_dai_init(struct snd_soc_pcm_runtime *rtd)
 {
 	int ret = 0;
 	unsigned int rx_ch[WCN_CDC_SLIM_RX_CH_MAX] = {157, 158};
-	unsigned int tx_ch[WCN_CDC_SLIM_TX_CH_MAX]  = {159, 160};
+	unsigned int tx_ch[WCN_CDC_SLIM_TX_CH_MAX]  = {159, 162};
 	struct snd_soc_dai *codec_dai = asoc_rtd_to_codec(rtd, 0);
 
 	ret = snd_soc_dai_set_channel_map(codec_dai, ARRAY_SIZE(tx_ch),

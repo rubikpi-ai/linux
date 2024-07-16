@@ -1,0 +1,120 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/firmware/qcom,platform-parts-info.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: QCOM Platform's Parts Information
+
+description:
+  Qualcomm platforms support a feature where a subset of hardware blocks
+  like Camera, GPU, Display, Modem, CPUs are available in a product,
+  based on features selected for a particular Stock keeping unit (SKU)
+  and the same software images are supposed to work seamlessly with these.
+  This is to support usecases where lets say a software image running on handset
+  device which supports display and camera, can work just fine on another
+  IoT product which doesn't need these. This also enables usecases, where certain
+  sub parts for a HW block are not supported.
+
+  Firmware reads the parts related information from lower layers and passes this
+  information to kernel via this device tree interface, so that the respective
+  clients are aware of it.
+  For example, camera drivers and its user space daemons can use this interface
+  to know if camera is not supported on the device or if a certain sub-feature inside
+  camera is not supported.
+
+  Firmware also reads SKU details and board information like memory card's serial
+  number and populates it in new device tree nodes.
+
+maintainers:
+  - Naman Jain <quic_namajain@quicinc.com>
+
+properties:
+  $nodename:
+    const: qcom,platform-parts-info
+
+  serial-number:
+    description:
+      Serial number of the memory device used - UFS, NAND or EMMC. If none of them is found,
+      this will return SoC's serial number.
+    $ref: /schemas/types.yaml#/definitions/uint32
+
+  pcode:
+    description:
+      Product code used for the Stock Keeping Unit (SKU) for the device. If its not supported,
+      value of the property is UINT32_MAX, i.e. all bits will be set.
+    $ref: /schemas/types.yaml#/definitions/uint32
+
+  feature-code:
+    description:
+      Feature Code used for the Stock Keeping Unit (SKU) for the device. This has values like
+      AA, AB, AC etc for external parts, and Y0, Y1, Y3 etc for internal parts. "Unknown" if SKU
+      information is not supported for a platform.
+    $ref: /schemas/types.yaml#/definitions/string
+
+  subset-cores:
+    description:
+      A bitmask value, encoded from LSB with a set bit corresponding to actual physical CPU
+      not supported on the SoC.
+    $ref: /schemas/types.yaml#/definitions/uint32
+
+  subset-parts:
+    description:
+      A bitmask value, encoded from LSB with a set bit corresponding to a particular part
+      not supported on the SoC. Starting from LSB 1, parts correspond to GPU, Video, Camera,
+      Display, Audio, Modem, WLAN, Compute, Sensors, NPU, SPSS, NAV, Compute1, Display1, NSP,
+      EVA and PCIE.
+    $ref: /schemas/types.yaml#/definitions/uint32
+
+patternProperties:
+  "^subset-(gpu|video|camera|display|audio|modem|wlan|compute|sensors|npu|spss|nav|compute1|display1|nsp|eva|pcie)+$":
+    type: object
+    properties:
+      part-count:
+        description:
+          Number of instances available for a particular part type.
+          If the value is UINT32_MAX, i.e. all bits set, then that value is invalid and not to be
+          considered.
+        $ref: /schemas/types.yaml#/definitions/uint32
+      part-info:
+        description:
+          Bitmap array with number of entries same as part-count. Each entry stores information
+          related to subset of features/sub-parts supported for a particular instance of a part
+          type. Each bitmask value, has its 0th bit set if that part is completely not supported.
+          Otherwise, rest of the bits will correspond to specific functionalities
+          of that part not supported.
+          If the value is UINT32_MAX, i.e. all bits set, then that value is invalid and not to be
+          considered.
+        $ref: /schemas/types.yaml#/definitions/uint32-array
+
+required:
+  - serial-number
+  - pcode
+  - feature-code
+
+additionalProperties: false
+
+examples:
+  - |
+    firmware {
+        qcom,platform-parts-info {         /* populated by firmware */
+            serial-number = <0x12345678>;
+            pcode = <0x1>;
+            feature-code = "AA";
+            subset-parts = <0x12>;    /* GPU and Display are completely not supported */
+            subset-cores = <0x90>;    /* CPU 4 and 7 are not supported */
+            subset-camera {
+                part-count = <0x1>;   /* Single instance of camera is supported */
+                part-info = <0x0>;    /* Camera is fully supported */
+            };
+            subset-video {
+                part-count = <0x2>;   /* 2 instances of video are supported */
+                part-info = <0x0 0x101>; /* Few sub-parts of second Video part are not supported */
+            };
+            subset-modem {
+                part-count = <0xffffffff>;   /* Invalid/Unsupported value, do not refer */
+                part-info = <0xffffffff>; /* Invalid/Unsupported value, do not refer */
+            };
+        };
+    };
+...
