@@ -69,6 +69,25 @@
 		regulator-enable-ramp-delay = <50000>;
 	};
 
+	sdio_wifi_1p8_vreg: sdio_wifi_1p8_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "sdio_wifi_1p8_vreg";
+		enable-active-high;
+		gpio = <&tlmm 125 GPIO_ACTIVE_HIGH>;
+		regulator-enable-ramp-delay = <50000>;
+	};
+
+	sdio_wifi_reset_1p8_vreg: sdio_wifi_reset_1p8_vreg {
+		pinctrl-0 = <&wifi_reset_active>;
+		pinctrl-names = "default";
+		compatible = "regulator-fixed";
+		regulator-name = "sdio_wifi_reset_1p8_vreg";
+		enable-active-high;
+		regulator-boot-on;
+		gpio = <&tlmm 16 GPIO_ACTIVE_HIGH>;
+		vin-supply = <&sdio_wifi_1p8_vreg>;
+	};
+
 	pmic-glink {
 		compatible = "qcom,sm8350-pmic-glink", "qcom,pmic-glink";
 		#address-cells = <1>;
@@ -233,6 +252,13 @@
 		pins = "gpio108";
 		function = "mi2s1_ws";
 	};
+
+	wifi_reset_active: wifi_reset_active {
+		pins = "gpio16";
+		function = "gpio";
+		drive-strength = <8>;
+		bias-pull-up;
+	};
 };
 
 &soc {
@@ -320,6 +346,7 @@
 
 &uart4 {
 	status = "okay";
+	pinctrl-0 = <&qup_uart4_tx>, <&qup_uart4_rx>;
 };
 
 &uart14 {
@@ -585,4 +612,38 @@
 
 &usb_1_qmpphy_out {
 	remote-endpoint = <&redriver_ss_in>;
+};
+
+&sdc2_clk {
+	bias-disable;
+	drive-strength = <16>;
+};
+
+&sdc2_cmd {
+	bias-pull-up;
+	drive-strength = <10>;
+};
+
+&sdc2_data {
+	bias-pull-up;
+	drive-strength = <10>;
+};
+&qup_uart7_rx {
+	/delete-property/ bias-pull-up;
+	bias-pull-down;
+	output-low;
+};
+
+&sdhc_2 {
+	status = "okay";
+
+	pinctrl-0 = <&sdc2_clk>, <&sdc2_cmd>, <&sdc2_data>;
+	pinctrl-1 = <&sdc2_clk_sleep>, <&sdc2_cmd_sleep>, <&sdc2_data_sleep>;
+	dummy-supply = <&sdio_wifi_reset_1p8_vreg>;
+
+	non-removable;
+
+	/delete-property/ vmmc-supply;
+	/delete-property/ vqmmc-supply;
+	/delete-property/ cd-gpios;
 };
