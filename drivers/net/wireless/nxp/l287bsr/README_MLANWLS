@@ -1,0 +1,161 @@
+===============================================================================
+			USER  MANUAL FOR MLANWLS APP
+
+ Copyright 2023 NXP
+
+
+1) FOR MLANWLS APP ONLY BUILD
+
+	Goto source code directory wlan_src/app/linux/mlanwls
+	make [clean] build
+	The app binaries can be found in mlanwls/ directory.
+
+2) Supported Features
+	- Location R1
+		- Dot11mc FTM session ISTA mode
+	- Location R2
+		- Dot11az Non-Trigger based FTM ISTA mode
+		- Dot11az Non-Trigger based FTM RSTA mode
+		- Dot11az Trigger based ISTA
+
+3) Usage:
+	The app can be run in 2 different modes.
+		- FTM command execution mode
+			- In this mode, user can run ftm commands to configure FTM session, Start / Stop FTM session.
+			  This mode supports ISTA function testing
+
+			- To Run the mlanwls driver app in command mode for wifi location measurements
+				Command Format :
+				- mlanwls <interface> <cmd> <subcommand> <args>
+
+				Commands Supported :
+				- mlanwls mlanX ftm session_cfg [<args>]
+				- mlanwls mlanX ftm session_ctrl [<args>]
+				- mlanwls mlanX ftm anqp_req [<args>]
+				- mlanwls mlanX dot11mc_unassoc_ftm_cfg
+
+		- Event monitoring mode
+			- In this mode, The app monitors the events received from WLAN FW and process it.
+			  Typical use case would be, in STA/AP which receives FTM Requests from Ex-AP / Ex-ISTA
+
+			- To Run the mlanwls driver app in event monitoring mode
+			  Command Format :
+				- mlanwls <interface> event
+			  Events Processed :
+				- CSI event from FW
+				- FTM Event with Radio Measurement Request
+				- FTM complete event to get measured distance
+
+4) Command To Configure FTM session
+
+session_cfg
+
+	This sub command is used to configure FTM session params.
+	The default configuration set is Dot11mc at the start of the application and after every FTM session complete
+	the FTM session configuration in FW is reset to default 11mc protocol.
+
+	Important Note:
+	So to run 11az session, session_Cfg <1> <ftm.conf> command should be run before each session_ctrl to set 11az config.
+	This session_cfg for 11az will not persist after session gets completed and it will be reset to 11mc.
+
+	Usage:
+		mlanwls mlanX ftm session_cfg [<ftm_protocol> <config_file>]
+
+	Where,
+		<ftm_protocol> 	: 0:Dot11mc, 1:Dot11az-NTB 2:Dot11az-TB
+		<config_file> 	: Config file with Dot11mc / dot11az parameters
+					: Default config file ( ftm.conf ) is present in config folder in release
+
+	eg:
+		mlanwls mlan0 ftm session_cfg 0 config/ftm.conf 		- Sets dot11mc FTM session params from config file
+		mlanwls mlan0 ftm session_cfg 1 config/ftm.conf 		- Sets dot11az Non Trigger Based (NTB)session params from config file
+		mlanwls mlan0 ftm session_cfg 2 config/ftm.conf 		- Sets dot11az Trigger Based (TB) session params from config file
+
+5) Command To Start FTM session
+
+session_ctrl
+
+	This sub command is used to start FTM session in specific mode.
+	-	Associated Secure Session
+	-	Associated Non secure Session
+	-	Unassociated Secure Session
+	-	Unassociated Non secure session
+
+	Note: Run session_cfg command before running session_ctrl to set the required protocol (11mc/11az) and
+	the corresponding ftm params.
+	In current implementation, STA FW default protocol is 11mc. So if we need to run 11az session multiple times,
+	each run needs session_cfg comman given before session_ctrl.
+
+	Usage:
+		mlanwls mlanX ftm session_ctrl [<action> <chan> <mac_address> <loop_cnt>]
+
+	Where:
+		<action> :
+		1: Start non-secure 11mc/11az FTM with associated Peer AP,
+		2: Stop FTM session
+		3: Start secure 11az FTM with associated Peer AP,
+		4: Start non-secure 11az/11mc FTM with unassoc Peer,
+		5: Start secure 11az FTM with unassociated & pre-authenticated Peer,
+		<loop_cnt> : number of ftm sessions to run repeatedly ( default:1,  0:non-stop, n>1: n times).
+					 Note this <loop_cnt> option can be used only with 11mc config as 11az session needs explicit session_cfg command to be given before every session start.
+		<chan>     : Channel on which FTM must be started
+		<mac_address> : Mac address of the associated peer with whom FTM session is required
+
+	eg:
+		mlanwls mlan0 ftm session_ctrl 1 6 00:50:43:20:bc:4  	- Run non-secure FTM session (11az/mc as configured by session_cfg command )
+		mlanwls mlan0 ftm session_ctrl 3 6 00:50:43:20:bc:4 	- Runs secure 11az FTM session ( TB/NTB as configured by session_cfg command )",
+		mlanwls mlan0 ftm session_ctrl 4 6 00:50:43:20:bc:4		- Runs non-secure FTM session with unassoc peer until user terminate",
+		mlanwls mlan0 ftm session_ctrl 5 6 00:50:43:20:bc:4  	- Runs Secure FTM session with unassociated Peer AP",
+		mlanwls mlan0 ftm session_ctrl 2						- Stop the FTM session
+
+		eg. Before starting 11az session, run session_cfg every time as below:
+			mlanwls mlan0 ftm session_cfg 1 config/ftm.conf 		- Sets dot11az Non Trigger Based (NTB)session params from config file
+			mlanwls mlan0 ftm session_ctrl <1/3/4/5> 6 00:50:43:20:bc:4  	- Run corresponding 11az FTM session
+
+6) Command To Send ANQP Request frame
+
+anqp_req
+
+	This sub command is used to send ANQP GAS Request to peer
+	Usage:
+		mlanwls mlanX ftm anqp_req [<conf> <chan> <mac_address>]
+
+	Where:
+		<config_file> : Config file with Dot11mc ANQP Query Request list
+		<chan> 	: Channel on which FTM must be started
+		<mac_address> : Mac address of the peer
+
+	eg.
+		mlanwls mlan0 ftm anqp_req ftm.conf 6 00:50:43:20:bc:04 - Sends ANQP Req frame to peer
+
+8)Enable FTM for unassociated STA state
+
+dot11mc_unassoc_ftm_cfg
+
+    This command is used to enable or disable the configuration for
+    DOT11MC FTM frames exchanges in un-associated state for STA or uAP
+
+    Usage:
+        mlanutl <mlanX/uAPX> dot11mc_unassoc_ftm_cfg [enable]
+
+        [enable]          : 0 - Disable unassociated state FTM
+                            1 - Enable unassociated state FTM
+
+    Examples:
+        mlanutl mlan0 dot11mc_unassoc_ftm_cfg
+            - Get current state of unassociated state FTM cfg
+        mlanutl mlan0 dot11mc_unassoc_ftm_cfg 1
+            - Set the unassociated state FTM cfg to Enabled
+
+===============================================================================
+		REVISION LOG
+V4.1  - Added Session_ctrl with action code 5 for Secure unassociated FTM session with PASN
+V4.0  - Added dedicated Session control Action Code for FTM session types
+V3.2  - Added support to send ANQP GAS Request frame
+V3.1  - Added support to process Radio measurement FTM Request event
+V3.0  - Restructured  app usage - Independant command mode and Event monitoring mode*/
+V2.1  - Integrated CSI event processing as part of FTM session ctrl command */
+V2.0  - Added support to process FW CSI events on host*/
+V1.2  - Added support to process ANQP event*/
+V1.1  - Added support to read the config from file*/
+V1.0  - Initial version that supported FTM session cfg and ctrl command*/
