@@ -572,29 +572,10 @@
 		};
 	};
 
-	wsa-dai-link {
-		status = "disabled";
-	};
-
-	vi-feedback-dai-link {
-		status = "disabled";
-	};
-
-	wcd-playback-dai-link {
-		status = "disabled";
-	};
-
-	wcd-capture-dai-link {
-		status = "disabled";
-	};
-
-	slimbus-rx0-dai-link {
-		status = "disabled";
-	};
-
-	slimbus-tx0-dai-link {
-		status = "disabled";
-	};
+	/delete-node/ wsa-dai-link;
+	/delete-node/ vi-feedback-dai-link;
+	/delete-node/ wcd-playback-dai-link;
+	/delete-node/ wcd-capture-dai-link;
 };
 
 &usb_1 {
