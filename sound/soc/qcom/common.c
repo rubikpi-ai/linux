@@ -73,9 +73,6 @@ int qcom_snd_parse_of(struct snd_soc_card *card)
 	link = card->dai_link;
 
 	for_each_available_child_of_node(dev->of_node, np) {
-		if (!of_device_is_available(np))
-			break;
-
 		dlc = devm_kzalloc(dev, 2 * sizeof(*dlc), GFP_KERNEL);
 		if (!dlc) {
 			ret = -ENOMEM;
