@@ -606,11 +606,9 @@
 
 &venus {
 	compatible = "qcom,qcm6490-iris";
-	/delete-property/ iommus;
+	iommus = <&apps_smmu 0x2180 0x20>;
 	status = "okay";
 	interconnect-names = "iris-cnoc", "iris-ddr";
-	/delete-node/ video-decoder;
-	/delete-node/ video-encoder;
 };
 
 &video_mem {
