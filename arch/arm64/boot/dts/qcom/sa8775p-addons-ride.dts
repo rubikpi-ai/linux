@@ -284,31 +284,6 @@
 	};
 };
 
-&remoteproc_adsp {
-	firmware-name = "qcom/sa8775p/adsp.mdt";
-	status = "okay";
-};
-
-&remoteproc_cdsp {
-	firmware-name = "qcom/sa8775p/cdsp0.mdt";
-	status = "okay";
-};
-
-&remoteproc_cdsp1 {
-	firmware-name = "qcom/sa8775p/cdsp1.mdt";
-	status = "okay";
-};
-
-&remoteproc_gpdsp0 {
-	firmware-name = "qcom/sa8775p/gpdsp0.mdt";
-	status = "okay";
-};
-
-&remoteproc_gpdsp1 {
-	firmware-name = "qcom/sa8775p/gpdsp1.mdt";
-	status = "okay";
-};
-
 &soc {
 	msm_stub_codec: msm-stub-codec {
 		compatible = "qcom,msm-stub-codec";
