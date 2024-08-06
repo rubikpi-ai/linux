@@ -1526,6 +1526,9 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 		goto err_pm_runtime_put;
 	}
 
+	devm_gpiod_get_optional(dev, "usb2en", GPIOD_OUT_HIGH);
+	devm_gpiod_get_optional(dev, "m2en", GPIOD_OUT_HIGH);
+
 	pcie->parf = devm_platform_ioremap_resource_byname(pdev, "parf");
 	if (IS_ERR(pcie->parf)) {
 		ret = PTR_ERR(pcie->parf);

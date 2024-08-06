@@ -479,6 +479,8 @@
 &pcie1 {
 	status = "okay";
 	perst-gpios = <&tlmm 2 GPIO_ACTIVE_LOW>;
+	usb2en-gpios = <&tlmm 119 GPIO_ACTIVE_HIGH>;
+	m2en-gpios = <&tlmm 56 GPIO_ACTIVE_HIGH>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie1_clkreq_n>, <&pcie1_wake_n>;
 	iommu-map = <0x0 &apps_smmu 0x1c80 0x1>,
