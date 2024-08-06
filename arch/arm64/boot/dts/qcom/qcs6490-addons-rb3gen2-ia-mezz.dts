@@ -226,11 +226,37 @@
 			/* BDF 2.3.0 */
 			pcie0_bus2_dev3_fn0: pcie0-bus2-dev3-fn0 {
 				reg = <0x1800 0x0 0x0 0x0 0x0>;
+				pcie0_qps615_eth0,pcie0_qps615_eth0@pcie0_rp {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+					pinctrl-names = "default";
+					pinctrl-0 = <&aqr_rc0_intn_wol_sig>;
+					phy-rst-som-gpios = <&tlmm 90 GPIO_ACTIVE_HIGH>;
+					interrupts-extended = <&tlmm 136 IRQ_TYPE_EDGE_FALLING>;
+					interrupt-names = "wol_irq";
+					qcom,always-on-supply;
+					qcom,phy-rst-delay-us = <221000>;
+					#address-cells = <1>;
+					#size-cells = <1>;
+				};
 
 
 				/* BDF 5.0.0 */
 				pcie0_bus5_dev0_fn0: pcie1-qps-eth0 {
 					reg = <0x0 0x0 0x0 0x0 0x0>;
+				};
+
+
+				pcie0_qps615_eth1,pcie0_qps615_eth1@pcie0_rp {
+					reg = <0x100 0x0 0x0 0x0 0x0>;
+					pinctrl-names = "default";
+					pinctrl-0 = <&napa_rc0_intn_wol_sig>;
+					phy-rst-som-gpios = <&tlmm 25 GPIO_ACTIVE_HIGH>;
+					interrupts-extended = <&tlmm 142 IRQ_TYPE_EDGE_FALLING>;
+					interrupt-names = "wol_irq";
+					qcom,always-on-supply;
+					qcom,phy-rst-delay-us = <20000>;
+					#address-cells = <1>;
+					#size-cells = <1>;
 				};
 				/* BDF 5.0.1 */
 				pcie0_bus5_dev0_fn1: pcie1-qps-eth1 {
