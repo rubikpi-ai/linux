@@ -3,7 +3,6 @@
 / {
 	aliases {
 		serial1 = &uart4;
-		serial2 = &uart14;
 	};
 
 	qps615_1p8_vreg: qps615-1p8-vreg {
@@ -350,7 +349,7 @@
 };
 
 &uart14 {
-	status = "okay";
+	status = "disabled";
 };
 
 &apps_rsc {
