@@ -339,6 +339,19 @@
 			reg = <0x0 0x0 0x0 0x0 0x0>;
 		};
 
+		pcie1_qps615_eth2,pcie1_qps615_eth2@pcie1_rp {
+			reg = <0x100 0x0 0x0 0x0 0x0>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&napa_rc1_intn_wol_sig>;
+			phy-rst-som-gpios = <&tlmm 120 GPIO_ACTIVE_HIGH>;
+			interrupts-extended = <&tlmm 6 IRQ_TYPE_EDGE_FALLING>;
+			interrupt-names = "wol_irq";
+			qcom,always-on-supply;
+			qcom,phy-rst-delay-us = <20000>;
+			#address-cells = <1>;
+			#size-cells = <1>;
+		};
+
 		/* BDF 7.0.1 */
 		pcie1_bus7_dev0_fn1: pcie1-bus7-dev0-fn1 {
 			reg = <0x100 0x0 0x0 0x0 0x0>;
