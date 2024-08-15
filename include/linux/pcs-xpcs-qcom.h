@@ -1,0 +1,32 @@
+/* SPDX-License-Identifier: GPL-2.0-or-later */
+/*
+ * Synopsys DesignWare XPCS platform device driver
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
+
+#ifndef __LINUX_PCS_XPCS_QCOM_H
+#define __LINUX_PCS_XPCS_QCOM_H
+
+#include <linux/phy.h>
+#include <linux/phylink.h>
+
+/* AN mode */
+#define DW_AN_C37_USXGMII		1
+
+struct xpcs_id;
+
+struct dw_xpcs_qcom {
+	const struct xpcs_id *id;
+	struct phylink_pcs pcs;
+	void __iomem *addr;
+	int pcs_intr;
+	bool intr_en;
+	int phy_interface;
+};
+
+struct phylink_pcs *qcom_xpcs_create(struct device_node *np,
+				      phy_interface_t interface);
+void qcom_xpcs_link_up(struct phylink_pcs *pcs, unsigned int mode,
+		  phy_interface_t interface, int speed, int duplex);
+#endif /* __LINUX_PCS_XPCS_QCOM_H */
