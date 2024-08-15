@@ -15,11 +15,22 @@
 		regulator-enable-ramp-delay = <50000>;
 	};
 
+	usb_eth_1p8_vreg: usb_eth_1p8_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "usb_eth_1p8_vreg";
+		gpio = <&tlmm 7 0>;
+		vin-supply = <&usb_hub0_1p8_vreg>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+		regulator-enable-ramp-delay = <50000>;
+	};
+
 	usb_hub0_rest_vreg: usb_hub0_rest_vreg {
 		compatible = "regulator-fixed";
 		regulator-name = "usb_hub0_rest_vreg";
 		gpio = <&tlmm 136 0>;
-		vin-supply = <&usb_hub0_1p8_vreg>;
+		vin-supply = <&usb_eth_1p8_vreg>;
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
 		enable-active-high;
