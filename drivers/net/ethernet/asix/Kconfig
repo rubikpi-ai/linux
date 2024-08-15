@@ -32,4 +32,11 @@ config SPI_AX88796C_COMPRESSION
 
 	  If unsure say N.
 
+config CONFIG_AX88179B
+	tristate "Asix AX88179B support"
+	select PHYLIB
+	depends on PCI
+	help
+	  Say Y here if you intend to use ASIX AX88179B attached in USB mode.
+
 endif # NET_VENDOR_ASIX
