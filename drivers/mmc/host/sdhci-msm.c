@@ -290,6 +290,7 @@ struct sdhci_msm_host {
 	u32 dll_config;
 	u32 ddr_config;
 	bool vqmmc_enabled;
+	struct regulator *vdda;
 };
 
 static const struct sdhci_msm_offset *sdhci_priv_msm_offset(struct sdhci_host *host)
@@ -2423,6 +2424,10 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 	msm_host = sdhci_pltfm_priv(pltfm_host);
 	msm_host->mmc = host->mmc;
 	msm_host->pdev = pdev;
+	msm_host->vdda = devm_regulator_get(&pdev->dev, "vdda");
+	ret = regulator_enable(msm_host->vdda);
+	if (ret)
+		dev_err(&pdev->dev, "cannot enable vdda regulator\n");
 
 	ret = mmc_of_parse(host->mmc);
 	if (ret)

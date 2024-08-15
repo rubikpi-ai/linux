@@ -4,6 +4,7 @@
 	aliases {
 		serial1 = &uart4;
 	};
+
 	usb_hub0_1p8_vreg: usb_hub0_1p8_vreg {
 		compatible = "regulator-fixed";
 		regulator-name = "usb_hub0_1p8_vreg";
@@ -33,15 +34,20 @@
 		regulator-enable-ramp-delay = <50000>;
 	};
 
-	sdio_wifi_reset_1p8_vreg: sdio_wifi_reset_1p8_vreg {
+	sdio_bt_reset_1p8_vreg: sdio_bt_reset_1p8_vreg {
 		pinctrl-0 = <&wifi_reset_active>;
 		pinctrl-names = "default";
 		compatible = "regulator-fixed";
-		regulator-name = "sdio_wifi_reset_1p8_vreg";
+		regulator-name = "sdio_bt_reset_1p8_vreg";
 		enable-active-high;
-		regulator-boot-on;
-		gpio = <&tlmm 16 GPIO_ACTIVE_HIGH>;
+		gpio = <&tlmm 17 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&sdio_wifi_1p8_vreg>;
+	};
+
+	bcmdhd_wlan: bcmdhd_wlan {
+		compatible = "linux,bcmdhd_wlan";
+		gpio_wl_reg_on = <&tlmm 16 GPIO_ACTIVE_HIGH>;
+		gpio_wl_host_wake = <&tlmm 38 GPIO_ACTIVE_HIGH>;
 	};
 
 	pmic-glink {
@@ -343,8 +349,9 @@
 	wifi_reset_active: wifi_reset_active {
 		pins = "gpio16";
 		function = "gpio";
-		drive-strength = <8>;
-		bias-pull-up;
+		drive-strength = <2>;
+		output-high;
+		bias-disable;
 	};
 };
 
@@ -448,6 +455,20 @@
 			regulator-min-microvolt = <880000>;
 			regulator-max-microvolt = <1050000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		vreg_l9c_2p96: ldo9 {
+			regulator-min-microvolt = <2700000>;
+			regulator-max-microvolt = <3544000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
+		vreg_l6c_2p96: ldo6 {
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1800000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+			regulator-boot-on;
+			regulator-enable-ramp-delay = <10000>;
 		};
 	};
 };
@@ -670,6 +691,7 @@
 	bias-pull-up;
 	drive-strength = <10>;
 };
+
 &qup_uart7_rx {
 	/delete-property/ bias-pull-up;
 	bias-pull-down;
@@ -681,11 +703,9 @@
 
 	pinctrl-0 = <&sdc2_clk>, <&sdc2_cmd>, <&sdc2_data>;
 	pinctrl-1 = <&sdc2_clk_sleep>, <&sdc2_cmd_sleep>, <&sdc2_data_sleep>;
-	dummy-supply = <&sdio_wifi_reset_1p8_vreg>;
+	vdda-supply = <&sdio_bt_reset_1p8_vreg>;
 
 	non-removable;
 
-	/delete-property/ vmmc-supply;
-	/delete-property/ vqmmc-supply;
 	/delete-property/ cd-gpios;
 };
