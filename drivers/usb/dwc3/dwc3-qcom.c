@@ -92,6 +92,7 @@ struct dwc3_qcom {
 	bool			enable_rt;
 	enum usb_role		current_role;
 	struct notifier_block	xhci_nb;
+	struct regulator *vdda;
 };
 
 static inline void dwc3_qcom_setbits(void __iomem *base, u32 offset, u32 val)
@@ -942,6 +943,12 @@ static int dwc3_qcom_probe(struct platform_device *pdev)
 	qcom = devm_kzalloc(&pdev->dev, sizeof(*qcom), GFP_KERNEL);
 	if (!qcom)
 		return -ENOMEM;
+
+	qcom->vdda = devm_regulator_get(&pdev->dev, "vdda");
+
+	ret = regulator_enable(qcom->vdda);
+	if (ret)
+		dev_err(&pdev->dev, "cannot enable vdda regulator\n");
 
 	legacy_binding = dwc3_qcom_has_separate_dwc3_of_node(dev);
 

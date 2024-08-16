@@ -37,6 +37,16 @@
 		regulator-enable-ramp-delay = <50000>;
 	};
 
+	M2_1p8_vreg: M2_1p8_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "M2_1p8_vreg";
+		gpio = <&tlmm 56 0>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+		regulator-enable-ramp-delay = <50000>;
+	};
+
 	sdio_wifi_1p8_vreg: sdio_wifi_1p8_vreg {
 		compatible = "regulator-fixed";
 		regulator-name = "sdio_wifi_1p8_vreg";
@@ -53,6 +63,14 @@
 		enable-active-high;
 		gpio = <&tlmm 17 GPIO_ACTIVE_HIGH>;
 		vin-supply = <&sdio_wifi_1p8_vreg>;
+	};
+
+	usba_1p8_vreg: usba_1p8_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "usba_1p8_vreg";
+		enable-active-high;
+		gpio = <&tlmm 119 GPIO_ACTIVE_HIGH>;
+		regulator-enable-ramp-delay = <10000>;
 	};
 
 	bcmdhd_wlan: bcmdhd_wlan {
@@ -454,6 +472,12 @@
 
 &apps_rsc {
 	regulators-0 {
+		vreg_l2b_3p072: ldo2 {
+			regulator-min-microvolt = <2700000>;
+			regulator-max-microvolt = <3544000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
 		vreg_l6b_1p2: ldo6 {
 			regulator-min-microvolt = <1140000>;
 			regulator-max-microvolt = <1260000>;
@@ -462,6 +486,12 @@
 	};
 
 	regulators-1 {
+		vreg_l1c_1p8: ldo1 {
+			regulator-min-microvolt = <1800000>;
+			regulator-max-microvolt = <1980000>;
+			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
+		};
+
 		vreg_l10c_0p88:ldo10 {
 			regulator-min-microvolt = <880000>;
 			regulator-max-microvolt = <1050000>;
@@ -511,24 +541,17 @@
 &pcie1 {
 	status = "okay";
 	perst-gpios = <&tlmm 2 GPIO_ACTIVE_LOW>;
-	usb2en-gpios = <&tlmm 119 GPIO_ACTIVE_HIGH>;
-	m2en-gpios = <&tlmm 56 GPIO_ACTIVE_HIGH>;
+	vdda-supply = <&M2_1p8_vreg>;
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie1_clkreq_n>, <&pcie1_wake_n>;
-	iommu-map = <0x0 &apps_smmu 0x1c80 0x1>,
-		<0x100 &apps_smmu 0x1c81 0x1>,
-		<0x208 &apps_smmu 0x1c84 0x1>,
-		<0x210 &apps_smmu 0x1c85 0x1>,
-		<0x218 &apps_smmu 0x1c86 0x1>,
-		<0x300 &apps_smmu 0x1c87 0x1>,
-		<0x400 &apps_smmu 0x1c88 0x1>,
-		<0x500 &apps_smmu 0x1c89 0x1>,
-		<0x501 &apps_smmu 0x1c90 0x1>;
 	pcieport1: pcie@1 {
 		device_type = "pci";
 		reg = <0x0 0x0 0x0 0x0 0x0>;
 		#address-cells = <5>;
 		#size-cells = <0>;
+		pcie1_bus1_dev0_fn0: pcie1_bus1_dev0_fn0 {
+			reg = <0 0 0 0 0>;
+		};
 	};
 };
 
@@ -719,4 +742,56 @@
 	non-removable;
 
 	/delete-property/ cd-gpios;
+};
+
+/delete-node/ &usb_2_dwc3;
+
+&usb_2 {
+	reg = <0x0 0x08c00000 0x0 0x100000>;
+
+	interrupts-extended = <&intc GIC_SPI 242 IRQ_TYPE_LEVEL_HIGH>,
+				<&intc GIC_SPI 240 IRQ_TYPE_LEVEL_HIGH>,
+				<&pdc 12 IRQ_TYPE_LEVEL_HIGH>,
+				<&pdc 13 IRQ_TYPE_EDGE_BOTH>;
+	interrupt-names = "dwc_usb2",
+			"hs_phy_irq",
+			"dp_hs_phy_irq",
+			"dm_hs_phy_irq";
+
+	iommus = <&apps_smmu 0xa0 0x0>;
+	snps,dis_u2_susphy_quirk;
+	snps,dis_enblslpm_quirk;
+	phys = <&usb_2_hsphy>;
+	phy-names = "usb2-phy";
+	maximum-speed = "high-speed";
+	snps,dis-u2-entry-quirk;
+	snps,dis-u1-entry-quirk;
+
+	usb-role-switch;
+	qcom,enable-rt;
+	wakeup-source;
+	dr_mode = "host";
+
+	vdda-supply = <&usba_1p8_vreg>;
+
+	status = "okay";
+
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			usb2_role_switch: endpoint {
+				remote-endpoint = <&eud_ep>;
+			};
+		};
+	};
+};
+
+&usb_2_hsphy {
+	vdda-pll-supply = <&vreg_l10c_0p88>;
+	vdda18-supply = <&vreg_l1c_1p8>;
+	vdda33-supply = <&vreg_l2b_3p072>;
+
+	status = "okay";
 };
