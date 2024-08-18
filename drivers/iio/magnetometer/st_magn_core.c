@@ -312,6 +312,7 @@ static const struct st_sensor_settings st_magn_sensors_settings[] = {
 			.addr = 0x20,
 			.mask = 0x1c,
 			.odr_avl = {
+				{ .hz = 80, .value = 0x07 },
 				{ .hz = 1, .value = 0x00 },
 				{ .hz = 2, .value = 0x01 },
 				{ .hz = 3, .value = 0x02 },
@@ -319,7 +320,6 @@ static const struct st_sensor_settings st_magn_sensors_settings[] = {
 				{ .hz = 10, .value = 0x04 },
 				{ .hz = 20, .value = 0x05 },
 				{ .hz = 40, .value = 0x06 },
-				{ .hz = 80, .value = 0x07 },
 			},
 		},
 		.pw = {
