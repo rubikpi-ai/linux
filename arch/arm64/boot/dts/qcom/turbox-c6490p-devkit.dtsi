@@ -73,6 +73,13 @@
 		regulator-enable-ramp-delay = <10000>;
 	};
 
+	io_level_selection_1v8_vreg: io_level_selection_1v8_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "io_level_selection_1v8_vreg";
+		enable-active-high;
+		gpio = <&tlmm 14 GPIO_ACTIVE_HIGH>;
+	};
+
 	bcmdhd_wlan: bcmdhd_wlan {
 		compatible = "linux,bcmdhd_wlan";
 		gpio_wl_reg_on = <&tlmm 16 GPIO_ACTIVE_HIGH>;
@@ -382,6 +389,22 @@
 		output-high;
 		bias-disable;
 	};
+
+	io_level_selection_3v3: io_level_selection_3v3 {
+		pins = "gpio14";
+		function = "gpio";
+		drive-strength = <2>;
+		output-high;
+		bias-disable;
+	};
+
+	io_level_selection_5v0: io_level_selection_5v0 {
+		pins = "gpio40";
+		function = "gpio";
+		drive-strength = <2>;
+		output-high;
+		bias-disable;
+	};
 };
 
 &soc {
@@ -413,27 +436,26 @@
 &i2c1 {
 	clock-frequency = <100000>;
 	status = "okay";
+	pinctrl-names = "default";
+	pinctrl-0 = <&qup_i2c1_data_clk>, <&io_level_selection_3v3>, <&io_level_selection_5v0>;
 
 	/delete-node/ typec-mux@42;
-
 	typec-retimer@1c {
 		compatible = "onnn,nb7vpq904m";
+		status = "disabled";
 		reg = <0x1c>;
 		vcc-supply = <&retimer_1c_vreg>;
 		retimer-switch;
 		orientation-switch;
-
 		ports {
 			#address-cells = <1>;
 			#size-cells = <0>;
-
 			port@0 {
 				reg = <0>;
 				redriver_ss_out: endpoint {
 					remote-endpoint = <&pmic_glink_ss_in>;
 				};
 			};
-
 			port@1 {
 				reg = <1>;
 				redriver_ss_in: endpoint {
@@ -443,6 +465,65 @@
 			};
 		};
 	};
+
+	rpi-sense@46 {
+		compatible = "rpi,rpi-sense";
+		reg = <0x46>;
+		keys-int-gpios = <&tlmm 26 1>;
+		status = "okay";
+	};
+
+	lsm9ds1-magn@1c {
+		compatible = "st,lsm9ds1-magn";
+		reg = <0x1c>;
+		status = "okay";
+	};
+
+	lps25h-press@5c {
+		compatible = "st,lps25h-press";
+		reg = <0x5c>;
+		status = "okay";
+	};
+
+	hts221-humid@5f {
+		compatible = "st,hts221-humid", "st,hts221";
+		reg = <0x5f>;
+		status = "okay";
+	};
+
+	lsm9ds1-accel@6a {
+		compatible = "st,lsm9ds1-accel";
+		reg = <0x6a>;
+		status = "okay";
+	};
+
+
+	typec-mux@42 {
+		status = "disabled";
+	};
+
+	pm8008i@8 {
+		status = "disabled";
+	};
+
+	pm8008i@9 {
+		status = "disabled";
+	};
+
+	pm8008j@c {
+		status = "disabled";
+	};
+
+	pm8008j@d {
+		status = "disabled";
+	};
+
+	// /delete-node/ typec-mux@42;
+	// /delete-node/ pm8008i@8;
+	// /delete-node/ pm8008i@9;
+	// /delete-node/ pm8008j@c;
+	// /delete-node/ pm8008j@d;
+
 };
 
 &i2c2 {
@@ -707,9 +788,9 @@
 	snps,dis-u1-entry-quirk;
 };
 
-&usb_1_qmpphy_out {
-	remote-endpoint = <&redriver_ss_in>;
-};
+//&usb_1_qmpphy_out {
+//	remote-endpoint = <&redriver_ss_in>;
+//};
 
 &sdc2_clk {
 	bias-disable;
