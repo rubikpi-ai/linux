@@ -427,6 +427,20 @@
 			<GCC_WPSS_AHB_BDG_MST_CLK>, <GCC_WPSS_RSCP_CLK>;
 };
 
+&i2c0 {
+	status = "ok";
+	es8316: es8316@11 {
+		compatible = "everest,es8316";
+		reg = <0x11>;
+		clocks = <&lpass_aon LPASS_AON_CC_TX_MCLK_CLK>;
+        clock-names = "mclk";
+		#sound-dai-cells = <0>;
+		power_en-gpio = <&tlmm 117 0>;
+		irq-gpio = <&tlmm 63 0>;
+		status = "ok";
+    };
+};
+
 &i2c1 {
 	clock-frequency = <100000>;
 	status = "okay";
@@ -677,89 +691,41 @@
 	status = "okay";
 };
 
-&i2c8 {
-	status = "okay";
-	aw88266_1: aw88266-1@34 {
-		compatible = "awinic,aw882xx_smartpa";
-		#sound-dai-cells = <0>;
-		reg = <0x34>;
-		power-gpio = <&tca64_22 22 0>;
-		reset-gpio = <&tlmm 134 0>;
-		irq-gpio = <&tlmm 123 0>;
-		aw-tx-topo-id = <0x1000ff00>;
-		aw-rx-topo-id = <0x1000ff01>;
-		aw-tx-port-id = <0x1007>;
-		aw-rx-port-id = <0x1006>;
-		aw-re-min = <4000>;
-		aw-re-max= <30000>;
-		status = "ok";
-	};
-};
-
 &sound {
 	pinctrl-names = "default", "stub_aif1_active", "stub_aif1_sleep";
 	pinctrl-0 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
-				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
-				<&mi2s2_data0_sleep>, <&mi2s2_data1_sleep>,
-				<&mi2s2_sclk_sleep>, <&mi2s2_ws_sleep>,
-				<&mi2s1_data0_sleep>, <&mi2s1_data1_sleep>,
-				<&mi2s1_sclk_sleep>, <&mi2s1_ws_sleep>;
+				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>;
 	pinctrl-1 = <&mi2s0_data0>, <&mi2s0_data1>, <&mi2s0_mclk>,
-				<&mi2s0_sclk>, <&mi2s0_ws>,
-				<&mi2s2_data0>, <&mi2s2_data1>,
-				<&mi2s2_sclk>, <&mi2s2_ws>,
-				<&mi2s1_data0>, <&mi2s1_data1>,
-				<&mi2s1_sclk>, <&mi2s1_ws>;
+				<&mi2s0_sclk>, <&mi2s0_ws>;
 	pinctrl-2 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
-				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
-				<&mi2s2_data0_sleep>, <&mi2s2_data1_sleep>,
-				<&mi2s2_sclk_sleep>, <&mi2s2_ws_sleep>,
-				<&mi2s1_data0_sleep>, <&mi2s1_data1_sleep>,
-				<&mi2s1_sclk_sleep>, <&mi2s1_ws_sleep>;
+				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>;
 
 	audio-routing =
 		"VA DMIC0", "vdd-micb",
 		"VA DMIC1", "vdd-micb",
 		"VA DMIC2", "vdd-micb",
 		"VA DMIC3", "vdd-micb";
-
-	mi2s1-playback-dai-link {
-		link-name = "MI2S-LPAIF-RX-SECONDARY";
+		
+	/delete-node/ mi2s-playback-dai-link;
+	/delete-node/ mi2s-capture-dai-link;
+		
+	mi2s-playback-dai-link {
+		link-name = "MI2S-LPAIF-RX-PRIMARY";
 		cpu {
-			sound-dai = <&q6apmbedai SECONDARY_MI2S_RX>;
+			sound-dai = <&q6apmbedai PRIMARY_MI2S_RX>;
 		};
 		codec {
-			sound-dai = <&msm_stub_codec 0>, <&aw88266_1>;
+			sound-dai = <&msm_stub_codec 0>, <&es8316>;
 		};
 	};
-
-	mi2s1-capture-dai-link {
-		link-name = "MI2S-LPAIF-TX-SECONDARY";
-		cpu {
-			sound-dai = <&q6apmbedai SECONDARY_MI2S_TX>;
-		};
-		codec {
-			sound-dai = <&msm_stub_codec 1>;
-		};
-	};
-
-	mi2s2-playback-dai-link {
-		link-name = "MI2S-LPAIF-RX-TERTIARY";
-		cpu {
-			sound-dai = <&q6apmbedai TERTIARY_MI2S_RX>;
-		};
-		codec {
-			sound-dai = <&msm_stub_codec 0>;
-		};
-	};
-
-	mi2s2-capture-dai-link {
-		link-name = "MI2S-LPAIF-TX-TERTIARY";
+		
+	mi2s-capture-dai-link {
+		link-name = "MI2S-LPAIF-TX-PRIMARY";
 		cpu {
 			sound-dai = <&q6apmbedai PRIMARY_MI2S_TX>;
 		};
 		codec {
-			sound-dai = <&msm_stub_codec 1>;
+			sound-dai = <&msm_stub_codec 1>, <&es8316>;
 		};
 	};
 
