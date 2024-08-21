@@ -139,7 +139,7 @@ static void rpisense_fb_deferred_io(struct fb_info *info,
 }
 
 static struct fb_deferred_io rpisense_fb_defio = {
-	.delay		= HZ/100,
+	.delay		= HZ * 5,
 	.deferred_io	= rpisense_fb_deferred_io,
 };
 
@@ -242,7 +242,7 @@ static int rpisense_fb_probe(struct platform_device *pdev)
 	}
 
 	fb_info(info, "%s frame buffer device\n", info->fix.id);
-	schedule_delayed_work(&info->deferred_work, rpisense_fb_defio.delay);
+	schedule_delayed_work(&info->deferred_work, HZ * 5);
 	return 0;
 err_fballoc:
 	framebuffer_release(info);

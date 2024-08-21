@@ -73,13 +73,6 @@
 		regulator-enable-ramp-delay = <10000>;
 	};
 
-	io_level_selection_1v8_vreg: io_level_selection_1v8_vreg {
-		compatible = "regulator-fixed";
-		regulator-name = "io_level_selection_1v8_vreg";
-		enable-active-high;
-		gpio = <&tlmm 14 GPIO_ACTIVE_HIGH>;
-	};
-
 	bcmdhd_wlan: bcmdhd_wlan {
 		compatible = "linux,bcmdhd_wlan";
 		gpio_wl_reg_on = <&tlmm 16 GPIO_ACTIVE_HIGH>;
