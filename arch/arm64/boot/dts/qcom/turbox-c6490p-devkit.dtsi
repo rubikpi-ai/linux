@@ -440,10 +440,9 @@
 	pinctrl-0 = <&qup_i2c1_data_clk>, <&io_level_selection_3v3>, <&io_level_selection_5v0>;
 
 	/delete-node/ typec-mux@42;
-	typec-retimer@1c {
+	typec-retimer@77 {
 		compatible = "onnn,nb7vpq904m";
-		status = "disabled";
-		reg = <0x1c>;
+		reg = <0x77>;
 		vcc-supply = <&retimer_1c_vreg>;
 		retimer-switch;
 		orientation-switch;
@@ -517,13 +516,6 @@
 	pm8008j@d {
 		status = "disabled";
 	};
-
-	// /delete-node/ typec-mux@42;
-	// /delete-node/ pm8008i@8;
-	// /delete-node/ pm8008i@9;
-	// /delete-node/ pm8008j@c;
-	// /delete-node/ pm8008j@d;
-
 };
 
 &i2c2 {
@@ -788,9 +780,9 @@
 	snps,dis-u1-entry-quirk;
 };
 
-//&usb_1_qmpphy_out {
-//	remote-endpoint = <&redriver_ss_in>;
-//};
+&usb_1_qmpphy_out {
+	remote-endpoint = <&redriver_ss_in>;
+};
 
 &sdc2_clk {
 	bias-disable;
