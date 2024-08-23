@@ -3,6 +3,7 @@
 / {
 	aliases {
 		serial1 = &uart4;
+		serial2 = &uart7;
 	};
 
 	usb_hub0_1p8_vreg: usb_hub0_1p8_vreg {
@@ -861,4 +862,14 @@
 	vdda33-supply = <&vreg_l2b_3p072>;
 
 	status = "okay";
+};
+
+&uart7 {
+	status = "okay";
+	/delete-property/interrupts;
+	interrupts-extended = <&intc GIC_SPI 608 IRQ_TYPE_LEVEL_HIGH>,
+				<&tlmm 31 IRQ_TYPE_EDGE_FALLING>;
+	pinctrl-names = "default", "sleep";
+	pinctrl-1 = <&qup_uart7_sleep_cts>, <&qup_uart7_sleep_rts>,
+			<&qup_uart7_sleep_tx>, <&qup_uart7_sleep_rx>;
 };

@@ -139,7 +139,7 @@ static void rpisense_fb_deferred_io(struct fb_info *info,
 }
 
 static struct fb_deferred_io rpisense_fb_defio = {
-	.delay		= HZ * 5,
+	.delay		= HZ/100,
 	.deferred_io	= rpisense_fb_deferred_io,
 };
 
