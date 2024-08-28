@@ -74,7 +74,7 @@ struct adreno_reglist {
 	u32 value;
 };
 
-extern const struct adreno_reglist a612_hwcg[], a615_hwcg[], a630_hwcg[], a640_hwcg[], a650_hwcg[];
+extern const struct adreno_reglist a612_hwcg[], a615_hwcg[], a620_hwcg[], a630_hwcg[], a640_hwcg[], a650_hwcg[];
 extern const struct adreno_reglist a660_hwcg[], a690_hwcg[];
 
 struct adreno_speedbin {
@@ -334,6 +334,11 @@ static inline int adreno_is_a619(const struct adreno_gpu *gpu)
 static inline int adreno_is_a619_holi(const struct adreno_gpu *gpu)
 {
 	return adreno_is_a619(gpu) && adreno_has_gmu_wrapper(gpu);
+}
+
+static inline int adreno_is_a621(const struct adreno_gpu *gpu)
+{
+	return gpu->info->chip_ids[0] == 0x06020100;
 }
 
 static inline int adreno_is_a630(const struct adreno_gpu *gpu)
