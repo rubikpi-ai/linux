@@ -160,6 +160,7 @@ int iommufd_hwpt_alloc(struct iommufd_ucmd *ucmd)
 		rc = PTR_ERR(hwpt);
 		goto out_unlock;
 	}
+	hwpt->domain->owner = ops;
 
 	cmd->out_hwpt_id = hwpt->obj.id;
 	rc = iommufd_ucmd_respond(ucmd, sizeof(*cmd));
