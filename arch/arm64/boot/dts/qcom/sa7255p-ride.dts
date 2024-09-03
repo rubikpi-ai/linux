@@ -1,0 +1,86 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
+
+/dts-v1/;
+
+#include "sa7255p.dtsi"
+#include "sa7255p-scmi.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. SA7255P Ride";
+	compatible = "qcom,sa7255p-ride","qcom,sa7255p";
+
+	aliases {
+		i2c8 = &i2c8;
+		i2c15 = &i2c15;
+		serial0 = &uart7;
+		spi10 = &spi10;
+		scmichannels = &scmichannels;
+	};
+
+	chosen {
+		stdout-path = "serial0:115200n8";
+	};
+};
+
+&i2c8 {
+	clock-frequency = <400000>;
+	power-domains = <&scmi9_pd 8>;
+
+	status = "okay";
+};
+
+&i2c15 {
+	clock-frequency = <400000>;
+	power-domains = <&scmi9_pd 15>;
+
+	status = "disabled";
+};
+
+&qupv3_id_0 {
+	status = "okay";
+};
+
+&qupv3_id_1 {
+	status = "okay";
+};
+
+&qupv3_id_3 {
+	status = "okay";
+};
+
+&scmi9 {
+	status = "okay";
+};
+
+&scmi10 {
+	status = "okay";
+};
+
+&scmi11 {
+	status = "okay";
+};
+
+&sleep_clk {
+	clock-frequency = <32000>;
+};
+
+&spi10 {
+	power-domains = <&scmi10_pd 10>, <&scmi10_dvfs 10>;
+	power-domain-names = "power", "perf";
+
+	status = "okay";
+};
+
+&uart7 {
+	power-domains = <&scmi11_pd 7>, <&scmi11_dvfs 7>;
+	power-domain-names = "power", "perf";
+
+	status = "okay";
+};
+
+&xo_board_clk {
+	clock-frequency = <38400000>;
+};
