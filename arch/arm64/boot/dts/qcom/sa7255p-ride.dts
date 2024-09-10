@@ -5,6 +5,8 @@
 
 /dts-v1/;
 
+#include <dt-bindings/gpio/gpio.h>
+
 #include "sa7255p.dtsi"
 #include "sa7255p-scmi.dtsi"
 
@@ -18,6 +20,7 @@
 		serial0 = &uart7;
 		spi10 = &spi10;
 		scmichannels = &scmichannels;
+		ufshc1 = &ufs_mem_hc;
 	};
 
 	chosen {
@@ -51,6 +54,10 @@
 	status = "okay";
 };
 
+&scmi3 {
+	status = "okay";
+};
+
 &scmi9 {
 	status = "okay";
 };
@@ -77,6 +84,13 @@
 &uart7 {
 	power-domains = <&scmi11_pd 7>, <&scmi11_dvfs 7>;
 	power-domain-names = "power", "perf";
+
+	status = "okay";
+};
+
+&ufs_mem_hc {
+	reset-gpios = <&tlmm 133 GPIO_ACTIVE_LOW>;
+	power-domains = <&scmi3_pd 0>;
 
 	status = "okay";
 };
