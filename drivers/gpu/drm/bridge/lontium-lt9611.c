@@ -57,6 +57,10 @@ typedef enum {
 	MIPI_4LANE = 0,
 } mipi_lane_counts;
 
+typedef enum {
+	I2S = 0,
+	SPDIF = 1,
+} audio_intf;
 
 typedef enum {
 	MIPI_1PORT = 0x00,
@@ -97,6 +101,7 @@ struct lt9611 {
 	mipi_port_counts mipi_port_counts;
 	mipi_lane_counts mipi_lane_counts;
 	video_format_id video_format_id;
+	audio_intf audio_out_intf;
 
 	struct gpio_desc *reset_gpio;
 	struct gpio_desc *enable_gpio;
@@ -561,7 +566,14 @@ static void lt9611_hdmi_tx_digital(struct lt9611 *lt9611, bool is_hdmi)
 		l9611_write(lt9611->regmap, 0x82d6, 0x0e);
 
 	// audio_i2s
-	l9611_write(lt9611->regmap, 0x82d7, 0x04);
+	if (lt9611->audio_out_intf == I2S) {
+		l9611_write(lt9611->regmap, 0x82d7, 0x04);
+	}
+
+	// audio_spdif
+	if (lt9611->audio_out_intf == SPDIF) {
+		l9611_write(lt9611->regmap, 0x82d7, 0x80);
+	}
 
 	l9611_write(lt9611->regmap, 0x8443, pb0); //AVI_PB0
 	l9611_write(lt9611->regmap, 0x8445, pb2); //AVI_PB2
@@ -1292,6 +1304,50 @@ static int lt9611_hdmi_i2s_get_dai_id(struct snd_soc_component *component,
 	return -EINVAL;
 }
 
+static void lt9611_Audio_Init(struct lt9611 *lt9611)
+{
+	if (lt9611->audio_out_intf == I2S) {
+		pr_err("%s: %d: Audio inut = I2S 2ch\n", __func__, __LINE__);
+		l9611_write(lt9611->regmap, 0x82d7, 0x04);
+		l9611_write(lt9611->regmap, 0x8406, 0x08);
+		l9611_write(lt9611->regmap, 0x8407, 0x10);
+
+		// 48K sampling frequency
+		l9611_write(lt9611->regmap, 0x840f, 0x2b);
+		l9611_write(lt9611->regmap, 0x8434, 0xd4);//CTS_N 0xd5: sclk = 32fs, 0xd4: sclk = 64fs
+
+		l9611_write(lt9611->regmap, 0x8435, 0x00); // N value = 6144
+		l9611_write(lt9611->regmap, 0x8436, 0x18);
+		l9611_write(lt9611->regmap, 0x8437, 0x00);
+
+		// 96K sampling frequency
+		//l9611_write(lt9611->regmap, 0x840f, 0xab);
+		//l9611_write(lt9611->regmap, 0x8434, 0xd4);
+
+		//l9611_write(lt9611->regmap, 0x8435, 0x00); // N value = 12288
+		//l9611_write(lt9611->regmap, 0x8436, 0x30);
+		//l9611_write(lt9611->regmap, 0x8437, 0x00);
+
+		// 44.1K sampling frequency
+		//l9611_write(lt9611->regmap, 0x840f, 0x0b);
+		//l9611_write(lt9611->regmap, 0x8434, 0xd4);
+
+		//l9611_write(lt9611->regmap, 0x8435, 0x00); // N value = 6272
+		//l9611_write(lt9611->regmap, 0x8436, 0x18);
+		//l9611_write(lt9611->regmap, 0x8437, 0x80);
+
+	}
+
+	if (lt9611->audio_out_intf == SPDIF) {
+		pr_err("%s: %d: Audio inut = SPDIF\n", __func__, __LINE__);
+		l9611_write(lt9611->regmap, 0x8406, 0x0c);
+		l9611_write(lt9611->regmap, 0x8407, 0x10);
+
+		l9611_write(lt9611->regmap, 0x8434, 0xd4); //CTS_N
+		l9611_write(lt9611->regmap, 0x8436, 0x20);
+	}
+}
+
 static const struct hdmi_codec_ops lt9611_codec_ops = {
 	.hw_params	= lt9611_hdmi_hw_params,
 	.audio_shutdown = lt9611_audio_shutdown,
@@ -1528,6 +1584,8 @@ static void lt9611_pattern(struct lt9611 *lt9611)
 
 	lt9611_hdmi_tx_phy(lt9611);
 
+	lt9611_Audio_Init(lt9611);
+
 	/* Enable HDMI output */
 	l9611_write(lt9611->regmap, 0x8123, 0x40);
 	l9611_write(lt9611->regmap, 0x82de, 0x20);
@@ -1551,6 +1609,7 @@ void lt9611_on(bool on)
 
 		lt9611_mipi_input_analog(lt9611);
 		lt9611_mipi_input_digital(lt9611, NULL);
+		lt9611_Audio_Init(lt9611);
 		lt9611_hdmi_tx_phy(lt9611);
 		msleep(200);
 
@@ -1779,6 +1838,7 @@ static int lt9611_probe(struct i2c_client *client)
 	lt9611->video_format_id = VIDEO_1920x1080_60HZ;
 	lt9611->mipi_lane_counts = MIPI_4LANE;
 	lt9611->mipi_port_counts = MIPI_1PORT;
+	lt9611->audio_out_intf = I2S;
 
 	lt9611_reset(lt9611);
 

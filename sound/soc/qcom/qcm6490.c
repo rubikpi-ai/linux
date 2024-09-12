@@ -67,6 +67,8 @@ static int qcm6490_snd_init(struct snd_soc_pcm_runtime *rtd)
 	case SECONDARY_MI2S_TX:
 	case TERTIARY_MI2S_RX:
 	case TERTIARY_MI2S_TX:
+	case QUATERNARY_MI2S_RX:
+	case QUATERNARY_MI2S_TX:
 	case PRIMARY_TDM_RX_0:
 	case PRIMARY_TDM_TX_0:
 		return 0;
