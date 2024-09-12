@@ -231,6 +231,18 @@
 	status = "okay";
 };
 
+&pcie0 {
+	power-domains = <&scmi5_pd 0>;
+	power-domain-names = "power";
+	status = "disabled";
+};
+
+&pcie1 {
+	power-domains = <&scmi6_pd 0>;
+	power-domain-names = "power";
+	status = "okay";
+};
+
 &pmm8654au_0_thermal {
 	thermal-sensors = <&scmi23_sensor 0>;
 };
