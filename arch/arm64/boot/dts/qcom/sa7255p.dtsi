@@ -768,6 +768,87 @@
 			reg = <0x0 0x1fc0000 0x0 0x30000>;
 		};
 
+		usb_0_hsphy: phy@8904000 {
+			compatible = "qcom,sa7255p-usb-hs-phy",
+				     "qcom,usb-snps-hs-5nm-phy";
+			reg = <0x0 0x08904000 0x0 0x120>;
+			#phy-cells = <0>;
+
+			status = "disabled";
+		};
+
+		usb_1_hsphy: phy@8906000 {
+			compatible = "qcom,sa7255p-usb-hs-phy",
+				     "qcom,usb-snps-hs-5nm-phy";
+			reg = <0x0 0x08906000 0x0 0x120>;
+			#phy-cells = <0>;
+
+			status = "disabled";
+		};
+
+		usb_0_qmpphy: phy@8907000 {
+			compatible = "qcom,sa7255p-qmp-usb3-uni-phy";
+			reg = <0x0 0x08907000 0x0 0x2000>;
+
+			#phy-cells = <0>;
+
+			status = "disabled";
+		};
+
+		usb_1: usb@a4f8800 {
+			compatible = "qcom,sa7255p-dwc3", "qcom,dwc3";
+			reg = <0x0 0x0a4f8800 0x0 0x400>;
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			interrupts-extended = <&intc GIC_SPI 444 IRQ_TYPE_LEVEL_HIGH>,
+					      <&pdc 10 IRQ_TYPE_EDGE_BOTH>,
+					      <&pdc 9 IRQ_TYPE_EDGE_BOTH>;
+			interrupt-names = "pwr_event",
+					  "dp_hs_phy_irq",
+					  "dm_hs_phy_irq";
+
+			status = "disabled";
+
+			usb_1_dwc3: usb@a400000 {
+				compatible = "snps,dwc3";
+				reg = <0x0 0x0a400000 0x0 0xe000>;
+				interrupts = <GIC_SPI 442 IRQ_TYPE_LEVEL_HIGH>;
+				iommus = <&apps_smmu 0x020 0x0>;
+				phys = <&usb_1_hsphy>;
+				phy-names = "usb2-phy";
+			};
+		};
+
+		usb_0: usb@a6f8800 {
+			compatible = "qcom,sa7255p-dwc3", "qcom,dwc3";
+			reg = <0x0 0x0a6f8800 0x0 0x400>;
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+
+			interrupts-extended = <&intc GIC_SPI 287 IRQ_TYPE_LEVEL_HIGH>,
+					      <&pdc 14 IRQ_TYPE_EDGE_BOTH>,
+					      <&pdc 15 IRQ_TYPE_EDGE_BOTH>,
+					      <&pdc 12 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "pwr_event",
+					  "dp_hs_phy_irq",
+					  "dm_hs_phy_irq",
+					  "ss_phy_irq";
+
+			status = "disabled";
+
+			usb_0_dwc3: usb@a600000 {
+				compatible = "snps,dwc3";
+				reg = <0x0 0x0a600000 0x0 0xe000>;
+				interrupts = <GIC_SPI 292 IRQ_TYPE_LEVEL_HIGH>;
+				iommus = <&apps_smmu 0x080 0x0>;
+				phys = <&usb_0_hsphy>, <&usb_0_qmpphy>;
+				phy-names = "usb2-phy", "usb3-phy";
+			};
+		};
+
 		pdc: interrupt-controller@b220000 {
 			compatible = "qcom,sa7255p-pdc", "qcom,pdc";
 			reg = <0x0 0x0b220000 0x0 0x30000>,
