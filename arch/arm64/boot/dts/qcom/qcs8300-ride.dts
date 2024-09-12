@@ -309,6 +309,10 @@
 	};
 };
 
+&eud {
+	status = "okay";
+};
+
 &qupv3_id_0 {
 	status = "okay";
 };
@@ -490,5 +494,5 @@
 };
 
 &usb_2_dwc3 {
-	dr_mode = "host";
+	dr_mode = "otg";
 };

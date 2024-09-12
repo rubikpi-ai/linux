@@ -2129,6 +2129,28 @@
 				     <GIC_SPI 687 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
+		eud: eud@8901000 {
+			compatible = "qcom,secure-eud";
+			reg = <0x0 0x8901000 0x0 0x2000>,
+			      <0x0 0x8903000 0x0 0x1000>;
+			interrupts-extended = <&pdc 11 IRQ_TYPE_LEVEL_HIGH>;
+
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+
+					eud_ep: endpoint {
+						remote-endpoint = <&usb1_role_switch>;
+					};
+				};
+			};
+		};
+
 		pmu@9091000 {
 			compatible = "qcom,qcs8300-llcc-bwmon", "qcom,sc7280-llcc-bwmon";
 			reg = <0x0 0x9091000 0x0 0x1000>;
@@ -6633,6 +6655,13 @@
 			phys = <&usb_1_hsphy>, <&usb_qmpphy>;
 			phy-names = "usb2-phy", "usb3-phy";
 			maximum-speed = "super-speed";
+			role-switch;
+
+			port {
+				usb1_role_switch: endpoint {
+					remote-endpoint = <&eud_ep>;
+				};
+			};
 		};
 	};
 
