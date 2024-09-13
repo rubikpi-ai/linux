@@ -15,6 +15,7 @@ properties:
     enum:
       - qcom,geni-i2c
       - qcom,geni-i2c-master-hub
+      - qcom,sa7255p-geni-i2c
       - qcom,sa8255p-geni-i2c
 
   clocks:
@@ -102,7 +103,9 @@ allOf:
       properties:
         compatible:
           contains:
-            const: qcom,sa8255p-geni-i2c
+            enum:
+              - qcom,sa7255p-geni-i2c
+              - qcom,sa8255p-geni-i2c
     then:
       required:
         - power-domains
