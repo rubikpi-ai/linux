@@ -223,6 +223,13 @@
 			};
 		};
 	};
+
+	fan0: pwm-fan {
+		compatible = "pwm-fan";
+		pwms = <&pm8350c_pwm 3 1000000>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&fan_pwm_out_default>;
+	};
 };
 
 &tlmm {
@@ -838,4 +845,15 @@
 	pinctrl-names = "default", "sleep";
 	pinctrl-1 = <&qup_uart7_sleep_cts>, <&qup_uart7_sleep_rts>,
 			<&qup_uart7_sleep_tx>, <&qup_uart7_sleep_rx>;
+};
+
+&pm8350c_gpios {
+	fan_pwm_out_default: fan_pwm_out_default {
+		pins = "gpio8";
+		function = "func1";
+		power-source = <1>;
+		drive-push-pull;
+		output-high;
+		qcom,drive-strength = <3>;
+	};
 };
