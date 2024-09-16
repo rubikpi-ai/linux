@@ -229,6 +229,10 @@
 		pwms = <&pm8350c_pwm 3 1000000>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&fan_pwm_out_default>;
+		#cooling-cells = <2>;
+		cooling-min-state = <0>;
+		cooling-max-state = <2>;
+		cooling-levels = <0 100 255>;
 	};
 };
 
@@ -855,5 +859,231 @@
 		drive-push-pull;
 		output-high;
 		qcom,drive-strength = <3>;
+	};
+};
+
+&thermal_zones {
+	cpu0-thermal {
+		trips {
+			cpu0_alert2: trip-point2 {
+				temperature = <60000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			cpu0_alert3: trip-point3 {
+				temperature = <80000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map2 {
+				trip = <&cpu0_alert2 255>;
+				cooling-device = <&fan0 1 1>;
+			};
+
+			map3 {
+				trip = <&cpu0_alert3 255>;
+				cooling-device = <&fan0 2 2>;
+			};
+		};
+	};
+
+	cpu1-thermal {
+		trips {
+			cpu1_alert2: trip-point2 {
+				temperature = <60000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			cpu1_alert3: trip-point3 {
+				temperature = <80000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map2 {
+				trip = <&cpu1_alert2 255>;
+				cooling-device = <&fan0 1 1>;
+			};
+
+			map3 {
+				trip = <&cpu1_alert3 255>;
+				cooling-device = <&fan0 2 2>;
+			};
+		};
+	};
+
+	cpu2-thermal {
+		trips {
+			cpu2_alert2: trip-point2 {
+				temperature = <60000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			cpu2_alert3: trip-point3 {
+				temperature = <80000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map2 {
+				trip = <&cpu2_alert2 255>;
+				cooling-device = <&fan0 1 1>;
+			};
+
+			map3 {
+				trip = <&cpu2_alert3 255>;
+				cooling-device = <&fan0 2 2>;
+			};
+		};
+	};
+
+	cpu3-thermal {
+		trips {
+			cpu3_alert2: trip-point2 {
+				temperature = <60000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			cpu3_alert3: trip-point3 {
+				temperature = <80000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map2 {
+				trip = <&cpu3_alert2 255>;
+				cooling-device = <&fan0 1 1>;
+			};
+
+			map3 {
+				trip = <&cpu3_alert3 255>;
+				cooling-device = <&fan0 2 2>;
+			};
+		};
+	};
+
+	cpu4-thermal {
+		trips {
+			cpu4_alert2: trip-point2 {
+				temperature = <60000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			cpu4_alert3: trip-point3 {
+				temperature = <80000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map2 {
+				trip = <&cpu4_alert2 255>;
+				cooling-device = <&fan0 1 1>;
+			};
+
+			map3 {
+				trip = <&cpu4_alert3 255>;
+				cooling-device = <&fan0 2 2>;
+			};
+		};
+	};
+
+	cpu5-thermal {
+		trips {
+			cpu5_alert2: trip-point2 {
+				temperature = <60000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			cpu5_alert3: trip-point3 {
+				temperature = <80000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map2 {
+				trip = <&cpu5_alert2 255>;
+				cooling-device = <&fan0 1 1>;
+			};
+
+			map3 {
+				trip = <&cpu5_alert3 255>;
+				cooling-device = <&fan0 2 2>;
+			};
+		};
+	};
+
+	cpu6-thermal {
+		trips {
+			cpu6_alert2: trip-point2 {
+				temperature = <60000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			cpu6_alert3: trip-point3 {
+				temperature = <80000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map2 {
+				trip = <&cpu6_alert2 255>;
+				cooling-device = <&fan0 1 1>;
+			};
+
+			map3 {
+				trip = <&cpu6_alert3 255>;
+				cooling-device = <&fan0 2 2>;
+			};
+		};
+	};
+
+	cpu7-thermal {
+		trips {
+			cpu7_alert2: trip-point2 {
+				temperature = <60000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			cpu7_alert3: trip-point3 {
+				temperature = <80000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map2 {
+				trip = <&cpu7_alert2 255>;
+				cooling-device = <&fan0 1 1>;
+			};
+
+			map3 {
+				trip = <&cpu7_alert3 255>;
+				cooling-device = <&fan0 2 2>;
+			};
+		};
 	};
 };
