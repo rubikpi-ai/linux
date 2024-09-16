@@ -377,6 +377,8 @@
 	power-domains = <&scmi0_pd 0>, <&scmi0_pd 1>;
 	power-domain-names = "usb_transfer", "usb_core";
 
+	/delete-property/ wakeup-source;
+
 	status = "okay";
 };
 
@@ -402,6 +404,8 @@
 	power-domains = <&scmi1_pd 0>, <&scmi1_pd 1>;
 	power-domain-names = "usb_transfer", "usb_core";
 
+	/delete-property/ wakeup-source;
+
 	status = "okay";
 };
 
@@ -426,6 +430,8 @@
 &usb_2 {
 	power-domains = <&scmi2_pd 0>, <&scmi2_pd 1>;
 	power-domain-names = "usb_transfer", "usb_core";
+
+	/delete-property/ wakeup-source;
 
 	status = "okay";
 };
