@@ -1,4 +1,26 @@
 # SPDX-License-Identifier: GPL-2.0-only
+menu "Qualcomm firmware drivers"
+
+config QCOM_TZMEM
+	tristate "QCOM_TZMEM"
+	select GENERIC_ALLOCATOR
+
+choice
+	prompt "TrustZone interface memory allocator mode"
+	default QCOM_TZMEM_MODE_GENERIC
+	help
+	  Selects the mode of the memory allocator providing memory buffers of
+	  suitable format for sharing with the TrustZone. If in doubt, select
+	  'Generic'.
+
+config QCOM_TZMEM_MODE_GENERIC
+	bool "Generic"
+	help
+	  Use the generic allocator mode. The memory is page-aligned, non-cachable
+	  and physically contiguous.
+
+endchoice
+
 config QTI_TZ_LOG
 	tristate "QTI Trust Zone (TZ) Log Driver"
 	depends on QTEE_SHM_BRIDGE && PROC_FS
@@ -6,3 +28,5 @@ config QTI_TZ_LOG
 	  Provide debugging capability with a procfs interface for messages produced
 	  by the Secure code (Trust zone). These messages provide diagnostic information
 	  about TZ operations.
+
+endmenu
