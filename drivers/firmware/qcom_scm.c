@@ -1499,7 +1499,7 @@ int qcom_scm_prepare_ice_key(const u8 *lt_key, size_t lt_key_size,
 		if (!eph_key_buf) {
 			memzero_explicit(lt_key_buf, lt_key_size);
 			dma_free_coherent(__scm->dev, lt_key_size, lt_key_buf, lt_key_phys);
-			return -ENOMEM;
+			ret = -ENOMEM;
 		}
 
 		memcpy(lt_key_buf, lt_key, lt_key_size);
