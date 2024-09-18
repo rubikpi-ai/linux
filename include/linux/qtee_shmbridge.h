@@ -18,6 +18,7 @@ struct qtee_shm {
 	size_t size;
 };
 
+#ifdef CONFIG_QTEE_SHM_BRIDGE
 /**
  * Register paddr & size as a bridge, get bridge handle
  *
@@ -40,7 +41,6 @@ int32_t qtee_shmbridge_register(
 		uint32_t tz_perm,
 		uint64_t *handle);
 
-#ifdef CONFIG_QTEE_SHM_BRIDGE
 
 /**
  * Check whether shmbridge mechanism is enabled in HYP or not
@@ -106,6 +106,18 @@ void qtee_shmbridge_flush_shm_buf(struct qtee_shm *shm);
 void qtee_shmbridge_inv_shm_buf(struct qtee_shm *shm);
 
 #else
+static int32_t qtee_shmbridge_register(
+		phys_addr_t paddr,
+		size_t size,
+		uint32_t *ns_vmid_list,
+		uint32_t *ns_vm_perm_list,
+		uint32_t ns_vmid_num,
+		uint32_t tz_perm,
+		uint64_t *handle)
+{
+	return -EINVAL;
+}
+
 static bool qtee_shmbridge_is_enabled(void)
 {
 	return false;
