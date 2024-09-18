@@ -1220,3 +1220,8 @@
 		};
 	};
 };
+
+&pmk8350_rtc {
+	status = "okay";
+	allow-set-time;
+};
