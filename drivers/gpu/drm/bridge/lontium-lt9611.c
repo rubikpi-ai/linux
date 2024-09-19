@@ -69,12 +69,15 @@ typedef enum {
 
 typedef enum {
 	VIDEO_640x480_60HZ = 0,
-	VIDEO_720x480_60HZ = 1,
-	VIDEO_1280x720_60HZ = 2,
-	VIDEO_1920x1080_30HZ = 3,
-	VIDEO_1920x1080_60HZ = 4,
-	VIDEO_3840x1080_60HZ = 5,
-	VIDEO_3840x2160_30HZ = 6,
+	VIDEO_720x480_60HZ,
+	VIDEO_1024x600_60HZ,
+	VIDEO_1280x720_60HZ,
+	VIDEO_1920x1080_30HZ,
+	VIDEO_1920x1080_60HZ,
+	VIDEO_2560x1440_60HZ,
+	VIDEO_3840x1080_60HZ,
+	VIDEO_3840x2160_30HZ,
+	VIDEO_INDEX_MAX
 } video_format_id;
 
 struct lt9611 {
@@ -122,13 +125,15 @@ struct lt9611 {
 };
 
 static struct lt9611_video_cfg video_tab[] = {
-	{ 8,   96,  40,	640,  33, 2,  10, 480,	0, 0, 0,  25000	},//video_640x480_60Hz
-	{ 16,  62,  60,	720,  9,  6,  30, 480,	0, 0, 0,  27000	},//video_720x480_60Hz
-	{ 110, 40, 220, 1280, 5,  5,  20, 720,	1, 1, 0,  74250	},//video_1280x720_60Hz
-	{ 88,  44, 148, 1920, 4,  5,  36, 1080, 1, 1, 0,  74250	},//video_1920x1080_30Hz
-	{ 88,  44, 148, 1920, 4,  5,  36, 1080, 1, 1, 16, 148500 },//video_1920x1080_60Hz
-	{ 176, 88, 296, 3840, 4,  5,  36, 1080, 1, 1, 0,  297000 },//video_3840x1080_60Hz
-	{ 176, 88, 296, 3840, 8,  10, 72, 2160, 1, 1, 95,  297000 },//video_3840x2160_30Hz
+	{ 8,   96,  40,	 640,  33, 2,  10, 480,	 0, 0, 0,  25000 },//video_640x480_60Hz
+	{ 16,  62,  60,	 720,  9,  6,  30, 480,	 0, 0, 0,  27000 },//video_720x480_60Hz
+	{ 60,  60,  100, 1024, 2,  5,  10, 600,	 0, 0, 0,  34000 },//video_1026x600_60Hz
+	{ 110, 40, 220,  1280, 5,  5,  20, 720,	 1, 1, 0,  74250 },//video_1280x720_60Hz
+	{ 88,  44, 148,  1920, 4,  5,  36, 1080, 1, 1, 0,  74250 },//video_1920x1080_30Hz
+	{ 88,  44, 148,  1920, 4,  5,  36, 1080, 1, 1, 16, 148500 },//video_1920x1080_60Hz
+	{ 48,  32,  80,  2560, 3,  5,  33, 1440, 1, 1, 0,  241500 },//video_2560x1440_60Hz
+	{ 176, 88, 296,  3840, 4,  5,  36, 1080, 1, 1, 0,  297000 },//video_3840x1080_60Hz
+	{ 176, 88, 296,  3840, 8,  10, 72, 2160, 1, 1, 95, 297000 },//video_3840x2160_30Hz
 };
 
 struct lt9611 *this_lt9611;
@@ -175,7 +180,6 @@ static int l9611_write(struct regmap *map, unsigned int reg, unsigned int val)
 static int lt9611_multi_reg_write(struct regmap *map, const struct reg_sequence *regs, int num_regs)
 {
 	int ret;
-	u8 i;
 
 	ret = regmap_multi_reg_write(map, regs, num_regs);
 	if (ret) {
@@ -319,6 +323,17 @@ static void lt9611_pcr_setup(struct lt9611 *lt9611, const struct drm_display_mod
 
 	l9611_write(lt9611->regmap, 0x834a, 0x40); //offset //0x10
 	l9611_write(lt9611->regmap, 0x831d, 0x10|POL); //PCR de mode step setting.
+
+	if (video_format_id == VIDEO_1024x600_60HZ) {
+		pr_err("%s: %d : video_format_id is VIDEO_1024x600_60HZ! \n", __func__, __LINE__);
+		l9611_write(lt9611->regmap, 0x8324, 0x70); //bit[7:4]v/h/de mode; line for clk stb[11:8]
+		l9611_write(lt9611->regmap, 0x8325, 0x80); //line for clk stb[7:0]
+		l9611_write(lt9611->regmap, 0x832a, 0x10); //clk stable in
+
+		l9611_write(lt9611->regmap, 0x8323, 0x04); //pcr h mode step
+		l9611_write(lt9611->regmap, 0x834a, 0x10); //offset //0x10
+		l9611_write(lt9611->regmap, 0x831d, 0xf0); //PCR de mode step setting.
+	}
 }
 
 static int lt9611_pcr_start(struct lt9611 *lt9611)
@@ -446,6 +461,7 @@ static int lt9611_video_check(struct lt9611 *lt9611)
 	u32 v_total, vactive, hactive_a, hactive_b, h_total_sysclk;
 	int temp;
 	unsigned int mipi_video_format = 0;
+	video_format_id i;
 
 	/* top module video check */
 
@@ -484,6 +500,15 @@ static int lt9611_video_check(struct lt9611 *lt9611)
 	dev_err(lt9611->dev,
 		 "video check: hactive_a=%d, hactive_b=%d, vactive=%d, v_total=%d, h_total_sysclk=%d, mipi_video_format=%d\n",
 		 hactive_a, hactive_b, vactive, v_total, h_total_sysclk, mipi_video_format);
+
+	// Adaptive Resolution
+	for (i = 0; i < VIDEO_INDEX_MAX; i++) {
+		if ((hactive_a == video_tab[i].h_active) && (vactive == video_tab[i].v_active)) {
+			lt9611->video_format_id = i;
+			pr_err("%s:%d:video_format_id = %d\n", __func__, __LINE__, i);
+			break;
+		}
+	}
 
 	return 0;
 
@@ -1624,7 +1649,7 @@ void lt9611_on(bool on)
 
 			if((reg & 0x04) == 0x04) {
 				lt9611_LowPower_mode(lt9611, 0);
-				msleep(100);
+				msleep(500);
 				lt9611_video_check(lt9611);
 				lt9611_pll_setup(lt9611, NULL, &postdiv);
 				lt9611_pcr_setup(lt9611, NULL, 0);
@@ -1736,13 +1761,13 @@ static ssize_t lt9611_dump_info_wta_attr(struct device *dev,
 		return -EINVAL;
 	}
 
-	if (buf[0] == 'pattern') {
+	if (buf[0] == '1') {
 		lt9611_pattern(pdata);
-	} else if (buf[0] == 'dump_debug') {
+	} else if (buf[0] == '2') {
 		lt9611_dump_debug_info(pdata);
-	} else if (buf[0] == 'enable') {
+	} else if (buf[0] == '3') {
 		lt9611_enable(pdata);
-	} else if (buf[0] == 'disable') {
+	} else if (buf[0] == '0') {
 		lt9611_disable(pdata);
 	} else {
 		pr_err("pdata is NULL\n");
