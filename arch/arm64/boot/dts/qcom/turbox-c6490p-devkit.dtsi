@@ -104,13 +104,6 @@
 					};
 				};
 
-				port@1 {
-					reg = <1>;
-					pmic_glink_ss_in: endpoint {
-						remote-endpoint = <&redriver_ss_out>;
-					};
-				};
-
 				/delete-node/ port@2;
 			};
 		};
@@ -555,30 +548,6 @@
 	pinctrl-0 = <&qup_i2c1_data_clk>, <&io_level_selection_3v3>, <&io_level_selection_5v0>;
 
 	/delete-node/ typec-mux@42;
-	typec-retimer@77 {
-		compatible = "onnn,nb7vpq904m";
-		reg = <0x77>;
-		vcc-supply = <&retimer_1c_vreg>;
-		retimer-switch;
-		orientation-switch;
-		ports {
-			#address-cells = <1>;
-			#size-cells = <0>;
-			port@0 {
-				reg = <0>;
-				redriver_ss_out: endpoint {
-					remote-endpoint = <&pmic_glink_ss_in>;
-				};
-			};
-			port@1 {
-				reg = <1>;
-				redriver_ss_in: endpoint {
-					data-lanes = <3 2 1 0>;
-					remote-endpoint = <&usb_1_qmpphy_out>;
-				};
-			};
-		};
-	};
 
 	rpi-sense@46 {
 		compatible = "rpi,rpi-sense";
@@ -884,9 +853,6 @@
 	snps,dis-u1-entry-quirk;
 };
 
-&usb_1_qmpphy_out {
-	remote-endpoint = <&redriver_ss_in>;
-};
 
 &sdc2_clk {
 	bias-disable;
