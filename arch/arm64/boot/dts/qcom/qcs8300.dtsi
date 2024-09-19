@@ -6069,11 +6069,24 @@
 		};
 	};
 
+	lpass-stm {
+		compatible = "arm,coresight-dummy-source";
+		device-name = "stm_lpass";
+
+		arm,trace-id = <25>;
+
+		out-ports {
+			port {
+				lpass_stm_out: endpoint {
+					remote-endpoint =
+					<&lpi_funnel_in1>;
+				};
+			};
+		};
+	};
+
 	lpi_funnel {
 		compatible = "arm,coresight-static-funnel";
-
-		clocks = <&aoss_qmp>;
-		clock-names = "apb_pclk";
 
 		out-ports {
 			port {
@@ -6093,6 +6106,14 @@
 				lpi_funnel_in0: endpoint {
 					remote-endpoint =
 					<&audio_out>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+				lpi_funnel_in1: endpoint {
+					remote-endpoint =
+					<&lpass_stm_out>;
 				};
 			};
 
