@@ -692,52 +692,6 @@ static void lt9611_hpd_work(struct work_struct *work)
 	}
 }
 
-static irqreturn_t lt9611_irq_thread_handler(int irq, void *dev_id)
-{
-	struct lt9611 *lt9611 = dev_id;
-	unsigned int irq_flag0 = 0;
-	unsigned int irq_flag3 = 0;
-
-	lt9611_read(lt9611->regmap, 0x820f, &irq_flag3);
-	lt9611_read(lt9611->regmap, 0x820c, &irq_flag0);
-
-	/* hpd changed low */
-	if (irq_flag3 & 0x80) {
-		dev_err(lt9611->dev, "hdmi cable disconnected\n");
-
-		l9611_write(lt9611->regmap, 0x8207, 0xbf);
-		l9611_write(lt9611->regmap, 0x8207, 0x3f);
-
-		lt9611->status = connector_status_disconnected;
-	}
-
-	/* hpd changed high */
-	if (irq_flag3 & 0x40) {
-		dev_err(lt9611->dev, "hdmi cable connected\n");
-
-		l9611_write(lt9611->regmap, 0x8207, 0x7f);
-		l9611_write(lt9611->regmap, 0x8207, 0x3f);
-
-		lt9611->status = connector_status_connected;
-	}
-
-	//schedule_work(&lt9611->work);
-	if ((irq_flag3 & 0xc0) && lt9611->bridge.dev) {
-		drm_kms_helper_hotplug_event(lt9611->bridge.dev);
-	}
-
-	/* video input changed */
-	if (irq_flag0 & 0x01) {
-		dev_err(lt9611->dev, "video input changed\n");
-		l9611_write(lt9611->regmap, 0x829e, 0xff);
-		l9611_write(lt9611->regmap, 0x829e, 0xf7);
-		l9611_write(lt9611->regmap, 0x8204, 0xff);
-		l9611_write(lt9611->regmap, 0x8204, 0xfe);
-	}
-
-	return IRQ_HANDLED;
-}
-
 static void lt9611_enable_hpd_interrupts(struct lt9611 *lt9611)
 {
 	unsigned int val;
@@ -782,12 +736,6 @@ static int lt9611_power_on(struct lt9611 *lt9611)
 		{ 0x821c, 0x78 },
 		{ 0x82cb, 0x69 }, /* timer 1 */
 		{ 0x82cc, 0x78 },
-
-		/* irq init */
-		//{ 0x8251, 0x01 },
-		//{ 0x8258, 0x0a }, /* hpd irq */
-		//{ 0x8259, 0x00 }, /* hpd debounce width */
-		//{ 0x829e, 0xf7 }, /* video check irq */
 
 		/* power consumption for work */
 		{ 0x8004, 0xf0 },
@@ -1624,53 +1572,128 @@ static void lt9611_pattern(struct lt9611 *lt9611)
 	l9611_write(lt9611->regmap, 0x8130, 0xea);
 }
 
-void lt9611_on(bool on)
+static void lt9611_HDP_Interrupt_Handle(struct lt9611 *lt9611)
 {
 	unsigned int postdiv, reg;
+
+	l9611_write(lt9611->regmap, 0x8207, 0xff); //clear3
+	l9611_write(lt9611->regmap, 0x8207, 0x3f); //clear3
+
+	/* Disable HDMI output */
+	l9611_write(lt9611->regmap, 0x8130, 0x00);
+	l9611_write(lt9611->regmap, 0x8123, 0x80);
+
+	lt9611_read(lt9611->regmap, 0x825e, &reg);
+	if((reg & 0x04) == 0x04) {
+		pr_err("[litt]%s: %d\n", __func__, __LINE__);
+		msleep(10);
+		lt9611_read(lt9611->regmap, 0x825e, &reg);
+
+		if((reg & 0x04) == 0x04) {
+			lt9611_LowPower_mode(lt9611, 0);
+			msleep(500);
+			lt9611_video_check(lt9611);
+			lt9611_pll_setup(lt9611, NULL, &postdiv);
+			lt9611_pcr_setup(lt9611, NULL, 0);
+			lt9611_mipi_video_setup(lt9611, NULL);
+			l9611_write(lt9611->regmap, 0x8326, pcr_m_ex);
+			lt9611_pcr_start(lt9611);
+			lt9611_hdmi_tx_digital(lt9611, true);
+
+			/* Enable HDMI output */
+			l9611_write(lt9611->regmap, 0x8123, 0x40);
+			l9611_write(lt9611->regmap, 0x82de, 0x20);
+			l9611_write(lt9611->regmap, 0x82de, 0xe0);
+			l9611_write(lt9611->regmap, 0x8018, 0xdc);
+			l9611_write(lt9611->regmap, 0x8018, 0xfc);
+			l9611_write(lt9611->regmap, 0x8016, 0xf1);
+			l9611_write(lt9611->regmap, 0x8016, 0xf3);
+			l9611_write(lt9611->regmap, 0x8011, 0x5a); //Pcr reset
+			l9611_write(lt9611->regmap, 0x8011, 0xfa);
+			l9611_write(lt9611->regmap, 0x8130, 0xea);
+		}
+	} else {
+		pr_err("[litt]%s: %d\n", __func__, __LINE__);
+		lt9611_LowPower_mode(lt9611, 1);
+	}
+}
+
+
+static irqreturn_t lt9611_irq_thread_handler(int irq, void *dev_id)
+{
+#ifdef DSI_BERIDGE_ENABLE
+	struct lt9611 *lt9611 = dev_id;
+	unsigned int irq_flag0 = 0;
+	unsigned int irq_flag3 = 0;
+
+	lt9611_read(lt9611->regmap, 0x820f, &irq_flag3);
+	lt9611_read(lt9611->regmap, 0x820c, &irq_flag0);
+
+	/* hpd changed low */
+	if (irq_flag3 & 0x80) {
+		dev_err(lt9611->dev, "hdmi cable disconnected\n");
+
+		l9611_write(lt9611->regmap, 0x8207, 0xbf);
+		l9611_write(lt9611->regmap, 0x8207, 0x3f);
+
+		lt9611->status = connector_status_disconnected;
+	}
+
+	/* hpd changed high */
+	if (irq_flag3 & 0x40) {
+		dev_err(lt9611->dev, "hdmi cable connected\n");
+
+		l9611_write(lt9611->regmap, 0x8207, 0x7f);
+		l9611_write(lt9611->regmap, 0x8207, 0x3f);
+
+		lt9611->status = connector_status_connected;
+	}
+
+	//schedule_work(&lt9611->work);
+	if ((irq_flag3 & 0xc0) && lt9611->bridge.dev) {
+		drm_kms_helper_hotplug_event(lt9611->bridge.dev);
+	}
+
+	/* video input changed */
+	if (irq_flag0 & 0x01) {
+		dev_err(lt9611->dev, "video input changed\n");
+		l9611_write(lt9611->regmap, 0x829e, 0xff);
+		l9611_write(lt9611->regmap, 0x829e, 0xf7);
+		l9611_write(lt9611->regmap, 0x8204, 0xff);
+		l9611_write(lt9611->regmap, 0x8204, 0xfe);
+	}
+#else
+	struct lt9611 *lt9611 = dev_id;
+
+	lt9611_HDP_Interrupt_Handle(lt9611);
+#endif
+
+	return IRQ_HANDLED;
+}
+
+void lt9611_on(bool on)
+{
 	struct lt9611 *lt9611 = this_lt9611;
 
 	if (on) {
+		pr_err("[litt]%s: %d\n", __func__, __LINE__);
 		lt9611_power_on(lt9611);
 
 		lt9611_mipi_input_analog(lt9611);
 		lt9611_mipi_input_digital(lt9611, NULL);
 		lt9611_Audio_Init(lt9611);
 		lt9611_hdmi_tx_phy(lt9611);
+
+		//init and enable hpd interrupt
+		l9611_write(lt9611->regmap, 0x8258, 0x0a);//Det HPD 0x0a --> 0x08
+		l9611_write(lt9611->regmap, 0x8259, 0x00);//HPD debounce width
+		l9611_write(lt9611->regmap, 0x8207, 0xff); //clear3
+		l9611_write(lt9611->regmap, 0x8207, 0x3f); //clear3
+		l9611_write(lt9611->regmap, 0x8203, 0x3f); //mask3  //Tx_det
+
 		msleep(200);
-
-		/* Disable HDMI output */
-		l9611_write(lt9611->regmap, 0x8130, 0x00);
-		l9611_write(lt9611->regmap, 0x8123, 0x80);
-
-		lt9611_read(lt9611->regmap, 0x825e, &reg);
-		if((reg & 0x04) == 0x04) {
-			msleep(10);
-			lt9611_read(lt9611->regmap, 0x825e, &reg);
-
-			if((reg & 0x04) == 0x04) {
-				lt9611_LowPower_mode(lt9611, 0);
-				msleep(500);
-				lt9611_video_check(lt9611);
-				lt9611_pll_setup(lt9611, NULL, &postdiv);
-				lt9611_pcr_setup(lt9611, NULL, 0);
-				lt9611_mipi_video_setup(lt9611, NULL);
-				l9611_write(lt9611->regmap, 0x8326, pcr_m_ex);
-				lt9611_pcr_start(lt9611);
-				lt9611_hdmi_tx_digital(lt9611, true);
-
-				/* Enable HDMI output */
-				l9611_write(lt9611->regmap, 0x8123, 0x40);
-				l9611_write(lt9611->regmap, 0x82de, 0x20);
-				l9611_write(lt9611->regmap, 0x82de, 0xe0);
-				l9611_write(lt9611->regmap, 0x8018, 0xdc);
-				l9611_write(lt9611->regmap, 0x8018, 0xfc);
-				l9611_write(lt9611->regmap, 0x8016, 0xf1);
-				l9611_write(lt9611->regmap, 0x8016, 0xf3);
-				l9611_write(lt9611->regmap, 0x8011, 0x5a); //Pcr reset
-				l9611_write(lt9611->regmap, 0x8011, 0xfa);
-				l9611_write(lt9611->regmap, 0x8130, 0xea);
-			}
-		}
+		lt9611_HDP_Interrupt_Handle(lt9611);
+		
 	} else {
 		/* Disable HDMI output */
 		l9611_write(lt9611->regmap, 0x8130, 0x00);
@@ -1919,6 +1942,9 @@ static int lt9611_probe(struct i2c_client *client)
 	ret = lt9611_audio_init(dev, lt9611);
 	if (ret)
 		goto err_remove_bridge;
+
+	msleep(3000);
+	lt9611_on(true);
 
 	return 0;
 
