@@ -237,10 +237,9 @@ static ssize_t qcom_wdt_disable_get(struct device *dev,
 
 	mutex_lock(&wdog_dd->disable_lock);
 	disable_val  = wdog_dd->enabled ? 0 : 1;
-	sysfs_emit(buf, "%d\n", disable_val);
-
 	mutex_unlock(&wdog_dd->disable_lock);
-	return disable_val;
+
+	return sysfs_emit(buf, "%d\n", disable_val);
 }
 
 static ssize_t qcom_wdt_disable_set(struct device *dev,
