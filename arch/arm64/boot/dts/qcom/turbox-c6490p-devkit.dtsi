@@ -630,7 +630,7 @@
 &apps_rsc {
 	regulators-0 {
 		vreg_l2b_3p072: ldo2 {
-			regulator-min-microvolt = <2700000>;
+			regulator-min-microvolt = <3100000>;
 			regulator-max-microvolt = <3544000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
