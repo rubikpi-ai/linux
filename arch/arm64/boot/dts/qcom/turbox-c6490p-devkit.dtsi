@@ -410,6 +410,22 @@
 	};
 };
 
+&lpass_dmic01_clk {
+	status = "disabled";
+};
+
+&lpass_dmic01_data {
+	status = "disabled";
+};
+
+&lpass_dmic23_clk {
+	status = "disabled";
+};
+
+&lpass_dmic23_data {
+	status = "disabled";
+};
+
 &lpass_tlmm {
 	/delete-node/ dmic45-data-state;
 	/delete-node/ dmic45-clk-state;
@@ -500,6 +516,58 @@
 	lpass_qua_mi2s_data3_sleep: qua-mi2s-data3-sleep {
 		pins = "gpio5";
 		function = "qua_mi2s_data";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	lpass_lpi_i2s1_clk: lpi-i2s1-clk-state {
+		pins = "gpio6";
+		function = "i2s1_clk";
+	};
+
+	lpass_lpi_i2s1_ws: lpi-i2s1-ws-state {
+		pins = "gpio7";
+		function = "i2s1_ws";
+	};
+
+	lpass_lpi_i2s1_data0: lpi-i2s1-data0-state {
+		pins = "gpio8";
+		function = "i2s1_data";
+	};
+
+	lpass_lpi_i2s1_data1: lpi-i2s1-data1-state {
+		pins = "gpio9";
+		function = "i2s1_data";
+	};
+
+	lpass_lpi_i2s1_clk_sleep: lpi-i2s1-clk-sleep {
+		pins = "gpio6";
+		function = "i2s1_clk";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	lpass_lpi_i2s1_ws_sleep: lpi-i2s1-ws-sleep {
+		pins = "gpio7";
+		function = "i2s1_ws";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	lpass_lpi_i2s1_data0_sleep: lpi-i2s1-data0-sleep {
+		pins = "gpio8";
+		function = "i2s1_data";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	lpass_lpi_i2s1_data1_sleep: lpi-i2s1-data1-sleep {
+		pins = "gpio9";
+		function = "i2s1_data";
 		drive-strength = <2>;
 		bias-pull-down;
 		input-enable;
@@ -741,6 +809,10 @@
 	status = "disabled";
 };
 
+&lpass_va_macro {
+	status = "disabled";
+};
+
 &swr2 {
 	status = "disabled";
 };
@@ -780,33 +852,43 @@
 &sound {
 	pinctrl-names = "default", "stub_aif1_active", "stub_aif1_sleep";
 	pinctrl-0 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk>,
-				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
-				<&lpass_ext_mas_clk1_a_sleep>, <&lpass_qua_mi2s_sclk_sleep>,
-				<&lpass_qua_mi2s_ws_sleep>, <&lpass_qua_mi2s_data0_sleep>,
-				<&lpass_qua_mi2s_data1_sleep>, <&lpass_qua_mi2s_data2_sleep>,
-				<&lpass_qua_mi2s_data3_sleep>;
+	            <&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
+	            <&lpass_ext_mas_clk1_a_sleep>, <&lpass_qua_mi2s_sclk_sleep>,
+	            <&lpass_qua_mi2s_ws_sleep>, <&lpass_qua_mi2s_data0_sleep>,
+	            <&lpass_qua_mi2s_data1_sleep>, <&lpass_qua_mi2s_data2_sleep>,
+	            <&lpass_qua_mi2s_data3_sleep>, <&lpass_lpi_i2s1_clk_sleep>,
+	            <&lpass_lpi_i2s1_ws_sleep>, <&lpass_lpi_i2s1_data0_sleep>,
+	            <&lpass_lpi_i2s1_data1_sleep>, <&mi2s2_sclk_sleep>,
+	            <&mi2s2_ws_sleep>, <&mi2s2_data0_sleep>, <&mi2s2_data1_sleep>;
 	pinctrl-1 = <&mi2s0_data0>, <&mi2s0_data1>, <&mi2s0_mclk>,
-				<&mi2s0_sclk>, <&mi2s0_ws>,
-				<&lpass_ext_mas_clk1_a>, <&lpass_qua_mi2s_sclk>,
-				<&lpass_qua_mi2s_ws>, <&lpass_qua_mi2s_data0>,
-				<&lpass_qua_mi2s_data1>, <&lpass_qua_mi2s_data2>,
-				<&lpass_qua_mi2s_data3>;
+	            <&mi2s0_sclk>, <&mi2s0_ws>,
+	            <&lpass_ext_mas_clk1_a>, <&lpass_qua_mi2s_sclk>,
+	            <&lpass_qua_mi2s_ws>, <&lpass_qua_mi2s_data0>,
+	            <&lpass_qua_mi2s_data1>, <&lpass_qua_mi2s_data2>,
+	            <&lpass_qua_mi2s_data3>, <&lpass_lpi_i2s1_clk>,
+	            <&lpass_lpi_i2s1_ws>, <&lpass_lpi_i2s1_data0>,
+	            <&lpass_lpi_i2s1_data1>, <&mi2s2_sclk>,
+	            <&mi2s2_ws>, <&mi2s2_data0>, <&mi2s2_data1>;
 	pinctrl-2 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk>,
-				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
-				<&lpass_ext_mas_clk1_a_sleep>, <&lpass_qua_mi2s_sclk_sleep>,
-				<&lpass_qua_mi2s_ws_sleep>, <&lpass_qua_mi2s_data0_sleep>,
-				<&lpass_qua_mi2s_data1_sleep>, <&lpass_qua_mi2s_data2_sleep>,
-				<&lpass_qua_mi2s_data3_sleep>;
+	            <&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
+	            <&lpass_ext_mas_clk1_a_sleep>, <&lpass_qua_mi2s_sclk_sleep>,
+	            <&lpass_qua_mi2s_ws_sleep>, <&lpass_qua_mi2s_data0_sleep>,
+	            <&lpass_qua_mi2s_data1_sleep>, <&lpass_qua_mi2s_data2_sleep>,
+	            <&lpass_qua_mi2s_data3_sleep>, <&lpass_lpi_i2s1_clk_sleep>,
+	            <&lpass_lpi_i2s1_ws_sleep>, <&lpass_lpi_i2s1_data0_sleep>,
+	            <&lpass_lpi_i2s1_data1_sleep>, <&mi2s2_sclk_sleep>,
+	            <&mi2s2_ws_sleep>, <&mi2s2_data0_sleep>, <&mi2s2_data1_sleep>;
 
-	audio-routing =
-		"VA DMIC0", "vdd-micb",
-		"VA DMIC1", "vdd-micb",
-		"VA DMIC2", "vdd-micb",
-		"VA DMIC3", "vdd-micb";
-		
+	// audio-routing =
+	// 	"VA DMIC0", "vdd-micb",
+	// 	"VA DMIC1", "vdd-micb",
+	// 	"VA DMIC2", "vdd-micb",
+	// 	"VA DMIC3", "vdd-micb";
+
 	/delete-node/ mi2s-playback-dai-link;
 	/delete-node/ mi2s-capture-dai-link;
-		
+	/delete-node/ va-dai-link;
+
 	mi2s-playback-dai-link {
 		link-name = "MI2S-LPAIF-RX-PRIMARY";
 		cpu {
@@ -816,7 +898,7 @@
 			sound-dai = <&msm_stub_codec 0>, <&es8316>;
 		};
 	};
-		
+
 	mi2s-capture-dai-link {
 		link-name = "MI2S-LPAIF-TX-PRIMARY";
 		cpu {
@@ -841,6 +923,46 @@
 		link-name = "MI2S-LPAIF_RXTX-TX-PRIMARY";
 		cpu {
 			sound-dai = <&q6apmbedai QUATERNARY_MI2S_TX>;
+		};
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	quin-mi2s-playback-dai-link {
+		link-name = "MI2S-LPAIF_VA-RX-PRIMARY";
+		cpu {
+			sound-dai = <&q6apmbedai QUINARY_MI2S_RX>;
+		};
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+
+	quin-mi2s-capture-dai-link {
+		link-name = "MI2S-LPAIF_VA-TX-PRIMARY";
+		cpu {
+			sound-dai = <&q6apmbedai QUINARY_MI2S_TX>;
+		};
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	tert-mi2s-playback-dai-link {
+		link-name = "MI2S-LPAIF_AUD-RX-SECONDARY";
+		cpu {
+			sound-dai = <&q6apmbedai TERTIARY_MI2S_RX>;
+		};
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+
+	tert-mi2s-capture-dai-link {
+		link-name = "MI2S-LPAIF_AUD-TX-SECONDARY";
+		cpu {
+			sound-dai = <&q6apmbedai TERTIARY_MI2S_TX>;
 		};
 		codec {
 			sound-dai = <&msm_stub_codec 1>;
