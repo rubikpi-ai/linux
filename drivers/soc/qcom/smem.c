@@ -86,6 +86,9 @@
 /* Processor/host identifier for the global partition */
 #define SMEM_GLOBAL_HOST	0xfffe
 
+/* Processor/host identifier for multi host partition */
+#define SMEM_MULTI_HOST		0xfffc
+
 /* Entry range check
  * ptr >= start : Checks if ptr is greater than the start of access region
  * ptr + size >= ptr: Check for integer overflow (On 32bit system where ptr
@@ -1047,6 +1050,9 @@ qcom_smem_enumerate_partitions(struct qcom_smem *smem, u16 local_host)
 		else if (host1 == local_host)
 			remote_host = host0;
 		else
+			continue;
+
+		if (remote_host == SMEM_MULTI_HOST)
 			continue;
 
 		if (xa_load(&smem->partitions, remote_host)) {
