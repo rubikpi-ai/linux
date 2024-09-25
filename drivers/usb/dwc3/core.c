@@ -497,7 +497,7 @@ static struct dwc3_event_buffer *dwc3_alloc_one_event_buffer(struct dwc3 *dwc,
  * dwc3_free_event_buffers - frees all allocated event buffers
  * @dwc: Pointer to our controller context structure
  */
-static void dwc3_free_event_buffers(struct dwc3 *dwc)
+void dwc3_free_event_buffers(struct dwc3 *dwc)
 {
 	struct dwc3_event_buffer	*evt;
 
@@ -1444,7 +1444,7 @@ static int dwc3_core_init_mode(struct dwc3 *dwc)
 	return 0;
 }
 
-static void dwc3_core_exit_mode(struct dwc3 *dwc)
+void dwc3_core_exit_mode(struct dwc3 *dwc)
 {
 	switch (dwc->dr_mode) {
 	case USB_DR_MODE_PERIPHERAL:
