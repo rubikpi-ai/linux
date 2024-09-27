@@ -393,6 +393,36 @@
 		byte-cntr-class-name = "coresight-tmc-etr1-stream";
 	};
 
+	tgu@4b0e000 {
+		compatible = "arm,primecell", "qcom,coresight-tgu";
+		reg = <0x0 0x4b0e000 0x0 0x1000>;
+		reg-names = "tgu-base";
+		device-name = "tgu_ipcb";
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+
+		tgu-conditions = <4>;
+		tgu-regs = <4>;
+		tgu-steps = <3>;
+		tgu-timer-counters = <8>;
+	};
+
+	tgu@4b0f000 {
+		compatible = "arm,primecell", "qcom,coresight-tgu";
+		reg = <0x0 0x4b0f000 0x0 0x1000>;
+		reg-names = "tgu-base";
+		device-name = "tgu_spmi0";
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+
+		tgu-conditions = <4>;
+		tgu-regs = <8>;
+		tgu-steps = <3>;
+		tgu-timer-counters = <8>;
+	};
+
 	swao_csr: csr@4b11000 {
 		compatible = "qcom,coresight-csr";
 		reg = <0x0 0x4b11000 0x0 0x1000>,
