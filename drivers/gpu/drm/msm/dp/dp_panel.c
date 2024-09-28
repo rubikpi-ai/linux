@@ -108,6 +108,20 @@ static u32 msm_dp_panel_get_supported_bpp(struct msm_dp_panel *msm_dp_panel,
 	return min_supported_bpp;
 }
 
+bool msm_dp_panel_read_mst_cap(struct msm_dp_panel *msm_dp_panel)
+{
+	struct msm_dp_panel_private *panel;
+
+	if (!msm_dp_panel) {
+		DRM_ERROR("invalid input\n");
+		return false;
+	}
+
+	panel = container_of(msm_dp_panel, struct msm_dp_panel_private, msm_dp_panel);
+
+	return drm_dp_read_mst_cap(panel->aux, msm_dp_panel->dpcd);
+}
+
 int msm_dp_panel_read_link_caps(struct msm_dp_panel *msm_dp_panel,
 		struct drm_connector *connector)
 {
