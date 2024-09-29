@@ -7,5 +7,7 @@
 #include "sa8775p-ride-r3.dts"
 / {
 	model = "Qualcomm QCS9100 Ride Rev3";
-	compatible = "qcom,qcs9100-ride-r3", "qcom,qcs9100", "qcom,sa8775p";
+	compatible = "qcom,qcs9100-ride-r3", "qcom,qcs9100";
+	qcom,msm-id = <667 0x10000>, <667 0x20000>;
+	qcom,board-id = <0x20025 1>;
 };

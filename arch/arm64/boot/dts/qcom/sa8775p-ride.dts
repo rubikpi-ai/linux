@@ -10,10 +10,9 @@
 
 / {
 	model = "Qualcomm SA8775P Ride";
-	compatible = "qcom,sa8775p-ride", "qcom,qcs9100", "qcom,sa8775p";
-	qcom,msm-id = <533 0x10000>, <534 0x10000>, <534 0x20000>,
-		      <667 0x10000>, <667 0x20000>;
-	qcom,board-id = <0x19 0>, <0x25 1>;
+	compatible = "qcom,sa8775p-ride", "qcom,sa8775p";
+	qcom,msm-id = <533 0x10000>, <534 0x10000>, <534 0x20000>;
+	qcom,board-id = <0x10019 0>, <0x10025 1>;
 };
 
 &ethernet0 {
