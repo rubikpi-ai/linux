@@ -12,6 +12,6 @@
 #include "turbox-c6490p-devkit.dtsi"
 
 / {
-	model = "Thundercomm, Inc. Turbox C6490P devkit";
+	model = "Thundercomm, Inc. Rubik Pi C6490P";
 	compatible = "qcom,qcm6490-addons-idp","qcom,sc7280";
 };
