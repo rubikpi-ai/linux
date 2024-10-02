@@ -44,6 +44,7 @@ void msm_dp_display_debugfs_init(struct msm_dp *msm_dp_display, struct dentry *d
 void msm_dp_display_atomic_post_disable(struct msm_dp *dp_display);
 void msm_dp_display_atomic_disable(struct msm_dp *dp_display);
 void msm_dp_display_atomic_enable(struct msm_dp *dp_display);
+void msm_dp_display_atomic_prepare(struct msm_dp *dp);
 void msm_dp_display_mode_set(struct msm_dp *dp,
 			     const struct drm_display_mode *mode,
 			     const struct drm_display_mode *adjusted_mode);
