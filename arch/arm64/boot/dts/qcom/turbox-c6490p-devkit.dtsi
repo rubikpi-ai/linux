@@ -1191,3 +1191,11 @@
 	status = "okay";
 	allow-set-time;
 };
+
+&tcsr {
+	status = "disabled";
+};
+
+&pm7325b {
+	status = "disabled";
+};
