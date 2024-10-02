@@ -878,7 +878,7 @@ static int msm_dp_display_enable(struct msm_dp_display_private *dp)
 		return 0;
 	}
 
-	rc = msm_dp_ctrl_on_stream(dp->ctrl);
+	rc = msm_dp_ctrl_on_stream(dp->ctrl, dp->panel);
 	if (!rc)
 		msm_dp_display->power_on = true;
 
@@ -931,7 +931,7 @@ static int msm_dp_display_disable(struct msm_dp_display_private *dp)
 	if (!msm_dp_display->power_on)
 		return 0;
 
-	msm_dp_ctrl_clear_vsc_sdp_pkt(dp->ctrl);
+	msm_dp_ctrl_clear_vsc_sdp_pkt(dp->ctrl, dp->panel);
 
 	/* dongle is still connected but sinks are disconnected */
 	if (dp->link->sink_count == 0)
