@@ -20,6 +20,7 @@
 #include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
 #include <linux/firmware/qcom/qcom_scm.h>
+#include <linux/firmware/qcom/qcom_tzmem.h>
 #include <linux/regulator/consumer.h>
 #include <linux/remoteproc.h>
 #include <linux/soc/qcom/mdt_loader.h>
@@ -115,6 +116,7 @@ struct qcom_adsp {
 	struct qcom_scm_pas_metadata dtb_pas_metadata;
 
 	struct qcom_devmem_table *devmem;
+	struct qcom_tzmem_area *tzmem;
 };
 
 static void adsp_segment_dump(struct rproc *rproc, struct rproc_dump_segment *segment,
@@ -254,6 +256,43 @@ release_dtb_firmware:
 	return ret;
 }
 
+static int adsp_create_shmbridge(struct qcom_adsp *adsp)
+{
+	struct qcom_tzmem_area *rproc_tzmem;
+	struct rproc *rproc = adsp->rproc;
+	int ret;
+
+	if (!rproc->has_iommu)
+		return 0;
+
+	rproc_tzmem = devm_kzalloc(adsp->dev, sizeof(*rproc_tzmem), GFP_KERNEL);
+	if (!rproc_tzmem)
+		return -ENOMEM;
+
+	rproc_tzmem->size = PAGE_ALIGN(adsp->mem_size);
+	rproc_tzmem->paddr = adsp->mem_phys;
+	ret = qcom_tzmem_init_area(rproc_tzmem);
+	if (ret) {
+		dev_err(adsp->dev,
+			"failed to create shmbridge for carveout: %d\n", ret);
+		return ret;
+	}
+
+	adsp->tzmem = rproc_tzmem;
+
+	return ret;
+}
+
+static void adsp_delete_shmbridge(struct qcom_adsp *adsp)
+{
+	struct rproc *rproc = adsp->rproc;
+
+	if (!rproc->has_iommu)
+		return;
+
+	qcom_tzmem_cleanup_area(adsp->tzmem);
+}
+
 static int adsp_start(struct rproc *rproc)
 {
 	struct qcom_adsp *adsp = rproc->priv;
@@ -309,6 +348,10 @@ static int adsp_start(struct rproc *rproc)
 
 	qcom_pil_info_store(adsp->info_name, adsp->mem_phys, adsp->mem_size);
 
+	ret = adsp_create_shmbridge(adsp);
+	if (ret)
+		goto release_pas_metadata;
+
 	ret = qcom_scm_pas_auth_and_reset(adsp->pas_id);
 	if (ret) {
 		dev_err(adsp->dev,
@@ -316,6 +359,7 @@ static int adsp_start(struct rproc *rproc)
 		goto release_pas_metadata;
 	}
 
+	adsp_delete_shmbridge(adsp);
 	ret = qcom_q6v5_wait_for_start(&adsp->q6v5, msecs_to_jiffies(5000));
 	if (ret == -ETIMEDOUT) {
 		dev_err(adsp->dev, "start timed out\n");
