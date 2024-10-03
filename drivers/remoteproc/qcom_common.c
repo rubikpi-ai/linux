@@ -571,5 +571,101 @@ int qcom_map_unmap_carveout(struct rproc *rproc, phys_addr_t mem_phys, size_t me
 }
 EXPORT_SYMBOL_GPL(qcom_map_unmap_carveout);
 
+/**
+ * qcom_map_devmem() - Map the device memories needed by Remoteproc using IOMMU
+ *
+ * When Qualcomm EL2 hypervisor(QHEE) present, device memories needed for remoteproc
+ * processors is managed by it and Linux remoteproc drivers should not call
+ * this and its respective unmap function in such scenario. This function
+ * should only be called if remoteproc IOMMU translation need to be managed
+ * from Linux side.
+ *
+ * @rproc: rproc handle
+ * @devmem_table: list of devmem regions to map
+ * @use_sid: decision to append sid to iova
+ * @sid: SID value
+ */
+int qcom_map_devmem(struct rproc *rproc, struct qcom_devmem_table *devmem_table,
+		    bool use_sid, unsigned long sid)
+{
+	struct qcom_devmem_info *info;
+	unsigned long sid_def_val;
+	int ret;
+	int i;
+
+	if (!rproc->has_iommu)
+		return 0;
+
+	if (!rproc->domain)
+		return -EINVAL;
+
+	/* remoteproc may not have devmem data */
+	if (!devmem_table)
+		return 0;
+
+	if (use_sid && sid)
+		sid_def_val = sid & SID_MASK_DEFAULT;
+
+	info = &devmem_table->entries[0];
+	for (i = 0; i < devmem_table->num_entries; i++, info++) {
+		/*
+		 * Remote processor like ADSP supports up to 36 bit device
+		 * address space and some of its clients like fastrpc uses
+		 * upper 32-35 bits to keep lower 4 bits of its SID to use
+		 * larger address space. To keep this consistent across other
+		 * use cases add remoteproc SID configuration for firmware
+		 * to IOMMU for carveouts.
+		 */
+		if (use_sid)
+			info->da |= ((uint64_t)sid_def_val << 32);
+
+		ret = iommu_map(rproc->domain, info->da, info->pa, info->len, info->flags,
+				GFP_KERNEL);
+		if (ret) {
+			dev_err(&rproc->dev, "Unable to map devmem, ret: %d\n", ret);
+			if (use_sid)
+				info->da &= ~(SID_MASK_DEFAULT << 32);
+			goto undo_mapping;
+		}
+	}
+
+	return 0;
+
+undo_mapping:
+	for (i = i - 1; i >= 0; i--, info--) {
+		iommu_unmap(rproc->domain, info->da, info->len);
+		if (use_sid)
+			info->da &= ~(SID_MASK_DEFAULT << 32);
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(qcom_map_devmem);
+
+/**
+ * qcom_unmap_devmem() -  unmap the device memories needed by Remoteproc using IOMMU
+ *
+ * @rproc:		rproc handle
+ * @devmem_table:	list of devmem regions to unmap
+ * @use_sid:		decision to append sid to iova
+ */
+void qcom_unmap_devmem(struct rproc *rproc, struct qcom_devmem_table *devmem_table,
+		       bool use_sid)
+{
+	struct qcom_devmem_info *info;
+	int i;
+
+	if (!rproc->has_iommu || !rproc->domain || !devmem_table)
+		return;
+
+	info = &devmem_table->entries[0];
+	for (i = 0; i < devmem_table->num_entries; i++, info++) {
+		iommu_unmap(rproc->domain, info->da, info->len);
+		if (use_sid)
+			info->da &= ~(SID_MASK_DEFAULT << 32);
+	}
+}
+EXPORT_SYMBOL_GPL(qcom_unmap_devmem);
+
 MODULE_DESCRIPTION("Qualcomm Remoteproc helper driver");
 MODULE_LICENSE("GPL v2");

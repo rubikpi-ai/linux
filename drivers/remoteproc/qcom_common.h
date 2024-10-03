@@ -34,6 +34,36 @@ struct qcom_rproc_ssr {
 	struct qcom_ssr_subsystem *info;
 };
 
+/**
+ * struct qcom_devmem_info - iommu devmem region
+ * @da: device address
+ * @pa: physical address
+ * @len: length (in bytes)
+ * @flags: iommu protection flags
+ *
+ * The resource entry carries the device address to which a physical address is
+ * to be mapped with required permissions in flag. The pa, len is expected to
+ * be a physically contiguous memory region.
+ */
+struct qcom_devmem_info {
+	u64 da;
+	u64 pa;
+	u32 len;
+	u32 flags;
+};
+
+/**
+ * struct qcom_devmem_table - iommu devmem entries
+ * @num_entries: number of devmem entries
+ * @entries: devmem entries
+ *
+ * The table that carries each devmem resource entry.
+ */
+struct qcom_devmem_table {
+	int num_entries;
+	struct qcom_devmem_info entries[];
+};
+
 void qcom_minidump(struct rproc *rproc, unsigned int minidump_id,
 			void (*rproc_dumpfn_t)(struct rproc *rproc,
 				struct rproc_dump_segment *segment, void *dest, size_t offset,
@@ -54,6 +84,11 @@ void qcom_remove_ssr_subdev(struct rproc *rproc, struct qcom_rproc_ssr *ssr);
 
 int qcom_map_unmap_carveout(struct rproc *rproc, phys_addr_t mem_phys, size_t mem_size,
 			    bool map, bool use_sid, unsigned long sid);
+
+int qcom_map_devmem(struct rproc *rproc, struct qcom_devmem_table *table,
+		    bool use_sid, unsigned long sid);
+void qcom_unmap_devmem(struct rproc *rproc, struct qcom_devmem_table *table,
+		       bool use_sid);
 
 #if IS_ENABLED(CONFIG_QCOM_SYSMON)
 struct qcom_sysmon *qcom_add_sysmon_subdev(struct rproc *rproc,
