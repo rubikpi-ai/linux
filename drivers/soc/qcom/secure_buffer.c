@@ -99,7 +99,6 @@ alloc_debug_tracking(int *dst_vmids, int *dst_perms, int dest_nelems)
 	memcpy(track->vmids, dst_vmids, nr_acl_entries * sizeof(*dst_vmids));
 	memcpy(track->perms, dst_perms, nr_acl_entries * sizeof(*dst_perms));
 
-
 	nr_stack_entries = stack_trace_save(stack_entries, ARRAY_SIZE(stack_entries), 2);
 	track->hdl = stack_depot_save(stack_entries, nr_stack_entries, GFP_KERNEL);
 	if (!track->hdl)
@@ -139,8 +138,7 @@ static bool is_reclaim(struct qcom_scm_current_perm_info *newvms, size_t newvms_
 }
 
 static void check_debug_tracking(struct qcom_scm_mem_map_info *mem_regions,
-				size_t mem_regions_sz, u32 *srcvms,
-				size_t src_sz,
+				size_t mem_regions_sz,
 				struct qcom_scm_current_perm_info *newvms,
 				size_t newvms_sz)
 {
@@ -176,8 +174,7 @@ static void check_debug_tracking(struct qcom_scm_mem_map_info *mem_regions,
 }
 
 static void update_debug_tracking(struct qcom_scm_mem_map_info *mem_regions,
-				size_t mem_regions_sz, u32 *srcvms,
-				size_t src_sz,
+				size_t mem_regions_sz,
 				struct qcom_scm_current_perm_info *newvms,
 				size_t newvms_sz,
 				struct hyp_assign_debug_track *new)
@@ -219,15 +216,13 @@ static void put_track(struct hyp_assign_debug_track *track)
 {
 }
 static void check_debug_tracking(struct qcom_scm_mem_map_info *mem_regions,
-				size_t mem_regions_sz, u32 *srcvms,
-				size_t src_sz,
+				size_t mem_regions_sz,
 				struct qcom_scm_current_perm_info *newvms,
 				size_t newvms_sz)
 {
 }
 static void update_debug_tracking(struct qcom_scm_mem_map_info *mem_regions,
-				size_t mem_regions_sz, u32 *srcvms,
-				size_t src_sz,
+				size_t mem_regions_sz,
 				struct qcom_scm_current_perm_info *newvms,
 				size_t newvms_sz,
 				struct hyp_assign_debug_track *new)
@@ -284,9 +279,9 @@ static unsigned int get_batches_from_sgl(struct qcom_scm_mem_map_info *sgt_copy,
 }
 
 static int batched_hyp_assign(struct sg_table *table, u32 *source_vmids,
-			      size_t source_size,
+			      size_t source_size_bytes,
 			      struct qcom_scm_current_perm_info *destvms,
-			      size_t destvms_size,
+			      size_t destvms_size_bytes,
 			      struct hyp_assign_debug_track *track)
 {
 	unsigned int batch_start = 0;
@@ -325,16 +320,15 @@ static int batched_hyp_assign(struct sg_table *table, u32 *source_vmids,
 		}
 
 		check_debug_tracking(mem_regions_buf, mem_regions_buf_size,
-				     source_vmids, source_size,
-				     destvms, destvms_size);
+				     destvms, destvms_size_bytes);
 
 		trace_hyp_assign_batch_start(mem_regions_buf,
 					     batches_processed);
 		batch_assign_start_ts = ktime_get();
 		ret = qcom_scm_assign_mem_regions(mem_regions_buf,
 						  mem_regions_buf_size,
-						  source_vmids, source_size,
-						  destvms, destvms_size);
+						  source_vmids, source_size_bytes,
+						  destvms, destvms_size_bytes);
 
 		trace_hyp_assign_batch_end(ret, ktime_us_delta(ktime_get(),
 					   batch_assign_start_ts));
@@ -354,8 +348,7 @@ static int batched_hyp_assign(struct sg_table *table, u32 *source_vmids,
 		}
 
 		update_debug_tracking(mem_regions_buf, mem_regions_buf_size,
-				     source_vmids, source_size,
-				     destvms, destvms_size, track);
+				      destvms, destvms_size_bytes, track);
 		batch_start += batches_processed;
 	}
 	total_delta = ktime_us_delta(ktime_get(), first_assign_ts);
