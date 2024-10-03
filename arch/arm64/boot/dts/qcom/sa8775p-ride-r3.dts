@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2023, Linaro Limited
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 /dts-v1/;
@@ -9,18 +8,18 @@
 #include "sa8775p-ride.dtsi"
 
 / {
-	model = "Qualcomm SA8775P Ride";
-	compatible = "qcom,sa8775p-ride", "qcom,sa8775p";
+	model = "Qualcomm SA8775P Ride Rev3";
+	compatible = "qcom,sa8775p-ride-r3", "qcom,sa8775p";
 	qcom,msm-id = <533 0x10000>, <534 0x10000>, <534 0x20000>;
-	qcom,board-id = <0x10019 0>, <0x10025 1>;
+	qcom,board-id = <0x20025 1>;
 };
 
 &ethernet0 {
-	phy-mode = "sgmii";
+	phy-mode = "2500base-x";
 };
 
 &ethernet1 {
-	phy-mode = "sgmii";
+	phy-mode = "2500base-x";
 };
 
 &mdio {
@@ -29,7 +28,7 @@
 	#size-cells = <0>;
 
 	sgmii_phy0: phy@8 {
-		compatible = "ethernet-phy-id0141.0dd4";
+		compatible = "ethernet-phy-id31c3.1c33";
 		reg = <0x8>;
 		device_type = "ethernet-phy";
 		interrupts-extended = <&tlmm 7 IRQ_TYPE_EDGE_FALLING>;
@@ -38,9 +37,9 @@
 		reset-deassert-us = <70000>;
 	};
 
-	sgmii_phy1: phy@a {
-		compatible = "ethernet-phy-id0141.0dd4";
-		reg = <0xa>;
+	sgmii_phy1: phy@0 {
+		compatible = "ethernet-phy-id31c3.1c33";
+		reg = <0x0>;
 		device_type = "ethernet-phy";
 		interrupts-extended = <&tlmm 26 IRQ_TYPE_EDGE_FALLING>;
 		reset-gpios = <&pmm8654au_2_gpios 9 GPIO_ACTIVE_LOW>;
