@@ -5,10 +5,10 @@
 
 /dts-v1/;
 
-#include "sa8775p-ride.dts"
+#include "sa8775p-ride-r3.dts"
 #include "sa8775p-addons-ride.dtsi"
 
 / {
-	model = "Qualcomm SA8775P Ride";
-	compatible = "qcom,sa8775p-addons-ride", "qcom,sa8775p";
+	model = "Qualcomm SA8775P Ride Rev3";
+	compatible = "qcom,sa8775p-addons-ride-r3", "qcom,sa8775p";
 };
