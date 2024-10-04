@@ -950,13 +950,16 @@ properties:
 
       - items:
           - enum:
+              - qcom,sa8775p-addons-ride
+              - qcom,sa8775p-addons-ride-r3
               - qcom,sa8775p-ride
               - qcom,sa8775p-ride-r3
           - const: qcom,sa8775p
-          - const: qcom,qcs9100
 
       - items:
           - enum:
+              - qcom,qcs9100-addons-ride
+              - qcom,qcs9100-addons-ride-r3
               - qcom,qcs9100-ride
               - qcom,qcs9100-ride-r3
           - const: qcom,qcs9100
