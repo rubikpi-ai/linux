@@ -29,7 +29,9 @@ allOf:
       properties:
         compatible:
           contains:
-            const: qcom,sa8255p-geni-spi
+            enum:
+              - qcom,sa7255p-geni-spi
+              - qcom,sa8255p-geni-spi
     then:
       required:
         - power-domains
@@ -59,6 +61,7 @@ properties:
   compatible:
     enum:
       - qcom,geni-spi
+      - qcom,sa7255p-geni-spi
       - qcom,sa8255p-geni-spi
 
   clocks:

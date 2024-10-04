@@ -22,6 +22,7 @@ properties:
     enum:
       - qcom,geni-se-qup
       - qcom,geni-se-i2c-master-hub
+      - qcom,sa7255p-geni-se-qup
       - qcom,sa8255p-geni-se-qup
 
   reg:
@@ -83,7 +84,9 @@ allOf:
         properties:
           compatible:
             contains:
-              const: qcom,sa8255p-geni-se-qup
+              enum:
+                - qcom,sa7255p-geni-se-qup
+                - qcom,sa8255p-geni-se-qup
     then:
       required:
         - clocks

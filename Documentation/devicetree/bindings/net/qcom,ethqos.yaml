@@ -19,7 +19,9 @@ allOf:
       properties:
         compatible:
           contains:
-            const: qcom,sa8255p-ethqos
+            enum:
+              - qcom,sa7255p-ethqos
+              - qcom,sa8255p-ethqos
     then:
       required:
         - power-domains
@@ -57,6 +59,7 @@ properties:
     enum:
       - qcom,qcs404-ethqos
       - qcom,qcs8300-ethqos
+      - qcom,sa7255p-ethqos
       - qcom,sa8255p-ethqos
       - qcom,sa8775p-ethqos
       - qcom,sc8280xp-ethqos

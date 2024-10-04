@@ -18,6 +18,8 @@ allOf:
         compatible:
           contains:
             enum:
+              - qcom,sa7255p-geni-uart
+              - qcom,sa7255p-geni-debug-uart
               - qcom,sa8255p-geni-uart
               - qcom,sa8255p-geni-debug-uart
     then:
@@ -47,6 +49,8 @@ properties:
     enum:
       - qcom,geni-uart
       - qcom,geni-debug-uart
+      - qcom,sa7255p-geni-uart
+      - qcom,sa7255p-geni-debug-uart
       - qcom,sa8255p-geni-uart
       - qcom,sa8255p-geni-debug-uart
 
