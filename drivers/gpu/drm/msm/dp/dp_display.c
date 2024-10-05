@@ -819,16 +819,40 @@ error:
 }
 
 static int msm_dp_display_set_mode(struct msm_dp *msm_dp_display,
-			       struct msm_dp_display_mode *mode)
+				   const struct drm_display_mode *adjusted_mode,
+				   struct msm_dp_panel *msm_dp_panel)
 {
-	struct msm_dp_display_private *dp;
+	struct msm_dp_display_mode msm_dp_mode;
 
-	dp = container_of(msm_dp_display, struct msm_dp_display_private, msm_dp_display);
+	memset(&msm_dp_mode, 0x0, sizeof(struct msm_dp_display_mode));
 
-	drm_mode_copy(&dp->panel->msm_dp_mode.drm_mode, &mode->drm_mode);
-	dp->panel->msm_dp_mode.bpp = mode->bpp;
-	dp->panel->msm_dp_mode.out_fmt_is_yuv_420 = mode->out_fmt_is_yuv_420;
-	msm_dp_panel_init_panel_info(dp->panel);
+	if (msm_dp_display_check_video_test(msm_dp_display))
+		msm_dp_mode.bpp = msm_dp_display_get_test_bpp(msm_dp_display);
+	else /* Default num_components per px = 3 */
+		msm_dp_mode.bpp = msm_dp_panel->connector->display_info.bpc * 3;
+
+	if (!msm_dp_mode.bpp)
+		msm_dp_mode.bpp = 24; /* Default bpp */
+
+	drm_mode_copy(&msm_dp_mode.drm_mode, adjusted_mode);
+
+	msm_dp_mode.v_active_low =
+		!!(msm_dp_mode.drm_mode.flags & DRM_MODE_FLAG_NVSYNC);
+
+	msm_dp_mode.h_active_low =
+		!!(msm_dp_mode.drm_mode.flags & DRM_MODE_FLAG_NHSYNC);
+
+	msm_dp_mode.out_fmt_is_yuv_420 =
+		drm_mode_is_420_only(&msm_dp_display->connector->display_info, adjusted_mode) &&
+		msm_dp_panel->vsc_sdp_supported;
+
+	drm_mode_copy(&msm_dp_panel->msm_dp_mode.drm_mode, &msm_dp_mode.drm_mode);
+	msm_dp_panel->msm_dp_mode.bpp = msm_dp_mode.bpp;
+	msm_dp_panel->msm_dp_mode.out_fmt_is_yuv_420 = msm_dp_mode.out_fmt_is_yuv_420;
+	msm_dp_panel->msm_dp_mode.v_active_low = msm_dp_mode.v_active_low;
+	msm_dp_panel->msm_dp_mode.h_active_low = msm_dp_mode.h_active_low;
+	msm_dp_panel_init_panel_info(msm_dp_panel);
+
 	return 0;
 }
 
@@ -1684,34 +1708,12 @@ void msm_dp_display_mode_set(struct msm_dp *dp,
 {
 	struct msm_dp_display_private *msm_dp_display;
 	struct msm_dp_panel *msm_dp_panel;
-	struct msm_dp_display_mode msm_dp_mode;
 
 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
 	msm_dp_panel = msm_dp_display->panel;
 
-	memset(&msm_dp_mode, 0x0, sizeof(struct msm_dp_display_mode));
 
-	if (msm_dp_display_check_video_test(dp))
-		msm_dp_mode.bpp = msm_dp_display_get_test_bpp(dp);
-	else /* Default num_components per pixel = 3 */
-		msm_dp_mode.bpp = dp->connector->display_info.bpc * 3;
-
-	if (!msm_dp_mode.bpp)
-		msm_dp_mode.bpp = 24; /* Default bpp */
-
-	drm_mode_copy(&msm_dp_mode.drm_mode, adjusted_mode);
-
-	msm_dp_mode.v_active_low =
-		!!(msm_dp_mode.drm_mode.flags & DRM_MODE_FLAG_NVSYNC);
-
-	msm_dp_mode.h_active_low =
-		!!(msm_dp_mode.drm_mode.flags & DRM_MODE_FLAG_NHSYNC);
-
-	msm_dp_mode.out_fmt_is_yuv_420 =
-		drm_mode_is_420_only(&dp->connector->display_info, adjusted_mode) &&
-		msm_dp_panel->vsc_sdp_supported;
-
-	msm_dp_display_set_mode(dp, &msm_dp_mode);
+	msm_dp_display_set_mode(dp, adjusted_mode, msm_dp_panel);
 
 	/* populate wide_bus_support to different layers */
 	msm_dp_display->ctrl->wide_bus_en =
