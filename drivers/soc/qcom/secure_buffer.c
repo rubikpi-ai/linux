@@ -26,6 +26,8 @@
 #define BATCH_MAX_SIZE SZ_2M
 #define BATCH_MAX_SECTIONS 32
 
+#define HLOS_DEST_ARR_SIZE 1
+
 static struct device *qcom_secure_buffer_dev;
 static bool vmid_cp_camera_preview_ro;
 
@@ -278,11 +280,66 @@ static unsigned int get_batches_from_sgl(struct qcom_scm_mem_map_info *sgt_copy,
 	return i;
 }
 
-static int batched_hyp_assign(struct sg_table *table, u32 *source_vmids,
-			      size_t source_size_bytes,
+static inline int _hyp_assign_table(struct sg_table *table, unsigned int sg_nents_to_assign,
+				    u32 *source_vm_list, int source_nelems,
+				    int *dest_vmids, int *dest_perms,
+				    int dest_nelems,
+				    bool rollback_on_assign_failure);
+
+static inline int rollback_batched_assign(struct sg_table *table, unsigned int nents_assigned,
+					  struct qcom_scm_current_perm_info *destvms,
+					  size_t destvms_size_bytes)
+{
+	u32 *new_source_vm_list;
+	int new_source_nelems;
+
+	/* Hard-coded to work with HLOS as the source */
+	int hlos_dest[HLOS_DEST_ARR_SIZE] = {VMID_HLOS};
+	int hlos_perms[HLOS_DEST_ARR_SIZE] = {PERM_READ | PERM_WRITE | PERM_EXEC};
+
+	int ret;
+
+	new_source_nelems = sizeof(*destvms) / destvms_size_bytes;
+	new_source_vm_list = kmalloc_array(new_source_nelems,
+					   sizeof(*new_source_vm_list),
+					   GFP_KERNEL);
+	if (!new_source_vm_list)
+		return -ENOMEM;
+
+	for (int i = 0; i < new_source_nelems; i++)
+		new_source_vm_list[i] = le32_to_cpu(destvms[i].vmid);
+
+	ret = _hyp_assign_table(table, nents_assigned,
+				new_source_vm_list, new_source_nelems,
+				hlos_dest, hlos_perms, HLOS_DEST_ARR_SIZE,
+				false);
+
+	kfree(new_source_vm_list);
+
+	return ret;
+}
+
+/*
+ * batched_hyp_assign() - assigns memory to destvms in batches
+ * @table: sg_table of memory to assign
+ * @nents: the number of entries in @table in the range [0, nents - 1)
+ *	   that we want to assign
+ * @source_vmids: array of source VMIDs
+ * @source_size_bytes: size of @source_vmids in _bytes_, pass directly into
+ *		       qcom_scm_assign_mem()
+ * @destvms: array of VMIDs + permissions for each VMID that we're assigning to
+ * @destvms_size_bytes: size of @destvms in bytes
+ * @track: debug structure used for tracking which pages are and aren't
+ *	   assigned
+ * @rollback_on_assign_failureue: indicates if we should try rolling back an
+ *				  assign attempt
+ */
+static int batched_hyp_assign(struct sg_table *table, unsigned int nents,
+			      u32 *source_vmids, size_t source_size_bytes,
 			      struct qcom_scm_current_perm_info *destvms,
 			      size_t destvms_size_bytes,
-			      struct hyp_assign_debug_track *track)
+			      struct hyp_assign_debug_track *track,
+			      bool rollback_on_assign_failure)
 {
 	unsigned int batch_start = 0;
 	unsigned int batches_processed;
@@ -303,7 +360,7 @@ static int batched_hyp_assign(struct sg_table *table, u32 *source_vmids,
 		return -ENOMEM;
 
 	first_assign_ts = ktime_get();
-	while (batch_start < table->nents) {
+	while (batch_start < nents) {
 		batches_processed = get_batches_from_sgl(mem_regions_buf,
 							 curr_sgl, &next_sgl);
 		curr_sgl = next_sgl;
@@ -334,18 +391,56 @@ static int batched_hyp_assign(struct sg_table *table, u32 *source_vmids,
 					   batch_assign_start_ts));
 		dma_unmap_single(qcom_secure_buffer_dev, entries_dma_addr,
 				 mem_regions_buf_size, DMA_TO_DEVICE);
-		i++;
 
 		if (ret) {
-			pr_info("%s: Failed to assign memory protection, ret = %d\n",
-				__func__, ret);
+			int reclaim_ret;
+
+			pr_err("%s: Failed to assign memory protection, ret = %d, batch = %d\n",
+			       __func__, ret, i);
+
+			if (!rollback_on_assign_failure)
+				/*
+				 * Only called from outer invocation of batched_hyp_assign(),
+				 * user will get -EADDRNOTAVAIL
+				 */
+				break;
+
 			/*
-			 * Make it clear to clients that the memory may no
-			 * longer be in a usable state.
+			 * If we haven't assigned anything yet, there's nothing to roll back,
+			 * don't return -EADDRNOTAVAIL
 			 */
-			ret = -EADDRNOTAVAIL;
+			if (batch_start == 0)
+				break;
+
+			/* We shouldn't roll back if the source VM is not HLOS */
+			if (source_size_bytes > sizeof(*source_vmids) ||
+			    source_vmids[0] != VMID_HLOS) {
+				pr_err("%s: Can only reclaim memory coming from HLOS\n",
+				       __func__);
+				ret = -EADDRNOTAVAIL;
+				break;
+			}
+
+			/* Attempt to reclaim the i - 1 entries we already assigned */
+			reclaim_ret = rollback_batched_assign(table, batch_start - 1, destvms,
+							      destvms_size_bytes);
+
+			if (reclaim_ret) {
+				pr_err("%s: Failed to reclaim memory, ret = %d\n", __func__,
+				       reclaim_ret);
+				/*
+				 * Make it clear to clients that the memory may no
+				 * longer be in a usable state.
+				 */
+				ret = -EADDRNOTAVAIL;
+			} else {
+				pr_err("%s: Reclaimed memory\n", __func__);
+			}
+
 			break;
 		}
+
+		i++;
 
 		update_debug_tracking(mem_regions_buf, mem_regions_buf_size,
 				      destvms, destvms_size_bytes, track);
@@ -387,10 +482,11 @@ int page_accessible(unsigned long pfn)
  *  When -EADDRNOTAVAIL is returned the memory may no longer be in
  *  a usable state and should no longer be accessed by the HLOS.
  */
-int hyp_assign_table(struct sg_table *table,
-			u32 *source_vm_list, int source_nelems,
-			int *dest_vmids, int *dest_perms,
-			int dest_nelems)
+static inline int _hyp_assign_table(struct sg_table *table, unsigned int sg_nents_to_assign,
+				    u32 *source_vm_list, int source_nelems,
+				    int *dest_vmids, int *dest_perms,
+				    int dest_nelems,
+				    bool rollback_on_assign_failure)
 {
 	int ret = 0;
 	u32 *source_vm_copy;
@@ -453,8 +549,10 @@ int hyp_assign_table(struct sg_table *table,
 			      dest_perms, dest_nelems);
 
 
-	ret = batched_hyp_assign(table, source_vm_copy, source_vm_copy_size,
-				 dest_vm_copy, dest_vm_copy_size, track);
+	ret = batched_hyp_assign(table, sg_nents_to_assign, source_vm_copy,
+				 source_vm_copy_size, dest_vm_copy,
+				 dest_vm_copy_size, track,
+				 rollback_on_assign_failure);
 
 	if (!ret) {
 		while (dest_nelems--) {
@@ -482,6 +580,15 @@ out_unmap_source:
 out_free_source:
 	kfree(source_vm_copy);
 	return ret;
+}
+
+int hyp_assign_table(struct sg_table *table,
+		     u32 *source_vm_list, int source_nelems,
+		     int *dest_vmids, int *dest_perms,
+		     int dest_nelems)
+{
+	return _hyp_assign_table(table, table->nents, source_vm_list, source_nelems,
+				 dest_vmids, dest_perms, dest_nelems, true);
 }
 EXPORT_SYMBOL_GPL(hyp_assign_table);
 
