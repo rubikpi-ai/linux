@@ -46,6 +46,8 @@ struct msm_dp_panel {
 	bool video_test;
 	bool vsc_sdp_supported;
 
+	enum msm_dp_stream_id stream_id;
+
 	u32 max_dp_lanes;
 	u32 max_dp_link_rate;
 

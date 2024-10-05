@@ -937,7 +937,7 @@ static int msm_dp_display_disable(struct msm_dp_display_private *dp)
 	if (dp->link->sink_count == 0)
 		msm_dp_ctrl_psm_config(dp->ctrl);
 
-	msm_dp_ctrl_stream_clk_off(dp->ctrl);
+	msm_dp_ctrl_stream_clk_off(dp->ctrl, dp->panel);
 
 	msm_dp_ctrl_off_link(dp->ctrl);
 
@@ -962,6 +962,29 @@ int msm_dp_display_set_plugged_cb(struct msm_dp *msm_dp_display,
 	msm_dp_display->codec_dev = codec_dev;
 	plugged = msm_dp_display->link_ready;
 	msm_dp_display_handle_plugged_change(msm_dp_display, plugged);
+
+	return 0;
+}
+
+int msm_dp_display_set_stream_id(struct msm_dp *dp,
+				 struct msm_dp_panel *panel, u32 strm_id)
+{
+	struct msm_dp_display_private *msm_dp_display;
+
+	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+
+	if (!msm_dp_display) {
+		DRM_ERROR("invalid input\n");
+		return -EINVAL;
+	}
+
+	if (strm_id >= DP_STREAM_MAX) {
+		DRM_ERROR("invalid stream id:%d\n", strm_id);
+		return -EINVAL;
+	}
+
+	if (panel)
+		panel->stream_id = strm_id;
 
 	return 0;
 }
@@ -1576,6 +1599,8 @@ void msm_dp_display_atomic_enable(struct msm_dp *dp)
 		msm_dp_hpd_plug_handle(msm_dp_display, 0);
 
 	mutex_lock(&msm_dp_display->event_mutex);
+
+	msm_dp_display_set_stream_id(dp, msm_dp_display->panel, 0);
 
 	rc = msm_dp_display_enable(msm_dp_display);
 	if (rc)
