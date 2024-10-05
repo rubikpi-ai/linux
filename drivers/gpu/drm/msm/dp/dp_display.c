@@ -937,7 +937,9 @@ static int msm_dp_display_disable(struct msm_dp_display_private *dp)
 	if (dp->link->sink_count == 0)
 		msm_dp_ctrl_psm_config(dp->ctrl);
 
-	msm_dp_ctrl_off(dp->ctrl);
+	msm_dp_ctrl_stream_clk_off(dp->ctrl);
+
+	msm_dp_ctrl_off_link(dp->ctrl);
 
 	/* re-init the PHY so that we can listen to Dongle disconnect */
 	if (dp->link->sink_count == 0)
