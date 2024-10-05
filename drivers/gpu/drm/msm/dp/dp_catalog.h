@@ -47,10 +47,6 @@ enum msm_dp_catalog_audio_header_type {
 	DP_AUDIO_SDP_HEADER_MAX,
 };
 
-struct msm_dp_catalog {
-	bool wide_bus_en;
-};
-
 /* stream id */
 enum msm_dp_stream_id {
 	DP_STREAM_0,
@@ -58,6 +54,11 @@ enum msm_dp_stream_id {
 	DP_STREAM_2,
 	DP_STREAM_3,
 	DP_STREAM_MAX,
+};
+
+struct msm_dp_catalog {
+	bool wide_bus_en;
+	enum msm_dp_stream_id stream_id;
 };
 
 /* Debug module */

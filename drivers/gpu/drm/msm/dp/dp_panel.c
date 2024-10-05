@@ -309,6 +309,7 @@ static int msm_dp_panel_setup_vsc_sdp_yuv_420(struct msm_dp_panel *msm_dp_panel)
 	panel = container_of(msm_dp_panel, struct msm_dp_panel_private, msm_dp_panel);
 	catalog = panel->catalog;
 	msm_dp_mode = &msm_dp_panel->msm_dp_mode;
+	catalog->stream_id = msm_dp_panel->stream_id;
 
 	memset(&vsc_sdp_data, 0, sizeof(vsc_sdp_data));
 

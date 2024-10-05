@@ -178,6 +178,7 @@ static void msm_dp_ctrl_configure_source_params(struct msm_dp_ctrl_private *ctrl
 		struct msm_dp_panel *msm_dp_panel)
 {
 	u32 cc, tb;
+	ctrl->catalog->stream_id = msm_dp_panel->stream_id;
 
 	msm_dp_catalog_ctrl_lane_mapping(ctrl->catalog);
 	msm_dp_catalog_setup_peripheral_flush(ctrl->catalog);
@@ -2061,6 +2062,7 @@ void msm_dp_ctrl_clear_vsc_sdp_pkt(struct msm_dp_ctrl *msm_dp_ctrl, struct msm_d
 	struct msm_dp_ctrl_private *ctrl;
 
 	ctrl = container_of(msm_dp_ctrl, struct msm_dp_ctrl_private, msm_dp_ctrl);
+	ctrl->catalog->stream_id = dp_panel->stream_id;
 	msm_dp_catalog_panel_disable_vsc_sdp(ctrl->catalog);
 }
 
