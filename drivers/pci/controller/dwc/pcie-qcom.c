@@ -94,6 +94,7 @@
 
  /* PARF_INT_ALL_{STATUS/CLEAR/MASK} register fields */
  #define PARF_INT_ALL_LINK_UP			BIT(13)
+#define PARF_INT_MSI_DEV_0_7                   GENMASK(30, 23)
 
 /* PARF_PM_STTS register fields */
 #define PM_ENTER_L23				BIT(5)
@@ -1631,7 +1632,8 @@ static int qcom_pcie_probe(struct platform_device *pdev)
 			goto err_host_deinit;
 		}
 
-		writel_relaxed(PARF_INT_ALL_LINK_UP, pcie->parf + PARF_INT_ALL_MASK);
+		writel_relaxed(PARF_INT_ALL_LINK_UP | PARF_INT_MSI_DEV_0_7,
+			       pcie->parf + PARF_INT_ALL_MASK);
 	}
 	/* If the soc features RPMh, cmd_db must have been prepared by now */
 	pcie->soc_is_rpmh = !cmd_db_ready();
