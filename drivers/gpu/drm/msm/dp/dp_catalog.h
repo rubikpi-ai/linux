@@ -135,4 +135,7 @@ void msm_dp_catalog_audio_config_sdp(struct msm_dp_catalog *catalog);
 void msm_dp_catalog_audio_init(struct msm_dp_catalog *catalog);
 void msm_dp_catalog_audio_sfe_level(struct msm_dp_catalog *catalog, u32 safe_to_exit_level);
 
+/* DP MST APIs */
+void msm_dp_catalog_trigger_act(struct msm_dp_catalog *msm_dp_catalog);
+bool msm_dp_catalog_read_act_complete_sts(struct msm_dp_catalog *msm_dp_catalog);
 #endif /* _DP_CATALOG_H_ */

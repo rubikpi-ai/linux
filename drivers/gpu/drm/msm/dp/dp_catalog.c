@@ -1077,6 +1077,27 @@ void msm_dp_catalog_panel_disable_vsc_sdp(struct msm_dp_catalog *msm_dp_catalog)
 	msm_dp_catalog_panel_update_sdp(msm_dp_catalog);
 }
 
+void msm_dp_catalog_trigger_act(struct msm_dp_catalog *msm_dp_catalog)
+{
+	struct msm_dp_catalog_private *catalog;
+
+	catalog = container_of(msm_dp_catalog, struct msm_dp_catalog_private, msm_dp_catalog);
+
+	msm_dp_write_link(catalog, REG_DP_MST_ACT, 0x1);
+
+	/* make sure ACT signal is performed */
+	wmb();
+}
+
+bool msm_dp_catalog_read_act_complete_sts(struct msm_dp_catalog *msm_dp_catalog)
+{
+	struct msm_dp_catalog_private *catalog;
+
+	catalog = container_of(msm_dp_catalog, struct msm_dp_catalog_private, msm_dp_catalog);
+
+	return msm_dp_read_link(catalog, REG_DP_MST_ACT);
+}
+
 void msm_dp_catalog_panel_tpg_enable(struct msm_dp_catalog *msm_dp_catalog,
 				struct drm_display_mode *drm_mode)
 {
