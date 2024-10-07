@@ -1668,13 +1668,13 @@ void msm_dp_display_atomic_disable(struct msm_dp *dp)
 
 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
 
-	msm_dp_ctrl_push_idle(msm_dp_display->ctrl);
-
 	if (dp->mst_active) {
+		msm_dp_ctrl_push_vcpf(msm_dp_display->ctrl, msm_dp_display->panel);
 		msm_dp_ctrl_mst_stream_channel_slot_setup(msm_dp_display->ctrl,
 							  msm_dp_display->max_stream);
 		msm_dp_ctrl_mst_send_act(msm_dp_display->ctrl);
-	}
+	} else
+		msm_dp_ctrl_push_idle(msm_dp_display->ctrl);
 }
 
 static void msm_dp_display_unprepare(struct msm_dp_display_private *dp)
