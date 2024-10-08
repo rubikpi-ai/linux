@@ -59,6 +59,7 @@ properties:
     enum:
       - qcom,qcs404-ethqos
       - qcom,qcs8300-ethqos
+      - qcom,sa8620p-ethqos
       - qcom,sa7255p-ethqos
       - qcom,sa8255p-ethqos
       - qcom,sa8775p-ethqos
