@@ -1,6 +1,11 @@
 #include "qcm6490-addons-idp.dts"
 
 / {
+	chosen {
+		display_bootargs = "";
+		stdout-path = "serial0:115200n8";
+	};
+
 	aliases {
 		serial1 = &uart4;
 		serial2 = &uart7;
