@@ -510,6 +510,11 @@ static int lt9611_video_check(struct lt9611 *lt9611)
 		}
 	}
 
+	if (lt9611->video_format_id == VIDEO_3840x2160_30HZ) {
+		l9611_write(lt9611->regmap, 0x8302, 0x10);
+		l9611_write(lt9611->regmap, 0x8306, 0x10);
+	}
+
 	return 0;
 
 end:
@@ -1585,7 +1590,6 @@ static void lt9611_HDP_Interrupt_Handle(struct lt9611 *lt9611)
 
 	lt9611_read(lt9611->regmap, 0x825e, &reg);
 	if((reg & 0x04) == 0x04) {
-		pr_err("[litt]%s: %d\n", __func__, __LINE__);
 		msleep(10);
 		lt9611_read(lt9611->regmap, 0x825e, &reg);
 
@@ -1613,7 +1617,6 @@ static void lt9611_HDP_Interrupt_Handle(struct lt9611 *lt9611)
 			l9611_write(lt9611->regmap, 0x8130, 0xea);
 		}
 	} else {
-		pr_err("[litt]%s: %d\n", __func__, __LINE__);
 		lt9611_LowPower_mode(lt9611, 1);
 	}
 }
@@ -1676,7 +1679,6 @@ void lt9611_on(bool on)
 	struct lt9611 *lt9611 = this_lt9611;
 
 	if (on) {
-		pr_err("[litt]%s: %d\n", __func__, __LINE__);
 		lt9611_power_on(lt9611);
 
 		lt9611_mipi_input_analog(lt9611);
