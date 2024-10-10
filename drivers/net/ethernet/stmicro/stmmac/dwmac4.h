@@ -287,11 +287,7 @@ enum power_event {
 
 /* MAC extended config 1 */
 #define GMAC_CONFIG1_SAVE_EN		BIT(24)
-#define GMAC_CONFIG1_SPLM		GENMASK(9, 8)
-#define GMAC_CONFIG1_SPLM_L2OFST_EN BIT(0)
-#define GMAC_CONFIG1_SPLM_SHIFT	8
-#define GMAC_CONFIG1_SAVO		GENMASK(22, 16)
-#define GMAC_CONFIG1_SAVO_SHIFT	16
+#define GMAC_CONFIG1_SPLM(v)	FIELD_PREP(GENMASK(9, 8), v)
 
 /* GMAC GPIO Status reg */
 #define GMAC_GPO0			BIT(16)
