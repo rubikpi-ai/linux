@@ -497,6 +497,12 @@ static int qcom_adreno_smmu_init_context(struct arm_smmu_domain *smmu_domain,
 		pgtbl_cfg->free = qcom_free_pages;
 	}
 
+	if (qsmmu->data->actlrcfg_gfx) {
+		actlrcfg = qsmmu->data->actlrcfg_gfx;
+		actlrcfg_size = qsmmu->data->actlrcfg_gfx_size;
+		arm_smmu_set_actlr(dev, smmu, cbndx, actlrcfg, actlrcfg_size);
+	}
+
 	/* Only enable split pagetables for the GPU device (SID 0) */
 	if (!qcom_adreno_smmu_is_gpu_device(dev))
 		return 0;
@@ -524,12 +530,6 @@ static int qcom_adreno_smmu_init_context(struct arm_smmu_domain *smmu_domain,
 	priv->get_fault_info = qcom_adreno_smmu_get_fault_info;
 	priv->set_stall = qcom_adreno_smmu_set_stall;
 	priv->resume_translation = qcom_adreno_smmu_resume_translation;
-
-	if (qsmmu->data->actlrcfg_gfx) {
-		actlrcfg = qsmmu->data->actlrcfg_gfx;
-		actlrcfg_size = qsmmu->data->actlrcfg_gfx_size;
-		arm_smmu_set_actlr(dev, smmu, cbndx, actlrcfg, actlrcfg_size);
-	}
 
 	return 0;
 }
