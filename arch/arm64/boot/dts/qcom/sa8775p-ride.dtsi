@@ -487,6 +487,22 @@
 	status = "okay";
 };
 
+&gpi_dma0 {
+	status = "okay";
+};
+
+&gpi_dma1 {
+	status = "okay";
+};
+
+&gpi_dma2 {
+	status = "okay";
+};
+
+&gpi_dma3 {
+	status = "okay";
+};
+
 &i2c11 {
 	clock-frequency = <400000>;
 	pinctrl-0 = <&qup_i2c11_default>;
@@ -855,19 +871,28 @@
 	};
 };
 
-&gpi_dma0 {
+&remoteproc_adsp {
+	firmware-name = "qcom/sa8775p/adsp.mbn";
 	status = "okay";
 };
 
-&gpi_dma1 {
+&remoteproc_cdsp {
+	firmware-name = "qcom/sa8775p/cdsp0.mbn";
 	status = "okay";
 };
 
-&gpi_dma2 {
+&remoteproc_cdsp1 {
+	firmware-name = "qcom/sa8775p/cdsp1.mbn";
 	status = "okay";
 };
 
-&gpi_dma3 {
+&remoteproc_gpdsp0 {
+	firmware-name = "qcom/sa8775p/gpdsp0.mbn";
+	status = "okay";
+};
+
+&remoteproc_gpdsp1 {
+	firmware-name = "qcom/sa8775p/gpdsp1.mbn";
 	status = "okay";
 };
 
