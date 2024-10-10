@@ -7,6 +7,7 @@
 #define _DP_DISPLAY_H_
 
 #include "dp_panel.h"
+#include "dp_mst_drm.h"
 #include <sound/hdmi-codec.h>
 #include "disp/msm_disp_snapshot.h"
 
@@ -26,6 +27,7 @@ struct msm_dp {
 	bool is_edp;
 	bool internal_hpd;
 
+	struct msm_dp_mst *msm_dp_mst;
 	hdmi_codec_plugged_cb plugged_cb;
 
 	struct msm_dp_audio *msm_dp_audio;
