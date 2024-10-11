@@ -393,6 +393,14 @@
 		byte-cntr-class-name = "coresight-tmc-etr1-stream";
 	};
 
+	dma@40ff000 {
+		compatible = "qcom,dcc-v3", "qcom,dcc";
+		reg = <0x0 0x040ff000 0x0 0x1000>,
+		      <0x0 0x040b8800 0x0 0x6000>;
+
+		qcom,dcc-offset = <0x38800>;
+	};
+
 	tgu@4b0e000 {
 		compatible = "arm,primecell", "qcom,coresight-tgu";
 		reg = <0x0 0x4b0e000 0x0 0x1000>;
