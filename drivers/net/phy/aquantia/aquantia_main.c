@@ -499,11 +499,6 @@ static int aqr107_config_init(struct phy_device *phydev)
 	if (!ret)
 		aqr107_chip_info(phydev);
 
-	if (phydev->interface == PHY_INTERFACE_MODE_2500BASEX) {
-		phy_set_max_speed(phydev, SPEED_2500);
-		phydev->autoneg = AUTONEG_ENABLE;
-	}
-
 	ret = aqr107_set_downshift(phydev, MDIO_AN_VEND_PROV_DOWNSHIFT_DFLT);
 	if (ret)
 		return ret;
@@ -1047,7 +1042,6 @@ static struct phy_driver aqr_driver[] = {
 	.led_hw_control_set = aqr_phy_led_hw_control_set,
 	.led_hw_control_get = aqr_phy_led_hw_control_get,
 	.led_polarity_set = aqr_phy_led_polarity_set,
-	.get_features	= genphy_c45_pma_read_abilities,
 },
 {
 	PHY_ID_MATCH_MODEL(PHY_ID_AQR813),
