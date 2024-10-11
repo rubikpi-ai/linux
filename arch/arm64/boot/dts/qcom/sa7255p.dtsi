@@ -4,6 +4,7 @@
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/mailbox/qcom-ipcc.h>
 
 / {
 	interrupt-parent = <&intc>;
@@ -361,6 +362,25 @@
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges = <0 0 0 0 0x10 0>;
+
+		ipcc0: mailbox@408000 {
+			compatible = "qcom,sa7255p-ipcc", "qcom,ipcc";
+			reg = <0x0 0x408000 0x0 0x1000>;
+			interrupts = <GIC_SPI 229 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-controller;
+			#interrupt-cells = <3>;
+			#mbox-cells = <2>;
+		};
+
+		ipcc1: mailbox@488000 {
+			compatible = "qcom,sa7255p-ipcc", "qcom,ipcc";
+			reg = <0x0 0x488000 0x0 0x1000>;
+			interrupts = <GIC_SPI 231 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-controller;
+			#interrupt-cells = <3>;
+			#mbox-cells = <2>;
+			status = "disabled";
+		};
 
 		qupv3_id_0: geniqup@9c0000 {
 			compatible = "qcom,sa7255p-geni-se-qup";
