@@ -67,6 +67,8 @@ struct msm_dp_mst {
 struct msm_dp_mst_connector {
 	struct drm_connector connector;
 	struct drm_dp_mst_port *mst_port;
+	struct msm_dp *msm_dp;
+	struct msm_dp_panel *dp_panel;
 };
 
 #define to_msm_dp_mst_bridge(x)     container_of((x), struct msm_dp_mst_bridge, base)
@@ -79,5 +81,8 @@ struct msm_dp_mst_connector {
 #define to_msm_dp_mst_connector(x) \
 		container_of((x), struct msm_dp_mst_connector, connector)
 int msm_dp_mst_drm_bridge_init(struct msm_dp *dp, struct drm_encoder *encoder);
+
+int msm_dp_mst_init(struct msm_dp *dp_display, u32 max_streams,
+		    u32 max_dpcd_transaction_bytes, struct drm_dp_aux *drm_aux);
 
 #endif /* _DP_MST_DRM_H_ */
