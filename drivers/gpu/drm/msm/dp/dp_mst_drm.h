@@ -61,6 +61,7 @@ struct msm_dp_mst {
 	struct drm_dp_mst_topology_mgr mst_mgr;
 	struct msm_dp_mst_bridge mst_bridge[MAX_DP_MST_DRM_BRIDGES];
 	struct msm_dp *msm_dp;
+	struct drm_dp_aux *dp_aux;
 	bool mst_session_hpd_state;
 };
 
@@ -84,5 +85,7 @@ int msm_dp_mst_drm_bridge_init(struct msm_dp *dp, struct drm_encoder *encoder);
 
 int msm_dp_mst_init(struct msm_dp *dp_display, u32 max_streams,
 		    u32 max_dpcd_transaction_bytes, struct drm_dp_aux *drm_aux);
+
+void msm_dp_mst_display_hpd_irq(struct msm_dp *dp_display);
 
 #endif /* _DP_MST_DRM_H_ */

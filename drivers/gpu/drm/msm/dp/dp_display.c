@@ -595,6 +595,7 @@ static int msm_dp_display_usbpd_attention_cb(struct device *dev)
 	int rc = 0;
 	u32 sink_request;
 	struct msm_dp_display_private *dp = dev_get_dp_display_private(dev);
+	struct msm_dp *msm_dp_display = &dp->msm_dp_display;
 
 	/* check for any test request issued by sink */
 	rc = msm_dp_link_process_request(dp->link);
@@ -602,12 +603,15 @@ static int msm_dp_display_usbpd_attention_cb(struct device *dev)
 		sink_request = dp->link->sink_request;
 		drm_dbg_dp(dp->drm_dev, "hpd_state=%d sink_request=%d\n",
 					dp->hpd_state, sink_request);
-		if (sink_request & DS_PORT_STATUS_CHANGED)
-			rc = msm_dp_display_handle_port_status_changed(dp);
-		else
+		if (sink_request & DS_PORT_STATUS_CHANGED) {
+			if (!msm_dp_display->mst_active)
+				rc = msm_dp_display_handle_port_status_changed(dp);
+		} else {
 			rc = msm_dp_display_handle_irq_hpd(dp);
+		}
 	}
 
+	msm_dp_mst_display_hpd_irq(&dp->msm_dp_display);
 	return rc;
 }
 
@@ -760,7 +764,8 @@ static int msm_dp_irq_hpd_handle(struct msm_dp_display_private *dp, u32 data)
 		return 0;
 	}
 
-	if (state == ST_MAINLINK_READY || state == ST_DISCONNECT_PENDING) {
+	if ((state == ST_MAINLINK_READY || state == ST_DISCONNECT_PENDING) &&
+			!dp->msm_dp_display.mst_active) {
 		/* wait until ST_CONNECTED */
 		msm_dp_add_event(dp, EV_IRQ_HPD_INT, 0, 1); /* delay = 1 */
 		mutex_unlock(&dp->event_mutex);

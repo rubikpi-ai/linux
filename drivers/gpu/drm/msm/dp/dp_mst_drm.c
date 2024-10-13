@@ -532,6 +532,39 @@ static struct msm_dp_mst_bridge_state *msm_dp_mst_br_priv_state(struct drm_atomi
 										&bridge->obj));
 }
 
+/* DP MST HPD IRQ callback */
+void msm_dp_mst_display_hpd_irq(struct msm_dp *dp_display)
+{
+	int rc;
+	struct msm_dp_mst *mst = dp_display->msm_dp_mst;
+	u8 ack[8] = {};
+	u8 esi[14];
+	unsigned int esi_res = DP_SINK_COUNT_ESI + 1;
+	bool handled;
+
+	rc = drm_dp_dpcd_read(mst->dp_aux, DP_SINK_COUNT_ESI, esi, 14);
+	if (rc != 14) {
+		DRM_ERROR("dpcd sink status read failed, rlen=%d\n", rc);
+		return;
+	}
+
+	drm_dbg_dp(dp_display->drm_dev, "mst irq: esi1[0x%x] esi2[0x%x] esi3[0x%x]\n",
+		   esi[1], esi[2], esi[3]);
+
+	rc = drm_dp_mst_hpd_irq_handle_event(&mst->mst_mgr, esi, ack, &handled);
+
+	/* ack the request */
+	if (handled) {
+		rc = drm_dp_dpcd_writeb(mst->dp_aux, esi_res, ack[1]);
+
+		if (rc != 1)
+			DRM_ERROR("dpcd esi_res failed. rc=%d\n", rc);
+
+		drm_dp_mst_hpd_irq_send_new_request(&mst->mst_mgr);
+	}
+	drm_dbg_dp(dp_display->drm_dev, "mst display hpd_irq handled:%d rc:%d\n", handled, rc);
+}
+
 /* DP MST Connector OPs */
 static int
 msm_dp_mst_connector_detect(struct drm_connector *connector,
@@ -543,7 +576,7 @@ msm_dp_mst_connector_detect(struct drm_connector *connector,
 	struct msm_dp_mst *mst = dp_display->msm_dp_mst;
 	enum drm_connector_status status = connector_status_disconnected;
 
-	if (dp_display->link_ready)
+	if (dp_display->link_ready && dp_display->mst_active)
 		status = drm_dp_mst_detect_port(connector,
 						ctx, &mst->mst_mgr, mst_conn->mst_port);
 
@@ -959,6 +992,7 @@ int msm_dp_mst_init(struct msm_dp *dp_display, u32 max_streams, u32 max_dpcd_tra
 	msm_dp_mst->mst_mgr.cbs = &msm_dp_mst_drm_cbs;
 	conn_base_id = dp_display->connector->base.id;
 	msm_dp_mst->msm_dp = dp_display;
+	msm_dp_mst->dp_aux = drm_aux;
 
 	ret = drm_dp_mst_topology_mgr_init(&msm_dp_mst->mst_mgr, dev,
 					   drm_aux,
