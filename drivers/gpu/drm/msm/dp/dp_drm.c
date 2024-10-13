@@ -27,7 +27,7 @@ static enum drm_connector_status msm_dp_bridge_detect(struct drm_bridge *bridge)
 	drm_dbg_dp(dp->drm_dev, "link_ready = %s\n",
 		(dp->link_ready) ? "true" : "false");
 
-	return (dp->link_ready) ? connector_status_connected :
+	return (dp->link_ready && !dp->mst_active) ? connector_status_connected :
 					connector_status_disconnected;
 }
 
