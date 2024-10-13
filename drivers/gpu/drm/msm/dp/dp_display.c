@@ -1467,6 +1467,20 @@ static int msm_dp_auxbus_done_probe(struct drm_dp_aux *aux)
 	return msm_dp_display_probe_tail(aux->dev);
 }
 
+int msm_dp_get_mst_max_stream(const struct msm_dp *dp_display)
+{
+	struct msm_dp_display_private *dp_priv;
+
+	dp_priv = container_of(dp_display, struct msm_dp_display_private, msm_dp_display);
+
+	return dp_priv->max_stream;
+}
+
+int msm_dp_mst_bridge_init(struct msm_dp *dp_display, struct drm_encoder *encoder)
+{
+	return msm_dp_mst_drm_bridge_init(dp_display, encoder);
+}
+
 static int msm_dp_display_probe(struct platform_device *pdev)
 {
 	int rc = 0;
