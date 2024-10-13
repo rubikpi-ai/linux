@@ -532,6 +532,34 @@ static struct msm_dp_mst_bridge_state *msm_dp_mst_br_priv_state(struct drm_atomi
 										&bridge->obj));
 }
 
+static void msm_dp_mst_clear_panel_edid(struct msm_dp *dp_display)
+{
+	struct msm_dp_mst *mst = dp_display->msm_dp_mst;
+	struct msm_dp_mst_connector *mst_conn;
+	struct msm_dp_panel *dp_panel;
+	struct msm_dp_mst_bridge *dp_bridge;
+	int i;
+
+	if (!dp_display) {
+		DRM_ERROR("invalid input\n");
+		return;
+	}
+
+	for (i = 0; i < mst->max_streams; i++) {
+		dp_bridge = &mst->mst_bridge[i];
+		mst_conn = to_msm_dp_mst_connector(dp_bridge->connector);
+		dp_panel = dp_bridge->msm_dp_panel;
+
+		if (!dp_panel || !mst_conn || !mst_conn->mst_port)
+			continue;
+
+		if (dp_panel->drm_edid) {
+			drm_edid_free(dp_panel->drm_edid);
+			dp_panel->drm_edid = NULL;
+		}
+	}
+}
+
 /* DP MST HPD IRQ callback */
 void msm_dp_mst_display_hpd_irq(struct msm_dp *dp_display)
 {
@@ -556,6 +584,9 @@ void msm_dp_mst_display_hpd_irq(struct msm_dp *dp_display)
 	/* ack the request */
 	if (handled) {
 		rc = drm_dp_dpcd_writeb(mst->dp_aux, esi_res, ack[1]);
+
+		if (ack[1] & DP_UP_REQ_MSG_RDY)
+			msm_dp_mst_clear_panel_edid(dp_display);
 
 		if (rc != 1)
 			DRM_ERROR("dpcd esi_res failed. rc=%d\n", rc);
@@ -592,6 +623,9 @@ static int msm_dp_mst_connector_get_modes(struct drm_connector *connector)
 	struct msm_dp_mst *mst = dp_display->msm_dp_mst;
 	struct msm_dp_panel *dp_panel = mst_conn->dp_panel;
 
+	if (dp_panel->drm_edid)
+		goto duplicate_edid;
+
 	drm_edid_free(dp_panel->drm_edid);
 
 	dp_panel->drm_edid = drm_dp_mst_edid_read(connector, &mst->mst_mgr, mst_conn->mst_port);
@@ -600,6 +634,7 @@ static int msm_dp_mst_connector_get_modes(struct drm_connector *connector)
 		return -EINVAL;
 	}
 
+duplicate_edid:
 	drm_edid_connector_update(connector, dp_panel->drm_edid);
 
 	return drm_edid_connector_add_modes(connector);
@@ -867,8 +902,11 @@ end:
 static void dp_mst_connector_destroy(struct drm_connector *connector)
 {
 	struct msm_dp_mst_connector *mst_conn = to_msm_dp_mst_connector(connector);
+	struct msm_dp_panel *dp_panel = mst_conn->dp_panel;
 
 	drm_connector_cleanup(connector);
+	drm_edid_free(dp_panel->drm_edid);
+	dp_panel->drm_edid = NULL;
 	drm_dp_mst_put_port_malloc(mst_conn->mst_port);
 	msm_dp_panel_put(mst_conn->dp_panel);
 }
