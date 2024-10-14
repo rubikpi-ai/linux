@@ -26,6 +26,7 @@
 #include "dp_drm.h"
 #include "dp_audio.h"
 #include "dp_debug.h"
+#include "dp_mst_drm.h"
 
 static bool psr_enabled = false;
 module_param(psr_enabled, bool, 0);
@@ -420,6 +421,17 @@ static void msm_dp_display_mst_init(struct msm_dp_display_private *dp)
 	msm_dp->mst_active = true;
 }
 
+static void msm_dp_display_set_mst_mgr_state(struct msm_dp_display_private *dp,
+					     bool state)
+{
+	if (!dp->msm_dp_display.mst_active)
+		return;
+
+	msm_dp_mst_display_set_mgr_state(&dp->msm_dp_display, state);
+
+	drm_dbg_dp(dp->drm_dev, "mst_mgr_state: %d\n", state);
+}
+
 static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
 {
 	struct drm_connector *connector = dp->msm_dp_display.connector;
@@ -465,6 +477,8 @@ static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
 		DRM_ERROR("failed to complete DP link training\n");
 		goto end;
 	}
+
+	msm_dp_display_set_mst_mgr_state(dp, true);
 
 	msm_dp_add_event(dp, EV_USER_NOTIFICATION, true, 0);
 
@@ -532,6 +546,12 @@ static int msm_dp_display_usbpd_configure_cb(struct device *dev)
 static int msm_dp_display_notify_disconnect(struct device *dev)
 {
 	struct msm_dp_display_private *dp = dev_get_dp_display_private(dev);
+	struct msm_dp *dp_display = &dp->msm_dp_display;
+
+	if (dp_display->mst_active) {
+		msm_dp_mst_display_set_mgr_state(&dp->msm_dp_display, false);
+		dp_display->mst_active = false;
+	}
 
 	msm_dp_add_event(dp, EV_USER_NOTIFICATION, false, 0);
 

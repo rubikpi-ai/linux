@@ -1019,6 +1019,30 @@ msm_dp_mst_add_connector(struct drm_dp_mst_topology_mgr *mgr,
 	return &mst_connector->connector;
 }
 
+int msm_dp_mst_display_set_mgr_state(struct msm_dp *dp_display, bool state)
+{
+	int rc;
+	struct msm_dp_mst *mst = dp_display->msm_dp_mst;
+
+	/*
+	 * on hpd high, set_mgr_state is called before hotplug event is sent
+	 * to usermode and mst_session_state should be updated here.
+	 * on hpd_low, set_mgr_state is called after hotplug event is sent and
+	 * the session_state was already updated prior to that.
+	 */
+	if (state)
+		mst->mst_session_hpd_state = state;
+
+	rc = drm_dp_mst_topology_mgr_set_mst(&mst->mst_mgr, state);
+	if (rc < 0) {
+		DRM_ERROR("failed to set topology mgr state to %d. rc %d\n",
+			  state, rc);
+	}
+
+	drm_dbg_dp(dp_display->drm_dev, "dp_mst_display_set_mgr_state state:%d\n", state);
+	return rc;
+}
+
 static const struct drm_dp_mst_topology_cbs msm_dp_mst_drm_cbs = {
 	.add_connector = msm_dp_mst_add_connector,
 };
