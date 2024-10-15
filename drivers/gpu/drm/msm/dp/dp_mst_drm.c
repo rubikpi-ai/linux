@@ -145,7 +145,7 @@ static void _msm_dp_mst_update_timeslots(struct msm_dp_mst *mst,
 		return;
 	}
 
-	for (i = 0; i < MAX_DP_MST_DRM_BRIDGES; i++) {
+	for (i = 0; i < mst->max_streams; i++) {
 		msm_dp_bridge = &mst->mst_bridge[i];
 		if (mst_bridge == msm_dp_bridge) {
 			/*
@@ -170,7 +170,7 @@ static void _msm_dp_mst_update_timeslots(struct msm_dp_mst *mst,
 	}
 
 	// Now commit all the updated payloads
-	for (i = 0; i < MAX_DP_MST_DRM_BRIDGES; i++) {
+	for (i = 0; i < mst->max_streams; i++) {
 		msm_dp_bridge = &mst->mst_bridge[i];
 
 		//Shift payloads to the left if there was a removed payload.
@@ -473,7 +473,7 @@ int msm_dp_mst_drm_bridge_init(struct msm_dp *dp, struct drm_encoder *encoder)
 	struct msm_dp_mst *mst = dp->msm_dp_mst;
 	int i;
 
-	for (i = 0; i < MAX_DP_MST_DRM_BRIDGES; i++) {
+	for (i = 0; i < mst->max_streams; i++) {
 		if (!mst->mst_bridge[i].in_use) {
 			bridge = &mst->mst_bridge[i];
 			bridge->encoder = encoder;
@@ -483,7 +483,7 @@ int msm_dp_mst_drm_bridge_init(struct msm_dp *dp, struct drm_encoder *encoder)
 		}
 	}
 
-	if (i == MAX_DP_MST_DRM_BRIDGES) {
+	if (i == mst->max_streams) {
 		DRM_ERROR("mst supports only %d bridges\n", i);
 		rc = -EACCES;
 		goto end;
@@ -633,7 +633,7 @@ static enum drm_mode_status msm_dp_mst_connector_mode_valid(struct drm_connector
 		return MODE_ERROR;
 
 	/* dp bridge state is protected by drm_mode_config.connection_mutex */
-	for (i = 0; i < MAX_DP_MST_DRM_BRIDGES; i++) {
+	for (i = 0; i < mst->max_streams; i++) {
 		dp_bridge_state = to_msm_dp_mst_bridge_state(&mst->mst_bridge[i]);
 		if (dp_bridge_state->connector &&
 		    dp_bridge_state->connector != connector) {
@@ -680,7 +680,7 @@ msm_dp_mst_atomic_best_encoder(struct drm_connector *connector, struct drm_atomi
 	if (conn_state && conn_state->best_encoder)
 		return conn_state->best_encoder;
 
-	for (i = 0; i < MAX_DP_MST_DRM_BRIDGES; i++) {
+	for (i = 0; i < mst->max_streams; i++) {
 		bridge_state = msm_dp_mst_br_priv_state(state, &mst->mst_bridge[i]);
 		if (IS_ERR(bridge_state))
 			goto end;
@@ -691,7 +691,7 @@ msm_dp_mst_atomic_best_encoder(struct drm_connector *connector, struct drm_atomi
 		}
 	}
 
-	for (i = 0; i < MAX_DP_MST_DRM_BRIDGES; i++) {
+	for (i = 0; i < mst->max_streams; i++) {
 		bridge_state = msm_dp_mst_br_priv_state(state, &mst->mst_bridge[i]);
 
 		if (!bridge_state->connector) {
@@ -746,7 +746,7 @@ static int msm_dp_mst_connector_atomic_check(struct drm_connector *connector,
 
 	crtc_state = drm_atomic_get_new_crtc_state(state, old_crtc);
 
-	for (i = 0; i < MAX_DP_MST_DRM_BRIDGES; i++) {
+	for (i = 0; i < mst->max_streams; i++) {
 		bridge = &mst->mst_bridge[i];
 		drm_dbg_dp(dp_display->drm_dev, "bridge id:%d, vcpi:%d, pbn:%d, slots:%d\n",
 			   bridge->id, bridge->vcpi, bridge->pbn,
@@ -934,7 +934,7 @@ msm_dp_mst_add_connector(struct drm_dp_mst_topology_mgr *mgr,
 		connector->funcs->reset(connector);
 
 	/* add all encoders as possible encoders */
-	for (i = 0; i < MAX_DP_MST_DRM_BRIDGES; i++) {
+	for (i = 0; i < dp_mst->max_streams; i++) {
 		rc = drm_connector_attach_encoder(&mst_connector->connector,
 						  dp_mst->mst_bridge[i].encoder);
 		if (rc) {
@@ -993,6 +993,7 @@ int msm_dp_mst_init(struct msm_dp *dp_display, u32 max_streams, u32 max_dpcd_tra
 	conn_base_id = dp_display->connector->base.id;
 	msm_dp_mst->msm_dp = dp_display;
 	msm_dp_mst->dp_aux = drm_aux;
+	msm_dp_mst->max_streams = max_streams;
 
 	ret = drm_dp_mst_topology_mgr_init(&msm_dp_mst->mst_mgr, dev,
 					   drm_aux,

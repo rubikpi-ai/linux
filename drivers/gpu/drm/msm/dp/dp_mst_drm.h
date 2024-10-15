@@ -23,7 +23,7 @@
 #include "dp_panel.h"
 #include "dp_display.h"
 
-#define MAX_DP_MST_DRM_BRIDGES		4
+#define MAX_DP_MST_DRM_BRIDGES         4
 
 #define DP_MST_CONN_ID(bridge) ((bridge)->connector ? \
 		(bridge)->connector->base.id : 0)
@@ -63,6 +63,7 @@ struct msm_dp_mst {
 	struct msm_dp *msm_dp;
 	struct drm_dp_aux *dp_aux;
 	bool mst_session_hpd_state;
+	u32 max_streams;
 };
 
 struct msm_dp_mst_connector {
