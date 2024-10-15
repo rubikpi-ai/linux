@@ -24,6 +24,10 @@
 #define WCN_CDC_SLIM_RX_CH_MAX	2
 #define WCN_CDC_SLIM_TX_CH_MAX	2
 
+#define DEFAULT_MCLK_RATE		24576000
+#define TDM_BCLK_RATE			6144000
+#define MI2S_BCLK_RATE			1536000
+
 struct qcm6490_snd_data {
 	bool stream_prepared[AFE_PORT_MAX];
 	struct snd_soc_card *card;
@@ -31,6 +35,7 @@ struct qcm6490_snd_data {
 	uint32_t sec_mi2s_clk_count;
 	uint32_t quat_mi2s_clk_count;
 	uint32_t quat_tdm_clk_count;
+	uint32_t pri_mi2s_mclk_count;
 	struct sdw_stream_runtime *sruntime[AFE_PORT_MAX];
 	struct snd_soc_jack jack;
 	bool jack_setup;
@@ -49,6 +54,31 @@ static int qcm6490_slim_dai_init(struct snd_soc_pcm_runtime *rtd)
 	return ret;
 }
 
+/* The ES8316 IC requires MCLK to be constantly on. If MCLK switches on
+   and offas playback starts and stops, it can easily cause POP sound */
+static int qcm6490_mi2s_mclk_init(struct snd_soc_pcm_runtime *rtd)
+{
+	int ret = 0;
+	struct snd_soc_card *card = rtd->card;
+	struct qcm6490_snd_data *data = snd_soc_card_get_drvdata(card);
+	struct snd_soc_dai *cpu_dai = snd_soc_rtd_to_cpu(rtd, 0);
+
+	switch (cpu_dai->id) {
+	case PRIMARY_MI2S_RX:
+	case PRIMARY_MI2S_TX:
+		if (++(data->pri_mi2s_mclk_count) == 1) {
+			snd_soc_dai_set_sysclk(cpu_dai,
+				Q6AFE_LPASS_CLK_ID_MCLK_1,
+				DEFAULT_MCLK_RATE, SNDRV_PCM_STREAM_PLAYBACK);
+		}
+		break;
+	default:
+		dev_err(rtd->dev, "%s: invalid dai id 0x%x\n", __func__, cpu_dai->id);
+	}
+
+	return ret;
+}
+
 static int qcm6490_snd_init(struct snd_soc_pcm_runtime *rtd)
 {
 	struct qcm6490_snd_data *data = snd_soc_card_get_drvdata(rtd->card);
@@ -62,8 +92,6 @@ static int qcm6490_snd_init(struct snd_soc_pcm_runtime *rtd)
 	case VA_CODEC_DMA_TX_0:
 	case WSA_CODEC_DMA_RX_0:
 	case WSA_CODEC_DMA_TX_0:
-	case PRIMARY_MI2S_RX:
-	case PRIMARY_MI2S_TX:
 	case SECONDARY_MI2S_RX:
 	case SECONDARY_MI2S_TX:
 	case TERTIARY_MI2S_RX:
@@ -73,6 +101,9 @@ static int qcm6490_snd_init(struct snd_soc_pcm_runtime *rtd)
 	case PRIMARY_TDM_RX_0:
 	case PRIMARY_TDM_TX_0:
 		return 0;
+	case PRIMARY_MI2S_RX:
+	case PRIMARY_MI2S_TX:
+		return qcm6490_mi2s_mclk_init(rtd);
 	case SLIMBUS_0_RX:
 	case SLIMBUS_0_TX:
 		return qcm6490_slim_dai_init(rtd);
@@ -140,9 +171,7 @@ static int qcm6490_snd_hw_free(struct snd_pcm_substream *substream)
 	return qcom_snd_sdw_hw_free(substream, sruntime,
 				    &data->stream_prepared[cpu_dai->id]);
 }
-#define DEFAULT_MCLK_RATE		24576000
-#define TDM_BCLK_RATE		6144000
-#define MI2S_BCLK_RATE		1536000
+
 static int qcm6490_snd_startup(struct snd_pcm_substream *substream)
 {
 	unsigned int fmt = SND_SOC_DAIFMT_BP_FP;
@@ -160,9 +189,6 @@ static int qcm6490_snd_startup(struct snd_pcm_substream *substream)
 	case PRIMARY_MI2S_TX:
 		codec_dai_fmt |= SND_SOC_DAIFMT_NB_NF;
 		if (++(data->pri_mi2s_clk_count) == 1) {
-			snd_soc_dai_set_sysclk(cpu_dai,
-				Q6AFE_LPASS_CLK_ID_MCLK_1,
-				DEFAULT_MCLK_RATE, SNDRV_PCM_STREAM_PLAYBACK);
 			snd_soc_dai_set_sysclk(cpu_dai,
 				Q6AFE_LPASS_CLK_ID_PRI_MI2S_IBIT,
 				MI2S_BCLK_RATE, SNDRV_PCM_STREAM_PLAYBACK);
@@ -248,9 +274,6 @@ static void  qcm6490_snd_shutdown(struct snd_pcm_substream *substream)
 	case PRIMARY_MI2S_RX:
 	case PRIMARY_MI2S_TX:
 		if (--(data->pri_mi2s_clk_count) == 0) {
-			snd_soc_dai_set_sysclk(cpu_dai,
-				Q6AFE_LPASS_CLK_ID_MCLK_1,
-				0, SNDRV_PCM_STREAM_PLAYBACK);
 			snd_soc_dai_set_sysclk(cpu_dai,
 				Q6AFE_LPASS_CLK_ID_PRI_MI2S_IBIT,
 				0, SNDRV_PCM_STREAM_PLAYBACK);

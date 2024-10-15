@@ -779,7 +779,7 @@
 
 &sound {
 	pinctrl-names = "default", "stub_aif1_active", "stub_aif1_sleep";
-	pinctrl-0 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+	pinctrl-0 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk>,
 				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
 				<&lpass_ext_mas_clk1_a_sleep>, <&lpass_qua_mi2s_sclk_sleep>,
 				<&lpass_qua_mi2s_ws_sleep>, <&lpass_qua_mi2s_data0_sleep>,
@@ -791,7 +791,7 @@
 				<&lpass_qua_mi2s_ws>, <&lpass_qua_mi2s_data0>,
 				<&lpass_qua_mi2s_data1>, <&lpass_qua_mi2s_data2>,
 				<&lpass_qua_mi2s_data3>;
-	pinctrl-2 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+	pinctrl-2 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk>,
 				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
 				<&lpass_ext_mas_clk1_a_sleep>, <&lpass_qua_mi2s_sclk_sleep>,
 				<&lpass_qua_mi2s_ws_sleep>, <&lpass_qua_mi2s_data0_sleep>,
