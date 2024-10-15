@@ -67,6 +67,13 @@ properties:
   required-opps:
     maxItems: 1
 
+  qcom,load-firmware: true
+    description: Optional property which indicate if QUP firmware to be loaded from Linux.
+
+  qcom,xfer-mode:
+    const: 1
+    description: Value 1,2 and 3 represents FIFO, CPU DMA and GSI DMA mode respectively. This is an optional property.
+
 required:
   - compatible
   - interrupts
@@ -149,6 +156,8 @@ examples:
         interconnect-names = "qup-core", "qup-config", "qup-memory";
         power-domains = <&rpmhpd SC7180_CX>;
         required-opps = <&rpmhpd_opp_low_svs>;
+        qcom,load-firmware;
+        qcom, xfer-mode = <1>;
     };
 
   - |
