@@ -28,6 +28,12 @@
 	};
 };
 
+&adreno_smmu {
+	power-domains = <&scmi15_pd 0>;
+
+	status = "okay";
+};
+
 &i2c8 {
 	clock-frequency = <400000>;
 	power-domains = <&scmi9_pd 8>;
@@ -83,6 +89,10 @@
 };
 
 &scmi14 {
+	status = "okay";
+};
+
+&scmi15 {
 	status = "okay";
 };
 
