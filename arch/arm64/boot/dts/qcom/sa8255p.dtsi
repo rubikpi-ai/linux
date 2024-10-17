@@ -480,6 +480,13 @@
 		#size-cells = <2>;
 		ranges = <0 0 0 0 0x10 0>;
 
+		dcc: dma@40ff000 {
+			compatible = "qcom,dcc-v3", "qcom,dcc";
+			reg = <0x0 0x040ff000 0x0 0x1000>,
+			      <0x0 0x040b8800 0x0 0x6000>;
+			qcom,dcc-offset = <0x38800>;
+		};
+
 		ipcc0: mailbox@408000 {
 			compatible = "qcom,sa8255p-ipcc", "qcom,ipcc";
 			reg = <0x0 0x00408000 0x0 0x1000>;
