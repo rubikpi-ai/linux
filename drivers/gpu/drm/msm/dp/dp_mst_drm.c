@@ -314,6 +314,7 @@ static void msm_dp_mst_bridge_atomic_pre_enable(struct drm_bridge *drm_bridge,
 	struct msm_dp_mst_bridge *bridge;
 	struct msm_dp *dp;
 	struct msm_dp_mst_bridge_state *msm_dp_bridge_state;
+	struct msm_dp_mst *dp_mst;
 
 	if (!drm_bridge) {
 		DRM_ERROR("Invalid params\n");
@@ -323,6 +324,7 @@ static void msm_dp_mst_bridge_atomic_pre_enable(struct drm_bridge *drm_bridge,
 	bridge = to_msm_dp_mst_bridge(drm_bridge);
 	msm_dp_bridge_state = to_msm_dp_mst_bridge_state(bridge);
 	dp = bridge->display;
+	dp_mst = dp->msm_dp_mst;
 
 	/* to cover cases of bridge_disable/bridge_enable without modeset */
 	bridge->connector = msm_dp_bridge_state->connector;
@@ -333,12 +335,14 @@ static void msm_dp_mst_bridge_atomic_pre_enable(struct drm_bridge *drm_bridge,
 		return;
 	}
 
+	mutex_lock(&dp_mst->mst_lock);
 	msm_dp_display_atomic_prepare(dp);
 
 	rc = _msm_dp_mst_bridge_pre_enable_part1(bridge);
 	if (rc) {
 		DRM_ERROR("[%d] DP display pre-enable failed, rc=%d\n", bridge->id, rc);
 		msm_dp_display_unprepare(dp);
+		mutex_unlock(&dp_mst->mst_lock);
 		return;
 	}
 
@@ -351,6 +355,8 @@ static void msm_dp_mst_bridge_atomic_pre_enable(struct drm_bridge *drm_bridge,
 		   drm_mode_vrefresh(&bridge->drm_mode),
 		   bridge->vcpi, bridge->start_slot,
 		   bridge->start_slot + bridge->num_slots);
+
+	mutex_unlock(&dp_mst->mst_lock);
 }
 
 static void msm_dp_mst_bridge_atomic_disable(struct drm_bridge *drm_bridge,
@@ -358,6 +364,7 @@ static void msm_dp_mst_bridge_atomic_disable(struct drm_bridge *drm_bridge,
 {
 	struct msm_dp_mst_bridge *bridge;
 	struct msm_dp *dp;
+	struct msm_dp_mst *mst;
 
 	if (!drm_bridge) {
 		DRM_ERROR("Invalid params\n");
@@ -371,6 +378,9 @@ static void msm_dp_mst_bridge_atomic_disable(struct drm_bridge *drm_bridge,
 	}
 
 	dp = bridge->display;
+	mst = dp->msm_dp_mst;
+
+	mutex_lock(&mst->mst_lock);
 
 	_msm_dp_mst_bridge_pre_disable_part1(bridge);
 
@@ -380,6 +390,8 @@ static void msm_dp_mst_bridge_atomic_disable(struct drm_bridge *drm_bridge,
 
 	drm_dbg_dp(dp->drm_dev, "mst bridge:%d conn:%d disable complete\n", bridge->id,
 		   DP_MST_CONN_ID(bridge));
+
+	mutex_unlock(&mst->mst_lock);
 }
 
 static void msm_dp_mst_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
@@ -388,6 +400,7 @@ static void msm_dp_mst_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
 	int conn = 0;
 	struct msm_dp_mst_bridge *bridge;
 	struct msm_dp *dp;
+	struct msm_dp_mst *mst;
 
 	if (!drm_bridge) {
 		DRM_ERROR("Invalid params\n");
@@ -403,6 +416,9 @@ static void msm_dp_mst_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
 	conn = DP_MST_CONN_ID(bridge);
 
 	dp = bridge->display;
+	mst = dp->msm_dp_mst;
+
+	mutex_lock(&mst->mst_lock);
 
 	msm_dp_display_atomic_post_disable_helper(dp, bridge->msm_dp_panel);
 
@@ -414,6 +430,8 @@ static void msm_dp_mst_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
 
 	drm_dbg_dp(dp->drm_dev, "mst bridge:%d conn:%d post disable complete\n",
 		   bridge->id, conn);
+
+	mutex_unlock(&mst->mst_lock);
 }
 
 static void msm_dp_mst_bridge_mode_set(struct drm_bridge *drm_bridge,
@@ -1044,6 +1062,8 @@ int msm_dp_mst_init(struct msm_dp *dp_display, u32 max_streams, u32 max_dpcd_tra
 	}
 
 	dp_display->msm_dp_mst = msm_dp_mst;
+
+	mutex_init(&msm_dp_mst->mst_lock);
 
 	msm_dp_mst->mst_initialized = true;
 

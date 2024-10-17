@@ -64,6 +64,7 @@ struct msm_dp_mst {
 	struct drm_dp_aux *dp_aux;
 	bool mst_session_hpd_state;
 	u32 max_streams;
+	struct mutex mst_lock;
 };
 
 struct msm_dp_mst_connector {
