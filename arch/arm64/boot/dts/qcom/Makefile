@@ -117,6 +117,7 @@ dtb-$(CONFIG_ARCH_QCOM)	+= qcs8300-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8550-addons-aim300-aiot.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8550-aim300-aiot.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8550-rb5gen2-hdk.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-rb8.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9100-addons-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9100-addons-ride-r3.dtb
 dtb-$(CONFIG_ARCH_QCOM) += qcs9100-ride.dtb
