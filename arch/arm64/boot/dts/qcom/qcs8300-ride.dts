@@ -392,6 +392,9 @@
 	status = "okay";
 };
 
+&qupv3_id_1 {
+	status = "okay";
+};
 
 &mdss {
 	status = "okay";
@@ -659,4 +662,14 @@
 
 &usb_2_dwc3 {
 	dr_mode = "otg";
+};
+
+&spi10 {
+	status = "okay";
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+		spi-cpha;
+	};
 };
