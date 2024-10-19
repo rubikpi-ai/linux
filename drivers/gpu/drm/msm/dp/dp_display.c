@@ -707,7 +707,6 @@ static int msm_dp_hpd_unplug_handle(struct msm_dp_display_private *dp, u32 data)
 {
 	u32 state;
 	struct platform_device *pdev = dp->msm_dp_display.pdev;
-	struct msm_dp *msm_dp = &dp->msm_dp_display;
 
 	msm_dp_aux_enable_xfers(dp->aux, false);
 
@@ -720,8 +719,6 @@ static int msm_dp_hpd_unplug_handle(struct msm_dp_display_private *dp, u32 data)
 
 	/* unplugged, no more irq_hpd handle */
 	msm_dp_del_event(dp, EV_IRQ_HPD_INT);
-
-	msm_dp->mst_active = false;
 
 	if (state == ST_DISCONNECTED) {
 		/* triggered by irq_hdp with sink_count = 0 */
@@ -1841,6 +1838,9 @@ void msm_dp_display_atomic_post_disable_helper(struct msm_dp *dp, struct msm_dp_
 	} else {
 		msm_dp_display->hpd_state = ST_DISPLAY_OFF;
 	}
+
+	//To-do: Need to check if we can manage this with active_Stream_cnt
+	msm_dp_display->hpd_state = ST_DISCONNECTED;
 
 	drm_dbg_dp(dp->drm_dev, "type=%d Done\n", dp->connector_type);
 
