@@ -22,7 +22,10 @@
 #include <linux/iopoll.h>
 #include <linux/usb/hcd.h>
 #include <linux/usb.h>
+#include <linux/debugfs.h>
+#include <linux/seq_file.h>
 #include "core.h"
+#include "io.h"
 
 /* USB QSCRATCH Hardware registers */
 #define QSCRATCH_HS_PHY_CTRL			0x10
@@ -94,6 +97,7 @@ struct dwc3_qcom {
 	bool			enable_rt;
 	enum usb_role		current_role;
 	struct notifier_block	xhci_nb;
+	struct regulator *vdda;
 };
 
 static inline void dwc3_qcom_setbits(void __iomem *base, u32 offset, u32 val)
@@ -955,6 +959,90 @@ static int dwc3_qcom_acpi_merge_urs_resources(struct platform_device *pdev)
 	return ret;
 }
 
+static int dwc3_mode_show(struct seq_file *s, void *unused)
+{
+	struct dwc3_qcom	*qcom = s->private;
+	struct dwc3		*dwc = &qcom->dwc;
+	unsigned long		flags;
+	u32			reg;
+	int			ret;
+
+	ret = pm_runtime_resume_and_get(dwc->dev);
+	if (ret < 0)
+		return ret;
+
+	spin_lock_irqsave(&dwc->lock, flags);
+	reg = dwc3_readl(dwc->regs, DWC3_GCTL);
+	spin_unlock_irqrestore(&dwc->lock, flags);
+
+	switch (DWC3_GCTL_PRTCAP(reg)) {
+	case DWC3_GCTL_PRTCAP_HOST:
+		seq_puts(s, "host\n");
+		break;
+	case DWC3_GCTL_PRTCAP_DEVICE:
+		seq_puts(s, "device\n");
+		break;
+	case DWC3_GCTL_PRTCAP_OTG:
+		seq_puts(s, "otg\n");
+		break;
+	default:
+		seq_printf(s, "UNKNOWN %08x\n", DWC3_GCTL_PRTCAP(reg));
+	}
+
+	pm_runtime_put_sync(dwc->dev);
+
+	return 0;
+
+}
+
+static int dwc3_mode_open(struct inode *inode, struct file *file)
+{
+	return single_open(file, dwc3_mode_show, inode->i_private);
+}
+
+static ssize_t dwc3_qcom_usb2_0_mode_write(struct file *file,
+		const char __user *ubuf, size_t count, loff_t *ppos)
+{
+	struct seq_file		*s = file->private_data;
+	struct dwc3_qcom	*qcom = s->private;
+	struct dwc3		*dwc = &qcom->dwc;
+	u32			mode = 0;
+	char			buf[32];
+	int			ret;
+
+	if (copy_from_user(&buf, ubuf, min_t(size_t, sizeof(buf) - 1, count)))
+		return -EFAULT;
+
+	if (dwc->dr_mode != USB_DR_MODE_OTG)
+		return count;
+
+	if (!strncmp(buf, "host", 4)) {
+		ret = regulator_enable(qcom->vdda);
+		if (ret)
+			dev_err(qcom->dev, "cannot enable vdda regulator\n");
+		mode = DWC3_GCTL_PRTCAP_HOST;
+	}
+
+	if (!strncmp(buf, "device", 6)) {
+		ret = regulator_disable(qcom->vdda);
+		if (ret)
+			dev_err(qcom->dev, "cannot disable vdda regulator\n");
+		mode = DWC3_GCTL_PRTCAP_DEVICE;
+	}
+
+	dwc3_set_mode(dwc, mode);
+
+	return count;
+}
+
+static const struct file_operations dwc3_qcom_usb2_0_mode_fops = {
+	.open			= dwc3_mode_open,
+	.write			= dwc3_qcom_usb2_0_mode_write,
+	.read			= seq_read,
+	.llseek			= seq_lseek,
+	.release		= single_release,
+};
+
 static int dwc3_qcom_probe(struct platform_device *pdev)
 {
 	struct device_node	*np = pdev->dev.of_node;
@@ -970,6 +1058,11 @@ static int dwc3_qcom_probe(struct platform_device *pdev)
 	qcom = devm_kzalloc(&pdev->dev, sizeof(*qcom), GFP_KERNEL);
 	if (!qcom)
 		return -ENOMEM;
+
+	qcom->vdda = devm_regulator_get(&pdev->dev, "vdda");
+	ret = regulator_enable(qcom->vdda);
+	if (ret)
+		dev_err(&pdev->dev, "cannot enable vdda regulator\n");
 
 	legacy_binding = dwc3_qcom_has_separate_dwc3_of_node(dev);
 
@@ -1116,6 +1209,12 @@ static int dwc3_qcom_probe(struct platform_device *pdev)
 		pm_runtime_set_active(dev);
 		pm_runtime_enable(dev);
 		pm_runtime_forbid(dev);
+	}
+
+	/*Create a special debugging file for mode switching of USBA2.0 port on RubikPi*/
+	if (!strncmp(dev_name(qcom->dwc.dev), "8c00000.usb", 11)) {
+		debugfs_create_file("qcom_usb2_0_mode", 0644, qcom->dwc.debug_root, qcom,
+					&dwc3_qcom_usb2_0_mode_fops);
 	}
 
 	return 0;
