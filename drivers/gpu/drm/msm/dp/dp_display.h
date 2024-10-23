@@ -64,4 +64,6 @@ void msm_dp_display_mode_set_helper(struct msm_dp *msm_dp,
 void msm_dp_display_atomic_post_disable_helper(struct msm_dp *msm_dp,
 					       struct msm_dp_panel *msm_dp_panel);
 
+void msm_dp_display_unprepare(struct msm_dp *dp);
+
 #endif /* _DP_DISPLAY_H_ */

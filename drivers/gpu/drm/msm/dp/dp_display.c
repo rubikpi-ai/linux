@@ -964,19 +964,7 @@ static int msm_dp_display_disable(struct msm_dp_display_private *dp,
 
 	msm_dp_ctrl_clear_vsc_sdp_pkt(dp->ctrl, msm_dp_panel);
 
-	/* dongle is still connected but sinks are disconnected */
-	if (dp->link->sink_count == 0)
-		msm_dp_ctrl_psm_config(dp->ctrl);
-
 	msm_dp_ctrl_stream_clk_off(dp->ctrl, msm_dp_panel);
-
-	msm_dp_ctrl_off_link(dp->ctrl);
-
-	/* re-init the PHY so that we can listen to Dongle disconnect */
-	if (dp->link->sink_count == 0)
-		msm_dp_ctrl_reinit_phy(dp->ctrl);
-	else
-		msm_dp_display_host_phy_exit(dp);
 
 	msm_dp_display->power_on = false;
 
@@ -1698,14 +1686,27 @@ void msm_dp_display_atomic_disable(struct msm_dp *msm_dp)
 	msm_dp_display_disable_helper(msm_dp, msm_dp_display->panel);
 }
 
-static void msm_dp_display_unprepare(struct msm_dp_display_private *msm_dp_display_priv)
+void msm_dp_display_unprepare(struct msm_dp *msm_dp)
 {
-	struct msm_dp *msm_dp = &msm_dp_display_priv->msm_dp_display;
+	struct msm_dp_display_private *msm_dp_display;
 
+	msm_dp_display = container_of(msm_dp, struct msm_dp_display_private, msm_dp_display);
 	if (!msm_dp->prepared) {
 		drm_dbg_dp(msm_dp->drm_dev, "Link already unprepare, return\n");
 		return;
 	}
+
+	/* dongle is still connected but sinks are disconnected */
+	if (msm_dp_display->link->sink_count == 0)
+		msm_dp_ctrl_psm_config(msm_dp_display->ctrl);
+
+	msm_dp_ctrl_off_link(msm_dp_display->ctrl);
+
+	/* re-init the PHY so that we can listen to Dongle disconnect */
+	if (msm_dp_display->link->sink_count == 0)
+		msm_dp_ctrl_reinit_phy(msm_dp_display->ctrl);
+	else
+		msm_dp_display_host_phy_exit(msm_dp_display);
 
 	pm_runtime_put_sync(&msm_dp->pdev->dev);
 
@@ -1754,7 +1755,7 @@ void msm_dp_display_atomic_post_disable(struct msm_dp *msm_dp)
 
 	msm_dp_display_atomic_post_disable_helper(msm_dp, msm_dp_display->panel);
 
-	msm_dp_display_unprepare(msm_dp_display);
+	msm_dp_display_unprepare(msm_dp);
 }
 
 void msm_dp_display_mode_set_helper(struct msm_dp *msm_dp,
