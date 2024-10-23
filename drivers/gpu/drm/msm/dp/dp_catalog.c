@@ -416,8 +416,25 @@ void msm_dp_catalog_ctrl_psr_mainlink_enable(struct msm_dp_catalog *msm_dp_catal
 	msm_dp_write_link(catalog, REG_DP_MAINLINK_CTRL, val);
 }
 
+void msm_dp_catalog_mst_config(struct msm_dp_catalog *msm_dp_catalog, bool enable)
+{
+	struct msm_dp_catalog_private *catalog = container_of(msm_dp_catalog,
+							      struct msm_dp_catalog_private,
+							      msm_dp_catalog);
+
+	u32 mainlink_ctrl;
+
+	mainlink_ctrl = msm_dp_read_link(catalog, REG_DP_MAINLINK_CTRL);
+	if (enable)
+		mainlink_ctrl |= (0x04000100);
+	else
+		mainlink_ctrl &= ~(0x04000100);
+
+	msm_dp_write_link(catalog, REG_DP_MAINLINK_CTRL, mainlink_ctrl);
+}
+
 void msm_dp_catalog_ctrl_mainlink_ctrl(struct msm_dp_catalog *msm_dp_catalog,
-						bool enable)
+				       bool enable)
 {
 	u32 mainlink_ctrl;
 	struct msm_dp_catalog_private *catalog = container_of(msm_dp_catalog,
