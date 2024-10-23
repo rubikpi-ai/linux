@@ -378,7 +378,11 @@ EXPORT_SYMBOL_GPL(qcom_glink_smem_register);
 
 void qcom_glink_smem_unregister(struct qcom_glink_smem *smem)
 {
-	struct qcom_glink *glink = smem->glink;
+	struct qcom_glink *glink;
+
+	if (!smem)
+		return;
+	glink = smem->glink;
 
 	disable_irq(smem->irq);
 
