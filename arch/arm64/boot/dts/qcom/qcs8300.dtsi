@@ -4378,6 +4378,7 @@
 
 			qcom,dsb-element-bits = <32>;
 			qcom,dsb-msrs-num = <32>;
+			status = "disabled";
 
 			out-ports {
 				port {
