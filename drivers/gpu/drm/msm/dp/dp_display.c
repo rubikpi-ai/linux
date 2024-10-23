@@ -777,6 +777,34 @@ static int msm_dp_irq_hpd_handle(struct msm_dp_display_private *dp, u32 data)
 	return 0;
 }
 
+struct msm_dp_panel *msm_dp_display_get_panel(struct msm_dp *dp_display)
+{
+	struct msm_dp_display_private *dp;
+	struct msm_dp_panel *dp_panel;
+
+	struct msm_dp_panel_in panel_in;
+
+	dp = container_of(dp_display, struct msm_dp_display_private, msm_dp_display);
+
+	panel_in.dev = &dp_display->pdev->dev;
+	panel_in.aux = dp->aux;
+	panel_in.catalog = dp->catalog;
+	panel_in.link = dp->link;
+
+	dp_panel = msm_dp_panel_get(&panel_in);
+
+	if (IS_ERR(dp->panel)) {
+		DRM_ERROR("failed to initialize panel\n");
+		return NULL;
+	}
+
+	memcpy(dp_panel->dpcd, dp->panel->dpcd, DP_RECEIVER_CAP_SIZE + 1);
+	memcpy(&dp_panel->link_info, &dp->panel->link_info,
+	       sizeof(dp->panel->link_info));
+
+	return dp_panel;
+}
+
 static void msm_dp_display_deinit_sub_modules(struct msm_dp_display_private *dp)
 {
 	msm_dp_audio_put(dp->audio);

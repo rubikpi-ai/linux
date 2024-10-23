@@ -67,4 +67,6 @@ void msm_dp_display_unprepare(struct msm_dp *dp);
 
 int msm_dp_display_get_active_stream_cnt(struct msm_dp *msm_dp);
 
+struct msm_dp_panel *msm_dp_display_get_panel(struct msm_dp *dp_display);
+
 #endif /* _DP_DISPLAY_H_ */
