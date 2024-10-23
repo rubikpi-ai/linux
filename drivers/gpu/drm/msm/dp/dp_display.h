@@ -20,7 +20,6 @@ struct msm_dp {
 	struct drm_bridge *next_bridge;
 	bool link_ready;
 	bool audio_enabled;
-	bool power_on;
 	bool prepared;
 	bool mst_active;
 	unsigned int connector_type;
@@ -65,5 +64,7 @@ void msm_dp_display_atomic_post_disable_helper(struct msm_dp *msm_dp,
 					       struct msm_dp_panel *msm_dp_panel);
 
 void msm_dp_display_unprepare(struct msm_dp *dp);
+
+int msm_dp_display_get_active_stream_cnt(struct msm_dp *msm_dp);
 
 #endif /* _DP_DISPLAY_H_ */

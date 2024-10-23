@@ -112,6 +112,8 @@ struct msm_dp_display_private {
 
 	bool wide_bus_supported;
 
+	u32 active_stream_cnt;
+
 	struct msm_dp_audio *audio;
 };
 
@@ -197,6 +199,15 @@ static const struct of_device_id msm_dp_dt_match[] = {
 	{ .compatible = "qcom,sm8650-dp", .data = &msm_dp_desc_sm8650 },
 	{}
 };
+
+int msm_dp_display_get_active_stream_cnt(struct msm_dp *msm_dp)
+{
+	struct msm_dp_display_private *msm_dp_display;
+
+	msm_dp_display = container_of(msm_dp, struct msm_dp_display_private, msm_dp_display);
+
+	return msm_dp_display->active_stream_cnt;
+}
 
 static struct msm_dp_display_private *dev_get_dp_display_private(struct device *dev)
 {
@@ -900,17 +911,10 @@ static int msm_dp_display_enable(struct msm_dp_display_private *dp,
 				 struct msm_dp_panel *msm_dp_panel)
 {
 	int rc = 0;
-	struct msm_dp *msm_dp_display = &dp->msm_dp_display;
 
 	drm_dbg_dp(dp->drm_dev, "sink_count=%d\n", dp->link->sink_count);
-	if (msm_dp_display->power_on) {
-		drm_dbg_dp(dp->drm_dev, "Link already setup, return\n");
-		return 0;
-	}
 
 	rc = msm_dp_ctrl_on_stream(dp->ctrl, msm_dp_panel, dp->max_stream);
-	if (!rc)
-		msm_dp_display->power_on = true;
 
 	return rc;
 }
@@ -957,16 +961,14 @@ static void msm_dp_display_audio_notify_disable(struct msm_dp_display_private *d
 static int msm_dp_display_disable(struct msm_dp_display_private *dp,
 				  struct msm_dp_panel *msm_dp_panel)
 {
-	struct msm_dp *msm_dp_display = &dp->msm_dp_display;
-
-	if (!msm_dp_display->power_on)
+	if (!dp->active_stream_cnt)
 		return 0;
 
 	msm_dp_ctrl_clear_vsc_sdp_pkt(dp->ctrl, msm_dp_panel);
 
 	msm_dp_ctrl_stream_clk_off(dp->ctrl, msm_dp_panel);
 
-	msm_dp_display->power_on = false;
+	dp->active_stream_cnt--;
 
 	drm_dbg_dp(dp->drm_dev, "sink count: %d\n", dp->link->sink_count);
 	return 0;
@@ -1123,7 +1125,7 @@ void msm_dp_snapshot(struct msm_disp_state *disp_state, struct msm_dp *dp)
 	 */
 	mutex_lock(&msm_dp_display->event_mutex);
 
-	if (!dp->power_on) {
+	if (!msm_dp_display->active_stream_cnt) {
 		mutex_unlock(&msm_dp_display->event_mutex);
 		return;
 	}
@@ -1643,6 +1645,8 @@ void msm_dp_display_enable_helper(struct msm_dp *dp, struct msm_dp_panel *msm_dp
 		msm_dp_display_disable(msm_dp_display, msm_dp_panel);
 	}
 
+	msm_dp_display->active_stream_cnt++;
+
 	/* completed connection */
 	msm_dp_display->hpd_state = ST_CONNECTED;
 
@@ -1667,6 +1671,11 @@ void msm_dp_display_disable_helper(struct msm_dp *dp, struct msm_dp_panel *msm_d
 	struct msm_dp_display_private *msm_dp_display;
 
 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+
+	if (!msm_dp_display->active_stream_cnt) {
+		drm_dbg_dp(dp->drm_dev, "no active streams\n");
+		return;
+	}
 
 	if (dp->mst_active) {
 		msm_dp_ctrl_push_vcpf(msm_dp_display->ctrl, msm_dp_display->panel);
@@ -1693,6 +1702,11 @@ void msm_dp_display_unprepare(struct msm_dp *msm_dp)
 	msm_dp_display = container_of(msm_dp, struct msm_dp_display_private, msm_dp_display);
 	if (!msm_dp->prepared) {
 		drm_dbg_dp(msm_dp->drm_dev, "Link already unprepare, return\n");
+		return;
+	}
+
+	if (msm_dp_display->active_stream_cnt) {
+		drm_dbg_dp(msm_dp->drm_dev, "stream still active, return\n");
 		return;
 	}
 
