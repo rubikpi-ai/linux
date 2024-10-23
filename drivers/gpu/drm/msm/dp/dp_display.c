@@ -431,9 +431,11 @@ static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
 	if (rc)
 		goto end;
 
-	rc = msm_dp_panel_read_edid(dp->panel, connector);
-	if (rc)
-		goto end;
+	if (dp->max_stream <= DEFAULT_STREAM_COUNT || !msm_dp_panel_read_mst_cap(dp->panel)) {
+		rc = msm_dp_panel_read_edid(dp->panel, connector);
+		if (rc)
+			goto end;
+	}
 
 	msm_dp_link_process_request(dp->link);
 
