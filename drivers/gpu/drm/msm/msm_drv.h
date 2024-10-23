@@ -391,6 +391,8 @@ int msm_dp_get_mst_max_stream(const struct msm_dp *dp_display);
 
 int msm_dp_mst_bridge_init(struct msm_dp *dp_display, struct drm_encoder *encoder);
 
+int msm_dp_mst_register(struct msm_dp *dp_display);
+
 #else
 static inline int __init msm_dp_register(void)
 {
@@ -408,6 +410,11 @@ static inline int msm_dp_modeset_init(struct msm_dp *dp_display,
 }
 
 static inline int msm_dp_get_mst_max_stream(struct msm_dp *dp_display)
+{
+	return -EINVAL;
+}
+
+static inline int msm_dp_mst_register(struct msm_dp *dp_display)
 {
 	return -EINVAL;
 }

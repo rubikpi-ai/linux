@@ -70,6 +70,8 @@ enum {
 
 #define WAIT_FOR_RESUME_TIMEOUT_JIFFIES (HZ / 2)
 
+#define MAX_DPCD_TRANSACTION_BYTES 16
+
 struct msm_dp_event {
 	u32 event_id;
 	u32 data;
@@ -1705,6 +1707,16 @@ int msm_dp_modeset_init(struct msm_dp *msm_dp_display, struct drm_device *dev,
 	msm_dp_priv->panel->connector = msm_dp_display->connector;
 
 	return 0;
+}
+
+int msm_dp_mst_register(struct msm_dp *dp)
+{
+	struct msm_dp_display_private *dp_display;
+
+	dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+
+	return msm_dp_mst_init(dp, dp_display->max_stream,
+			   MAX_DPCD_TRANSACTION_BYTES, dp_display->aux);
 }
 
 void msm_dp_display_atomic_prepare(struct msm_dp *dp)
