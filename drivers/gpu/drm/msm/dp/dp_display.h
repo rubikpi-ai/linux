@@ -52,7 +52,8 @@ void msm_dp_display_mode_set(struct msm_dp *dp,
 enum drm_mode_status msm_dp_display_mode_valid(struct msm_dp *dp,
 					       const struct drm_display_info *info,
 					       const struct drm_display_mode *mode);
-int msm_dp_display_set_stream_id(struct msm_dp *dp,
-				 struct msm_dp_panel *panel, u32 strm_id);
+int msm_dp_display_set_stream_info(struct msm_dp *dp,
+				   struct msm_dp_panel *panel, u32 strm_id,
+				   u32 start_slot, u32 num_slots, u32 pbn, int vcpi);
 
 #endif /* _DP_DISPLAY_H_ */

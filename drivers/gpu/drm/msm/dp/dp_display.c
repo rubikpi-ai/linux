@@ -33,6 +33,8 @@ MODULE_PARM_DESC(psr_enabled, "enable PSR for eDP and DP displays");
 
 #define HPD_STRING_SIZE 30
 
+#define DEFAULT_STREAM_COUNT 1
+
 enum {
 	ISR_DISCONNECTED,
 	ISR_CONNECT_PENDING,
@@ -95,6 +97,8 @@ struct msm_dp_display_private {
 
 	/* wait for audio signaling */
 	struct completion audio_comp;
+
+	unsigned int max_stream;
 
 	/* event related only access by event thread */
 	struct mutex event_mutex;
@@ -903,7 +907,7 @@ static int msm_dp_display_enable(struct msm_dp_display_private *dp)
 		return 0;
 	}
 
-	rc = msm_dp_ctrl_on_stream(dp->ctrl, dp->panel);
+	rc = msm_dp_ctrl_on_stream(dp->ctrl, dp->panel, dp->max_stream);
 	if (!rc)
 		msm_dp_display->power_on = true;
 
@@ -991,10 +995,13 @@ int msm_dp_display_set_plugged_cb(struct msm_dp *msm_dp_display,
 	return 0;
 }
 
-int msm_dp_display_set_stream_id(struct msm_dp *dp,
-				 struct msm_dp_panel *panel, u32 strm_id)
+int msm_dp_display_set_stream_info(struct msm_dp *dp,
+				   struct msm_dp_panel *panel, u32 strm_id, u32 start_slot,
+				   u32 num_slots, u32 pbn, int vcpi)
 {
 	struct msm_dp_display_private *msm_dp_display;
+	const int max_slots = 64;
+
 
 	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
 
@@ -1008,8 +1015,18 @@ int msm_dp_display_set_stream_id(struct msm_dp *dp,
 		return -EINVAL;
 	}
 
-	if (panel)
+	if (start_slot + num_slots > max_slots) {
+		DRM_ERROR("invalid channel info received. start:%d, slots:%d\n",
+			  start_slot, num_slots);
+		return -EINVAL;
+	}
+
+	msm_dp_ctrl_set_mst_channel_info(msm_dp_display->ctrl, strm_id, start_slot, num_slots);
+
+	if (panel) {
 		panel->stream_id = strm_id;
+		panel->mst_caps.pbn = pbn;
+	}
 
 	return 0;
 }
@@ -1397,6 +1414,7 @@ static int msm_dp_display_probe(struct platform_device *pdev)
 	dp->msm_dp_display.is_edp =
 		(dp->msm_dp_display.connector_type == DRM_MODE_CONNECTOR_eDP);
 
+	dp->max_stream = DEFAULT_STREAM_COUNT;
 	rc = msm_dp_init_sub_modules(dp);
 	if (rc) {
 		DRM_ERROR("init sub module failed\n");
@@ -1625,7 +1643,7 @@ void msm_dp_display_atomic_enable(struct msm_dp *dp)
 
 	mutex_lock(&msm_dp_display->event_mutex);
 
-	msm_dp_display_set_stream_id(dp, msm_dp_display->panel, 0);
+	msm_dp_display_set_stream_info(dp, msm_dp_display->panel, 0, 0, 0, 0, 0);
 
 	rc = msm_dp_display_enable(msm_dp_display);
 	if (rc)
@@ -1652,8 +1670,11 @@ void msm_dp_display_atomic_disable(struct msm_dp *dp)
 
 	msm_dp_ctrl_push_idle(msm_dp_display->ctrl);
 
-	if (dp->mst_active)
+	if (dp->mst_active) {
+		msm_dp_ctrl_mst_stream_channel_slot_setup(msm_dp_display->ctrl,
+							  msm_dp_display->max_stream);
 		msm_dp_ctrl_mst_send_act(msm_dp_display->ctrl);
+	}
 }
 
 static void msm_dp_display_unprepare(struct msm_dp_display_private *dp)

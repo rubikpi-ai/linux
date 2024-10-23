@@ -31,6 +31,8 @@
 #define DP_HW_VERSION_1_0	0x10000000
 #define DP_HW_VERSION_1_2	0x10020000
 
+#define DP_MAX_TIME_SLOTS 64
+
 enum msm_dp_catalog_audio_sdp_type {
 	DP_AUDIO_SDP_STREAM,
 	DP_AUDIO_SDP_TIMESTAMP,
@@ -139,4 +141,8 @@ void msm_dp_catalog_audio_sfe_level(struct msm_dp_catalog *catalog, u32 safe_to_
 void msm_dp_catalog_trigger_act(struct msm_dp_catalog *msm_dp_catalog);
 bool msm_dp_catalog_read_act_complete_sts(struct msm_dp_catalog *msm_dp_catalog);
 void msm_dp_catalog_mst_config(struct msm_dp_catalog *msm_dp_catalog, bool enable);
+void msm_dp_catalog_mst_channel_alloc(struct msm_dp_catalog *msm_dp_catalog,
+				      u32 ch, u32 ch_start_slot, u32 tot_slot_cnt);
+void msm_dp_catalog_ctrl_update_rg(struct msm_dp_catalog *msm_dp_catalog, u32 stream,
+				   u32 x_int, u32 y_frac_enum);
 #endif /* _DP_CATALOG_H_ */

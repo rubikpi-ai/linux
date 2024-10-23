@@ -1115,6 +1115,83 @@ bool msm_dp_catalog_read_act_complete_sts(struct msm_dp_catalog *msm_dp_catalog)
 	return msm_dp_read_link(catalog, REG_DP_MST_ACT);
 }
 
+void msm_dp_catalog_mst_channel_alloc(struct msm_dp_catalog *msm_dp_catalog,
+				      u32 ch, u32 ch_start_slot, u32 tot_slot_cnt)
+{
+	struct msm_dp_catalog_private *catalog;
+	u32 i, slot_reg_1, slot_reg_2, slot;
+	u32 reg_off = 0;
+	int const num_slots_per_reg = 32;
+
+	if (!msm_dp_catalog || ch >= DP_STREAM_MAX) {
+		DRM_ERROR("invalid input. ch %d\n", ch);
+		return;
+	}
+
+	if (ch_start_slot > DP_MAX_TIME_SLOTS ||
+	    (ch_start_slot + tot_slot_cnt > DP_MAX_TIME_SLOTS)) {
+		DRM_ERROR("invalid slots start %d, tot %d\n",
+			  ch_start_slot, tot_slot_cnt);
+		return;
+	}
+
+	catalog = container_of(msm_dp_catalog, struct msm_dp_catalog_private, msm_dp_catalog);
+
+	drm_dbg_dp(catalog->drm_dev, "ch %d, start_slot %d, tot_slot %d\n",
+		   ch, ch_start_slot, tot_slot_cnt);
+
+	if (ch == DP_STREAM_1)
+		reg_off = REG_DP_DP1_TIMESLOT_1_32 - REG_DP_DP0_TIMESLOT_1_32;
+
+	slot_reg_1 = 0;
+	slot_reg_2 = 0;
+
+	if (ch_start_slot && tot_slot_cnt) {
+		ch_start_slot--;
+		for (i = 0; i < tot_slot_cnt; i++) {
+			if (ch_start_slot < num_slots_per_reg) {
+				slot_reg_1 |= BIT(ch_start_slot);
+			} else {
+				slot = ch_start_slot - num_slots_per_reg;
+				slot_reg_2 |= BIT(slot);
+			}
+			ch_start_slot++;
+		}
+	}
+
+	drm_dbg_dp(catalog->drm_dev, "ch:%d slot_reg_1:%d, slot_reg_2:%d\n", ch,
+		   slot_reg_1, slot_reg_2);
+
+	msm_dp_write_link(catalog, REG_DP_DP0_TIMESLOT_1_32 + reg_off, slot_reg_1);
+	msm_dp_write_link(catalog, REG_DP_DP0_TIMESLOT_33_63 + reg_off, slot_reg_2);
+}
+
+void msm_dp_catalog_ctrl_update_rg(struct msm_dp_catalog *msm_dp_catalog, u32 stream,
+				   u32 x_int, u32 y_frac_enum)
+{
+	struct msm_dp_catalog_private *catalog;
+
+	u32 rg, reg_off = 0;
+
+	if (!msm_dp_catalog || stream >= DP_STREAM_MAX) {
+		DRM_ERROR("invalid input. stream %d\n", stream);
+		return;
+	}
+
+	catalog = container_of(msm_dp_catalog, struct msm_dp_catalog_private, msm_dp_catalog);
+
+	rg = y_frac_enum;
+	rg |= (x_int << 16);
+
+	drm_dbg_dp(catalog->drm_dev, "stream: %d x_int:%d y_frac_enum:%d rg:%d\n",
+		   stream, x_int, y_frac_enum, rg);
+
+	if (stream == DP_STREAM_1)
+		reg_off = REG_DP_DP1_RG - REG_DP_DP0_RG;
+
+	msm_dp_write_link(catalog, REG_DP_DP0_RG + reg_off, rg);
+}
+
 void msm_dp_catalog_panel_tpg_enable(struct msm_dp_catalog *msm_dp_catalog,
 				struct drm_display_mode *drm_mode)
 {
