@@ -236,6 +236,8 @@ config SND_SOC_SC7280
 config SND_SOC_QCM6490
 	tristate "SoC Machine driver for QCM6490 boards"
 	depends on I2C && SOUNDWIRE
+	select SND_SOC_MAX98357A
+	select SND_SOC_DMIC
 	select SND_SOC_QCOM_COMMON
 	select SND_SOC_LPASS_MACRO_COMMON
 	imply SND_SOC_LPASS_RX_MACRO
