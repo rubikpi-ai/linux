@@ -5782,156 +5782,149 @@
 		camss: camss@acaf000 {
 			compatible = "qcom,sc7280-camss";
 
-			reg = <0x0 0x0acaf000 0x0 0x5200>,
-			      <0x0 0x0acb6000 0x0 0x5200>,
-			      <0x0 0x0acbd000 0x0 0x5200>,
-			      <0x0 0x0acc4000 0x0 0x5000>,
-			      <0x0 0x0accb000 0x0 0x5000>,
-			      <0x0 0x0ace0000 0x0 0x2000>,
-			      <0x0 0x0ace2000 0x0 0x2000>,
-			      <0x0 0x0ace4000 0x0 0x2000>,
-			      <0x0 0x0ace6000 0x0 0x2000>,
-			      <0x0 0x0ace8000 0x0 0x2000>;
+			clocks = <&camcc CAM_CC_CAMNOC_AXI_CLK>,
+				 <&camcc CAM_CC_IFE_0_CSID_CLK>,
+				 <&camcc CAM_CC_IFE_1_CSID_CLK>,
+				 <&camcc CAM_CC_IFE_2_CSID_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_0_CSID_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_1_CSID_CLK>,
+				 <&camcc CAM_CC_CSIPHY0_CLK>,
+				 <&camcc CAM_CC_CSI0PHYTIMER_CLK>,
+				 <&camcc CAM_CC_CSIPHY1_CLK>,
+				 <&camcc CAM_CC_CSI1PHYTIMER_CLK>,
+				 <&camcc CAM_CC_CSIPHY2_CLK>,
+				 <&camcc CAM_CC_CSI2PHYTIMER_CLK>,
+				 <&camcc CAM_CC_CSIPHY3_CLK>,
+				 <&camcc CAM_CC_CSI3PHYTIMER_CLK>,
+				 <&camcc CAM_CC_CSIPHY4_CLK>,
+				 <&camcc CAM_CC_CSI4PHYTIMER_CLK>,
+				 <&gcc GCC_CAMERA_AHB_CLK>,
+				 <&gcc GCC_CAMERA_HF_AXI_CLK>,
+				 <&camcc CAM_CC_CPAS_AHB_CLK>,
+				 <&camcc CAM_CC_IFE_0_AXI_CLK>,
+				 <&camcc CAM_CC_IFE_0_CLK>,
+				 <&camcc CAM_CC_IFE_0_CPHY_RX_CLK>,
+				 <&camcc CAM_CC_IFE_1_AXI_CLK>,
+				 <&camcc CAM_CC_IFE_1_CLK>,
+				 <&camcc CAM_CC_IFE_1_CPHY_RX_CLK>,
+				 <&camcc CAM_CC_IFE_2_AXI_CLK>,
+				 <&camcc CAM_CC_IFE_2_CLK>,
+				 <&camcc CAM_CC_IFE_2_CPHY_RX_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_0_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_0_CPHY_RX_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_1_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_1_CPHY_RX_CLK>;
 
-			reg-names = "vfe0",
-				    "vfe1",
-				    "vfe2",
-				    "vfe_lite0",
-				    "vfe_lite1",
-				    "csiphy0",
-				    "csiphy1",
-				    "csiphy2",
-				    "csiphy3",
-				    "csiphy4";
+			clock-names = "camnoc_axi",
+				      "csi0",
+				      "csi1",
+				      "csi2",
+				      "csi3",
+				      "csi4",
+				      "csiphy0",
+				      "csiphy0_timer",
+				      "csiphy1",
+				      "csiphy1_timer",
+				      "csiphy2",
+				      "csiphy2_timer",
+				      "csiphy3",
+				      "csiphy3_timer",
+				      "csiphy4",
+				      "csiphy4_timer",
+				      "gcc_camera_ahb",
+				      "gcc_camera_axi",
+				      "soc_ahb",
+				      "vfe0_axi",
+				      "vfe0",
+				      "vfe0_cphy_rx",
+				      "vfe1_axi",
+				      "vfe1",
+				      "vfe1_cphy_rx",
+				      "vfe2_axi",
+				      "vfe2",
+				      "vfe2_cphy_rx",
+				      "vfe0_lite",
+				      "vfe0_lite_cphy_rx",
+				      "vfe1_lite",
+				      "vfe1_lite_cphy_rx";
 
-			interrupts = <GIC_SPI 477 IRQ_TYPE_EDGE_RISING>,
-				     <GIC_SPI 478 IRQ_TYPE_EDGE_RISING>,
-				     <GIC_SPI 479 IRQ_TYPE_EDGE_RISING>,
-				     <GIC_SPI 448 IRQ_TYPE_EDGE_RISING>,
-				     <GIC_SPI 122 IRQ_TYPE_EDGE_RISING>,
-				     <GIC_SPI 464 IRQ_TYPE_EDGE_RISING>,
+			interconnects = <&gem_noc  MASTER_APPSS_PROC 0 &cnoc2 SLAVE_CAMERA_CFG 0>,
+					<&mmss_noc MASTER_CAMNOC_HF  0 &mc_virt SLAVE_EBI1     0>;
+
+			interconnect-names = "ahb", "hf_0";
+
+			interrupts = <GIC_SPI 464 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 466 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 640 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 468 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 359 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 477 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 478 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 479 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 448 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 122 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 465 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 467 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 641 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 469 IRQ_TYPE_EDGE_RISING>,
 				     <GIC_SPI 360 IRQ_TYPE_EDGE_RISING>;
 
-			interrupt-names = "csiphy0",
-					  "csiphy1",
-					  "csiphy2",
-					  "csiphy3",
-					  "csiphy4",
-					  "csid0",
+			interrupt-names = "csid0",
 					  "csid1",
 					  "csid2",
 					  "csid_lite0",
 					  "csid_lite1",
+					  "csiphy0",
+					  "csiphy1",
+					  "csiphy2",
+					  "csiphy3",
+					  "csiphy4",
 					  "vfe0",
 					  "vfe1",
 					  "vfe2",
 					  "vfe_lite0",
 					  "vfe_lite1";
 
+			iommus = <&apps_smmu 0x800 0x4e0>;
+
 			power-domains = <&camcc CAM_CC_IFE_0_GDSC>,
 					<&camcc CAM_CC_IFE_1_GDSC>,
 					<&camcc CAM_CC_IFE_2_GDSC>,
 					<&camcc CAM_CC_TITAN_TOP_GDSC>;
 
-			clocks = <&gcc GCC_CAMERA_HF_AXI_CLK>,
-				 <&camcc CAM_CC_SLOW_AHB_CLK_SRC>,
-				 <&camcc CAM_CC_CPAS_AHB_CLK>,
-				 <&camcc CAM_CC_CAMNOC_AXI_CLK_SRC>,
-				 <&camcc CAM_CC_CAMNOC_AXI_CLK>,
-				 <&camcc CAM_CC_CSIPHY0_CLK>,
-				 <&camcc CAM_CC_CSI0PHYTIMER_CLK>,
-				 <&camcc CAM_CC_CSI0PHYTIMER_CLK_SRC>,
-				 <&camcc CAM_CC_CSIPHY1_CLK>,
-				 <&camcc CAM_CC_CSI1PHYTIMER_CLK>,
-				 <&camcc CAM_CC_CSI1PHYTIMER_CLK_SRC>,
-				 <&camcc CAM_CC_CSIPHY2_CLK>,
-				 <&camcc CAM_CC_CSI2PHYTIMER_CLK>,
-				 <&camcc CAM_CC_CSI2PHYTIMER_CLK_SRC>,
-				 <&camcc CAM_CC_CSIPHY3_CLK>,
-				 <&camcc CAM_CC_CSI3PHYTIMER_CLK>,
-				 <&camcc CAM_CC_CSI3PHYTIMER_CLK_SRC>,
-				 <&camcc CAM_CC_CSIPHY4_CLK>,
-				 <&camcc CAM_CC_CSI4PHYTIMER_CLK>,
-				 <&camcc CAM_CC_CSI4PHYTIMER_CLK_SRC>,
-				 <&camcc CAM_CC_IFE_0_CSID_CLK>,
-				 <&camcc CAM_CC_IFE_0_CPHY_RX_CLK>,
-				 <&camcc CAM_CC_IFE_0_CLK>,
-				 <&camcc CAM_CC_IFE_0_AXI_CLK>,
-				 <&camcc CAM_CC_CPHY_RX_CLK_SRC>,
-				 <&camcc CAM_CC_IFE_1_CSID_CLK>,
-				 <&camcc CAM_CC_IFE_1_CPHY_RX_CLK>,
-				 <&camcc CAM_CC_IFE_1_CLK>,
-				 <&camcc CAM_CC_IFE_1_AXI_CLK>,
-				 <&camcc CAM_CC_IFE_2_CSID_CLK>,
-				 <&camcc CAM_CC_IFE_2_CPHY_RX_CLK>,
-				 <&camcc CAM_CC_IFE_2_CLK>,
-				 <&camcc CAM_CC_IFE_2_AXI_CLK>,
-				 <&camcc CAM_CC_IFE_LITE_0_CSID_CLK>,
-				 <&camcc CAM_CC_IFE_LITE_0_CPHY_RX_CLK>,
-				 <&camcc CAM_CC_IFE_LITE_0_CLK>,
-				 <&camcc CAM_CC_IFE_LITE_1_CSID_CLK>,
-				 <&camcc CAM_CC_IFE_LITE_1_CPHY_RX_CLK>,
-				 <&camcc CAM_CC_IFE_LITE_1_CLK>,
-				 <&camcc CAM_CC_IFE_LITE_0_CLK>,
-				 <&camcc CAM_CC_IFE_LITE_1_CLK>;
+			power-domains-names = "ife0", "ife1", "ife2", "top";
 
-			clock-names = "cam_hf_axi",
-				      "slow_ahb_src",
-				      "cpas_ahb",
-				      "camnoc_axi_src",
-				      "camnoc_axi",
-				      "csiphy0",
-				      "csiphy0_timer",
-				      "csiphy0_timer_src",
-				      "csiphy1",
-				      "csiphy1_timer",
-				      "csiphy1_timer_src",
-				      "csiphy2",
-				      "csiphy2_timer",
-				      "csiphy2_timer_src",
-				      "csiphy3",
-				      "csiphy3_timer",
-				      "csiphy3_timer_src",
-				      "csiphy4",
-				      "csiphy4_timer",
-				      "csiphy4_timer_src",
-				      "vfe0_csid",
-				      "vfe0_cphy_rx",
-				      "vfe0",
-				      "vfe0_axi",
-				      "csiphy_rx_src",
-				      "vfe1_csid",
-				      "vfe1_cphy_rx",
-				      "vfe1",
-				      "vfe1_axi",
-				      "vfe2_csid",
-				      "vfe2_cphy_rx",
-				      "vfe2",
-				      "vfe2_axi",
-				      "vfe0_lite_csid",
-				      "vfe0_lite_cphy_rx",
-				      "vfe0_lite",
-				      "vfe1_lite_csid",
-				      "vfe1_lite_cphy_rx",
-				      "vfe1_lite",
-				      "vfe_lite0",
-				      "vfe_lite1";
+			reg = <0x0 0x0acb3000 0x0 0x1000>,
+			      <0x0 0x0acba000 0x0 0x1000>,
+			      <0x0 0x0acc1000 0x0 0x1000>,
+			      <0x0 0x0acc8000 0x0 0x1000>,
+			      <0x0 0x0accf000 0x0 0x1000>,
+			      <0x0 0x0ace0000 0x0 0x2000>,
+			      <0x0 0x0ace2000 0x0 0x2000>,
+			      <0x0 0x0ace4000 0x0 0x2000>,
+			      <0x0 0x0ace6000 0x0 0x2000>,
+			      <0x0 0x0ace8000 0x0 0x2000>,
+			      <0x0 0x0acaf000 0x0 0x4000>,
+			      <0x0 0x0acb6000 0x0 0x4000>,
+			      <0x0 0x0acbd000 0x0 0x4000>,
+			      <0x0 0x0acc4000 0x0 0x4000>,
+			      <0x0 0x0accb000 0x0 0x4000>;
 
-			iommus = <&apps_smmu 0x800 0x4e0>;
-
-			interconnect-names = "cam_ahb",
-					     "cam_hf_0";
-
-			interconnects = <&gem_noc  MASTER_APPSS_PROC 0 &cnoc2 SLAVE_CAMERA_CFG 0>,
-					<&mmss_noc MASTER_CAMNOC_HF  0 &mc_virt SLAVE_EBI1     0>;
+			reg-names = "csid0",
+				    "csid1",
+				    "csid2",
+				    "csid_lite0",
+				    "csid_lite1",
+				    "csiphy0",
+				    "csiphy1",
+				    "csiphy2",
+				    "csiphy3",
+				    "csiphy4",
+				    "vfe0",
+				    "vfe1",
+				    "vfe2",
+				    "vfe_lite0",
+				    "vfe_lite1";
 
 			status = "disabled";
 
@@ -6466,35 +6459,35 @@
 			wakeup-parent = <&pdc>;
 
 			cam2_default: cam2-default {
-				rst {
-					pins = "gpio78"; /*cam3*/
-					function = "gpio";
+				mclk {
+					pins = "gpio67";
+					function = "cam_mclk";
 					drive-strength = <2>;
 					bias-disable;
 				};
 
-				mclk {
-					pins = "gpio67"; /*cam3*/
-					function = "cam_mclk";
-					drive-strength = <2>; /*RB5 was 16 and i changed to 2 here*/
+				rst {
+					pins = "gpio78";
+					function = "gpio";
+					drive-strength = <2>;
 					bias-disable;
 				};
 			};
 
 			cam2_suspend: cam2-suspend {
+				mclk {
+					pins = "gpio67";
+					function = "cam_mclk";
+					drive-strength = <2>;
+					bias-pull-down;
+				};
+
 				rst {
-					pins = "gpio78"; /*cam3*/
+					pins = "gpio78";
 					function = "gpio";
 					drive-strength = <2>;
 					bias-pull-down;
 					output-low;
-				};
-
-				mclk {
-					pins = "gpio67"; /*cam3*/
-					function = "cam_mclk";
-					drive-strength = <2>;
-					bias-disable;
 				};
 			};
 
