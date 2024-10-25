@@ -19,6 +19,7 @@ properties:
   compatible:
     enum:
       - qcom,sa8775p-videocc
+      - qcom,qcs8300-videocc
 
   reg:
     maxItems: 1
