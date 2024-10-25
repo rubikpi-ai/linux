@@ -652,6 +652,17 @@
 			interrupt-controller;
 			#interrupt-cells = <2>;
 		};
+
+		smp2p_rdbg2_out: smp2p-rdbg2-out {
+			qcom,entry-name = "rdbg";
+			#qcom,smem-state-cells = <1>;
+		};
+
+		smp2p_rdbg2_in: smp2p-rdbg2-in {
+			qcom,entry-name = "rdbg";
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
 	};
 
 	smp2p-cdsp {
@@ -673,6 +684,17 @@
 
 		smp2p_cdsp_in: slave-kernel {
 			qcom,entry-name = "slave-kernel";
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
+		smp2p_rdbg5_out: smp2p-rdbg5-out {
+			qcom,entry-name = "rdbg";
+			#qcom,smem-state-cells = <1>;
+		};
+
+		smp2p_rdbg5_in: smp2p-rdbg5-in {
+			qcom,entry-name = "rdbg";
 			interrupt-controller;
 			#interrupt-cells = <2>;
 		};
@@ -700,6 +722,30 @@
 			interrupt-controller;
 			#interrupt-cells = <2>;
 		};
+	};
+
+	qcom-smp2p-interrupt-rdbg-2-in {
+		compatible = "qcom,smp2p-interrupt-rdbg-2-in";
+		interrupts-extended = <&smp2p_rdbg2_in 0 IRQ_TYPE_NONE>;
+		interrupt-names = "rdbg-smp2p-in";
+	};
+
+	qcom-smp2p-interrupt-rdbg-2-out {
+		compatible = "qcom,smp2p-interrupt-rdbg-2-out";
+		qcom,smem-states = <&smp2p_rdbg2_out 0>;
+		qcom,smem-state-names = "rdbg-smp2p-out";
+	};
+
+	qcom-smp2p-interrupt-rdbg-5-in {
+		compatible = "qcom,smp2p-interrupt-rdbg-5-in";
+		interrupts-extended = <&smp2p_rdbg5_in 0 IRQ_TYPE_NONE>;
+		interrupt-names = "rdbg-smp2p-in";
+	};
+
+	qcom-smp2p-interrupt-rdbg-5-out {
+		compatible = "qcom,smp2p-interrupt-rdbg-5-out";
+		qcom,smem-states = <&smp2p_rdbg5_out 0>;
+		qcom,smem-state-names = "rdbg-smp2p-out";
 	};
 
 	soc: soc@0 {
