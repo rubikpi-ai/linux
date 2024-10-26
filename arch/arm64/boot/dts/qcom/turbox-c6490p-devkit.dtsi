@@ -18,6 +18,7 @@
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
 		enable-active-high;
+		regulator-always-on;
 		regulator-enable-ramp-delay = <50000>;
 	};
 
@@ -40,6 +41,7 @@
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
 		enable-active-high;
+		regulator-always-on;
 		regulator-enable-ramp-delay = <50000>;
 	};
 
