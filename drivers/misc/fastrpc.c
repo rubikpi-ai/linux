@@ -1511,6 +1511,7 @@ static int fastrpc_init_create_static_process(struct fastrpc_user *fl,
 		goto err_invoke;
 
 	kfree(args);
+	kfree(name);
 
 	return 0;
 err_invoke:
@@ -1898,7 +1899,11 @@ static int fastrpc_get_info_from_dsp(struct fastrpc_user *fl, uint32_t *dsp_attr
 {
 	struct fastrpc_invoke_args args[2] = { 0 };
 
-	/* Capability filled in userspace */
+	/*
+	 * Capability filled in userspace. This carries the information
+	 * about the remoteproc support which is fetched from the remoteproc
+	 * sysfs node by userspace.
+	 */
 	dsp_attr_buf[0] = 0;
 	dsp_attr_buf_len -= 1;
 
@@ -1906,7 +1911,7 @@ static int fastrpc_get_info_from_dsp(struct fastrpc_user *fl, uint32_t *dsp_attr
 	args[0].length = sizeof(dsp_attr_buf_len);
 	args[0].fd = -1;
 	args[1].ptr = (u64)(uintptr_t)&dsp_attr_buf[1];
-	args[1].length = dsp_attr_buf_len * sizeof(uint32_t);
+	args[1].length = dsp_attr_buf_len * sizeof(u32);
 	args[1].fd = -1;
 
 	return fastrpc_internal_invoke(fl, true, FASTRPC_DSP_UTILITIES_HANDLE,
@@ -2264,7 +2269,6 @@ err_assign:
 		fastrpc_map_put(map);
 	else
 		fastrpc_req_munmap_impl(fl, buf);
-
 err_invoke:
 	if (map)
 		fastrpc_map_put(map);

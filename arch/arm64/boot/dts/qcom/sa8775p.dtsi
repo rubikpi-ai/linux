@@ -8060,7 +8060,6 @@
 	turing0-etm0 {
 		compatible = "qcom,coresight-remote-etm";
 		device-name = "turing_etm0";
-
 		qcom,inst-id = <13>;
 		atid = <38 39>;
 
