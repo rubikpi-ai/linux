@@ -2231,6 +2231,7 @@
 					<0 0>,
 					<0 0>,
 					<0 0>;
+			qcom,ice = <&ice>;
 			status = "disabled";
 		};
 
@@ -2252,6 +2253,13 @@
 
 			#phy-cells = <0>;
 			status = "disabled";
+		};
+
+		ice: crypto@1d88000 {
+			compatible = "qcom,inline-crypto-engine";
+			reg = <0x0 0x01d88000 0x0 0x10000>;
+			qcom,ice-use-hwkm;
+			clocks = <&gcc GCC_UFS_PHY_ICE_CORE_CLK>;
 		};
 
 		remoteproc_adsp: remoteproc@3000000 {
