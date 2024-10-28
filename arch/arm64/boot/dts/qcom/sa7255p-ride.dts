@@ -13,6 +13,8 @@
 / {
 	model = "Qualcomm Technologies, Inc. SA7255P Ride";
 	compatible = "qcom,sa7255p-ride","qcom,sa7255p";
+	qcom,msm-id = <606 0x10000>;
+	qcom,board-id = <0x10019 0>, <0x1010019 1>;
 
 	aliases {
 		i2c8 = &i2c8;
