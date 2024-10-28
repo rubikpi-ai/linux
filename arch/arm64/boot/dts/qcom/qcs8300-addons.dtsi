@@ -5,6 +5,16 @@
 
 #include "qcs8300-dma-heaps.dtsi"
 / {
+	firmware {
+		qtee_shmbridge {
+			compatible = "qcom,tee-shared-memory-bridge";
+		};
+
+		qcom_smcinvoke {
+			compatible = "qcom,smcinvoke";
+		};
+	};
+
 	reserved-memory {
 		audio_cma_mem: qcom,audio-ml {
 			compatible = "shared-dma-pool";
