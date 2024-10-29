@@ -238,7 +238,7 @@
 		#size-cells = <0>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&gpio5_dig_out_default>;
-		tpm-reset-gpio = <&pm7250b_gpios 5 0>;
+		status = "okay";
 	};
 };
 
