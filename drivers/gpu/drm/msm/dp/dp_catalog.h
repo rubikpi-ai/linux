@@ -149,4 +149,6 @@ void msm_dp_catalog_mst_channel_alloc(struct msm_dp_catalog *msm_dp_catalog,
 				      u32 ch, u32 ch_start_slot, u32 tot_slot_cnt);
 void msm_dp_catalog_ctrl_update_rg(struct msm_dp_catalog *msm_dp_catalog, u32 stream,
 				   u32 x_int, u32 y_frac_enum);
+int msm_dp_catalog_mst_async_fifo(struct msm_dp_catalog *msm_dp_catalog);
+
 #endif /* _DP_CATALOG_H_ */

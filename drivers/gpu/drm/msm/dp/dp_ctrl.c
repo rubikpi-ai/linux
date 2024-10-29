@@ -234,6 +234,9 @@ static void msm_dp_ctrl_configure_source_params(struct msm_dp_ctrl_private *ctrl
 	cc = msm_dp_link_get_colorimetry_config(ctrl->link);
 	msm_dp_catalog_ctrl_config_misc(ctrl->catalog, cc, tb);
 	msm_dp_panel_timing_cfg(msm_dp_panel);
+
+	if (ctrl->mst_active)
+		msm_dp_catalog_mst_async_fifo(ctrl->catalog);
 }
 
 /*
