@@ -693,6 +693,15 @@
 	};
 };
 
+&i2c15 {
+	status = "ok";
+	husb238@8 {
+		status = "ok";
+		compatible = "husb238_pdc";
+		reg = <0x08>;
+	};
+};
+
 &uart4 {
 	status = "okay";
 	pinctrl-0 = <&qup_uart4_tx>, <&qup_uart4_rx>;
