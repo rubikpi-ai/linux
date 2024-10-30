@@ -965,6 +965,9 @@ properties:
 
       - items:
           - enum:
+              - qcom,qcs9075-addons-rb8
+              - qcom,qcs9075-addons-ride
+              - qcom,qcs9075-addons-ride-r3
               - qcom,qcs9075-rb8
               - qcom,qcs9075-ride
               - qcom,qcs9075-ride-r3
