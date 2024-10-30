@@ -1366,10 +1366,10 @@ static int qca_set_baudrate(struct hci_dev *hdev, uint8_t baudrate)
 	case QCA_WCN3990:
 	case QCA_WCN3991:
 	case QCA_WCN3998:
-	case QCA_WCN6855:
 		usleep_range(1000, 10000);
 		break;
 	case QCA_WCN6750:
+	case QCA_WCN6855:
 	case QCA_WCN7850:
 		msleep(30);
 		break;
