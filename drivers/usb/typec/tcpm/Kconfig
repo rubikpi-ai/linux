@@ -88,4 +88,10 @@ config TYPEC_QCOM_PMIC
 	  This driver enables Type-C role switching, orientation, Alternate
 	  mode and Power Delivery support both for VBUS and VCONN.
 
+config HUSB238_PDC
+	tristate "husb238 driver"
+	depends on I2C
+	help
+	  Say Y here to enable HUSB238 pdc
+
 endif # TYPEC_TCPM
