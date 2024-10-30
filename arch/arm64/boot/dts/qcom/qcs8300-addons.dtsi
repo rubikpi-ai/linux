@@ -447,6 +447,21 @@
 		qcom,blk-size = <1>;
 	};
 
+	qcom,mem-buf {
+		compatible = "qcom,mem-buf";
+		qcom,mem-buf-capabilities = "supplier";
+		qcom,vmid = <3>;
+	};
+
+	qcom,mem-buf-msgq {
+		compatible = "qcom,mem-buf-msgq";
+	};
+
+	qcom,secure-buffer {
+		compatible = "qcom,secure-buffer";
+		qcom,vmid-cp-camera-preview-ro;
+	};
+
 	qcom_tzlog: tz-log@146d8720 {
 		compatible = "qcom,tz-log";
 		reg = <0x0 0x146d8720 0x0 0x3000>;
