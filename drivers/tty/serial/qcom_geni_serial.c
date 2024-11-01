@@ -94,7 +94,7 @@ void serial_trace_log(struct device *dev, const char *fmt, ...)
 #define STALE_TIMEOUT			16
 #define DEFAULT_BITS_PER_CHAR		10
 #define GENI_UART_CONS_PORTS		1
-#define GENI_UART_PORTS			3
+#define GENI_UART_PORTS			4
 #define DEF_FIFO_DEPTH_WORDS		16
 #define DEF_TX_WM			2
 #define DEF_FIFO_WIDTH_BITS		32
@@ -190,6 +190,14 @@ static struct qcom_geni_serial_port qcom_geni_uart_ports[GENI_UART_PORTS] = {
 			.ops = &qcom_geni_uart_pops,
 			.flags = UPF_BOOT_AUTOCONF,
 			.line = 2,
+		},
+	},
+	[3] = {
+		.uport = {
+			.iotype = UPIO_MEM,
+			.ops = &qcom_geni_uart_pops,
+			.flags = UPF_BOOT_AUTOCONF,
+			.line = 3,
 		},
 	},
 };
