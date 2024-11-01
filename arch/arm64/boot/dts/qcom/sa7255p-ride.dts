@@ -45,7 +45,7 @@
 	clock-frequency = <400000>;
 	power-domains = <&scmi9_pd 15>;
 
-	status = "disabled";
+	status = "okay";
 };
 
 &qupv3_id_0 {
