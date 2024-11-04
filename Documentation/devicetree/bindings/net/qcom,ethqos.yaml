@@ -22,6 +22,7 @@ allOf:
             enum:
               - qcom,sa7255p-ethqos
               - qcom,sa8255p-ethqos
+              - qcom,sa8797p-ethqos
     then:
       required:
         - power-domains
@@ -65,6 +66,7 @@ properties:
       - qcom,sa8775p-ethqos
       - qcom,sc8280xp-ethqos
       - qcom,sm8150-ethqos
+      - qcom,sa8797p-ethqos
 
   reg:
     maxItems: 2
