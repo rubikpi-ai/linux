@@ -13,6 +13,8 @@
 / {
 	model = "Qualcomm Technologies, Inc. QCS9075 RB8";
 	compatible = "qcom,qcs9075-rb8", "qcom,qcs9075", "qcom,sa8775p";
+	qcom,msm-id = <676 0x20000>;
+	qcom,board-id = <0x10020 0>, <0x10019 0>;
 
 	aliases {
 		serial0 = &uart10;
