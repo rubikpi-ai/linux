@@ -9,4 +9,6 @@
 / {
 	model = "Qualcomm Technologies, Inc. QCS9075 Ride";
 	compatible = "qcom,qcs9075-ride", "qcom,qcs9075", "qcom,sa8775p";
+	qcom,msm-id = <676 0x20000>;
+	qcom,board-id = <0x10025 1>;
 };
