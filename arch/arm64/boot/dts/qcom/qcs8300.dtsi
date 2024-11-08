@@ -1937,6 +1937,11 @@
 			};
 		};
 
+		rng: rng@10d2000 {
+			compatible = "qcom,qcs8300-trng", "qcom,trng";
+			reg = <0 0x010d2000 0 0x1000>;
+		};
+
 		pcie0: pci@1c00000 {
 			compatible = "qcom,pcie-qcs8300";
 			reg = <0x0 0x01c00000 0x0 0x3000>,
