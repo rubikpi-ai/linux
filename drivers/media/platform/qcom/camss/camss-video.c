@@ -297,12 +297,6 @@ static void video_stop_streaming(struct vb2_queue *q)
 
 		ret = v4l2_subdev_call(subdev, video, s_stream, 0);
 
-		if (entity->use_count > 1) {
-			/* Don't stop if other instances of the pipeline are still running */
-			dev_dbg(video->camss->dev, "Video pipeline still used, don't stop streaming.\n");
-			return;
-		}
-
 		if (ret) {
 			dev_err(video->camss->dev, "Video pipeline stop failed: %d\n", ret);
 			return;
@@ -708,7 +702,8 @@ static int msm_video_init_format(struct camss_video *video)
  * Return 0 on success or a negative error code otherwise
  */
 
-int msm_video_register(struct camss_video *video, struct v4l2_device *v4l2_dev, const char *name)
+int msm_video_register(struct camss_video *video, struct v4l2_device *v4l2_dev,
+		       const char *name)
 {
 	struct media_pad *pad = &video->pad;
 	struct video_device *vdev;
