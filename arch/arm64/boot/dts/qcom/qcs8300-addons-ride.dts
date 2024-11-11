@@ -18,6 +18,10 @@
 		compatible = "qcom,qcs8300-sndcard";
 		model = "qcs8300-ridesx-snd-card";
 
+		clocks = <&q6prmcc LPASS_HW_MACRO_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>,
+			 <&q6prmcc LPASS_HW_DCODEC_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
+		clock-names = "macro", "dcodec";
+
 		pinctrl-names = "default", "stub_aif1_active", "stub_aif1_sleep",
 				"stub_aif2_active", "stub_aif2_sleep";
 		pinctrl-0 = <&mi2s1_data0_sleep>, <&mi2s1_data1_sleep>, <&mi2s1_sck_sleep>,
