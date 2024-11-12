@@ -403,6 +403,8 @@
 	psci {
 		compatible = "arm,psci-1.0";
 		method = "smc";
+		mode-bootloader = <0x10001 0x2>;
+		mode-edl = <0x0 0x1>;
 
 		CPU_PD0: power-domain-cpu0 {
 			#power-domain-cells = <0>;
