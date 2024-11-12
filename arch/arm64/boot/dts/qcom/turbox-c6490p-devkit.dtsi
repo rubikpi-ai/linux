@@ -7,8 +7,10 @@
 	};
 
 	aliases {
+		/delete-property/ i2c2;
 		serial1 = &uart4;
 		serial2 = &uart7;
+		serial3 = &uart2;
 	};
 
 	usb_hub0_1p8_vreg: usb_hub0_1p8_vreg {
@@ -618,43 +620,10 @@
 
 &i2c1 {
 	clock-frequency = <100000>;
-	status = "okay";
 	pinctrl-names = "default";
 	pinctrl-0 = <&qup_i2c1_data_clk>, <&io_level_selection_3v3>, <&io_level_selection_5v0>;
 
 	/delete-node/ typec-mux@42;
-
-	rpi-sense@46 {
-		compatible = "rpi,rpi-sense";
-		reg = <0x46>;
-		keys-int-gpios = <&tlmm 26 1>;
-		status = "okay";
-	};
-
-	lsm9ds1-magn@1c {
-		compatible = "st,lsm9ds1-magn";
-		reg = <0x1c>;
-		status = "okay";
-	};
-
-	lps25h-press@5c {
-		compatible = "st,lps25h-press";
-		reg = <0x5c>;
-		status = "okay";
-	};
-
-	hts221-humid@5f {
-		compatible = "st,hts221-humid", "st,hts221";
-		reg = <0x5f>;
-		status = "okay";
-	};
-
-	lsm9ds1-accel@6a {
-		compatible = "st,lsm9ds1-accel";
-		reg = <0x6a>;
-		status = "okay";
-	};
-
 
 	typec-mux@42 {
 		status = "disabled";
