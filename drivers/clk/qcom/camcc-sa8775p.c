@@ -1842,6 +1842,10 @@ static int cam_cc_sa8775p_probe(struct platform_device *pdev)
 	struct regmap *regmap;
 	int ret;
 
+	ret = qcom_cc_attach_pds(&pdev->dev, &cam_cc_sa8775p_desc);
+	if (ret)
+		return ret;
+
 	ret = devm_pm_runtime_enable(&pdev->dev);
 	if (ret)
 		return ret;
