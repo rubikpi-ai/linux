@@ -22,6 +22,7 @@
 #include <linux/slab.h>
 #include <linux/tty.h>
 #include <linux/tty_flip.h>
+#include <soc/qcom/qup_fw_load.h>
 #include <dt-bindings/interconnect/qcom,icc.h>
 
 #define CREATE_TRACE_POINTS
@@ -1136,8 +1137,13 @@ static int qcom_geni_serial_port_setup(struct uart_port *uport)
 
 	proto = geni_se_read_proto(&port->se);
 	if (proto != GENI_SE_UART) {
-		dev_err(uport->dev, "Invalid FW loaded, proto: %d\n", proto);
-		return -ENXIO;
+		ret = geni_load_se_firmware(&port->se, GENI_SE_UART);
+		if (ret) {
+			dev_err(uport->dev,
+				"Cannot load firmware from linux for uart proto: %d error: %d\n",
+				proto, ret);
+			return -ENXIO;
+		}
 	}
 
 	qcom_geni_serial_stop_rx(uport);
