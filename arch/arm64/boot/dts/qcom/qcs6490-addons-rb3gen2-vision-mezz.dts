@@ -21,13 +21,13 @@
 };
 
 &camcc {
-	status = "okay";
+	status = "disabled";
 };
 
 &camss {
 	vdda-phy-supply = <&vreg_l10c_0p88>;
 	vdda-pll-supply = <&vreg_l6b_1p2>;
-	status = "okay";
+	status = "disabled";
 
 	ports {
 		/* The port index denotes CSIPHY id i.e. csiphy3 */
