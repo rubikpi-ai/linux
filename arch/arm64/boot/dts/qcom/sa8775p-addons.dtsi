@@ -4,6 +4,7 @@
  */
 
 #include "sa8775p-dma-heaps.dtsi"
+#include <dt-bindings/thermal/thermal.h>
 
 / {
 	reserved-memory {
@@ -407,6 +408,10 @@
 		qcom,blk-size = <1>;
 	};
 
+	msm_gpu: qcom,kgsl-3d0@3d00000 {
+		#cooling-cells = <2>;
+	};
+
 	tmc_etr: tmc@4048000 {
 		interrupts = <GIC_SPI 270 IRQ_TYPE_EDGE_RISING>;
 		interrupt-names = "byte-cntr-irq";
@@ -495,5 +500,61 @@
 	qcom,secure-buffer {
 		compatible = "qcom,secure-buffer";
 		qcom,vmid-cp-camera-preview-ro;
+	};
+};
+
+&thermal_zones {
+	gpuss-0-thermal {
+		cooling-maps {
+			map0 {
+				trip = <&gpuss_0_passive>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	gpuss-1-thermal {
+		cooling-maps {
+			map0 {
+				trip = <&gpuss_1_passive>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	gpuss-2-thermal {
+		cooling-maps {
+			map0 {
+				trip = <&gpuss_2_passive>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	gpuss-3-thermal {
+		cooling-maps {
+			map0 {
+				trip = <&gpuss_3_passive>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	gpuss-4-thermal {
+		cooling-maps {
+			map0 {
+				trip = <&gpuss_4_passive>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	gpuss-5-thermal {
+		cooling-maps {
+			map0 {
+				trip = <&gpuss_5_passive>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			};
+		};
 	};
 };
