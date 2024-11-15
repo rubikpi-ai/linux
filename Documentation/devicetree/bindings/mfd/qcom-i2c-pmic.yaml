@@ -1,0 +1,112 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/mfd/qcom-i2c-pmic.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Qualcomm Technologies, Inc. I2C PMIC Interrupt Controller
+
+maintainers:
+  - Umang Chheda <quic_uchheda@quicinc.com>
+
+description: |
+  The I2C PMIC Controller is used by multi-function PMIC devices which communicate
+  over the I2C bus. An I2C PMIC controller node typically contains one or more
+  child nodes representing the device's peripherals. Each of the peripherals
+  typically has its own driver on the platform bus and will be enumerated by this
+  controller. The controller exposes a regmap to the peripherals to communicate
+  over the I2C bus.
+
+  The controller also controls interrupts for all of the peripherals on the bus.
+  The controller takes a summary interrupt, deciphers which peripheral triggered
+  the interrupt, and which of the peripheral's interrupts were triggered. Finally,
+  it calls the handlers for each of the virtual interrupts that were registered.
+
+properties:
+  compatible:
+    const: qcom,i2c-pmic
+
+  reg:
+    description:
+      7-bit I2C address of the device.
+
+    maxItems: 1
+
+  '#address-cells':
+    const: 1
+
+  '#size-cells':
+    const: 0
+
+  pinctrl-names:
+    const: default
+
+  pinctrl-0:
+    description:
+      phandle of the pin configuration.
+
+    maxItems: 1
+
+patternProperties:
+  "^pm8008-chip@[0-9]+$":
+    type: object
+    $ref: /schemas/regulator/qcom,pm8008-chip.yaml#
+
+  "^qcom,pm8008[a-z]-regulator+$":
+    type: object
+    $ref: /schemas/regulator/qcom,pm8008-regulator.yaml#
+
+required:
+  - compatible
+  - reg
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/interrupt-controller/irq.h>
+
+    i2c_3 {
+      status = "okay";
+      #address-cells = <1>;
+      #size-cells = <0>;
+
+      qcom,smb138x@8 {
+        compatible = "qcom,i2c-pmic";
+        reg = <0x8>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+        pinctrl-names = "default";
+        pinctrl-0 = <&smb_stat_active>;
+      };
+    };
+
+  - |
+    #include <dt-bindings/interrupt-controller/irq.h>
+
+    i2c1 {
+      status = "okay";
+      #address-cells = <1>;
+      #size-cells = <0>;
+
+      pm8008i_chip: pm8008i@8 {
+        compatible = "qcom,i2c-pmic";
+        reg = <0x8>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        pinctrl-names = "default";
+        pinctrl-0 = <&pm8008i_active>;
+
+        pm8008-chip@900 {
+          compatible = "qcom,pm8008-chip";
+          reg = <0x900>;
+
+          PM8008I_EN: qcom,pm8008-chip-en {
+            regulator-name = "pm8008i-chip-en";
+          };
+        };
+      };
+    };
+
+...

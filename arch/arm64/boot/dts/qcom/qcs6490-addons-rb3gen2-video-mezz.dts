@@ -1,0 +1,310 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
+
+/dts-v1/;
+
+#include "qcs6490-rb3gen2.dts"
+#include "qcs6490-addons-rb3gen2.dtsi"
+/ {
+	model = "Qualcomm Technologies, Inc. Robotics RB3gen2 addons video mezz platform";
+	compatible = "qcom,qcs6490-addons-rb3gen2-video-mezz", "qcom,qcm6490";
+
+	qcom,msm-id = <497 0x10000>, <498 0x10000>, <475 0x10000>, <515 0x10000>;
+	qcom,board-id = <32 0x1>, <32 0x601>;
+};
+
+&q6apmbedai {
+	qcom,prmcc_clk = <&q6prmcc>;
+};
+
+&sound {
+	compatible = "qcom,qcm6490-sndcard";
+	model = "qcm6490-rb3-vc-snd-card";
+
+	audio-routing =
+		"SpkrLeft IN", "WSA_SPK1 OUT",
+		"SpkrRight IN", "WSA_SPK2 OUT",
+		"VA DMIC0", "vdd-micb",
+		"VA DMIC1", "vdd-micb",
+		"VA DMIC2", "vdd-micb",
+		"VA DMIC3", "vdd-micb",
+		"VA DMIC4", "vdd-micb",
+		"VA DMIC5", "vdd-micb";
+
+	pinctrl-names = "default", "stub_aif1_active", "stub_aif1_sleep";
+	pinctrl-0 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+		    <&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>;
+	pinctrl-1 = <&mi2s0_data0>, <&mi2s0_data1>, <&mi2s0_mclk>, <&mi2s0_sclk>, <&mi2s0_ws>;
+	pinctrl-2 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+		    <&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>;
+
+	mi2s-capture-dai-link {
+		link-name = "MI2S-LPAIF-TX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_MI2S_TX>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	mi2s-playback-dai-link {
+		link-name = "MI2S-LPAIF-RX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_MI2S_RX>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+
+	tdm-capture-dai-link {
+		link-name = "TDM-LPAIF-TX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_TDM_TX_0>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	tdm-playback-dai-link {
+		link-name = "TDM-LPAIF-RX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_TDM_RX_0>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+
+};
+
+&spmi_bus {
+	pmic@PM7250B_SID {
+		pm7250b_bcl: bcl@1d00 {
+			compatible = "qcom,bcl-v5";
+			reg = <0x1d00>;
+			interrupts = <PM7250B_SID 0x1d 0x0 IRQ_TYPE_EDGE_RISING>,
+					<PM7250B_SID 0x1d 0x1 IRQ_TYPE_EDGE_RISING>,
+					<PM7250B_SID 0x1d 0x2 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "bcl-lvl0",
+						"bcl-lvl1",
+						"bcl-lvl2";
+			#thermal-sensor-cells = <1>;
+		};
+	};
+};
+
+&thermal_zones {
+	pm7250b-ibat-lvl0 {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm7250b_bcl 0>;
+
+		trips {
+			ibat_lvl0:ibat-lvl0 {
+				temperature = <6000>;
+				hysteresis = <200>;
+				type = "passive";
+			};
+		};
+	};
+
+	pm7250b-ibat-lvl1 {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm7250b_bcl 1>;
+
+		trips {
+			ibat_lvl1:ibat-lvl1 {
+				temperature = <7500>;
+				hysteresis = <200>;
+				type = "passive";
+			};
+		};
+	};
+
+	pm7250b-bcl-lvl0 {
+		polling-delay-passive = <100>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm7250b_bcl 5>;
+
+		trips {
+			b_bcl_lvl0: b-bcl-lvl0 {
+				temperature = <1>;
+				hysteresis = <1>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&CPU4_idle 100 100>;
+			};
+
+			map1 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&CPU5_idle 100 100>;
+			};
+
+			map2 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&CPU6_idle 100 100>;
+			};
+
+			map3 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&CPU7_idle 100 100>;
+			};
+
+			map4 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&cdsp_sw 2 2>;
+			};
+
+			map5 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&modem_pa 2 2>;
+			};
+
+			map6 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&modem_tj 1 1>;
+			};
+		};
+	};
+
+	pm7250b-bcl-lvl1 {
+		polling-delay-passive = <100>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm7250b_bcl 6>;
+
+		trips {
+			b_bcl_lvl1: b-bcl-lvl1 {
+				temperature = <1>;
+				hysteresis = <1>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&b_bcl_lvl1>;
+				cooling-device = <&msm_gpu 5 THERMAL_NO_LIMIT>;
+			};
+
+			map1 {
+				trip = <&b_bcl_lvl1>;
+				cooling-device = <&cdsp_sw 4 4>;
+			};
+
+			map2 {
+				trip = <&b_bcl_lvl1>;
+				cooling-device = <&modem_tj 3 3>;
+			};
+		};
+	};
+
+	pm7250b-bcl-lvl2 {
+		polling-delay-passive = <100>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm7250b_bcl 7>;
+
+		trips {
+			b_bcl_lvl2: b-bcl-lvl2 {
+				temperature = <1>;
+				hysteresis = <1>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&b_bcl_lvl2>;
+				cooling-device = <&cdsp_sw 5 5>;
+			};
+		};
+	};
+};
+
+&tlmm {
+	mi2s0_data0_sleep: mi2s0-data0-sleep {
+		pins = "gpio98";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_data1_sleep: mi2s0-data1-sleep {
+		pins = "gpio99";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_mclk_sleep: mi2s0-mclk-sleep {
+		pins = "gpio96";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_sclk_sleep: mi2s0-sclk-sleep {
+		pins = "gpio97";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_ws_sleep: mi2s0-ws-sleep {
+		pins = "gpio100";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+};
+
+&mi2s0_data0 {
+	drive-strength = <8>;
+	bias-disable;
+};
+
+&mi2s0_data1 {
+	drive-strength = <8>;
+	bias-disable;
+};
+
+&mi2s0_mclk {
+	drive-strength = <8>;
+	bias-disable;
+	output-high;
+};
+
+&mi2s0_sclk {
+	drive-strength = <8>;
+	bias-disable;
+	output-high;
+};
+
+&mi2s0_ws {
+	drive-strength = <8>;
+	bias-disable;
+	output-high;
+};

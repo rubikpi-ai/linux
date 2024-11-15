@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/sound/qcom,msm-stub-codec.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Qualcomm Technologies Inc. msm stub audio codec driver
+
+maintainers:
+  - Rohit kumar <quic_rohkumar@quicinc.com>
+  - Amarnath Vangala <quic_avangala@quicinc.com>
+
+properties:
+  compatible:
+    enum:
+      - qcom,msm-stub-codec
+
+required:
+  - compatible
+
+unevaluatedProperties: false
+
+examples:
+  - |
+          msm_stub_codec: msm-stub-codec {
+                  compatible = "qcom,msm-stub-codec";
+                  #sound-dai-cells = <1>;
+          };

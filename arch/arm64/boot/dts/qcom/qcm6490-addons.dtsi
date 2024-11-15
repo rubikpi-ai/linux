@@ -1,0 +1,1982 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * qcm6490-addons device tree source
+ *
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ */
+
+/{
+	reserved-memory {
+		audio_cma_mem: qcom,audio-ml {
+			compatible = "shared-dma-pool";
+			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
+			reusable;
+			alignment = <0x0 0x400000>;
+			size = <0x0 0x1000000>; /* 16M */
+		};
+
+		qseecom_mem: qcom,qseecom {
+			compatible = "shared-dma-pool";
+			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
+			reusable;
+			alignment = <0x0 0x400000>;
+			size = <0x0 0x1400000>; /* 20M */
+		};
+
+		qseecom_ta_mem: qcom,qseecom-ta {
+			compatible = "shared-dma-pool";
+			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
+			reusable;
+			alignment = <0x0 0x400000>;
+			size = <0x0 0x1000000>; /* 16M */
+		};
+
+		dump_mem: mem-dump-region {
+			compatible = "shared-dma-pool";
+			alloc-ranges = <0x0 0x00000000 0x0 0xffffffff>;
+			reusable;
+			size = <0 0x2c00000>;
+		};
+	};
+
+	/* Add overlay for firmware node containing qcom_scm in sc7280.dtsi */
+	firmware {
+		qtee_shmbridge {
+			compatible = "qcom,tee-shared-memory-bridge";
+		};
+
+		qcom_smcinvoke {
+			compatible = "qcom,smcinvoke";
+		};
+	};
+
+	mem-dump {
+		compatible = "qcom,mem-dump";
+		memory-region = <&dump_mem>;
+
+		c0-context {
+			qcom,dump-size = <0x800>;
+			qcom,dump-id = <0x0>;
+		};
+
+		c0-scandump {
+			qcom,dump-size = <0x10100>;
+			qcom,dump-id = <0x130>;
+		};
+
+		c100-context {
+			qcom,dump-size = <0x800>;
+			qcom,dump-id = <0x1>;
+		};
+
+		c100-scandump {
+			qcom,dump-size = <0x10100>;
+			qcom,dump-id = <0x131>;
+		};
+
+		c200-context {
+			qcom,dump-size = <0x800>;
+			qcom,dump-id = <0x2>;
+		};
+
+		c200-scandump {
+			qcom,dump-size = <0x10100>;
+			qcom,dump-id = <0x132>;
+		};
+
+		c300-context {
+			qcom,dump-size = <0x800>;
+			qcom,dump-id = <0x3>;
+		};
+
+		c300-scandump {
+			qcom,dump-size = <0x10100>;
+			qcom,dump-id = <0x133>;
+		};
+
+		c400-context {
+			qcom,dump-size = <0x800>;
+			qcom,dump-id = <0x4>;
+		};
+
+		c400-scandump {
+			qcom,dump-size = <0x40000>;
+			qcom,dump-id = <0x134>;
+		};
+
+		c500-context {
+			qcom,dump-size = <0x800>;
+			qcom,dump-id = <0x5>;
+		};
+
+		c500-scandump {
+			qcom,dump-size = <0x40000>;
+			qcom,dump-id = <0x135>;
+		};
+
+		c600-context {
+			qcom,dump-size = <0x800>;
+			qcom,dump-id = <0x6>;
+		};
+
+		c600-scandump {
+			qcom,dump-size = <0x40000>;
+			qcom,dump-id = <0x136>;
+		};
+
+		c700-context {
+			qcom,dump-size = <0x800>;
+			qcom,dump-id = <0x7>;
+		};
+
+		c700-scandump {
+			qcom,dump-size = <0x40000>;
+			qcom,dump-id = <0x137>;
+		};
+
+		cpuss-reg {
+			qcom,dump-size = <0x30000>;
+			qcom,dump-id = <0xef>;
+		};
+
+		etf-lpass {
+			qcom,dump-size = <0x4000>;
+			qcom,dump-id = <0xf4>;
+		};
+
+		etflpass-reg {
+			qcom,dump-size = <0x1000>;
+			qcom,dump-id = <0x104>;
+		};
+
+
+		etf-swao {
+			qcom,dump-size = <0x10000>;
+			qcom,dump-id = <0xf1>;
+		};
+
+		etfswao-reg {
+			qcom,dump-size = <0x1000>;
+			qcom,dump-id = <0x102>;
+		};
+
+		etr-reg {
+			qcom,dump-size = <0x1000>;
+			qcom,dump-id = <0x100>;
+		};
+
+		fcm {
+			qcom,dump-size = <0x8400>;
+			qcom,dump-id = <0xee>;
+		};
+
+		fsm-data {
+			qcom,dump-size = <0x400>;
+			qcom,dump-id = <0x165>;
+		};
+
+		gemnoc {
+			qcom,dump-size = <0x100000>;
+			qcom,dump-id = <0x162>;
+		};
+
+		l1-dcache0 {
+			qcom,dump-size = <0x9100>;
+			qcom,dump-id = <0x80>;
+		};
+
+		l1-dcache100 {
+			qcom,dump-size = <0x9100>;
+			qcom,dump-id = <0x81>;
+		};
+
+		l1-dcache200 {
+			qcom,dump-size = <0x9100>;
+			qcom,dump-id = <0x82>;
+		};
+
+		l1-dcache300 {
+			qcom,dump-size = <0x9100>;
+			qcom,dump-id = <0x83>;
+		};
+
+		l1-dcache400 {
+			qcom,dump-size = <0x9100>;
+			qcom,dump-id = <0x84>;
+		};
+
+		l1-dcache500 {
+			qcom,dump-size = <0x9100>;
+			qcom,dump-id = <0x85>;
+		};
+
+		l1-dcache600 {
+			qcom,dump-size = <0x9100>;
+			qcom,dump-id = <0x86>;
+		};
+
+		l1-dcache700 {
+			qcom,dump-size = <0x12100>;
+			qcom,dump-id = <0x87>;
+		};
+
+		l1-dtlb400 {
+			qcom,dump-size = <0x300>;
+			qcom,dump-id = <0x44>;
+		};
+
+		l1-dtlb500 {
+			qcom,dump-size = <0x300>;
+			qcom,dump-id = <0x45>;
+		};
+
+		l1-dtlb600 {
+			qcom,dump-size = <0x300>;
+			qcom,dump-id = <0x46>;
+		};
+
+		l1-dtlb700 {
+			qcom,dump-size = <0x3a0>;
+			qcom,dump-id = <0x47>;
+		};
+
+		l1-icache0 {
+			qcom,dump-size = <0x10900>;
+			qcom,dump-id = <0x60>;
+		};
+
+		l1-icache100 {
+			qcom,dump-size = <0x10900>;
+			qcom,dump-id = <0x61>;
+		};
+
+		l1-icache200 {
+			qcom,dump-size = <0x10900>;
+			qcom,dump-id = <0x62>;
+		};
+
+		l1-icache300 {
+			qcom,dump-size = <0x10900>;
+			qcom,dump-id = <0x63>;
+		};
+
+		l1-icache400 {
+			qcom,dump-size = <0x15100>;
+			qcom,dump-id = <0x64>;
+		};
+
+		l1-icache500 {
+			qcom,dump-size = <0x15100>;
+			qcom,dump-id = <0x65>;
+		};
+
+		l1-icache600 {
+			qcom,dump-size = <0x15100>;
+			qcom,dump-id = <0x66>;
+		};
+
+		l1-icache700 {
+			qcom,dump-size = <0x32100>;
+			qcom,dump-id = <0x67>;
+		};
+
+		l1-itlb400 {
+			qcom,dump-size = <0x300>;
+			qcom,dump-id = <0x24>;
+		};
+
+		l1-itlb500 {
+			qcom,dump-size = <0x300>;
+			qcom,dump-id = <0x25>;
+		};
+
+		l1-itlb600 {
+			qcom,dump-size = <0x300>;
+			qcom,dump-id = <0x26>;
+		};
+
+		l1-itlb700 {
+			qcom,dump-size = <0x400>;
+			qcom,dump-id = <0x27>;
+		};
+
+		l2-cache400 {
+			qcom,dump-size = <0x90100>;
+			qcom,dump-id = <0xc4>;
+		};
+
+		l2-cache500 {
+			qcom,dump-size = <0x90100>;
+			qcom,dump-id = <0xc5>;
+		};
+
+		l2-cache600 {
+			qcom,dump-size = <0x90100>;
+			qcom,dump-id = <0xc6>;
+		};
+
+		l2-cache700 {
+			qcom,dump-size = <0x120100>;
+			qcom,dump-id = <0xc7>;
+		};
+
+		l2-tlb0 {
+			qcom,dump-size = <0x5b00>;
+			qcom,dump-id = <0x120>;
+		};
+
+		l2-tlb100 {
+			qcom,dump-size = <0x5b00>;
+			qcom,dump-id = <0x121>;
+		};
+
+		l2-tlb200 {
+			qcom,dump-size = <0x5b00>;
+			qcom,dump-id = <0x122>;
+		};
+
+		l2-tlb300 {
+			qcom,dump-size = <0x5b00>;
+			qcom,dump-id = <0x123>;
+		};
+
+		l2-tlb400 {
+			qcom,dump-size = <0x6100>;
+			qcom,dump-id = <0x124>;
+		};
+
+		l2-tlb500 {
+			qcom,dump-size = <0x6100>;
+			qcom,dump-id = <0x125>;
+		};
+
+		l2-tlb600 {
+			qcom,dump-size = <0x6100>;
+			qcom,dump-id = <0x126>;
+		};
+
+		l2-tlb700 {
+			qcom,dump-size = <0xc100>;
+			qcom,dump-id = <0x127>;
+		};
+
+		llcc-1-dcache {
+			qcom,dump-size = <0x1141c0>;
+			qcom,dump-id = <0x140>;
+		};
+
+		llcc-2-dcache {
+			qcom,dump-size = <0x1141c0>;
+			qcom,dump-id = <0x141>;
+		};
+
+		mhm-scan {
+			qcom,dump-size = <0x20000>;
+			qcom,dump-id = <0x161>;
+		};
+
+		misc-data {
+			qcom,dump-size = <0x1000>;
+			qcom,dump-id = <0xe8>;
+		};
+
+		osm-reg {
+			qcom,dump-size = <0x400>;
+			qcom,dump-id = <0x163>;
+		};
+
+		pcu-reg {
+			qcom,dump-size = <0x400>;
+			qcom,dump-id = <0x164>;
+		};
+
+		pmic {
+			qcom,dump-size = <0x200000>;
+			qcom,dump-id = <0xe4>;
+		};
+
+		rpmh {
+			qcom,dump-size = <0x2000000>;
+			qcom,dump-id = <0xec>;
+		};
+
+		rpm-sw {
+			qcom,dump-size = <0x28000>;
+			qcom,dump-id = <0xea>;
+		};
+	};
+
+	pmic_glink: pmic-glink {
+	};
+
+	/* add overlay for smp2p nodes in sc7280.dtsi */
+	smp2p-adsp {
+		smp2p_rdbg2_out: smp2p-rdbg2-out {
+			qcom,entry-name = "rdbg";
+			#qcom,smem-state-cells = <1>;
+		};
+
+		smp2p_rdbg2_in: smp2p-rdbg2-in {
+			qcom,entry-name = "rdbg";
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
+		sleepstate_smp2p_in: qcom,sleepstate-in {
+			qcom,entry-name = "sleepstate_see";
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+
+		sleepstate_smp2p_out: sleepstate-out {
+			qcom,entry-name = "sleepstate";
+			#qcom,smem-state-cells = <1>;
+		};
+	};
+
+	smp2p-cdsp {
+		smp2p_rdbg5_out: smp2p-rdbg5-out {
+			qcom,entry-name = "rdbg";
+			#qcom,smem-state-cells = <1>;
+		};
+
+		smp2p_rdbg5_in: smp2p-rdbg5-in {
+			qcom,entry-name = "rdbg";
+			interrupt-controller;
+			#interrupt-cells = <2>;
+		};
+	};
+
+	/* Gunyah expects arch_timer symbol for boot time overlay */
+	arch_timer: timer {
+	};
+
+	redriver: typec-retimer@1c {
+	};
+};
+
+&gmu {
+	status = "disabled";
+};
+
+&gpu {
+	status = "disabled";
+};
+
+&pm8350c {
+	pm8350c_bcl: bcl@4700 {
+		compatible = "qcom,bcl-v5";
+		reg = <0x4700 0x100>;
+		interrupts = <0x2 0x47 0x0 IRQ_TYPE_NONE>,
+				<0x2 0x47 0x1 IRQ_TYPE_NONE>,
+				<0x2 0x47 0x2 IRQ_TYPE_NONE>;
+		interrupt-names = "bcl-lvl0",
+					"bcl-lvl1",
+					"bcl-lvl2";
+		qcom,pmic7-threshold;
+		#thermal-sensor-cells = <1>;
+	};
+};
+
+&qfprom {
+	tsens_chipinfo: tsens_chipinfo@180 {
+		reg = <0x180 0x4>;
+	};
+};
+
+&remoteproc_cdsp {
+	cooling {
+		compatible = "qcom,qmi-cooling-cdsp";
+
+		cdsp_sw: cdsp_sw {
+			label = "cdsp_sw";
+			#cooling-cells = <2>;
+		};
+	};
+};
+
+&remoteproc_mpss {
+	cooling {
+		compatible = "qcom,qmi-cooling-modem";
+
+		modem_pa: modem_pa {
+			label = "pa";
+			#cooling-cells = <2>;
+		};
+
+		modem_pa_fr1: modem_pa_fr1 {
+			label = "pa_fr1";
+			#cooling-cells = <2>;
+		};
+
+		modem_skin: modem_skin {
+			label = "modem_skin";
+			#cooling-cells = <2>;
+		};
+
+		modem_pa_dsc: modem_pa_dsc {
+			label = "pa_dsc";
+			#cooling-cells = <2>;
+		};
+
+		modem_pa_fr1_dsc: modem_pa_fr1_dsc {
+			label = "pa_fr1_dsc";
+			#cooling-cells = <2>;
+		};
+
+		modem_tj: modem_tj {
+			label = "modem";
+			#cooling-cells = <2>;
+		};
+
+		modem_skin_lte_dsc: modem_skin_lte_dsc {
+			label = "modem_skin_lte_dsc";
+			#cooling-cells = <2>;
+		};
+
+		modem_skin_nr_dsc: modem_skin_nr_dsc {
+			label = "modem_skin_nr_dsc";
+			#cooling-cells = <2>;
+		};
+	};
+};
+
+&soc {
+	audio-etm0 {
+		compatible = "qcom,coresight-remote-etm";
+
+		qcom,inst-id = <5>;
+		device-name = "audio_etm0";
+
+		out-ports {
+			port {
+				audio_etm0_out_funnel_lpass_lpi: endpoint {
+					remote-endpoint =
+					<&funnel_lpass_lpi_in_audio_etm0>;
+				};
+			};
+		};
+	};
+
+	funnel@6042000 {
+		in-ports {
+			port@5 {
+				reg = <5>;
+				funnel_in1_in_funnel_modem: endpoint {
+					remote-endpoint =
+					<&funnel_modem_out_funnel_in1>;
+				};
+			};
+		};
+	};
+
+	funnel@6804000 {
+		compatible = "arm,coresight-dynamic-funnel", "arm,primecell";
+
+		reg = <0x0 0x06804000 0x0 0x1000>;
+		reg-names = "funnel-base";
+
+		coresight-name = "coresight-funnel-modem";
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+
+		out-ports {
+			port {
+				funnel_modem_out_funnel_in1: endpoint {
+					remote-endpoint =
+						<&funnel_in1_in_funnel_modem>;
+				};
+			};
+		};
+
+		in-ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@1 {
+				reg = <1>;
+				funnel_modem_in_modem2_etm0: endpoint {
+					remote-endpoint =
+						<&modem2_etm0_out_funnel_modem>;
+				};
+			};
+
+			port@3 {
+				reg = <3>;
+				funnel_modem_in_funnel_mq6_dup: endpoint {
+					remote-endpoint =
+					  <&funnel_mq6_dup_out_funnel_modem>;
+				};
+			};
+		};
+	};
+
+	funnel@680c000 {
+		compatible = "arm,coresight-dynamic-funnel", "arm,primecell";
+
+		reg = <0x0 0x0680c000 0x0 0x1000>;
+		reg-names = "funnel-base";
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+
+		out-ports {
+			port {
+				funnel_modem_q6_out_funnel_mq6_dup: endpoint {
+					remote-endpoint =
+					<&funnel_mq6_dup_in_funnel_modem_q6>;
+				};
+			};
+		};
+
+		in-ports {
+			port {
+				funnel_modem_q6_in_modem_etm0: endpoint {
+					remote-endpoint =
+					<&modem_etm0_out_funnel_modem_q6>;
+				};
+			};
+		};
+	};
+
+	funnel@680d000 {
+		compatible = "arm,coresight-dynamic-funnel", "arm,primecell";
+		arm,primecell-periphid = <0x000bb908>;
+
+		reg = <0x0 0x0680d000 0x0 0x1000>,
+			<0x0 0x0680c000 0x0 0x1000>;
+
+		reg-names = "funnel-base-dummy", "funnel-base-real";
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+		qcom,duplicate-funnel;
+
+		out-ports {
+			port {
+				funnel_mq6_dup_out_funnel_modem: endpoint {
+					remote-endpoint =
+					<&funnel_modem_in_funnel_mq6_dup>;
+				};
+			};
+		};
+
+		in-ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			port@1 {
+				reg = <1>;
+				funnel_mq6_dup_in_funnel_modem_q6: endpoint {
+					remote-endpoint =
+					<&funnel_modem_q6_out_funnel_mq6_dup>;
+				};
+			};
+
+			port@2 {
+				reg = <2>;
+				funnel_mq6_dup_in_modem_diag: endpoint {
+					remote-endpoint =
+					<&modem_diag_out_funnel_mq6_dup>;
+				};
+			};
+		};
+	};
+
+	funnel@6985000 {
+		compatible = "arm,coresight-dynamic-funnel", "arm,primecell";
+
+		reg = <0x0 0x06985000 0x0 0x1000>;
+		reg-names = "funnel-base";
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+
+		out-ports {
+			port {
+				funnel_dl_turing_out_funnel_dlct5: endpoint {
+					remote-endpoint =
+						<&funnel_dlct5_in_funnel_dl_turing>;
+				};
+			};
+		};
+
+		in-ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@4 {
+				reg = <4>;
+				turing_in_turing_dup: endpoint {
+					remote-endpoint =
+					  <&turing_dup_out_turing>;
+				};
+			};
+		};
+	};
+
+	funnel@6986000 {
+		compatible = "arm,coresight-dynamic-funnel", "arm,primecell";
+		arm,primecell-periphid = <0x000bb908>;
+
+		reg = <0x0 0x06986000 0x0 0x1000>,
+			<0x0 0x06985000 0x0 0x1000>;
+		reg-names = "funnel-base-dummy", "funnel-base-real";
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+		qcom,duplicate-funnel;
+
+		out-ports {
+			port {
+				turing_dup_out_turing: endpoint {
+					remote-endpoint =
+					<&turing_in_turing_dup>;
+				};
+			};
+		};
+
+		in-ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			port@3 {
+				reg = <3>;
+				funnel_dup_turing_in_turing_etm: endpoint {
+					remote-endpoint =
+					<&turing_etm_out_funnel_dup_turing>;
+				};
+			};
+		};
+	};
+
+	funnel@6b04000 {
+		in-ports {
+			port@5 {
+				reg = <5>;
+				funnel_swao_in_funnel_lpass_lpi: endpoint {
+					remote-endpoint =
+					<&funnel_lpass_lpi_out_funnel_swao>;
+				};
+			};
+		};
+	};
+
+	tgu@6b0e000 {
+		compatible = "arm,primecell", "qcom,coresight-tgu";
+		arm,primecell-periphid = <0x000bb999>;
+		reg = <0x0 0x06b0e000 0x0 0x1000>;
+		device-name = "tgu_ipcb";
+
+		tgu-steps = <3>;
+		tgu-conditions = <4>;
+		tgu-regs = <4>;
+		tgu-timer-counters = <8>;
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+	};
+
+	swao_csr: csr@6b0f000 {
+		compatible = "qcom,coresight-csr";
+		reg = <0x0 0x06b0f000 0x0 0x1000>,
+		      <0x0 0x06b0f0f8 0x0 0x50>;
+		reg-names = "csr-base", "msr-base";
+
+		device-name = "swao_csr";
+		qcom,timestamp-support;
+		qcom,msr-support;
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+
+		qcom,blk-size = <1>;
+	};
+
+	funnel@6b44000 {
+		compatible = "arm,coresight-static-funnel";
+		coresight-name = "coresight-funnel-lpass_lpi";
+
+		out-ports {
+			port {
+				funnel_lpass_lpi_out_funnel_swao: endpoint {
+					remote-endpoint =
+					<&funnel_swao_in_funnel_lpass_lpi>;
+				};
+			};
+		};
+
+		in-ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				funnel_lpass_lpi_in_audio_etm0: endpoint {
+					remote-endpoint =
+					<&audio_etm0_out_funnel_lpass_lpi>;
+				};
+			};
+		};
+	};
+
+	funnel@6c38000 {
+		in-ports {
+			port@6 {
+				reg = <6>;
+				funnel_dlct5_in_funnel_dl_turing: endpoint {
+					remote-endpoint =
+					<&funnel_dl_turing_out_funnel_dlct5>;
+				};
+			};
+		};
+	};
+
+	funnel@6c73000 {
+		in-ports {
+			port@2 {
+				reg = <2>;
+				funnel_wpss_in_wpss_etm0: endpoint {
+					remote-endpoint =
+						<&wpss_etm0_out_funnel_wpss>;
+				};
+			};
+		};
+	};
+
+	modem-etm0 {
+		compatible = "qcom,coresight-remote-etm";
+
+		device-name = "modem_etm0";
+		qcom,inst-id = <2>;
+
+		out-ports {
+			port {
+				modem_etm0_out_funnel_modem_q6: endpoint {
+					remote-endpoint =
+						<&funnel_modem_q6_in_modem_etm0>;
+				};
+			};
+		};
+	};
+
+	modem2-etm0 {
+		compatible = "qcom,coresight-remote-etm";
+
+		device-name = "modem2_etm0";
+		qcom,inst-id = <11>;
+
+		out-ports {
+			port {
+				modem2_etm0_out_funnel_modem: endpoint {
+					remote-endpoint =
+						<&funnel_modem_in_modem2_etm0>;
+				};
+			};
+		};
+	};
+
+	msm_gpu: qcom,kgsl-3d0@3d00000 {
+		#cooling-cells = <2>;
+	};
+
+	msm_stub_codec: msm-stub-codec {
+		compatible = "qcom,msm-stub-codec";
+		#sound-dai-cells = <1>;
+	};
+
+	qcom,devfreq-cdev {
+		compatible = "qcom,devfreq-cdev";
+		qcom,devfreq = <&msm_gpu>;
+		#cooling-cells = <2>;
+	};
+
+	/* smp2p information */
+	qcom-smp2p-interrupt-rdbg-2-in {
+		compatible = "qcom,smp2p-interrupt-rdbg-2-in";
+		interrupts-extended = <&smp2p_rdbg2_in 0 IRQ_TYPE_NONE>;
+		interrupt-names = "rdbg-smp2p-in";
+	};
+
+	qcom-smp2p-interrupt-rdbg-2-out {
+		compatible = "qcom,smp2p-interrupt-rdbg-2-out";
+		qcom,smem-states = <&smp2p_rdbg2_out 0>;
+		qcom,smem-state-names = "rdbg-smp2p-out";
+	};
+
+	qcom-smp2p-interrupt-rdbg-5-in {
+		compatible = "qcom,smp2p-interrupt-rdbg-5-in";
+		interrupts-extended = <&smp2p_rdbg5_in 0 IRQ_TYPE_NONE>;
+		interrupt-names = "rdbg-smp2p-in";
+	};
+
+	qcom-smp2p-interrupt-rdbg-5-out {
+		compatible = "qcom,smp2p-interrupt-rdbg-5-out";
+		qcom,smem-states = <&smp2p_rdbg5_out 0>;
+		qcom,smem-state-names = "rdbg-smp2p-out";
+	};
+
+	qcom,smp2p_sleepstate {
+		compatible = "qcom,smp2p-sleepstate";
+		qcom,smem-states = <&sleepstate_smp2p_out 0>;
+		interrupt-parent = <&sleepstate_smp2p_in>;
+		interrupts = <0 0>;
+		interrupt-names = "smp2p-sleepstate-in";
+	};
+
+	spf_core_platform: spf-core-platform {
+		compatible = "qcom,spf-core-platform";
+
+		msm_audio_mem: msm-audio-mem {
+			compatible = "qcom,msm-audio-mem";
+			qcom,smmu-version = <2>;
+			qcom,smmu-enabled;
+			iommus = <&apps_smmu 0x1801 0x0>;
+			qcom,iommu-dma-addr-pool = <0x10000000 0x10000000>;
+			qcom,smmu-sid-mask = /bits/ 64 <0xf>;
+			dma-coherent;
+		};
+
+		msm_audio_mem_cma: msm-audio-mem-cma {
+			compatible = "qcom,msm-audio-mem";
+			memory-region = <&audio_cma_mem>;
+		};
+	};
+
+	source {
+		compatible = "arm,coresight-dummy-source";
+
+		device-name = "modem_diag";
+
+		out-ports {
+			port {
+				modem_diag_out_funnel_mq6_dup: endpoint {
+					remote-endpoint =
+						<&funnel_mq6_dup_in_modem_diag>;
+				};
+			};
+		};
+	};
+
+	turing-etm0 {
+		compatible = "qcom,coresight-remote-etm";
+
+		device-name = "turing_etm0";
+		qcom,inst-id = <13>;
+
+		out-ports {
+			port {
+				turing_etm_out_funnel_dup_turing: endpoint {
+					remote-endpoint =
+					<&funnel_dup_turing_in_turing_etm>;
+				};
+			};
+		};
+	};
+
+	wpss-etm0 {
+		compatible = "qcom,coresight-remote-etm";
+
+		device-name = "wpss_etm0";
+		qcom,inst-id = <3>;
+
+		out-ports {
+			port {
+				wpss_etm0_out_funnel_wpss: endpoint {
+					remote-endpoint =
+					<&funnel_wpss_in_wpss_etm0>;
+				};
+			};
+		};
+	};
+
+	sram@146a5000{
+		kaslr_offset@56d0 {
+			compatible = "qcom,msm-imem-kaslr_offset";
+			reg = <0x56d0 0xc>;
+		};
+
+		mem-dump-table@5010 {
+			compatible = "qcom,msm-imem-mem-dump-table";
+			reg = <0x5010 0x8>;
+		};
+	};
+
+	qcom_tzlog: tz-log@146aa720 {
+		compatible = "qcom,tz-log";
+		reg = <0x0 0x146aa720 0x0 0x3000>;
+		qcom,hyplog-enabled;
+		hyplog-address-offset = <0x410>;
+		hyplog-size-offset = <0x414>;
+	};
+
+	qcom,mem-buf {
+		compatible = "qcom,mem-buf";
+		qcom,mem-buf-capabilities = "supplier";
+		qcom,vmid = <3>;
+	};
+
+	qcom,mem-buf-msgq {
+		compatible = "qcom,mem-buf-msgq";
+	};
+
+	qcom,secure-buffer {
+		compatible = "qcom,secure-buffer";
+		qcom,vmid-cp-camera-preview-ro;
+	};
+
+	csr: csr@6001000 {
+		compatible = "qcom,coresight-csr";
+		reg = <0x0 0x06001000 0x0 0x1000>;
+		reg-names = "csr-base";
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+
+		device-name = "csr";
+		qcom,set-byte-cntr-support;
+
+		qcom,blk-size = <1>;
+	};
+
+	etr@6048000 {
+		qcom,sw-usb;
+		coresight-csr = <&csr>;
+		interrupts = <GIC_SPI 270 IRQ_TYPE_EDGE_RISING>;
+		interrupt-names = "byte-cntr-irq";
+	};
+};
+
+&thermal_zones {
+	aoss0-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			aoss0-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+	};
+
+	aoss1-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			aoss1-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+	};
+
+	camera0-thermal {
+		polling-delay-passive = <100>;
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			camera0_alert1: trip-point1 {
+				temperature = <100000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			camera0-crit {
+				temperature = <118000>;
+				hysteresis = <0>;
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&camera0_alert1>;
+				cooling-device = <&cdsp_sw 4 4>;
+			};
+
+			map1 {
+				trip = <&camera0_alert1>;
+				cooling-device = <&modem_pa 3 3>;
+			};
+
+			map2 {
+				trip = <&camera0_alert1>;
+				cooling-device = <&msm_gpu 5 5>;
+			};
+		};
+	};
+
+	cpu0-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu0_alert1>;
+				cooling-device = <&CPU0_idle 100 100>;
+			};
+		};
+	};
+
+	cpu1-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu1_alert1>;
+				cooling-device = <&CPU1_idle 100 100>;
+			};
+		};
+	};
+
+	cpu2-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu2_alert1>;
+				cooling-device = <&CPU2_idle 100 100>;
+			};
+		};
+	};
+
+	cpu3-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu3_alert1>;
+				cooling-device = <&CPU3_idle 100 100>;
+			};
+		};
+	};
+
+	cpu4-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu4_alert1>;
+				cooling-device = <&CPU4_idle 100 100>;
+			};
+		};
+	};
+
+	cpu5-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu5_alert1>;
+				cooling-device = <&CPU4_idle 100 100>;
+			};
+		};
+	};
+
+	cpu6-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu6_alert1>;
+				cooling-device = <&CPU5_idle 100 100>;
+			};
+		};
+	};
+
+	cpu7-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu7_alert1>;
+				cooling-device = <&CPU5_idle 100 100>;
+			};
+		};
+	};
+
+	cpu8-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu8_alert1>;
+				cooling-device = <&CPU6_idle 100 100>;
+			};
+		};
+	};
+
+	cpu9-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu9_alert1>;
+				cooling-device = <&CPU6_idle 100 100>;
+			};
+		};
+	};
+
+	cpu10-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu10_alert1>;
+				cooling-device = <&CPU7_idle 100 100>;
+			};
+		};
+	};
+
+	cpu11-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+			};
+
+			trip-point1 {
+				temperature = <110000>;
+				hysteresis = <5000>;
+			};
+
+			cpu-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		/delete-node/ cooling-maps;
+		cooling-maps {
+			map0 {
+				trip = <&cpu11_alert1>;
+				cooling-device = <&CPU7_idle 100 100>;
+			};
+		};
+	};
+
+	cpuss0-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			cluster0-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+	};
+
+	cpuss1-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "hot";
+			};
+
+			cluster0-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+	};
+
+	ddr-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			ddr-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+	};
+
+	gpuss0-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <2000>;
+				type = "passive";
+			};
+
+			gpuss0_alert1: trip-point1 {
+				temperature = <95000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			gpuss0-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+				type = "critical";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&gpuss0_alert1>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+
+			};
+		};
+	};
+
+	gpuss1-thermal {
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			gpuss1_alert1: trip-point1 {
+				temperature = <95000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			gpuss1-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&gpuss1_alert1>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	mdmss0-thermal {
+		polling-delay-passive = <100>;
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			mdmss0_alert1: trip-point1 {
+				temperature = <95000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss0_alert2: trip-point2 {
+				temperature = <105000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss0_alert3: trip-point3 {
+				temperature = <115000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss0-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&mdmss0_alert1>;
+				cooling-device = <&modem_tj 1 1>;
+			};
+
+			map1 {
+				trip = <&mdmss0_alert2>;
+				cooling-device = <&modem_tj 2 2>;
+			};
+
+			map2 {
+				trip = <&mdmss0_alert3>;
+				cooling-device = <&modem_tj 3 3>;
+			};
+		};
+	};
+
+	mdmss1-thermal {
+		polling-delay-passive = <100>;
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			mdmss1_alert1: trip-point1 {
+				temperature = <95000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss1_alert2: trip-point2 {
+				temperature = <105000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss1_alert3: trip-point3 {
+				temperature = <115000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss1-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&mdmss1_alert1>;
+				cooling-device = <&modem_tj 1 1>;
+			};
+
+			map1 {
+				trip = <&mdmss1_alert2>;
+				cooling-device = <&modem_tj 2 2>;
+			};
+
+			map2 {
+				trip = <&mdmss1_alert3>;
+				cooling-device = <&modem_tj 3 3>;
+			};
+		};
+	};
+
+	mdmss2-thermal {
+		polling-delay-passive = <100>;
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			mdmss2_alert1: trip-point1 {
+				temperature = <95000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss2_alert2: trip-point2 {
+				temperature = <105000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss2_alert3: trip-point3 {
+				temperature = <115000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss2-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&mdmss2_alert1>;
+				cooling-device = <&modem_tj 1 1>;
+			};
+
+			map1 {
+				trip = <&mdmss2_alert2>;
+				cooling-device = <&modem_tj 2 2>;
+			};
+
+			map2 {
+				trip = <&mdmss2_alert3>;
+				cooling-device = <&modem_tj 3 3>;
+			};
+		};
+	};
+
+	mdmss3-thermal {
+		polling-delay-passive = <100>;
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			mdmss3_alert1: trip-point1 {
+				temperature = <95000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss3_alert2: trip-point2 {
+				temperature = <105000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss3_alert3: trip-point3 {
+				temperature = <115000>;
+				hysteresis = <15000>;
+				type = "passive";
+			};
+
+			mdmss3-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&mdmss3_alert1>;
+				cooling-device = <&modem_tj 1 1>;
+			};
+
+			map1 {
+				trip = <&mdmss3_alert2>;
+				cooling-device = <&modem_tj 2 2>;
+			};
+
+			map2 {
+				trip = <&mdmss3_alert3>;
+				cooling-device = <&modem_tj 3 3>;
+			};
+		};
+	};
+
+	nspss0-thermal {
+		polling-delay-passive = <100>;
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			nspss0_alert1: trip-point1 {
+				temperature = <100000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			nspss0-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&nspss0_alert1>;
+				cooling-device = <&cdsp_sw 4 4>;
+			};
+
+			map1 {
+				trip = <&nspss0_alert1>;
+				cooling-device = <&modem_pa 3 3>;
+			};
+
+			map2 {
+				trip = <&nspss0_alert1>;
+				cooling-device = <&msm_gpu 5 5>;
+			};
+		};
+	};
+
+	nspss1-thermal {
+		polling-delay-passive = <100>;
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			nspss1_alert1: trip-point1 {
+				temperature = <100000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			nspss1-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&nspss1_alert1>;
+				cooling-device = <&cdsp_sw 4 4>;
+			};
+
+			map1 {
+				trip = <&nspss1_alert1>;
+				cooling-device = <&modem_pa 3 3>;
+			};
+
+			map2 {
+				trip = <&nspss1_alert1>;
+				cooling-device = <&msm_gpu 5 5>;
+			};
+		};
+	};
+
+	pm8350c-bcl-lvl0 {
+		polling-delay-passive = <100>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm8350c_bcl 5>;
+
+		trips {
+			c_bcl_lvl0: c-bcl-lvl0 {
+				temperature = <1>;
+				hysteresis = <1>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&c_bcl_lvl0>;
+				cooling-device = <&CPU4_idle 100 100>;
+			};
+
+			map1 {
+				trip = <&c_bcl_lvl0>;
+				cooling-device = <&CPU5_idle 100 100>;
+			};
+
+			map2 {
+				trip = <&c_bcl_lvl0>;
+				cooling-device = <&CPU6_idle 100 100>;
+			};
+
+			map3 {
+				trip = <&c_bcl_lvl0>;
+				cooling-device = <&CPU7_idle 100 100>;
+			};
+
+			map4 {
+				trip = <&c_bcl_lvl0>;
+				cooling-device = <&cdsp_sw 2 2>;
+			};
+
+			map5 {
+				trip = <&c_bcl_lvl0>;
+				cooling-device = <&modem_pa 2 2>;
+			};
+
+			map6 {
+				trip = <&c_bcl_lvl0>;
+				cooling-device = <&modem_tj 1 1>;
+			};
+		};
+	};
+
+	pm8350c-bcl-lvl1 {
+		polling-delay-passive = <100>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm8350c_bcl 6>;
+
+		trips {
+			c_bcl_lvl1: c-bcl-lvl1 {
+				temperature = <1>;
+				hysteresis = <1>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&c_bcl_lvl1>;
+				cooling-device = <&msm_gpu 5 THERMAL_NO_LIMIT>;
+			};
+
+			map1 {
+				trip = <&c_bcl_lvl1>;
+				cooling-device = <&cdsp_sw 4 4>;
+			};
+
+			map2 {
+				trip = <&c_bcl_lvl1>;
+				cooling-device = <&modem_tj 3 3>;
+			};
+		};
+	};
+
+	pm8350c-bcl-lvl2 {
+		polling-delay-passive = <100>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm8350c_bcl 7>;
+
+		trips {
+			c_bcl_lvl2: c-bcl-lvl2 {
+				temperature = <1>;
+				hysteresis = <1>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&c_bcl_lvl2>;
+				cooling-device = <&cdsp_sw 5 5>;
+			};
+		};
+	};
+
+	video-thermal {
+		polling-delay-passive = <100>;
+		trips {
+			trip-point0 {
+				temperature = <125000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			video_alert1: trip-point1 {
+				temperature = <100000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+
+			video-crit {
+				temperature = <118000>;
+				hysteresis = <2000>;
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&video_alert1>;
+				cooling-device = <&cdsp_sw 4 4>;
+			};
+
+			map1 {
+				trip = <&video_alert1>;
+				cooling-device = <&modem_pa 3 3>;
+			};
+
+			map2 {
+				trip = <&video_alert1>;
+				cooling-device = <&msm_gpu 5 5>;
+			};
+		};
+	};
+};
+
+&tsens0 {
+	nvmem-cells = <&tsens_chipinfo>;
+	nvmem-cell-names = "tsens_chipinfo";
+};
+
+&tsens1 {
+	nvmem-cells = <&tsens_chipinfo>;
+	nvmem-cell-names = "tsens_chipinfo";
+};
+
+#include "qcm6490-dma-heaps.dtsi"

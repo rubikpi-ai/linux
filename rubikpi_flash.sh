@@ -1,0 +1,1 @@
+rubikpi/tools/build_script/common/rubikpi_flash.sh

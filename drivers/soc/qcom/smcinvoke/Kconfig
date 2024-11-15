@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-2.0-only
+#
+# QCOM Smcinvoke driver
+#
+config QCOM_SMCINVOKE
+	tristate "Secure QSEE Support"
+	depends on QTEE_SHM_BRIDGE && QCOM_SCM_ADDON
+	help
+	  Enable SMCInvoke driver which supports capability based secure
+	  communication between QTI Secure Execution Environment (QSEE)
+	  and high level operating system. It exposes APIs for both
+	  userspace and kernel clients.

@@ -1,0 +1,19 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Turbox C6490P devkit device tree source
+ * This file inherits from qcm6490-addons-idp.dts
+ *
+ * Copyright (c) 2024 Thundercomm, Inc. All rights reserved.
+ *
+ */
+
+/dts-v1/;
+
+#include "turbox-c6490p-devkit.dtsi"
+
+/ {
+	model = "Thundercomm, Inc. Rubik Pi C5430P";
+	compatible = "qcom,qcm6490-addons-idp","qcom,sc7280";
+	qcom,msm-id = <575 0x10000>;
+	qcom,board-id = <34 0>, <34 0x1>, <34 0x600>, <34 0x601>;
+};

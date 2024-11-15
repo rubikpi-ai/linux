@@ -1,0 +1,38 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/sound/qcom,spf-core-platform.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Qualcomm Technologies Inc. spf core platform msm audio memory driver
+
+maintainers:
+  - Rohit kumar <quic_rohkumar@quicinc.com>
+  - Amarnath Vangala <quic_avangala@quicinc.com>
+
+properties:
+  compatible:
+    enum:
+      - qcom,spf-core-platform
+      - qcom,msm-audio-mem
+
+required:
+  - compatible
+
+unevaluatedProperties: false
+
+examples:
+  - |
+       spf_core_platform: spf_core_platform {
+                compatible = "qcom,spf-core-platform";
+
+                msm_audio_mem: msm-audio-mem {
+                        compatible = "qcom,msm-audio-mem";
+                        qcom,smmu-version = <2>;
+                        qcom,smmu-enabled;
+                        iommus = <&apps_smmu 0x1801 0x0>;
+                        qcom,iommu-dma-addr-pool = <0x10000000 0x10000000>;
+                        qcom,smmu-sid-mask = /bits/ 64 <0xf>;
+                        dma-coherent;
+                };
+       };

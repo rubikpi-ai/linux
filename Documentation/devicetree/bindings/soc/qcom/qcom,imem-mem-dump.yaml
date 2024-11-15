@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/soc/qcom/qcom,mem-dump.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Memory dump table region
+
+maintainers:
+  - Zhenhua Huang <quic_zhenhuah@quicinc.com>
+  - Mao Jinlong <quic_jinlmao@quicinc.com>
+
+description: |
+  Memory dump region is which to provide hints(id and size) of
+  debugging information based on specified protocols with firmware.
+  Firmware then does the real data capture. The debugging information includes
+  cache contents, internal memory, registers. After crash and warm reboot,
+  firmware scans ids, sizes and stores contents into reserved memory accordingly.
+  Firmware then enters into full dump mode which dumps whole DDR to PC through USB.
+
+properties:
+  compatible:
+    const: "qcom,msm-imem-mem-dump-table"
+
+  reg:
+    maxItems: 2
+
+required:
+  - compatible
+  - reg
+
+additionalProperties: false
+
+examples:
+  - |
+        mem-dump-table@10 {
+               compatible = "qcom,msm-imem-mem-dump-table";
+               reg = <0x10 0x8>;
+        };
+
+...

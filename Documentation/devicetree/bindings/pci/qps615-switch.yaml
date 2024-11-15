@@ -1,0 +1,41 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/pci/qps615-switch.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Qualcomm Technologies, Inc. (QTI)  PCIe switch
+
+maintainers:
+  - Chundru Krishna chaitanya <quic_krichai@quicinc.com>
+
+properties:
+  compatible:
+    enum:
+      - qcom,switch-i2c
+
+  reg:
+    maxItems: 1
+
+  vdda-supply:
+    description: A phandle to the core analog power supply
+
+required:
+  - compatible
+  - reg
+  - vdda-supply
+
+additionalProperties: false
+
+examples:
+  - |
+      i2c {
+          #address-cells = <1>;
+          #size-cells = <0>;
+          qps615: pcie-switch@77 {
+              compatible = "qcom,switch-i2c";
+              reg = <0x077>;
+              vdda-supply = <&foo>;
+          };
+      };
+

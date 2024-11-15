@@ -1,0 +1,89 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/iommu/qcom,qsmmuv500-tbu.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Qualcomm Technologies, Inc. TBU (Translation Buffer Unit)
+
+maintainers:
+  - Georgi Djakov <quic_c_gdjako@quicinc.com>
+
+description:
+  The Qualcomm Technologies, Inc. SMMU500 implementation consists of TCU and
+  TBU. The TBU contains a Translation Lookaside Buffer (TLB) that caches page
+  tables. TBUs provides debug features to trace and trigger debug transactions.
+  There are multiple TBU instances distributes with each client core.
+
+properties:
+  $nodename:
+    pattern: "^tbu@[0-9a-f]+$"
+
+  compatible:
+    const: qcom,qsmmuv500-tbu
+
+  reg:
+    items:
+      - description: Address and size of the TBU's register space.
+
+  reg-names:
+    items:
+      - const: base
+
+  clocks:
+    maxItems: 1
+
+  interconnects:
+    maxItems: 1
+
+  power-domains:
+    maxItems: 1
+
+  qcom,stream-id-range:
+    $ref: /schemas/types.yaml#/definitions/uint32-array
+    description: Stream ID range (address and size) that is assigned by the TBU
+    items:
+      minItems: 2
+      maxItems: 2
+
+required:
+  - compatible
+  - reg
+  - interconnects
+  - qcom,stream-id-range
+
+additionalProperties: false
+
+examples:
+  - |
+    #include <dt-bindings/clock/qcom,gcc-sdm845.h>
+    #include <dt-bindings/interconnect/qcom,icc.h>
+    #include <dt-bindings/interconnect/qcom,sdm845.h>
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+    #include <dt-bindings/interrupt-controller/irq.h>
+    #include <dt-bindings/power/qcom-rpmpd.h>
+
+    apps_smmu: iommu@15000000 {
+        compatible = "qcom,sdm845-smmu-500", "arm,mmu-500";
+        reg = <0x15000000 0x80000>;
+        ranges = <0 0 0 0 0xffffffff>;
+        #iommu-cells = <2>;
+        #global-interrupts = <1>;
+        interrupts = <GIC_SPI 65 IRQ_TYPE_LEVEL_HIGH>,
+                     <GIC_SPI 343 IRQ_TYPE_LEVEL_HIGH>;
+        #address-cells = <2>;
+        #size-cells = <2>;
+
+        anoc_1_pcie_tbu: tbu@150e1000 {
+            compatible = "qcom,qsmmuv500-tbu";
+            reg = <0x0 0x150e1000 0x0 0x1000>;
+            reg-names = "base";
+            clocks = <&gcc GCC_AGGRE_NOC_PCIE_TBU_CLK>;
+            interconnects = <&system_noc MASTER_GNOC_SNOC QCOM_ICC_TAG_ACTIVE_ONLY
+                             &config_noc SLAVE_IMEM_CFG QCOM_ICC_TAG_ACTIVE_ONLY>;
+            power-domains = <&gcc HLOS1_VOTE_AGGRE_NOC_MMU_PCIE_TBU_GDSC>;
+            qcom,stream-id-range = <0x1c00 0x400>;
+        };
+    };
+
+...

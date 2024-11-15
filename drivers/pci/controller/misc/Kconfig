@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: GPL-2.0
+config QCOM_QPS615_PCIE_SWITCH
+	bool "QCOM QPS615 PCIe Switch Driver"
+	depends on PCI
+	help
+	 This adds support to enable QPS615 PCIe switch power. And after powering on the switch do
+	 switch initialization through I2C writes. The I2C data is parsed from the requested
+	 firmware.
+
+	 Say Y to compile this driver.

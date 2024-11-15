@@ -1,0 +1,8 @@
+# SPDX-License-Identifier: GPL-2.0-only
+config QTI_TZ_LOG
+	tristate "QTI Trust Zone (TZ) Log Driver"
+	depends on QTEE_SHM_BRIDGE && PROC_FS
+	help
+	  Provide debugging capability with a procfs interface for messages produced
+	  by the Secure code (Trust zone). These messages provide diagnostic information
+	  about TZ operations.

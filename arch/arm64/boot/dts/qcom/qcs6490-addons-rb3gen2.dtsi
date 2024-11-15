@@ -1,0 +1,511 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * qcm6490-addons-rb3gen2 device tree source include
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ */
+#include "qcm6490-addons.dtsi"
+
+/ {
+	qps615_0p9_vreg: qps615-0p9-vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "qps615_0p9_vreg";
+		gpio = <&pm8350c_gpios 2 0>;
+		regulator-min-microvolt = <1000000>;
+		regulator-max-microvolt = <1000000>;
+		enable-active-high;
+		regulator-enable-ramp-delay = <4300>;
+	};
+
+	qps615_1p8_vreg: qps615-1p8-vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "qps615_1p8_vreg";
+		gpio = <&pm8350c_gpios 3 0>;
+		vin-supply = <&qps615_0p9_vreg>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+		regulator-enable-ramp-delay = <10000>;
+	};
+
+	qps615_rsex_vreg: qps615-rsex-vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "qps615_rsex_vreg";
+		gpio = <&pm8350c_gpios 1 0>;
+		vin-supply = <&qps615_1p8_vreg>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+		regulator-enable-ramp-delay = <10000>;
+	};
+
+	upd_3p3_vreg: upd_3p3_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "upd_3p3_vreg";
+		gpio = <&pm7250b_gpios 1 0>;
+		vin-supply = <&qps615_rsex_vreg>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		enable-active-high;
+		regulator-enable-ramp-delay = <10000>;
+		regulator-always-on;
+	};
+
+	upd_rest_vreg: upd_rest_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "upd_rest_vreg";
+		gpio = <&pm8350c_gpios 4 0>;
+		vin-supply = <&upd_3p3_vreg>;
+		regulator-min-microvolt = <3300000>;
+		regulator-max-microvolt = <3300000>;
+		enable-active-high;
+		regulator-always-on;
+	};
+
+	usbhub_rest_vreg: usbhub_rest_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "usbhub_rest_vreg";
+		pinctrl-names = "default";
+		pinctrl-0 = <&pcie1_usb_hub_reset_default>;
+		gpio = <&tlmm 162 GPIO_ACTIVE_LOW>;
+		enable-active-high;
+	};
+
+	qep_vreg: qep_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "qep_vreg";
+		gpio = <&pm7325_gpios 8 0>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+	};
+
+	aqr_vreg: aqr_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "aqr_vreg";
+		gpio = <&pm7250b_gpios 4 0>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+	};
+};
+
+&i2c0 {
+	clock-frequency = <100000>;
+	status = "okay";
+
+	qps615_switch: pcie-switch@77 {
+		compatible = "qcom,switch-i2c";
+		reg = <0x77>;
+		vdda-supply = <&qps615_rsex_vreg>;
+
+		status = "okay";
+	};
+};
+
+&pcie1 {
+	dummy-supply = <&qps615_switch>;
+	pcieport0: pcie@0 {
+		device_type = "pci";
+		reg = <0x0 0x0 0x0 0x0 0x0>;
+		#address-cells = <5>;
+		#size-cells = <0>;
+
+		/* BDF 1.0.0 */
+		pcie1_bus1_dev0_fn0: pcie1_bus1_dev0_fn0 {
+			reg = <0 0 0 0 0>;
+
+			/* BDF 2.1.0 */
+			pcie1_bus2_dev1_fn0: pcie1_bus2_dev1_fn0 {
+				reg = <0x800 0x0 0x0 0x0 0x0>;
+
+				/* BDF 3.0.0 */
+				pcie1_bus3_dev0_fn0: pcie1_bus3_dev0_fn0 {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+				};
+			};
+
+			/* BDF 2.2.0 */
+			pcie1_bus2_dev2_fn0: pcie1_bus2_dev2_fn0 {
+				reg = <0x1000 0x0 0x0 0x0 0x0>;
+
+				/* BDF 4.0.0 */
+				pcie1_bus4_dev0_fn0: pcie1_bus4_dev0_fn0 {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+				};
+			};
+
+			/* BDF 2.3.0 */
+			pcie1_bus2_dev3_fn0: pcie1_bus2_dev3_fn0 {
+				reg = <0x1800 0x0 0x0 0x0 0x0>;
+				qps615_eth0,qps615_eth0@pcie1_rp {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+					pinctrl-names = "default";
+					pinctrl-0 = <&aqr_intn_wol_sig>;
+					qcom,phy-rst-gpio = <0>;
+					interrupts-extended = <&tlmm 141 IRQ_TYPE_EDGE_FALLING>;
+					interrupt-names = "wol_irq";
+					phy-supply = <&aqr_vreg>;
+					qcom,phy-rst-delay-us = <221000>;
+					#address-cells = <1>;
+					#size-cells = <1>;
+				};
+
+				/* BDF 5.0.0 */
+				pcie1_bus5_dev0_fn0: pcie1_qps_eth0 {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+					qcom,iommu-group = <&eth0_pci_iommu_group>;
+					eth0_pci_iommu_group: eth0_pci_iommu_group {
+						qcom,iommu-dma = "atomic";
+					};
+				};
+
+				qps615_eth1,qps615_eth1@pcie1_rp {
+					reg = <0x100 0x0 0x0 0x0 0x0>;
+					pinctrl-names = "default";
+					pinctrl-0 = <&napa_intn_wol_sig>;
+					qcom,phy-rst-gpio = <1>;
+					interrupts-extended = <&tlmm 101 IRQ_TYPE_EDGE_FALLING>;
+					interrupt-names = "wol_irq";
+					phy-supply = <&qep_vreg>;
+					qcom,phy-rst-delay-us = <20000>;
+					#address-cells = <1>;
+					#size-cells = <1>;
+				};
+
+				/* BDF 5.0.1 */
+				pcie1_bus5_dev0_fn1: pcie1_qps_eth1 {
+					reg = <0x100 0x0 0x0 0x0 0x0>;
+					qcom,iommu-group = <&eth1_pci_iommu_group>;
+					eth1_pci_iommu_group: eth1_pci_iommu_group {
+						qcom,iommu-dma = "atomic";
+					};
+				};
+			};
+
+		};
+	};
+};
+
+&pcie1_phy {
+	qcom,refclk-always-on;
+};
+
+&q6apmbedai {
+	qcom,prmcc_clk = <&q6prmcc>;
+};
+
+&sound {
+
+	pinctrl-names = "default", "stub_aif1_active", "stub_aif1_sleep";
+	pinctrl-0 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+		    <&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>;
+	pinctrl-1 = <&mi2s0_data0>, <&mi2s0_data1>, <&mi2s0_mclk>, <&mi2s0_sclk>, <&mi2s0_ws>;
+	pinctrl-2 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+		    <&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>;
+
+	mi2s-capture-dai-link {
+		link-name = "MI2S-LPAIF-TX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_MI2S_TX>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	mi2s-playback-dai-link {
+		link-name = "MI2S-LPAIF-RX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_MI2S_RX>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+
+	tdm-capture-dai-link {
+		link-name = "TDM-LPAIF-TX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_TDM_TX_0>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	tdm-playback-dai-link {
+		link-name = "TDM-LPAIF-RX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_TDM_RX_0>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+
+};
+
+&tlmm {
+	mi2s0_data0_sleep: mi2s0-data0-sleep {
+		pins = "gpio98";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_data1_sleep: mi2s0-data1-sleep {
+		pins = "gpio99";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_mclk_sleep: mi2s0-mclk-sleep {
+		pins = "gpio96";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_sclk_sleep: mi2s0-sclk-sleep {
+		pins = "gpio97";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_ws_sleep: mi2s0-ws-sleep {
+		pins = "gpio100";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	pcie1_usb_hub_reset_default: pcie1_usb_hub_reset_default {
+		pins = "gpio162";
+		function = "gpio";
+		drive-strength = <2>;
+		output-high;
+		bias-pull-down;
+	};
+
+	qps615_intn_wol {
+		aqr_intn_wol_sig: aqr_intn_wol_sig {
+			mux {
+				pins = "gpio141";
+				function = "gpio";
+			};
+
+			config {
+				pins = "gpio141";
+				input-enable;
+				bias-disable;
+			};
+		};
+
+		napa_intn_wol_sig: napa_intn_wol_sig {
+			mux {
+				pins = "gpio101";
+				function = "gpio";
+			};
+
+			config {
+				pins = "gpio101";
+				input-enable;
+				bias-disable;
+			};
+		};
+	};
+};
+
+&mi2s0_data0 {
+	drive-strength = <8>;
+	bias-disable;
+};
+
+&mi2s0_data1 {
+	drive-strength = <8>;
+	bias-disable;
+};
+
+&mi2s0_mclk {
+	drive-strength = <8>;
+	bias-disable;
+	output-high;
+};
+
+&mi2s0_sclk {
+	drive-strength = <8>;
+	bias-disable;
+	output-high;
+};
+
+&mi2s0_ws {
+	drive-strength = <8>;
+	bias-disable;
+	output-high;
+};
+
+&spmi_bus {
+	pmic@PM7250B_SID {
+		pm7250b_bcl: bcl@1d00 {
+			compatible = "qcom,bcl-v5";
+			reg = <0x1d00>;
+			interrupts = <PM7250B_SID 0x1d 0x0 IRQ_TYPE_EDGE_RISING>,
+					<PM7250B_SID 0x1d 0x1 IRQ_TYPE_EDGE_RISING>,
+					<PM7250B_SID 0x1d 0x2 IRQ_TYPE_EDGE_RISING>;
+			interrupt-names = "bcl-lvl0",
+						"bcl-lvl1",
+						"bcl-lvl2";
+			#thermal-sensor-cells = <1>;
+		};
+	};
+};
+
+&thermal_zones {
+	pm7250b-ibat-lvl0 {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm7250b_bcl 0>;
+
+		trips {
+			ibat_lvl0:ibat-lvl0 {
+				temperature = <6000>;
+				hysteresis = <200>;
+				type = "passive";
+			};
+		};
+	};
+
+	pm7250b-ibat-lvl1 {
+		polling-delay-passive = <0>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm7250b_bcl 1>;
+
+		trips {
+			ibat_lvl1:ibat-lvl1 {
+				temperature = <7500>;
+				hysteresis = <200>;
+				type = "passive";
+			};
+		};
+	};
+
+	pm7250b-bcl-lvl0 {
+		polling-delay-passive = <100>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm7250b_bcl 5>;
+
+		trips {
+			b_bcl_lvl0: b-bcl-lvl0 {
+				temperature = <1>;
+				hysteresis = <1>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&CPU4_idle 100 100>;
+			};
+
+			map1 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&CPU5_idle 100 100>;
+			};
+
+			map2 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&CPU6_idle 100 100>;
+			};
+
+			map3 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&CPU7_idle 100 100>;
+			};
+
+			map4 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&cdsp_sw 2 2>;
+			};
+
+			map5 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&modem_pa 2 2>;
+			};
+
+			map6 {
+				trip = <&b_bcl_lvl0>;
+				cooling-device = <&modem_tj 1 1>;
+			};
+		};
+	};
+
+	pm7250b-bcl-lvl1 {
+		polling-delay-passive = <100>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm7250b_bcl 6>;
+
+		trips {
+			b_bcl_lvl1: b-bcl-lvl1 {
+				temperature = <1>;
+				hysteresis = <1>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&b_bcl_lvl1>;
+				cooling-device = <&msm_gpu 5 THERMAL_NO_LIMIT>;
+			};
+
+			map1 {
+				trip = <&b_bcl_lvl1>;
+				cooling-device = <&cdsp_sw 4 4>;
+			};
+
+			map2 {
+				trip = <&b_bcl_lvl1>;
+				cooling-device = <&modem_tj 3 3>;
+			};
+		};
+	};
+
+	pm7250b-bcl-lvl2 {
+		polling-delay-passive = <100>;
+		polling-delay = <0>;
+		thermal-sensors = <&pm7250b_bcl 7>;
+
+		trips {
+			b_bcl_lvl2: b-bcl-lvl2 {
+				temperature = <1>;
+				hysteresis = <1>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&b_bcl_lvl2>;
+				cooling-device = <&cdsp_sw 5 5>;
+			};
+		};
+	};
+};

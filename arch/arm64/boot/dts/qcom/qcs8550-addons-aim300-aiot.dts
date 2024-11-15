@@ -1,0 +1,43 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
+
+/dts-v1/;
+
+#include "qcs8550-aim300-aiot.dts"
+#include "qcs8550-addons.dtsi"
+
+
+/ {
+	model = "Qualcomm Technologies, Inc. QCS8550-addons AIM300 AIOT";
+	compatible = "qcom,qcs8550-addons-aim300-aiot", "qcom,qcs8550-aim300", "qcom,qcs8550",
+		     "qcom,qcm8550", "qcom,sm8550";
+
+	qps615_vreg: qps615-vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "qps615_vreg";
+		gpio = <&tlmm 178 GPIO_ACTIVE_HIGH>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		enable-active-high;
+		regulator-enable-ramp-delay = <10000>;
+	};
+};
+
+&i2c_hub_2 {
+	qps615_switch: pcie-switch@77 {
+		compatible = "qcom,switch-i2c";
+		reg = <0x77>;
+		vdda-supply = <&qps615_vreg>;
+		status = "okay";
+	};
+};
+
+&pcie1 {
+	dummy-supply = <&qps615_switch>;
+};
+
+&pcie1_phy {
+	qcom,refclk-always-on;
+};

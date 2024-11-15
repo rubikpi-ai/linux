@@ -1,0 +1,347 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * qcm6490-addons IDP device tree source
+ *
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ */
+
+/dts-v1/;
+
+#include "qcm6490-idp.dts"
+#include "qcm6490-addons.dtsi"
+#include "pm7325b.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. qcm6490-addons IDP platform";
+	compatible = "qcom,qcm6490-addons-idp","qcom,sc7280";
+
+	pmic_glink: pmic-glink {
+	};
+};
+
+&i2c1 {
+	#address-cells = <1>;
+	#size-cells = <0>;
+	status = "okay";
+
+	pm8008i_chip: pm8008i@8 {
+		compatible = "qcom,i2c-pmic";
+		reg = <0x8>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pm8008i_active>;
+
+		pm8008-chip@900 {
+			compatible = "qcom,pm8008-chip";
+			reg = <0x900>;
+
+			PM8008I_EN: qcom,pm8008-chip-en {
+				regulator-name = "pm8008i-chip-en";
+			};
+		};
+	};
+
+	pm8008i_ldo: pm8008i@9 {
+		compatible = "qcom,i2c-pmic";
+		reg = <0x9>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,pm8008i-regulator {
+			compatible = "qcom,pm8008-regulator";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			pm8008_en-supply = <&PM8008I_EN>;
+			vdd_l1_l2-supply = <&vreg_s8b_1p272>;
+			vdd_l3_l4-supply = <&vreg_bob_3p296>;
+			vdd_l5-supply = <&vreg_s1b_1p872>;
+			vdd_l6-supply = <&vreg_bob_3p296>;
+			vdd_l7-supply = <&vreg_bob_3p296>;
+
+			L1I: PM8008I_L1: regulator@4000 {
+				reg = <0x4000>;
+				regulator-name = "pm8008i_l1";
+				regulator-min-microvolt = <1000000>;
+				regulator-max-microvolt = <1200000>;
+				qcom,min-dropout-voltage = <160000>;
+				qcom,hpm-min-load = <30000>;
+			};
+
+			L2I: PM8008I_L2: regulator@4100 {
+				reg = <0x4100>;
+				regulator-name = "pm8008i_l2";
+				regulator-min-microvolt = <950000>;
+				regulator-max-microvolt = <1150000>;
+				qcom,min-dropout-voltage = <128000>;
+				qcom,hpm-min-load = <30000>;
+			};
+
+			L3I: PM8008I_L3: regulator@4200 {
+				reg = <0x4200>;
+				regulator-name = "pm8008i_l3";
+				regulator-min-microvolt = <2700000>;
+				regulator-max-microvolt = <3000000>;
+				qcom,min-dropout-voltage = <144000>;
+			};
+
+			L4I: PM8008I_L4: regulator@4300 {
+				reg = <0x4300>;
+				regulator-name = "pm8008i_l4";
+				regulator-min-microvolt = <2700000>;
+				regulator-max-microvolt = <2900000>;
+				qcom,min-dropout-voltage = <128000>;
+			};
+
+			L5I: PM8008I_L5: regulator@4400 {
+				reg = <0x4400>;
+				regulator-name = "pm8008i_l5";
+				regulator-min-microvolt = <1700000>;
+				regulator-max-microvolt = <1900000>;
+				qcom,min-dropout-voltage = <136000>;
+			};
+
+			L6I: PM8008I_L6: regulator@4500 {
+				reg = <0x4500>;
+				regulator-name = "pm8008i_l6";
+				regulator-min-microvolt = <2700000>;
+				regulator-max-microvolt = <2900000>;
+				qcom,min-dropout-voltage = <128000>;
+			};
+
+			L7I: PM8008I_L7: regulator@4600 {
+				reg = <0x4600>;
+				regulator-name = "pm8008i_l7";
+				regulator-min-microvolt = <2700000>;
+				regulator-max-microvolt = <3000000>;
+				qcom,min-dropout-voltage = <312000>;
+			};
+		};
+	};
+
+	pm8008j_chip: pm8008j@c {
+		compatible = "qcom,i2c-pmic";
+		reg = <0xc>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&pm8008j_active>;
+
+		pm8008-chip@900 {
+			compatible = "qcom,pm8008-chip";
+			reg = <0x900>;
+
+			PM8008J_EN: qcom,pm8008-chip-en {
+				regulator-name = "pm8008j-chip-en";
+			};
+		};
+	};
+
+	pm8008j_ldo: pm8008j@d {
+		compatible = "qcom,i2c-pmic";
+		reg = <0xd>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		qcom,pm8008j-regulator {
+			compatible = "qcom,pm8008-regulator";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			pm8008_en-supply = <&PM8008J_EN>;
+			vdd_l1_l2-supply = <&vreg_s8b_1p272>;
+			vdd_l3_l4-supply = <&vreg_s1b_1p872>;
+			vdd_l5-supply = <&vreg_bob_3p296>;
+			vdd_l6-supply = <&vreg_bob_3p296>;
+			vdd_l7-supply = <&vreg_bob_3p296>;
+
+			L1J: PM8008J_L1: regulator@4000 {
+				reg = <0x4000>;
+				regulator-name = "pm8008j_l1";
+				regulator-min-microvolt = <950000>;
+				regulator-max-microvolt = <1150000>;
+				qcom,min-dropout-voltage = <96000>;
+				qcom,hpm-min-load = <30000>;
+			};
+
+			L2J: PM8008J_L2: regulator@4100 {
+				reg = <0x4100>;
+				regulator-name = "pm8008j_l2";
+				regulator-min-microvolt = <950000>;
+				regulator-max-microvolt = <1250000>;
+				qcom,min-dropout-voltage = <24000>;
+				qcom,hpm-min-load = <30000>;
+			};
+
+			L3J: PM8008J_L3: regulator@4200 {
+				reg = <0x4200>;
+				regulator-name = "pm8008j_l3";
+				regulator-min-microvolt = <1460000>;
+				regulator-max-microvolt = <1800000>;
+				qcom,min-dropout-voltage = <224000>;
+			};
+
+			L4J: PM8008J_L4: regulator@4300 {
+				reg = <0x4300>;
+				regulator-name = "pm8008j_l4";
+				regulator-min-microvolt = <1504000>;
+				regulator-max-microvolt = <1600000>;
+				qcom,min-dropout-voltage = <0>;
+			};
+
+			L5J: PM8008J_L5: regulator@4400 {
+				reg = <0x4400>;
+				regulator-name = "pm8008j_l5";
+				regulator-min-microvolt = <2700000>;
+				regulator-max-microvolt = <2900000>;
+				qcom,min-dropout-voltage = <104000>;
+			};
+
+			L6J: PM8008J_L6: regulator@4500 {
+				reg = <0x4500>;
+				regulator-name = "pm8008j_l6";
+				regulator-min-microvolt = <2800000>;
+				regulator-max-microvolt = <2800000>;
+				qcom,min-dropout-voltage = <112000>;
+			};
+
+			L7J: PM8008J_L7: regulator@4600 {
+				reg = <0x4600>;
+				regulator-name = "pm8008j_l7";
+				regulator-min-microvolt = <3000000>;
+				regulator-max-microvolt = <3544000>;
+				qcom,min-dropout-voltage = <96000>;
+			};
+		};
+	};
+};
+
+&pm8350c_gpios {
+	pm8008i-reset-state {
+		pm8008i_active: pm8008i-active-pins {
+			pins = "gpio3";
+			function = "normal";
+			bias-disable;
+			output-high;
+			power-source = <0>;
+		};
+	};
+
+	pm8008j-reset-state {
+		pm8008j_active: pm8008j-active-pins {
+			pins = "gpio4";
+			function = "normal";
+			bias-disable;
+			output-high;
+			power-source = <0>;
+		};
+	};
+};
+
+&q6apmbedai {
+	qcom,prmcc_clk = <&q6prmcc>;
+};
+
+&sound {
+	pinctrl-names = "default", "stub_aif1_active", "stub_aif1_sleep";
+	pinctrl-0 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>;
+	pinctrl-1 = <&mi2s0_data0>, <&mi2s0_data1>, <&mi2s0_mclk>,
+				<&mi2s0_sclk>, <&mi2s0_ws>;
+	pinctrl-2 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+				<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>;
+
+	mi2s-capture-dai-link {
+		link-name = "MI2S-LPAIF-TX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_MI2S_TX>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	mi2s-playback-dai-link {
+		link-name = "MI2S-LPAIF-RX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_MI2S_RX>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+
+	tdm-capture-dai-link {
+		link-name = "TDM-LPAIF-TX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_TDM_TX_0>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	tdm-playback-dai-link {
+		link-name = "TDM-LPAIF-RX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_TDM_RX_0>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+};
+
+&tlmm {
+	mi2s0_data0_sleep: mi2s0-data0-sleep {
+		pins = "gpio98";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_data1_sleep: mi2s0-data1-sleep {
+		pins = "gpio99";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_mclk_sleep: mi2s0-mclk-sleep {
+		pins = "gpio96";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_sclk_sleep: mi2s0-sclk-sleep {
+		pins = "gpio97";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_ws_sleep: mi2s0-ws-sleep {
+		pins = "gpio100";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+};

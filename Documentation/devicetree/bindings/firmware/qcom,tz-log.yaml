@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/firmware/qcom,tz-log.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: TZLOG (Trust Zone log)
+
+maintainers:
+  - Vikas Kumar Sharma <quic_vksharma@quicinc.com>
+
+description:
+  This exposes a debug interface for accessing and displaying diagnostic information
+  related to secure code (Trustzone/QSEE).
+
+properties:
+  compatible:
+    const: qcom,tz-log
+
+  reg:
+    maxItems: 1
+
+  qcom,hyplog-enabled:
+    type: boolean
+    description: Indicates(boolean) if driver supports HYP logger service.
+
+  hyplog-address-offset:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Register offset to get the HYP log base address.
+
+  hyplog-size-offset:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Register offset to get the HYP log size parameter.
+
+  rmlog-address:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Register offset to get resource manager log base address.
+
+  rmlog-size:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Register offset to get the resource manager log size parameter.
+
+  tmecrashdump-address-offset:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description: Define tme crashump DDR region starting offset.
+
+required:
+  - compatible
+  - reg
+
+additionalProperties: false
+
+examples:
+  - |
+    soc {
+        #address-cells = <2>;
+        #size-cells = <2>;
+
+        qcom_tzlog: tz-log@146bf720 {
+            compatible = "qcom,tz-log";
+            reg = <0x0 0x146bf720 0x0 0x3000>;
+            qcom,hyplog-enabled;
+            hyplog-address-offset = <0x410>;
+            hyplog-size-offset = <0x414>;
+        };
+    };
