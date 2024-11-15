@@ -23,6 +23,7 @@
 #define TDM_SLOT_WIDTH		16
 #define WCN_CDC_SLIM_RX_CH_MAX	2
 #define WCN_CDC_SLIM_TX_CH_MAX	2
+#define NAME_SIZE	32
 
 struct qcm6490_snd_data {
 	bool stream_prepared[AFE_PORT_MAX];
@@ -32,6 +33,7 @@ struct qcm6490_snd_data {
 	bool jack_setup;
 	struct clk *macro;
 	struct clk *dcodec;
+	struct snd_soc_jack hdmi_jack[8];
 };
 
 static int qcm6490_slim_dai_init(struct snd_soc_pcm_runtime *rtd)
@@ -52,6 +54,12 @@ static int qcm6490_snd_init(struct snd_soc_pcm_runtime *rtd)
 	struct qcm6490_snd_data *data = snd_soc_card_get_drvdata(rtd->card);
 	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(rtd, 0);
 	int ret = 0;
+	char jack_name[NAME_SIZE];
+	struct snd_soc_jack *hdmi_jack  = NULL;
+	int hdmi_pcm_id = 0;
+	struct snd_soc_dai *codec_dai;
+	int rval, i;
+
 
 	switch (cpu_dai->id) {
 	case TX_CODEC_DMA_TX_3:
@@ -69,8 +77,34 @@ static int qcm6490_snd_init(struct snd_soc_pcm_runtime *rtd)
 	case SLIMBUS_0_RX:
 	case SLIMBUS_0_TX:
 		ret = qcm6490_slim_dai_init(rtd);
+		break;
+	case DISPLAY_PORT_RX_0:
+		hdmi_pcm_id = 0;
+		hdmi_jack = &data->hdmi_jack[0];
+		break;
+	case DISPLAY_PORT_RX_1:
+		hdmi_pcm_id = 1;
+		hdmi_jack = &data->hdmi_jack[1];
+		break;
+
 	default:
 		break;
+	}
+	if (hdmi_jack) {
+		snprintf(jack_name, sizeof(jack_name), "HDMI/DP%d Jack", hdmi_pcm_id);
+		rval = snd_soc_card_jack_new(rtd->card, jack_name, SND_JACK_AVOUT, hdmi_jack);
+
+		if (rval)
+			return rval;
+
+		for_each_rtd_codec_dais(rtd, i, codec_dai) {
+			rval = snd_soc_component_set_jack(codec_dai->component, hdmi_jack, NULL);
+			if (rval != 0 && rval != -EOPNOTSUPP) {
+				dev_warn(rtd->card->dev, "Failed to set HDMI jack: %d\n", rval);
+				return rval;
+			}
+		}
+		return qcom_snd_wcd_jack_setup(rtd, &data->jack, &data->jack_setup);
 	}
 
 	return ret;
