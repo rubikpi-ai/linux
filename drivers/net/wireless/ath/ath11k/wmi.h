@@ -6292,6 +6292,11 @@ enum wmi_sta_keepalive_method {
 #define WMI_STA_KEEPALIVE_INTERVAL_DEFAULT	30
 #define WMI_STA_KEEPALIVE_INTERVAL_DISABLE	0
 
+enum wmm_edca_params_type {
+	WMM_PARAM_TYPE_LEGACY = 0,
+	WMM_PARAM_TYPE_11AX_MU_EDCA = 1,
+};
+
 const void **ath11k_wmi_tlv_parse_alloc(struct ath11k_base *ab, const void *ptr,
 					size_t len, gfp_t gfp);
 int ath11k_wmi_cmd_send(struct ath11k_pdev_wmi *wmi, struct sk_buff *skb,
@@ -6346,7 +6351,7 @@ int ath11k_wmi_send_scan_start_cmd(struct ath11k *ar,
 int ath11k_wmi_send_scan_stop_cmd(struct ath11k *ar,
 				  struct scan_cancel_param *param);
 int ath11k_wmi_send_wmm_update_cmd_tlv(struct ath11k *ar, u32 vdev_id,
-				       struct wmi_wmm_params_all_arg *param);
+				       struct wmi_wmm_params_all_arg *param, u32 wmm_param_type);
 int ath11k_wmi_pdev_suspend(struct ath11k *ar, u32 suspend_opt,
 			    u32 pdev_id);
 int ath11k_wmi_pdev_resume(struct ath11k *ar, u32 pdev_id);
