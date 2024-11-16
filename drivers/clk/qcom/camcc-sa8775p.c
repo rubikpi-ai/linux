@@ -1918,6 +1918,8 @@ static int cam_cc_sa8775p_probe(struct platform_device *pdev)
 		cam_cc_mclk1_clk.clkr.enable_reg = 0x15034;
 		cam_cc_mclk2_clk.halt_reg = 0x15050;
 		cam_cc_mclk2_clk.clkr.enable_reg = 0x15050;
+		cam_cc_qdss_debug_xo_clk.halt_reg = 0x1319c;
+		cam_cc_qdss_debug_xo_clk.clkr.enable_reg = 0x1319c;
 
 		cam_cc_titan_top_gdsc.gdscr = 0x131a0;
 
