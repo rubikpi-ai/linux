@@ -162,7 +162,7 @@ static const struct msm_dp_desc msm_dp_desc_sa8775p[] = {
 	  .max_streams = 2, .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_0],
 	},
 	{ .io_start = 0x0af5c000, .id = MSM_DP_CONTROLLER_1, .wide_bus_supported = true,
-	  .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_1],
+	  .max_streams = 2, .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_1],
 	},
 	{}
 };
