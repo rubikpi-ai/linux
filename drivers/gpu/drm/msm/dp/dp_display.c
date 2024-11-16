@@ -128,6 +128,7 @@ struct msm_dp_desc {
 	unsigned int connector_type;
 	bool wide_bus_supported;
 	const unsigned int *intf_map;
+	unsigned int max_streams;
 };
 
 /* to be kept in sync with enum dpu_intf of dpu_hw_mdss.h */
@@ -158,7 +159,7 @@ static const struct msm_dp_desc msm_dp_desc_qcs8300[] = {
 
 static const struct msm_dp_desc msm_dp_desc_sa8775p[] = {
 	{ .io_start = 0x0af54000, .id = MSM_DP_CONTROLLER_0, .wide_bus_supported = true,
-	  .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_0],
+	  .max_streams = 2, .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_0],
 	},
 	{ .io_start = 0x0af5c000, .id = MSM_DP_CONTROLLER_1, .wide_bus_supported = true,
 	  .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_1],
@@ -1536,7 +1537,8 @@ static int msm_dp_display_probe(struct platform_device *pdev)
 	dp->msm_dp_display.is_edp =
 		(dp->msm_dp_display.connector_type == DRM_MODE_CONNECTOR_eDP);
 
-	dp->max_stream = DEFAULT_STREAM_COUNT;
+	dp->max_stream = (desc->max_streams > DEFAULT_STREAM_COUNT) ?
+			  desc->max_streams : DEFAULT_STREAM_COUNT;
 
 	dp->intf_map = desc->intf_map;
 
