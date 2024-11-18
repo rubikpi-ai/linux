@@ -5139,6 +5139,7 @@ int hci_dev_close_sync(struct hci_dev *hdev)
 {
 	bool auto_off;
 	int err = 0;
+	struct hci_cmd_sync_work_entry *entry, *tmp;
 
 	bt_dev_dbg(hdev, "");
 
@@ -5250,6 +5251,11 @@ int hci_dev_close_sync(struct hci_dev *hdev)
 
 	clear_bit(HCI_RUNNING, &hdev->flags);
 	hci_sock_dev_event(hdev, HCI_DEV_CLOSE);
+
+	mutex_lock(&hdev->cmd_sync_work_lock);
+	list_for_each_entry_safe(entry, tmp, &hdev->cmd_sync_work_list, list)
+		_hci_cmd_sync_cancel_entry(hdev, entry, -ECANCELED);
+	mutex_unlock(&hdev->cmd_sync_work_lock);
 
 	/* After this point our queues are empty and no tasks are scheduled. */
 	hdev->close(hdev);
