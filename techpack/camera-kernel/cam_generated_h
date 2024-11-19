@@ -1,0 +1,3 @@
+#define CAMERA_COMPILE_TIME "none"
+#define CAMERA_COMPILE_HOST "none"
+#define CAMERA_CC_VERSION "cc (Ubuntu 11.4.0-1ubuntu1~22.04) 11.4.0"

@@ -170,7 +170,3 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
-
-#Add by thundercomm
-arch/arm64/boot/dts/thundercomm/
-techpack/
