@@ -5,6 +5,7 @@
 /dts-v1/;
 
 #include "sa8775p-ride-r3.dts"
+#include "qcs9075-thermal.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. QCS9075 Ride Rev3";

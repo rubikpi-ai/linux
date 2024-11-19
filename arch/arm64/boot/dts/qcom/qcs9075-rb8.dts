@@ -9,6 +9,7 @@
 
 #include "sa8775p.dtsi"
 #include "sa8775p-pmics.dtsi"
+#include "qcs9075-thermal.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. QCS9075 RB8";
