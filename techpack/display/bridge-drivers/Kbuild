@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0-only
+
+KDIR := $(TOP)/kernel_platform/msm-kernel
+
+ccflags-y += $(LINUX_INC)
+
+obj-$(CONFIG_DRM_MSM) += lt9611uxc.o
+
+CDEFINES += -DBUILD_TIMESTAMP=\"$(shell date -u +'%Y-%m-%dT%H:%M:%SZ')\"
