@@ -255,7 +255,7 @@ static void wl_update_hidden_ap_ie(wl_bss_info_v109_t *bi, const u8 *ie_stream, 
 	remaining_ie_buf_len = available_buffer_len - (int)ssidie[1];
 	unused_buf_len = WL_EXTRA_BUF_MAX - (4 + bi->length + *ie_size);
 	if (ssidie[1] > available_buffer_len) {
-		WL_ERR_MEM(("wl_update_hidden_ap_ie: skip wl_update_hidden_ap_ie : overflow\n"));
+		WL_ERR_MEM(("skip : overflow\n"));
 		return;
 	}
 
@@ -265,7 +265,7 @@ static void wl_update_hidden_ap_ie(wl_bss_info_v109_t *bi, const u8 *ie_stream, 
 
 	if (ssidie[1] != ssid_len) {
 		if (ssidie[1]) {
-			WL_ERR_RLMT(("wl_update_hidden_ap_ie: Wrong SSID len: %d != %d\n",
+			WL_ERR_RLMT(("Wrong SSID len: %d != %d\n",
 				ssidie[1], bi->SSID_len));
 		}
 		/* ssidie[1] is 1 in beacon on CISCO hidden networks. */
@@ -293,7 +293,7 @@ static void wl_update_hidden_ap_ie(wl_bss_info_v109_t *bi, const u8 *ie_stream, 
 			*ie_size = *ie_size + ssid_len - ssidie[1];
 			ssidie[1] = ssid_len;
 		} else if (ssid_len < ssidie[1]) {
-			WL_ERR_MEM(("wl_update_hidden_ap_ie: Invalid SSID len: %d < %d\n",
+			WL_ERR_MEM(("Invalid SSID len: %d < %d\n",
 				bi->SSID_len, ssidie[1]));
 		}
 		return;
@@ -742,7 +742,7 @@ wl_cfg80211_clear_iw_ie(struct bcm_cfg80211 *cfg, struct net_device *ndev, s32 b
 	WL_DBG(("clear interworking IE\n"));
 
 	ie_setbuf = (ie_setbuf_t *)buf;
-	bzero(ie_setbuf, sizeof(ie_setbuf_t));
+	bzero(ie_setbuf, IE_SET_ONE_BUF_LEN);
 
 	ie_setbuf->ie_buffer.iecount = htod32(1);
 	ie_setbuf->ie_buffer.ie_list[0].ie_data.id = DOT11_MNG_INTERWORKING_ID;
@@ -782,7 +782,8 @@ wl_cfg80211_add_iw_ie(struct bcm_cfg80211 *cfg, struct net_device *ndev, s32 bss
 		return BCME_BADARG;
 	}
 
-	buf_len = sizeof(ie_setbuf_t) + data_len - 1;
+	/* Add sizeof(ie_info_t) in case BCM_FLEX_ARRAY is empty. */
+	buf_len = IE_SET_ONE_BUF_LEN + data_len - 1;
 
 	ie_getbufp.id = DOT11_MNG_INTERWORKING_ID;
 	if (wldev_iovar_getbuf_bsscfg(ndev, "ie", (void *)&ie_getbufp,
@@ -1534,7 +1535,7 @@ wl_cfgscan_notify_pfn_complete(struct bcm_cfg80211 *cfg, bcm_struct_cfgdev *cfgd
 	err = wl_notify_gscan_event(cfg, cfgdev, e, data);
 	return err;
 #endif /* DISABLE_ANDROID_GSCAN */
-#endif
+#endif /* GSCAN_SUPPORT */
 	mutex_lock(&cfg->scan_sync);
 
 	if (!cfg->sched_scan_req) {
@@ -1814,7 +1815,6 @@ wl_cfgscan_populate_scan_channels(struct bcm_cfg80211 *cfg,
 	int is_printed = false;
 #endif /* P2P_SKIP_DFS */
 	u32 support_chanspec = 0;
-	u32 channel;
 
 	if (!channels || !n_channels) {
 		/* Do full channel scan */
@@ -1825,7 +1825,6 @@ wl_cfgscan_populate_scan_channels(struct bcm_cfg80211 *cfg,
 	is_p2p_scan = p2p_is_on(cfg) && p2p_scan(cfg);
 
 	for (i = 0; i < n_channels; i++) {
-		channel = ieee80211_frequency_to_channel(channels[i]->center_freq);
 		if (skip_dfs && (IS_RADAR_CHAN(channels[i]->flags))) {
 			WL_DBG(("Skipping radar channel. freq:%d\n",
 				(channels[i]->center_freq)));
@@ -4334,16 +4333,11 @@ wl_cfgscan_sched_scan_stop_work(struct work_struct *work)
 	cfg = container_of(dw, struct bcm_cfg80211, sched_scan_stop_work);
 	GCC_DIAGNOSTIC_POP();
 
-	if (cfg->sched_scan_req) {
 	/* Hold rtnl_lock -> scan_sync lock to be in sync with cfg80211_ops path */
+	rtnl_lock();
+	mutex_lock(&cfg->scan_sync);
+	if (cfg->sched_scan_req) {
 		wiphy = cfg->sched_scan_req->wiphy;
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
-		wiphy_lock(wiphy);
-#else
-		rtnl_lock();
-#endif /* KERNEL > 5.12.0 */
-		mutex_lock(&cfg->scan_sync);
-
 		/* Indicate sched scan stopped so that user space
 		 * can do a full scan incase found match is empty.
 		 */
@@ -4355,13 +4349,9 @@ wl_cfgscan_sched_scan_stop_work(struct work_struct *work)
 		cfg80211_sched_scan_stopped_rtnl(wiphy);
 #endif /* KERNEL > 5.12.0 */
 		cfg->sched_scan_req = NULL;
-		mutex_unlock(&cfg->scan_sync);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 12, 0))
-		wiphy_unlock(wiphy);
-#else
-		rtnl_unlock();
-#endif /* KERNEL > 5.12.0 */
 	}
+	mutex_unlock(&cfg->scan_sync);
+	rtnl_unlock();
 }
 #endif /* WL_SCHED_SCAN */
 
@@ -6238,7 +6228,8 @@ wl_cfgscan_get_band_freq_list(struct bcm_cfg80211 *cfg, struct wireless_dev *wde
 	return err;
 }
 
-#if defined(WL_SOFTAP_ACS)
+#if defined(WL_SOFTAP_ACS) && \
+	((LINUX_VERSION_CODE > KERNEL_VERSION(3, 13, 0)) || defined(WL_VENDOR_EXT_SUPPORT))
 #define SEC_FREQ_HT40_OFFSET 20
 static acs_delay_work_t delay_work_acs = { .init_flag = 0 };
 

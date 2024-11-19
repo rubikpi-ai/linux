@@ -178,6 +178,9 @@ typedef struct ccode_list_map_t {
 
 const ccode_list_map_t ccode_list_map[] = {
 	/* ChipID		Chiprev		ccode  */
+#if defined(BCMSDIO) || defined(BCMPCIE)
+	{BCM4359_CHIP_ID,	9,	ccode_4359c0,	"XZ/11"},
+#endif
 #ifdef BCMSDIO
 	{BCM43430_CHIP_ID,	0,	ccode_43438,	""},
 	{BCM43430_CHIP_ID,	1,	ccode_43438,	""},

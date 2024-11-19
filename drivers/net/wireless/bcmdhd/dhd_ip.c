@@ -1392,6 +1392,7 @@ dhd_tcpack_hold(dhd_pub_t *dhdp, void *pkt, int ifidx)
 #endif /* TCPACK_SUPPRESS_HOLD_HRT */
 		tcpack_sup_mod->tcpack_info_cnt++;
 	} else {
+		hold = FALSE;
 		DHD_TRACE(("%s %d: No empty tcp ack info tbl\n",
 			__FUNCTION__, __LINE__));
 	}

@@ -154,10 +154,10 @@
 #define PKTIDAVAIL()            (0xFFFFFFFFu)
 #define PKTSHRINK(osh, m)		({BCM_REFERENCE(osh); m;})
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 6, 0)) && defined(TSQ_MULTIPLIER)
-#define PKTORPHAN(skb, tsq)          osl_pkt_orphan_partial(skb, tsq)
-extern void osl_pkt_orphan_partial(struct sk_buff *skb, int tsq);
+#define PKTORPHAN(skb)          osl_pkt_orphan_partial(skb)
+extern void osl_pkt_orphan_partial(struct sk_buff *skb);
 #else
-#define PKTORPHAN(skb, tsq)          ({BCM_REFERENCE(skb); 0;})
+#define PKTORPHAN(skb)          ({BCM_REFERENCE(skb); 0;})
 #endif /* Linux Version >= 3.6 */
 
 #ifdef RX_PKT_POOL

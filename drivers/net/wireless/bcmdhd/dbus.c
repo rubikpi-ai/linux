@@ -2781,14 +2781,12 @@ dhd_dbus_state_change(void *handle, int state)
 {
 	dhd_pub_t *dhd = (dhd_pub_t *)handle;
 	unsigned long flags;
-	wifi_adapter_info_t *adapter;
 	int wowl_dngldown = 0;
 
 	if (dhd == NULL) {
 		DBUSERR(("%s: dhd is NULL\n", __FUNCTION__));
 		return;
 	}
-	adapter = (wifi_adapter_info_t *)dhd->adapter;
 #ifdef WL_EXT_WOWL
 	wowl_dngldown = dhd_conf_wowl_dngldown(dhd);
 #endif

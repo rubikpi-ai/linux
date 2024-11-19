@@ -88,6 +88,7 @@ uint android_msg_level = ANDROID_ERROR_LEVEL | ANDROID_MSG_LEVEL;
 #define CMD_SET_SUSPEND_BCN_LI_DTIM		"SET_SUSPEND_BCN_LI_DTIM"
 #define CMD_WLMSGLEVEL			"WLMSGLEVEL"
 #ifdef WL_EXT_IAPSTA
+#ifdef ISAM_CONFIG
 #define CMD_IAPSTA_INIT			"IAPSTA_INIT"
 #define CMD_IAPSTA_CONFIG		"IAPSTA_CONFIG"
 #define CMD_IAPSTA_ENABLE		"IAPSTA_ENABLE"
@@ -96,6 +97,7 @@ uint android_msg_level = ANDROID_ERROR_LEVEL | ANDROID_MSG_LEVEL;
 #define CMD_ISAM_CONFIG			"ISAM_CONFIG"
 #define CMD_ISAM_ENABLE			"ISAM_ENABLE"
 #define CMD_ISAM_DISABLE		"ISAM_DISABLE"
+#endif /* ISAM_CONFIG */
 #define CMD_ISAM_STATUS			"ISAM_STATUS"
 #define CMD_ISAM_PEER_PATH		"ISAM_PEER_PATH"
 #define CMD_ISAM_PARAM			"ISAM_PARAM"
@@ -2894,6 +2896,7 @@ wl_android_ext_priv_cmd(struct net_device *net, char *command,
 	}
 #endif /* WL_CFG80211 */
 #ifdef WL_EXT_IAPSTA
+#ifdef ISAM_CONFIG
 	else if (strnicmp(command, CMD_IAPSTA_INIT, strlen(CMD_IAPSTA_INIT)) == 0 ||
 			strnicmp(command, CMD_ISAM_INIT, strlen(CMD_ISAM_INIT)) == 0) {
 		*bytes_written = wl_ext_isam_init(net, command, total_len);
@@ -2910,6 +2913,7 @@ wl_android_ext_priv_cmd(struct net_device *net, char *command,
 			strnicmp(command, CMD_ISAM_DISABLE, strlen(CMD_ISAM_DISABLE)) == 0) {
 		*bytes_written = wl_ext_iapsta_disable(net, command, total_len);
 	}
+#endif /* ISAM_CONFIG */
 	else if (strnicmp(command, CMD_ISAM_STATUS, strlen(CMD_ISAM_STATUS)) == 0) {
 		*bytes_written = wl_ext_isam_status(net, command, total_len);
 	}
@@ -3102,7 +3106,6 @@ wl_ext_get_best_channel(struct net_device *net,
 {
 	struct dhd_pub *dhd = dhd_get_pub(net);
 	struct wl_bss_info *bi = NULL;	/* must be initialized */
-	struct wl_chan_info chan_info;
 	s32 i, j;
 #if defined(BSSCACHE)
 	wl_bss_cache_t *node;
@@ -3143,8 +3146,6 @@ wl_ext_get_best_channel(struct net_device *net,
 		for (i = 0; i < list->count; i++) {
 			chspec = list->element[i];
 			channel = wf_chspec_ctlchan(chspec);
-			chan_info.band = CHSPEC2WLC_BAND(chspec);
-			chan_info.chan = channel;
 			if (CHSPEC_IS2G(chspec) && (channel >= CH_MIN_2G_CHANNEL) &&
 					(channel <= CH_MAX_2G_CHANNEL)) {
 				b_band[channel-1] = 0;

@@ -45,7 +45,8 @@
 #include <typedefs.h>
 #include <osl.h>
 #include <bcmsdh.h>
-
+#include <sbgci.h>
+#include <sbhndarm.h>
 #ifdef BCMEMBEDIMAGE
 #include BCMEMBEDIMAGE
 #endif /* BCMEMBEDIMAGE */
@@ -145,7 +146,9 @@ static int dhdsdio_resume(void *context);
 #define DHD_TXBOUND	20	/* Default for max tx frames in one scheduling */
 #endif
 
+#ifndef DHD_TXMINMAX
 #define DHD_TXMINMAX	1	/* Max tx frames if rx still pending */
+#endif /* DHD_TXMINMAX */
 
 #define MEMBLOCK	2048		/* Block size used for downloading of dongle image */
 #define MAX_MEMBLOCK  (32 * 1024)	/* Block size used for downloading of dongle image */
@@ -2340,10 +2343,6 @@ dhd_bus_txdata(struct dhd_bus *bus, void *pkt)
 
 	prec = PRIO2PREC((PKTPRIO(pkt) & PRIOMASK));
 
-	/* move from dhdsdio_sendfromq(), try to orphan skb early */
-	if (bus->dhd->conf->orphan_move == 1)
-		PKTORPHAN(pkt, bus->dhd->conf->tsq);
-
 	/* Check for existing queue, current flow-control, pending event, or pending clock */
 	if (dhd_deferred_tx || bus->fcstate || pktq_n_pkts_tot(&bus->txq) || bus->dpc_sched ||
 	    (!DATAOK(bus)) || (bus->flowcontrol & NBITVAL(prec)) ||
@@ -2958,8 +2957,7 @@ dhdsdio_sendfromq(dhd_bus_t *bus, uint maxframes)
 				(uint32)PKTLEN(bus->dhd->osh, pkts[i]), TRUE, NULL, NULL);
 #endif /* DHD_PKTDUMP_TOFW */
 #endif /* DHD_LOSSLESS_ROAMING || DHD_PKTDUMP_TOFW */
-			if (!bus->dhd->conf->orphan_move)
-				PKTORPHAN(pkts[i], bus->dhd->conf->tsq);
+			PKTORPHAN(pkts[i]);
 			datalen += PKTLEN(osh, pkts[i]);
 		}
 		dhd_os_sdunlock_txq(bus->dhd);
@@ -9873,10 +9871,12 @@ dhdsdio_probe_attach(struct dhd_bus *bus, osl_t *osh, void *sdh, void *regsva,
 #ifdef DHD_DEBUG
 	DHD_ERROR(("F1 signature OK, socitype:0x%x chip:0x%4x rev:0x%x pkg:0x%x\n",
 		bus->sih->socitype, bus->sih->chip, bus->sih->chiprev, bus->sih->chippkg));
+#ifdef DHD_SI_WD_RESET
 	if (CHIPID(bus->sih->chip) == BCM4381_CHIP_GRPID ||
 		CHIPID(bus->sih->chip) == BCM4382_CHIP_GRPID) {
 		bcmsdh_reg_write(bus->sdh, 0x18010040, 2, 0x7);
 	}
+#endif /* DHD_SI_WD_RESET */
 #endif /* DHD_DEBUG */
 
 	/* XXX Let the layers below dhd know the chipid and chiprev for
@@ -10248,6 +10248,7 @@ dhd_set_bus_params(struct dhd_bus *bus)
 	if (bus->dhd->conf->txglomsize >= 0) {
 		bus->txglomsize = bus->dhd->conf->txglomsize;
 	}
+	bus->idletime = dhd_idletime;
 #ifdef MINIME
 	if (bus->dhd->conf->fw_type == FW_TYPE_MINIME) {
 		bus->ramsize = bus->dhd->conf->ramsize;
@@ -10429,10 +10430,8 @@ dhdsdio_release_dongle(dhd_bus_t *bus, osl_t *osh, bool dongle_isolation, bool r
 				DHD_ERROR(("%s: after si_watchdog, "
 					"dongle is going to be released\n",
 					__FUNCTION__));
-#if defined(DHD_SI_WD_RESET)
 				DHD_ERROR(("%s: set si_wd TRUE\n", __FUNCTION__));
 				bus->dhd->si_wd = TRUE;
-#endif
 			}
 		}
 #endif /* !defined(BCMLXSDMMC) */
@@ -11290,6 +11289,10 @@ _dhdsdio_download_firmware(struct dhd_bus *bus)
 		goto err;
 	}
 
+	if (CHIPID(bus->sih->chip) == BCM43711_CHIP_ID) {
+		si_pmu_43711a0_pll_war(bus->sih);
+	}
+
 	/* External nvram takes precedence if specified */
 	if (dhdsdio_download_nvram(bus)) {
 		DHD_ERROR(("%s: dongle nvram file download failed\n", __FUNCTION__));
@@ -11493,20 +11496,28 @@ dhd_bus_devreset(dhd_pub_t *dhdp, uint8 flag)
 	int bcmerror = 0;
 	dhd_bus_t *bus;
 	unsigned long flags;
+	int val = 0;
+#ifdef SDIO_ISO_EXT
+	uint8 devctl = 0;
+	int err = 0;
+#endif
 
 	bus = dhdp->bus;
 
 	if (flag == TRUE) {
 		if (!bus->dhd->dongle_reset) {
 			DHD_ERROR(("%s: == Power OFF ==\n", __FUNCTION__));
-#ifdef DHD_SI_WD_RESET
+
 			if (CHIPID(bus->sih->chip) == BCM4381_CHIP_GRPID ||
-				CHIPID(bus->sih->chip) == BCM4382_CHIP_GRPID) {
-				DHD_ERROR(("%s: RESET PMU status\n", __FUNCTION__));
-				bcmsdh_reg_write(bus->sdh, 0x18012618, 4, 0x64fffff);
-				OSL_DELAY(100);
+				CHIPID(bus->sih->chip) == BCM4382_CHIP_GRPID ||
+				CHIPID(bus->sih->chip) == BCM4383_CHIP_GRPID ||
+				CHIPID(bus->sih->chip) == BCM4384_CHIP_GRPID) {
+				/* Clear WL_REG_ON interrupt */
+				si_corereg(bus->sih, si_findcoreidx(bus->sih, GCI_CORE_ID, 0u),
+					OFFSETOF(gciregs_t, regon_intrp_st_adr), ALLONES_32,
+					WL_REG_ON_INTRP);
 			}
-#endif
+
 			dhdsdio_advertise_bus_cleanup(bus->dhd);
 			dhd_os_sdlock(dhdp);
 			dhd_os_wd_timer(dhdp, 0);
@@ -11517,8 +11528,47 @@ dhd_bus_devreset(dhd_pub_t *dhdp, uint8 flag)
 #endif /* !defined(IGNORE_ETH0_DOWN) */
 #endif /* OEM_ANDROID */
 			/* Expect app to have torn down any connection before calling */
+			/* AMPAK WAR: Configuring the UDR10 Regiter by setting the
+			 * UVLO_DISABLE_OVERRIDE_EN (113) bit to avoid
+			 * BT reset
+			 */
+			if (CHIPID(bus->sih->chip) == BCM43711_CHIP_ID)
+				si_pmu_43711a0_udr_war(bus->sih);
+
 			/* Stop the bus, disable F2 */
 			dhd_bus_stop(bus, FALSE);
+
+			if (CHIPID(bus->sih->chip) == BCM4381_CHIP_GRPID ||
+				CHIPID(bus->sih->chip) == BCM4382_CHIP_GRPID ||
+				CHIPID(bus->sih->chip) == BCM4383_CHIP_GRPID ||
+				CHIPID(bus->sih->chip) == BCM4384_CHIP_GRPID) {
+				/* Remove ARM PLL clock request */
+				cr4regs_t *cr4regs;
+				if ((cr4regs = si_setcore(bus->sih, ARMCR4_CORE_ID, 0)) != NULL) {
+					W_REG(dhdp->osh, ARM_CR4_REG(cr4regs, clk_ctl_st), 0);
+					OSL_DELAY(1 * 1000);
+					val = R_REG(dhdp->osh, ARM_CR4_REG(cr4regs, clk_ctl_st));
+					DHD_ERROR(("%s: Remove ARM PLL clock, 0x%04x\n",
+						__func__, val));
+				}
+
+				/* Clear bit 27 and 28 of max_res_mask */
+				PMU_REG(bus->sih, max_res_mask,
+					RES4381_ARMCLK_AVAIL|RES4381_HT_AVAIL, 0);
+				/* Delay 10ms wait for pmu max res updated */
+				OSL_DELAY(10 * 1000);
+				val = PMU_REG(bus->sih, max_res_mask, 0, 0);
+				DHD_ERROR(("%s: Clear ARMCLK/HT Resourse, 0x%08x\n",
+					__func__, val));
+			}
+
+#ifdef SDIO_ISO_EXT
+			/* SDIO pad isolation */
+			devctl = bcmsdh_cfg_read(bus->sdh, SDIO_FUNC_1, SBSDIO_DEVICE_CTL, &err);
+			devctl |= SBSDIO_DEVCTL_PADS_ISO;
+			/* disable d0-d3 pin */
+			bcmsdh_cfg_write(bus->sdh, SDIO_FUNC_1, SBSDIO_DEVICE_CTL, devctl, NULL);
+#endif /* SDIO_ISO_EXT */
 
 #if defined(OOB_INTR_ONLY) || defined(BCMSPI_ANDROID)
 			/* Clean up any pending IRQ */
@@ -11528,11 +11578,7 @@ dhd_bus_devreset(dhd_pub_t *dhdp, uint8 flag)
 #endif /* defined(OOB_INTR_ONLY) || defined(BCMSPI_ANDROID) */
 
 			/* Clean tx/rx buffer pointers, detach from the dongle */
-#ifdef DHD_SI_WD_RESET
-			dhdsdio_release_dongle(bus, bus->dhd->osh, FALSE, TRUE);
-#else
 			dhdsdio_release_dongle(bus, bus->dhd->osh, TRUE, TRUE);
-#endif
 			bus->dhd->dongle_reset = TRUE;
 			DHD_ERROR(("%s: making dhdpub up FALSE\n", __FUNCTION__));
 			bus->dhd->up = FALSE;
@@ -12458,6 +12504,23 @@ void
 dhd_bus_set_signature_path(struct dhd_bus *bus, char *sig_path)
 {
 	strlcpy(bus->fwsig_filename, sig_path, sizeof(bus->fwsig_filename));
+}
+
+int
+dhdsdio_mpdu_init(dhd_pub_t *dhdp)
+{
+	dhd_bus_t *bus = NULL;
+	int ampdu_mpdu = 0;
+
+	bus = dhdp->bus;
+
+	if (CHIPID(bus->sih->chip) == BCM4381_CHIP_GRPID) {
+		ampdu_mpdu = 32;
+	} else if (CHIPID(bus->sih->chip) == BCM4382_CHIP_GRPID) {
+		ampdu_mpdu = 16;
+	}
+
+	return ampdu_mpdu;
 }
 
 int

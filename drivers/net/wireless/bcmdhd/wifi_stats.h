@@ -244,7 +244,11 @@ typedef struct {
 
 /* radio statistics */
 typedef struct {
+#if ANDROID_VERSION >= 13
 	wifi_radio_stat_h_v2 radio_stats;
+#else
+	wifi_radio_stat_h radio_stats;
+#endif
 	wifi_channel_stat channels[];  // channel statistics
 } wifi_radio_stat;
 
@@ -415,7 +419,11 @@ typedef struct {
 
 /* radio statistics */
 typedef struct {
+#if ANDROID_VERSION >= 13
 	compat_wifi_radio_stat_h_v2 radio_stats;
+#else
+	wifi_radio_stat_h radio_stats;
+#endif
 	wifi_channel_stat channels[];  // channel statistics
 } compat_wifi_radio_stat;
 

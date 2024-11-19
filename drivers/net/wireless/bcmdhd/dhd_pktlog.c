@@ -1062,7 +1062,7 @@ dhd_pktlog_filter_matched(dhd_pktlog_filter_t *filter, char *data, uint32 pktlog
 	}
 
 	for (i = 0; i < filter->list_cnt; i++) {
-		if (&filter->info[i] && filter->info[i].id && filter->info[i].enable) {
+		if (filter->info && filter->info[i].id && filter->info[i].enable) {
 			szbts = filter->info[i].size_bytes;
 			offset = filter->info[i].offset;
 			mask = &filter->info[i].mask[0];

@@ -74,6 +74,9 @@ typedef bool (*f_processpkt_t)(void* p, void* arg);
 #define WLFC_HANGER_PKT_STATE_COMPLETE			\
 	(WLFC_HANGER_PKT_STATE_TXSTATUS | WLFC_HANGER_PKT_STATE_BUSRETURNED)
 
+#define SIMUTX_MAX_CNT_DOWN		1024
+#define SIMUTX_VALID_COMP_TXS	4
+
 typedef enum {
 	Q_TYPE_PSQ, /**< Power Save Queue, contains both delayed and suppressed packets */
 	Q_TYPE_AFQ  /**< At Firmware Queue */
@@ -377,6 +380,8 @@ typedef struct athost_wl_status_info {
 #ifdef BULK_DEQUEUE
 	uint8	max_release_count;
 #endif /* total_credit */
+	uint8 last_ifid;
+	uint32 simutx_cntdown;
 } athost_wl_status_info_t;
 
 /** Please be mindful that total pkttag space is 32 octets only */

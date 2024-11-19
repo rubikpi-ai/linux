@@ -3666,7 +3666,7 @@ dhd_prot_attach(dhd_pub_t *dhd)
 		goto fail;
 
 	prot->pktid_tx_map = DHD_NATIVE_TO_PKTID_INIT(dhd, MAX_PKTID_TX);
-	if (prot->pktid_rx_map == NULL)
+	if (prot->pktid_tx_map == NULL)
 		goto fail;
 
 #ifdef IOCTLRESP_USE_CONSTMEM

@@ -557,7 +557,11 @@ enum dhd_op_flags {
 
 #ifndef CONFIG_BCMDHD_CLM_PATH
 #ifdef OEM_ANDROID
+#if defined(CUSTOMER_HW4) && defined(PLATFORM_SLP)
+#define CONFIG_BCMDHD_CLM_PATH "/lib/firmware/bcmdhd_clm.blob"
+#else
 #define CONFIG_BCMDHD_CLM_PATH "/etc/wifi/bcmdhd_clm.blob"
+#endif /* CUSTOMER_HW4 && PLATFORM_SLP */
 #elif defined(LINUX) || defined(linux)
 #define CONFIG_BCMDHD_CLM_PATH "/var/run/bcmdhd_clm.blob"
 #else
@@ -589,6 +593,44 @@ enum dhd_op_flags {
 #define CONFIG_BCMDHD_CONFIG_PATH  "/var/run/wlan_config.ini"
 #endif /* OEM_ANDROID */
 #endif /* CONFIG_BCMDHD_CONFIG_PATH */
+#endif /* DHD_LINUX_STD_FW_API */
+
+#ifndef CONFIG_BCMDHD_MAP_PATH
+	#ifdef OEM_ANDROID
+		#define CONFIG_BCMDHD_MAP_PATH  "/system/vendor/etc/wifi/rtecdc.map"
+	#else // OEM_ANDROID
+		#define CONFIG_BCMDHD_MAP_PATH  "rtecdc.map"
+	#endif // OEM_ANDROID
+#endif /* CONFIG_BCMDHD_MAP_PATH */
+
+/* for file operation compatibility */
+#ifdef DHD_LINUX_STD_FW_API
+	// kernel has enable the corresponding API
+	#if defined(CONFIG_FW_LOADER) || (defined(CONFIG_FW_LOADER_MODULE) && defined(MODULE))
+		#ifndef DHD_FW_NAME
+		#define DHD_FW_NAME       CONFIG_BCMDHD_FW_PATH
+		#endif // DHD_FW_NAME
+		#ifndef DHD_NVRAM_NAME
+		#define DHD_NVRAM_NAME    CONFIG_BCMDHD_NVRAM_PATH
+		#endif // DHD_NVRAM_NAME
+		#ifndef DHD_CLM_NAME
+		#define DHD_CLM_NAME      CONFIG_BCMDHD_CLM_PATH
+		#endif // DHD_CLM_NAME
+		#ifndef DHD_MAP_NAME
+		#define DHD_MAP_NAME      CONFIG_BCMDHD_MAP_PATH
+		#endif // DHD_MAP_NAME
+		#ifndef FILTER_IE_NAME
+		#define FILTER_IE_NAME    "filter_ie"
+		#endif // FILTER_IE_NAME
+	#else // defined(CONFIG_FW_LOADER) || (defined(CONFIG_FW_LOADER_MODULE) && defined(MODULE))
+		#error "*Error, KERNEL does not enable the CONFIG_FW_LOADER(_MODULE) "\
+			"for DHD_LINUX_STD_FW_API!"
+	#endif // defined(CONFIG_FW_LOADER) || (defined(CONFIG_FW_LOADER_MODULE) && defined(MODULE))
+#else /* DHD_LINUX_STD_FW_API */
+	#ifndef DHD_SUPPORT_VFS_CALL
+		#error "*Error, Makefile should pick up either "\
+			"'DHD_LINUX_STD_FW_API' or 'DHD_SUPPORT_VFS_CALL'!"
+	#endif // DHD_SUPPORT_VFS_CALL
 #endif /* DHD_LINUX_STD_FW_API */
 
 #define WL_CCODE_NULL_COUNTRY  "#n"
@@ -1025,7 +1067,11 @@ enum {
 
 #define FW_LOGSET_MASK_ALL 0xFFFFu
 
-#if defined(CUSTOMER_HW7_DEBUG)
+#if defined(CUSTOMER_HW4)
+#ifndef DHD_COMMON_DUMP_PATH
+#define DHD_COMMON_DUMP_PATH	"/data/vendor/log/wifi/"
+#endif /* !DHD_COMMON_DUMP_PATH */
+#elif defined(CUSTOMER_HW7_DEBUG)
 #define DHD_COMMON_DUMP_PATH    PLATFORM_PATH
 #elif defined(CUSTOM_DHD_COMMON_DUMP_PATH)
 #define DHD_COMMON_DUMP_PATH	CUSTOM_DHD_COMMON_DUMP_PATH
@@ -1039,7 +1085,7 @@ enum {
 #define DHD_COMMON_DUMP_PATH	"/installmedia/"
 #else /* Default */
 #define DHD_COMMON_DUMP_PATH	"/root/"
-#endif /* CUSTOMER_HW7_DEBUG */
+#endif /* CUSTOMER_HW4 */
 
 #define DHD_MEMDUMP_LONGSTR_LEN 180
 
@@ -1427,6 +1473,7 @@ typedef struct dhd_pub {
 	#error "wlfc thread not enabled"
 #endif /* LINUX */
 #endif /* DHD_WLFC_THREAD */
+	uint32 simutx_limit;
 #endif /* PROP_TXSTATUS */
 #ifdef PNO_SUPPORT
 	void *pno_state;
@@ -1860,10 +1907,27 @@ typedef struct dhd_pub {
 	ota_update_info_t ota_update_info;
 #endif /* SUPPORT_OTA_UPDATE */
 #ifdef CSI_SUPPORT
-	struct mutex	 csi_lock;
-	struct list_head csi_list;
-	uint csi_count;
-	uint  csi_data_send_manner;
+	struct mutex         csi_lock;
+
+	struct sk_buff_head  csi_raw_skb_queue     ____cacheline_aligned;
+	struct work_struct   csi_raw_skb_work;
+
+	struct list_head     csi_list;
+	uint                 csi_count;
+
+	uint8                csi_init;
+	uint8                csi_version_capability;
+	uint8                csi_header_output_version;
+
+	uint16               csi_data_send_manner;
+	uint16               csi_notify_port;
+	uint32               csi_notify_ip;
+	uint32               csi_local_ip;
+
+	int32                packet_global_id_last;
+	uint32               padding_global_id;
+	uint32               packet_qty_duplicate;
+	uint32               packet_qty_missing;
 #endif /* CSI_SUPPORT */
 	bool stop_in_progress;
 #ifdef SYNA_SAR_CUSTOMER_PARAMETER
@@ -1900,10 +1964,6 @@ typedef struct dhd_pub {
 	uint8 pfaoe_enab;
 #endif /* PKT_FILTER_SUPPORT */
 
-#ifdef CSI_SUPPORT
-	struct list_head csi_list;
-	int csi_count;
-#endif /* CSI_SUPPORT */
 	char *clm_path;		/* module_param: path to clm vars file */
 	char *conf_path;		/* module_param: path to config vars file */
 	struct dhd_conf *conf;	/* Bus module handle */
@@ -3461,7 +3521,13 @@ extern char fw_path2[MOD_PARAM_PATHLEN];
 #define MAX_FILE_LEN      90u
 #endif /* SUPPORT_MULTIPLE_NVRAM || SUPPORT_MULTIPLE_CLMBLOB */
 
+#ifndef VENDOR_PATH
+#if defined(CUSTOMER_HW4) && !defined(DHD_LINUX_STD_FW_API)
+#define VENDOR_PATH "/vendor/firmware/"
+#else /* CUSTOMER_HW4 */
 #define VENDOR_PATH ""
+#endif /* CUSTOMER_HW4 */
+#endif /* VENDOR_PATH */
 
 /* Platform path Name -
  * Used to find out where to find the FW debug support files.
@@ -3480,17 +3546,22 @@ extern char fw_path2[MOD_PARAM_PATHLEN];
 #define PLATFORM_PATH	"/opt/etc/"
 #else
 /* End of Overrides, rely on what is dictated by Android */
+#if defined(CUSTOMER_HW4)
+#define PLATFORM_PATH	"/data/vendor/conn/"
+#else
 #define PLATFORM_PATH	"/data/misc/conn/"
+#endif /* CUSTOMER_HW4  */
 #define DHD_MAC_ADDR_EXPORT
+#define DHD_ADPS_BAM_EXPORT
 #define DHD_EXPORT_CNTL_FILE
 #define DHD_SOFTAP_DUAL_IF_INFO
 #define DHD_SEND_HANG_PRIVCMD_ERRORS
 #endif /* DHD_LEGACY_FILE_PATH */
 #endif /* !PLATFORM_PATH */
 
-#ifdef DHD_MAC_ADDR_EXPORT
+#if defined(DHD_MAC_ADDR_EXPORT) || defined(DHD_MAC_ADDR_EXPORT_RO)
 extern struct ether_addr sysfs_mac_addr;
-#endif /* DHD_MAC_ADDR_EXPORT */
+#endif /* DHD_MAC_ADDR_EXPORT || DHD_MAC_ADDR_EXPORT_RO */
 
 #if defined(LINUX) || defined(linux)
 /* Flag to indicate if we should download firmware on driver load */
@@ -3506,8 +3577,11 @@ extern int dhd_write_file_and_check(const char *filepath, char *buf, int buf_len
 extern int dhd_file_delete(char *path);
 
 #ifdef READ_MACADDR
+extern int dhd_read_macaddr_from_file(dhd_pub_t *dhdp, struct ether_addr *dest_mac);
 extern int dhd_set_macaddr_from_file(dhd_pub_t *dhdp);
 #else
+static inline int dhd_read_macaddr_from_file(dhd_pub_t *dhdp,
+	struct ether_addr *dest_mac) { return 0; }
 static INLINE int dhd_set_macaddr_from_file(dhd_pub_t *dhdp) { return 0; }
 #endif /* READ_MACADDR */
 #ifdef WRITE_MACADDR
@@ -4579,9 +4653,6 @@ static inline uint32 next_larger_power2(uint32 num)
 
 extern struct dhd_if * dhd_get_ifp(dhd_pub_t *dhdp, uint32 ifidx);
 uint8 dhd_d11_slices_num_get(dhd_pub_t *dhdp);
-#if defined(WL_AUTO_QOS) && defined(DHD_QOS_ON_SOCK_FLOW)
-extern void dhd_wl_sock_qos_set_status(dhd_pub_t *dhdp, unsigned long on_off);
-#endif /* WL_AUTO_QOS && DHD_QOS_ON_SOCK_FLOW */
 
 extern void *dhd_get_roam_evt(dhd_pub_t *dhdp);
 #if defined(DISABLE_HE_ENAB) || defined(CUSTOM_CONTROL_HE_ENAB)
@@ -4796,7 +4867,7 @@ void dhd_dump_wake_status(dhd_pub_t *dhdp, wake_counts_t *wcp, struct ether_head
 #ifdef SUPPORT_OTA_UPDATE
 void dhd_ota_buf_clean(dhd_pub_t *dhdp);
 #endif /* SUPPORT_OTA_UPDATE */
-#if defined(OEM_ANDROID) && !defined(AP) && defined(WLP2P)
+#if !defined(AP) && defined(WLP2P)
 extern uint32 dhd_get_concurrent_capabilites(dhd_pub_t *dhd);
 #endif
 #ifdef DHD_CUSTOM_CONFIG_RTS_IN_SUSPEND
@@ -4818,10 +4889,10 @@ extern int dhd_hwtstamp_txtype(dhd_pub_t *dhdp);
 
 #ifdef WL_MONITOR
 void dhd_set_monitor(dhd_pub_t *pub, int ifidx, int val);
-#ifdef BCMSDIO
+#if defined(BCMSDIO) || defined(BCMDBUS)
 extern void dhd_rx_mon_pkt_sdio(dhd_pub_t *dhdp, void *pkt, int ifidx);
 bool dhd_monitor_enabled(dhd_pub_t *dhd, int ifidx);
-#endif /* BCMSDIO */
+#endif /* BCMSDIO || BCMDBUS */
 #endif /* WL_MONITOR */
 int dhd_pm_callback(
 #ifdef DEVICE_PM_CALLBACK

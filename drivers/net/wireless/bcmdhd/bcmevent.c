@@ -266,6 +266,9 @@ static const bcmevent_name_str_t bcmevent_names[] = {
 	BCMEVENT_NAME(WLC_E_BCN_TSF),
 	BCMEVENT_NAME(WLC_E_OWE_INFO),
 	BCMEVENT_NAME(WLC_E_ULMU_DISABLED_REASON_UPD),
+#ifdef CSI_SUPPORT
+	BCMEVENT_NAME(WLC_E_CSI)
+#endif /* CSI_SUPPORT */
 };
 
 const char *bcmevent_get_name(uint event_type)

@@ -1010,4 +1010,23 @@ do {					\
 	pr_cont args;			\
 } while (0)
 #endif /* CUSTOM_PREFIX */
+
+#ifdef USERCOPY_CACHE
+extern void *osl_kmem_cache_alloc_usercopy(osl_t *osh, int len);
+extern void osl_kmem_cache_free_usercopy(osl_t *osh, void *addr);
+#define KMEM_CACHE_ALLOC_USERCOPY(osh, len) osl_kmem_cache_alloc_usercopy((osh), (len))
+#define KMEM_CACHE_FREE_USERCOPY(osh, addr, len) osl_kmem_cache_free_usercopy((osh), (addr))
+#else
+#define KMEM_CACHE_ALLOC_USERCOPY(osh, len) MALLOC((osh), (len))
+#define KMEM_CACHE_FREE_USERCOPY(osh, addr, len) MFREE((osh), (addr), (len))
+#endif /* USERCOPY_CACHE */
+
+#ifdef USERCOPY_MAXLEN
+extern int osl_user_copy(osl_t *osh, void *dst, const void *src, const int len, bool from);
+#define COPY_TO_USER(osh, dst, src, len)	osl_user_copy(osh, dst, src, len, TRUE)
+#define COPY_FROM_USER(osh, dst, src, len)	osl_user_copy(osh, dst, src, len, FALSE)
+#else
+#define COPY_TO_USER(osh, dst, src, len)	copy_to_user(dst, src, len)
+#define COPY_FROM_USER(osh, dst, src, len)	copy_from_user(dst, src, len)
+#endif /* USERCOPY_MAXLEN */
 #endif	/* _linux_osl_h_ */

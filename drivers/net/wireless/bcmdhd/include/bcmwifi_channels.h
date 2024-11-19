@@ -53,7 +53,10 @@ typedef uint16 chanspec_subband_t;
 
 /* channel defines */
 #define CH_80MHZ_APART                   16u
+#define CH_60MHZ_APART                   12u
+#define CH_50MHZ_APART                   10u
 #define CH_40MHZ_APART                    8u
+#define CH_30MHZ_APART                    6u
 #define CH_20MHZ_APART                    4u
 #define CH_10MHZ_APART                    2u
 #define CH_5MHZ_APART                     1u    /* 2G band channels are 5 Mhz apart */
@@ -64,7 +67,7 @@ typedef uint16 chanspec_subband_t;
 #define CH_MIN_2G_40M_CHANNEL             3u    /* Min 40MHz center channel in 2G band */
 #define CH_MAX_2G_40M_CHANNEL            11u    /* Max 40MHz center channel in 2G band */
 #define CH_MIN_5G_CHANNEL                34u    /* Min channel in 5G band */
-#define CH_MAX_5G_CHANNEL               177u    /* Max channel in 5G band */
+#define CH_MAX_5G_CHANNEL               200u    /* Max channel in 5G band */
 
 #define CH_MIN_6G_CHANNEL                 1u    /* Min 20MHz channel in 6G band */
 #define CH_MAX_6G_CHANNEL               253u    /* Max 20MHz channel in 6G band */
@@ -90,6 +93,18 @@ typedef uint16 chanspec_subband_t;
 /* channel 52 ~ 144 */
 #define CH_RADAR_CHANNEL_MIN            50
 #define CH_RADAR_CHANNEL_MAX            146
+
+/* Frequency defines */
+#define CH_FREQ_20MHz_OFFSET                       20u
+#define CH_FREQ_HT40_SECONDARY_CHANNEL_INTERVAL    (CH_FREQ_20MHz_OFFSET)
+
+#ifndef CONST_CUSTOMER_CHANLIST_INVALID
+#define CONST_CUSTOMER_CHANLIST_INVALID		0x01
+#endif /* CONST_CUSTOMER_CHANLIST_INVALID */
+#define SYNA_CUSTOMER_CHANLIST_INVALID(vector) \
+	(CONST_CUSTOMER_CHANLIST_INVALID & ((vector)[0]))
+#define SYNA_CUSTOMER_CHANLIST_VALID(vector)	(!SYNA_CUSTOMER_CHANLIST_INVALID(vector))
+
 /* length of channel vector bitmap is the MAXCHANNEL we want to handle rounded up to a byte */
 /* The actual CHANVEC_LEN fix is leading to high static memory impact
 * in all projects wherein the previous CHANVEC_LEN definition is used.

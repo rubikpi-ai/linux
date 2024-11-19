@@ -950,7 +950,7 @@ static struct dhd_attr dhd_attr_tcm_test_mode =
 #define to_dhd(k) container_of(k, struct dhd_info, dhd_kobj)
 #define to_attr(a) container_of(a, struct dhd_attr, attr)
 
-#ifdef DHD_MAC_ADDR_EXPORT
+#if defined(DHD_MAC_ADDR_EXPORT) || defined(DHD_MAC_ADDR_EXPORT_RO)
 struct ether_addr sysfs_mac_addr;
 static ssize_t
 show_mac_addr(struct dhd_info *dev, char *buf)
@@ -980,7 +980,7 @@ set_mac_addr(struct dhd_info *dev, const char *buf, size_t count)
 
 static struct dhd_attr dhd_attr_macaddr =
 	__ATTR(mac_addr, 0660, show_mac_addr, set_mac_addr);
-#endif /* DHD_MAC_ADDR_EXPORT */
+#endif /* DHD_MAC_ADDR_EXPORT || DHD_MAC_ADDR_EXPORT_RO */
 
 #ifdef DHD_FW_COREDUMP
 /*
@@ -1089,7 +1089,6 @@ void dhd_get_memdump_info(dhd_pub_t *dhd)
 	DHD_ERROR(("%s: MEMDUMP ENABLED = %u\n", __FUNCTION__, dhd->memdump_enabled));
 }
 
-#ifdef DHD_EXPORT_CNTL_FILE
 static ssize_t
 show_memdump_info(struct dhd_info *dev, char *buf)
 {
@@ -1129,7 +1128,6 @@ set_memdump_info(struct dhd_info *dev, const char *buf, size_t count)
 
 static struct dhd_attr dhd_attr_memdump =
 	__ATTR(memdump, 0660, show_memdump_info, set_memdump_info);
-#endif /* DHD_EXPORT_CNTL_FILE */
 #endif /* DHD_FW_COREDUMP */
 
 #ifdef BCMASSERT_LOG
@@ -2289,13 +2287,13 @@ static struct dhd_attr dhd_attr_dump_start_command =
 
 /* Attribute object that gets registered with "wifi" kobject tree */
 static struct attribute *default_file_attrs[] = {
-#ifdef DHD_MAC_ADDR_EXPORT
+#if defined(DHD_MAC_ADDR_EXPORT) || defined(DHD_MAC_ADDR_EXPORT_RO)
 	&dhd_attr_macaddr.attr,
-#endif /* DHD_MAC_ADDR_EXPORT */
-#ifdef DHD_EXPORT_CNTL_FILE
+#endif /* DHD_MAC_ADDR_EXPORT || DHD_MAC_ADDR_EXPORT_RO */
 #ifdef DHD_FW_COREDUMP
 	&dhd_attr_memdump.attr,
 #endif /* DHD_FW_COREDUMP */
+#ifdef DHD_EXPORT_CNTL_FILE
 #ifdef BCMASSERT_LOG
 	&dhd_attr_assert.attr,
 #endif /* BCMASSERT_LOG */
@@ -2939,6 +2937,11 @@ static struct kobj_type dhd_lb_ktype = {
 };
 #endif /* DHD_LB */
 
+#ifdef CUSTOMER_HW4
+#define CONST_SYNA_DHD_KOBJ_NAME      "wifi"
+#define CONST_SYNA_DHD_CSI_OBJ_NAME    "csi"
+#define CONST_SYNA_DHD_LB_OBJ_NAME    "lb"
+#else
 #ifdef BCMPCIE
 #define CONST_SYNA_DHD_KOBJ_NAME       "wifi_pcie"
 #define CONST_SYNA_DHD_CSI_OBJ_NAME    "csi"
@@ -2948,6 +2951,7 @@ static struct kobj_type dhd_lb_ktype = {
 #define CONST_SYNA_DHD_CSI_OBJ_NAME    "csi"
 #define CONST_SYNA_DHD_LB_OBJ_NAME     "lb_sdio"
 #endif /* BCMPCIE */
+#endif /* CUSTOMER_HW4 */
 
 /*
  * ************ DPC BOUNDS *************
@@ -3162,7 +3166,7 @@ static ssize_t read_csi_data(struct file *filp, struct kobject *kobj,
 	dhd_info_t *dhd = to_dhd(kobj);
 	int n = 0;
 
-	n = dhd_csi_retrieve_queue_data(&dhd->pub, buf, (uint)count);
+	n = dhd_csi_data_queue_polling(&dhd->pub, buf, (uint)count);
 	DHD_TRACE(("Dump data to file, size %d\n", n));
 
 	return n;
@@ -3173,7 +3177,7 @@ static struct bin_attribute dhd_attr_csi = {
 		.name = CONST_SYNA_DHD_CSI_OBJ_NAME,
 		.mode = 0660
 	},
-	.size = MAX_CSI_FILESZ,
+	.size = CONST_CSI_SYS_FILE_SIZE_MAX,
 	.read = read_csi_data,
 };
 #endif /* CSI_SUPPORT */

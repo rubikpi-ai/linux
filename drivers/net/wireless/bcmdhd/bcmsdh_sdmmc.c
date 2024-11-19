@@ -128,7 +128,11 @@ extern PBCMSDH_SDMMC_INSTANCE gInstance;
 
 #define DEFAULT_SDIO_F2_BLKSIZE		512
 #ifndef CUSTOM_SDIO_F2_BLKSIZE
+#ifndef DYNAMIC_F2_BLKSIZE_FOR_NONLEGACY
 #define CUSTOM_SDIO_F2_BLKSIZE		DEFAULT_SDIO_F2_BLKSIZE
+#else
+#define CUSTOM_SDIO_F2_BLKSIZE     DYNAMIC_F2_BLKSIZE_FOR_NONLEGACY
+#endif /* CUSTOM_SDIO_F2_BLKSIZE */
 #endif
 
 #define DEFAULT_SDIO_F1_BLKSIZE		64
@@ -1311,11 +1315,12 @@ sdioh_request_packet_chain(sdioh_info_t *sd, uint fix_inc, uint write, uint func
 			memset(&mmc_dat, 0, sizeof(struct mmc_data));
 			sg_init_table(sd->sg_list, ARRAYSIZE(sd->sg_list));
 
-			/* Set up scatter-gather DMA descriptors. this loop is to find out the max
-			 * data we can transfer with one command 53. blocks per command is limited by
-			 * host max_req_size and 9-bit max block number. when the total length of this
-			 * packet chain is bigger than max_req_size, use multiple SD_IO_RW_EXTENDED
-			 * commands (each transfer is still block aligned)
+			/* Set up scatter-gather DMA descriptors. this loop is to find out
+			 * the max data we can transfer with one command 53. blocks per command
+			 * is limited by host max_req_size and 9-bit max block number. when the
+			 * total length of this packet chain is bigger than max_req_size, use
+			 * multiple SD_IO_RW_EXTENDED commands (each transfer is still block
+			 * aligned)
 			 */
 			while (pnext != NULL && ttl_len < max_req_size) {
 				int pkt_len;
@@ -1325,9 +1330,10 @@ sdioh_request_packet_chain(sdioh_info_t *sd, uint fix_inc, uint write, uint func
 				ASSERT(pdata != NULL);
 				pkt_len = PKTLEN(sd->osh, pnext);
 				sd_trace(("%s[%d] data=%p, len=%d\n", __FUNCTION__, write, pdata, pkt_len));
-				/* sg_count is unlikely larger than the array size, and this is
-				 * NOT something we can handle here, but in case it happens, PLEASE put
-				 * a restriction on max tx/glom count (based on host->max_segs).
+				/* sg_count is unlikely larger than the array size,
+				 * and this is NOT something we can handle here, but in
+				 * case it happens, PLEASE put a restriction on max tx/glom
+				 * count (based on host->max_segs).
 				 */
 				if (sg_count >= ARRAYSIZE(sd->sg_list)) {
 					sd_err(("%s: sg list entries(%u) exceed limit(%zu),"
@@ -1340,9 +1346,9 @@ sdioh_request_packet_chain(sdioh_info_t *sd, uint fix_inc, uint write, uint func
 				sg_data_size = pkt_len - pkt_offset;
 				if (sg_data_size > max_req_size - ttl_len)
 					sg_data_size = max_req_size - ttl_len;
-				/* some platforms put a restriction on the data size of each scatter-gather
-				 * DMA descriptor, use multiple sg buffers when xfer_size is bigger than
-				 * max_seg_size
+				/* some platforms put a restriction on the data size of each
+				 * scatter-gather DMA descriptor, use multiple sg buffers when
+				 * xfer_size is bigger than max_seg_size
 				 */
 				if (sg_data_size > host->max_seg_size) {
 					sg_data_size = host->max_seg_size;
@@ -1827,6 +1833,7 @@ LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 32) && LINUX_VERSION_CODE < KERNEL_VE
 	mmc_power_restore_host(card->host);
 #else
 	/* sdio_reset_comm */
+	printf("%s: call sdio_reset_comm\n", __FUNCTION__);
 	err = sdio_reset_comm(card);
 #endif
 

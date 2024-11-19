@@ -2565,7 +2565,7 @@ wl_cfgp2p_register_ndev(struct bcm_cfg80211 *cfg)
 {
 	int ret = 0;
 	struct net_device* net = NULL;
-#ifndef	WL_NEWCFG_PRIVCMD_SUPPORT
+#if !defined(WL_NEWCFG_PRIVCMD_SUPPORT) || (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 	struct wireless_dev *wdev = NULL;
 #endif /* WL_NEWCFG_PRIVCMD_SUPPORT */
 	uint8 temp_addr[ETHER_ADDR_LEN] = { 0x00, 0x90, 0x4c, 0x33, 0x22, 0x11 };
@@ -2581,7 +2581,7 @@ wl_cfgp2p_register_ndev(struct bcm_cfg80211 *cfg)
 		return -ENODEV;
 	}
 
-#ifndef	WL_NEWCFG_PRIVCMD_SUPPORT
+#if !defined(WL_NEWCFG_PRIVCMD_SUPPORT) || (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 	wdev = (struct wireless_dev *)MALLOCZ(cfg->osh, sizeof(*wdev));
 	if (unlikely(!wdev)) {
 		WL_ERR(("Could not allocate wireless device\n"));
@@ -2609,7 +2609,7 @@ wl_cfgp2p_register_ndev(struct bcm_cfg80211 *cfg)
 	/* Register with a dummy MAC addr */
 	DEV_ADDR_SET(net, temp_addr);
 
-#ifndef	WL_NEWCFG_PRIVCMD_SUPPORT
+#if !defined(WL_NEWCFG_PRIVCMD_SUPPORT) || (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 	wdev->wiphy = cfg->wdev->wiphy;
 
 	wdev->iftype = wl_mode_to_nl80211_iftype(WL_MODE_BSS);
@@ -2623,18 +2623,18 @@ wl_cfgp2p_register_ndev(struct bcm_cfg80211 *cfg)
 	net->ethtool_ops = &cfgp2p_ethtool_ops;
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 24) */
 
-#ifndef	WL_NEWCFG_PRIVCMD_SUPPORT
+#if !defined(WL_NEWCFG_PRIVCMD_SUPPORT) || (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 	SET_NETDEV_DEV(net, wiphy_dev(wdev->wiphy));
 
 	/* Associate p2p0 network interface with new wdev */
 	wdev->netdev = net;
-#endif /* WL_NEWCFG_PRIVCMD_SUPPORT */
+#endif /* WL_NEWCFG_PRIVCMD_SUPPORT || KERNEL_VERSION >= 5.15 */
 
 	ret = dhd_register_net(net, true);
 	if (ret) {
 		CFGP2P_ERR((" register_netdevice failed (%d)\n", ret));
 		free_netdev(net);
-#ifndef	WL_NEWCFG_PRIVCMD_SUPPORT
+#if !defined(WL_NEWCFG_PRIVCMD_SUPPORT) || (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 		MFREE(cfg->osh, wdev, sizeof(*wdev));
 #endif /* WL_NEWCFG_PRIVCMD_SUPPORT */
 		return -ENODEV;
@@ -2643,7 +2643,7 @@ wl_cfgp2p_register_ndev(struct bcm_cfg80211 *cfg)
 	/* store p2p net ptr for further reference. Note that iflist won't have this
 	 * entry as there corresponding firmware interface is a "Hidden" interface.
 	 */
-#ifndef	WL_NEWCFG_PRIVCMD_SUPPORT
+#if !defined(WL_NEWCFG_PRIVCMD_SUPPORT) || (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 	cfg->p2p_wdev = wdev;
 #else
 	cfg->p2p_wdev = NULL;
@@ -2924,7 +2924,7 @@ wl_cfgp2p_stop_p2p_device(struct wiphy *wiphy, struct wireless_dev *wdev)
 
 	p2p_on(cfg) = false;
 
-	printf("Exit. P2P interface stopped\n");
+	printf("P2P interface stopped\n");
 
 	return;
 }
@@ -2973,7 +2973,7 @@ wl_cfgp2p_del_p2p_disc_if(struct wireless_dev *wdev, struct bcm_cfg80211 *cfg)
 
 	cfg->p2p_wdev = NULL;
 
-	CFGP2P_ERR(("P2P interface unregistered\n"));
+	printf("P2P interface unregistered\n");
 
 	return 0;
 }

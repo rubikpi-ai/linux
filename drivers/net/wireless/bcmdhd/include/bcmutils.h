@@ -1387,23 +1387,27 @@ int valid_bcmerror(int e);
 /* Used to pass in a macro variable that gets expanded and then stringified */
 #define BCM_EXTENDED_STRINGIFY(s) BCM_STRINGIFY(s)
 
+extern uint32 ip_cksum_partial(uint32 sum, uint8 *val8, uint32 count);
+/* calculate IP checksum */
+extern uint16 ip_cksum(uint32 sum, uint8 *val8, uint32 count);
+
 /* calculate IPv4 header checksum
  * - input ip points to IP header in network order
  * - output cksum is in network order
  */
-uint16 ipv4_hdr_cksum(uint8 *ip, uint ip_len);
+extern uint16 ipv4_hdr_cksum(uint8 *ip, uint ip_len);
 
 /* calculate IPv4 TCP header checksum
  * - input ip and tcp points to IP and TCP header in network order
  * - output cksum is in network order
  */
-uint16 ipv4_tcp_hdr_cksum(uint8 *ip, uint8 *tcp, uint16 tcp_len);
+extern uint16 ipv4_tcp_hdr_cksum(uint8 *ip, uint8 *tcp, uint16 tcp_len);
 
 /* calculate IPv6 TCP header checksum
  * - input ipv6 and tcp points to IPv6 and TCP header in network order
  * - output cksum is in network order
  */
-uint16 ipv6_tcp_hdr_cksum(uint8 *ipv6, uint8 *tcp, uint16 tcp_len);
+extern uint16 ipv6_tcp_hdr_cksum(uint8 *ipv6, uint8 *tcp, uint16 tcp_len);
 
 #ifdef __cplusplus
 	}

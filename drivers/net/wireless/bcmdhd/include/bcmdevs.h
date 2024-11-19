@@ -231,11 +231,16 @@
 #define BCM4389_CHIP_ID		0x4389          /* 4389 chipcommon chipid */
 #define BCM4397_CHIP_ID		0x4397          /* 4397 chipcommon chipid */
 
-#define BCM4383_CHIP_ID         0x4383          /* 4383 chipcommon chipid */
-#define BCM4383_D11AX_ID        0x4449          /* 4383 802.11ax triband device */
+#define BCM4383_CHIP_ID		0x4383          /* 4383 chipcommon chipid */
+#define BCM4383_D11AX_ID	0x4449          /* 4383 802.11ax triband device */
 
 #define BCM4383_CHIP(chipid)	(CHIPID(chipid) == BCM4383_CHIP_ID)
 #define BCM4383_CHIP_GRPID	BCM4383_CHIP_ID
+
+#define BCM4384_CHIP_ID		0x4384          /* 4384 chipcommon chipid */
+
+#define BCM4384_CHIP(chipid)	(CHIPID(chipid) == BCM4384_CHIP_ID)
+#define BCM4384_CHIP_GRPID	BCM4384_CHIP_ID
 
 #define BCM4362_CHIP(chipid)	((CHIPID(chipid) == BCM4362_CHIP_ID) || \
 				(CHIPID(chipid) == BCM43751_CHIP_ID) || \

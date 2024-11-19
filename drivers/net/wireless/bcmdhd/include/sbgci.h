@@ -399,6 +399,10 @@ typedef volatile struct {
 
 #define	GCI_CAP0_REV_MASK	0x000000ff
 
+/* Interrupt status register for interrupts generated based on REG ONs (regon_intrp_st_adr, Offset=0xE94) */
+#define WL_REG_ON_INTRP	0x4
+#define BT_REG_ON_INTRP	0x2
+
 /* GCI Capabilities registers */
 #define GCI_CORE_CAP_0_COREREV_MASK			0xFF
 #define GCI_CORE_CAP_0_COREREV_SHIFT			0

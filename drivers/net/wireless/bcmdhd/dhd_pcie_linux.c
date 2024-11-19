@@ -182,6 +182,7 @@ typedef struct dhdpcie_os_info {
 	bool			oob_irq_wake_enabled;
 	spinlock_t		oob_irq_spinlock;
 	void			*dev;		/* handle to the underlying device */
+	void			*adapter;
 } dhdpcie_os_info_t;
 static irqreturn_t wlan_oob_irq(int irq, void *data);
 #endif /* BCMPCIE_OOB_HOST_WAKE */
@@ -1621,6 +1622,9 @@ dhdpcie_pci_stop(struct pci_dev *pdev)
 	osl_t *osh = NULL;
 	dhdpcie_info_t *pch = NULL;
 	dhd_bus_t *bus = NULL;
+#ifdef RMMOD_POWER_DOWN_LATER
+	wifi_adapter_info_t	*adapter = NULL;
+#endif
 
 	DHD_TRACE(("%s Enter\n", __FUNCTION__));
 	pch = pci_get_drvdata(pdev);
@@ -1639,13 +1643,20 @@ dhdpcie_pci_stop(struct pci_dev *pdev)
 		dhdpcie_bus_release(bus);
 	}
 
+#ifdef RMMOD_POWER_DOWN_LATER
 	/*
 	 * For module type driver,
 	 * it needs to back up configuration space before rmmod
 	 * Since original backed up configuration space won't be restored if state_saved = false
 	 * This back up the configuration space again & state_saved = true
 	 */
-	pci_save_state(pdev);
+	adapter = dhd_wifi_platform_get_adapter(PCI_BUS, pdev->bus->number,
+		PCI_SLOT(pdev->devfn));
+	if ((adapter && adapter->gpio_wl_reg_on < 0) || is_power_on)
+		pci_save_state(pdev);
+	else
+		DHD_ERROR(("%s skip pci_save_state()\n", __FUNCTION__));
+#endif
 
 	if (pci_is_enabled(pdev))
 		pci_disable_device(pdev);
@@ -2043,6 +2054,7 @@ int dhdpcie_init(struct pci_dev *pdev)
 		if (dhdpcie_osinfo->oob_irq_num < 0) {
 			DHD_ERROR(("%s: Host OOB irq is not defined\n", __FUNCTION__));
 		}
+		dhdpcie_osinfo->adapter = adapter;
 #endif /* BCMPCIE_OOB_HOST_WAKE */
 
 #ifdef USE_SMMU_ARCH_MSM
@@ -2691,15 +2703,32 @@ extern int dhd_get_wlan_oob_gpio_number(void);
 #endif /* PRINT_WAKEUP_GPIO_STATUS */
 #endif /* CONFIG_BCMDHD_GET_OOB_STATE */
 
-int dhdpcie_get_oob_irq_level(void)
+int dhdpcie_get_oob_irq_level(struct dhd_bus *bus)
 {
-	int gpio_level;
+	int                   gpio_level = BCME_UNSUPPORTED;
+	dhdpcie_info_t       *pch = NULL;
+	dhdpcie_os_info_t    *dhdpcie_osinfo = NULL;
+	wifi_adapter_info_t  *adapter = NULL;
 
-#ifdef CONFIG_BCMDHD_GET_OOB_STATE
-	gpio_level = dhd_get_wlan_oob_gpio();
-#else
-	gpio_level = BCME_UNSUPPORTED;
-#endif /* CONFIG_BCMDHD_GET_OOB_STATE */
+	if (bus == NULL) {
+		DHD_ERROR(("%s: bus is NULL\n", __FUNCTION__));
+		return BCME_BADARG;
+	} else if (bus->dev == NULL) {
+		DHD_ERROR(("%s: bus->dev is NULL\n", __FUNCTION__));
+		return BCME_BADARG;
+	} else if ((pch = pci_get_drvdata(bus->dev)) == NULL) {
+		DHD_ERROR(("%s: pch is NULL\n", __FUNCTION__));
+		return BCME_BADARG;
+	} else if ((dhdpcie_osinfo = (dhdpcie_os_info_t *)pch->os_cxt) == NULL) {
+		DHD_ERROR(("%s: dhdpcie_osinfo is NULL\n", __FUNCTION__));
+		return BCME_BADARG;
+	} else if ((adapter = dhdpcie_osinfo->adapter) == NULL) {
+		DHD_ERROR(("%s: adapter is NULL\n", __FUNCTION__));
+		return BCME_BADARG;
+	} else {
+		gpio_level = wifi_platform_get_irq_level(adapter);
+	}
+
 	return gpio_level;
 }
 #ifdef PRINT_WAKEUP_GPIO_STATUS

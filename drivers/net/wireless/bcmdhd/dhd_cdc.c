@@ -99,6 +99,10 @@ typedef struct dhd_prot {
 	unsigned char buf[WLC_IOCTL_MAXLEN + ROUND_UP_MARGIN];
 } dhd_prot_t;
 
+/* Network inteface mac for primary IF */
+char iface_wlan0_mac[ETHER_ADDR_STR_LEN] = {'\0'};
+module_param_string(iface_wlan0_mac, iface_wlan0_mac, ETHER_ADDR_STR_LEN, 0660);
+
 uint16
 dhd_prot_get_ioctl_trans_id(dhd_pub_t *dhdp)
 {
@@ -709,17 +713,30 @@ dhd_sync_with_dongle(dhd_pub_t *dhd)
 	int ret = 0;
 	wlc_rev_info_t revinfo;
 	char buf[128];
+	u8 mac_addr[ETH_ALEN];
 
 	DHD_TRACE(("%s: Enter\n", __FUNCTION__));
 
+	if (iface_wlan0_mac[0]) {
+		bcm_ether_atoe(iface_wlan0_mac, (struct ether_addr *)mac_addr);
+		ret = dhd_iovar(dhd, 0, "cur_etheraddr", (char *)&mac_addr, ETHER_ADDR_LEN, NULL, 0,
+				TRUE);
+		if (ret < 0) {
+			DHD_ERROR(("%s: can't set MAC address , error=%d\n", __FUNCTION__, ret));
+			goto done;
+		}
+		memcpy(dhd->mac.octet, mac_addr, ETHER_ADDR_LEN);
+	} else {
 #ifndef OEM_ANDROID
-	/* Get the device MAC address */
-	strcpy(buf, "cur_etheraddr");
-	ret = dhd_wl_ioctl_cmd(dhd, WLC_GET_VAR, buf, sizeof(buf), FALSE, 0);
-	if (ret < 0)
-		goto done;
-	memcpy(dhd->mac.octet, buf, ETHER_ADDR_LEN);
+		/* Get the device MAC address */
+		strcpy(buf, "cur_etheraddr");
+		ret = dhd_wl_ioctl_cmd(dhd, WLC_GET_VAR, buf, sizeof(buf), FALSE, 0);
+		if (ret < 0)
+			goto done;
+		memcpy(dhd->mac.octet, buf, ETHER_ADDR_LEN);
 #endif /* OEM_ANDROID */
+	}
+
 #ifdef DHD_FW_COREDUMP
 	/* Check the memdump capability */
 	dhd_get_memdump_info(dhd);

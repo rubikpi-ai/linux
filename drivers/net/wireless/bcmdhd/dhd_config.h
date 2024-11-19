@@ -25,6 +25,10 @@
 //#define CONFIG_PATH_AUTO_SELECT
 #endif
 extern char firmware_path[MOD_PARAM_PATHLEN];
+#ifdef RMMOD_POWER_DOWN_LATER
+extern atomic_t exit_in_progress;
+extern bool is_power_on;
+#endif
 #if defined(BCMSDIO)
 extern uint dhd_rxbound;
 extern uint dhd_txbound;
@@ -215,6 +219,7 @@ typedef struct dhd_conf {
 	int ioctl_ver;
 	int band;
 	int bw_cap[2];
+	int mapsta_mode;
 	wl_country_t cspec;
 	uint roam_off;
 	uint roam_off_suspend;
@@ -222,6 +227,9 @@ typedef struct dhd_conf {
 	int roam_scan_period[2];
 	int roam_delta[2];
 	int fullroamperiod;
+#ifdef WL_SCHED_SCAN
+	int max_sched_scan_reqs;
+#endif /* WL_SCHED_SCAN */
 	uint keep_alive_period;
 	bool rekey_offload;
 #ifdef ARP_OFFLOAD_SUPPORT
@@ -337,8 +345,6 @@ typedef struct dhd_conf {
 	char *wl_preinit;
 	char *wl_suspend;
 	char *wl_resume;
-	int tsq;
-	int orphan_move;
 	uint in4way;
 	uint war;
 #ifdef WL_EXT_WOWL
@@ -394,6 +400,9 @@ bool dhd_conf_legacy_otp_chip(dhd_pub_t *dhd);
 #endif
 #ifdef BCMPCIE
 bool dhd_conf_legacy_msi_chip(dhd_pub_t *dhd);
+#if defined(BCMPCIE_CTO_PREVENTION)
+bool dhd_conf_legacy_cto_chip(uint16 chip);
+#endif
 #endif
 #ifdef WL_CFG80211
 bool dhd_conf_legacy_chip_check(dhd_pub_t *dhd);
@@ -421,6 +430,7 @@ int dhd_conf_set_chiprev(dhd_pub_t *dhd, uint chip, uint chiprev);
 uint dhd_conf_get_chip(void *context);
 uint dhd_conf_get_chiprev(void *context);
 int dhd_conf_get_pm(dhd_pub_t *dhd);
+int dhd_conf_custom_mac(dhd_pub_t *dhd);
 int dhd_conf_reg2args(dhd_pub_t *dhd, char *cmd, bool set, uint32 index, uint32 *val);
 int dhd_conf_check_hostsleep(dhd_pub_t *dhd, int cmd, void *buf, int len,
 	int *hostsleep_set, int *hostsleep_val, int *ret);

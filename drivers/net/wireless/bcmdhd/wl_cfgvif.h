@@ -212,18 +212,6 @@ extern s32 wl_cfg80211_change_virtual_iface(struct wiphy *wiphy, struct net_devi
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0) */
 	struct vif_params *params);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0)) || \
-	defined(WL_COMPAT_WIRELESS)
-s32
-wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
-	struct ieee80211_channel *chan,
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0))
-	enum nl80211_channel_type channel_type
-#else
-	enum nl80211_chan_width width
-#endif
-);
-#endif /* ((LINUX_VERSION < VERSION(3, 6, 0)) || WL_COMPAT_WIRELESS */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 4, 0)) || defined(WL_COMPAT_WIRELESS)
 extern s32 wl_cfg80211_start_ap(struct wiphy *wiphy, struct net_device *dev,
 		struct cfg80211_ap_settings *info);
@@ -329,4 +317,13 @@ extern int wl_chspec_chandef(chanspec_t chanspec,
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 8, 0))) */
 extern chanspec_t
 wl_channel_to_chanspec(struct wiphy *wiphy, struct net_device *dev, u32 channel, u32 bw_cap);
+s32
+wl_cfg80211_set_channel(struct wiphy *wiphy, struct net_device *dev,
+	struct ieee80211_channel *chan,
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0))
+	enum nl80211_channel_type channel_type
+#else
+	enum nl80211_chan_width width
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0) */
+);
 #endif /* _wl_cfgvif_h_ */

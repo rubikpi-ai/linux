@@ -172,7 +172,7 @@ typedef struct _dhd_ds_trace_t {
 
 #define PCIE_FASTLPO_ENABLED(buscorerev) \
 	((buscorerev == 66) || (buscorerev == 67) || (buscorerev == 68) || \
-	(buscorerev == 70) || (buscorerev == 72) || (buscorerev == 76))
+	(buscorerev == 70) || (buscorerev == 72) || (buscorerev == 76) || (buscorerev == 77))
 
 /*
  * HW JIRA - CRWLPCIEGEN2-672
@@ -805,7 +805,7 @@ extern void dhdpcie_oob_intr_unregister(dhd_bus_t *bus);
 extern void dhdpcie_oob_intr_set(dhd_bus_t *bus, bool enable);
 extern int dhdpcie_get_oob_irq_num(struct dhd_bus *bus);
 extern int dhdpcie_get_oob_irq_status(struct dhd_bus *bus);
-extern int dhdpcie_get_oob_irq_level(void);
+extern int dhdpcie_get_oob_irq_level(struct dhd_bus *bus);
 #ifdef PRINT_WAKEUP_GPIO_STATUS
 extern int dhdpcie_get_oob_gpio_number(void);
 #endif /* PRINT_WAKEUP_GPIO_STATUS */

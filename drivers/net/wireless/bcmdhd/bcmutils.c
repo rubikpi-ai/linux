@@ -5410,7 +5410,7 @@ void counter_printlog(counter_tbl_t *ctr_tbl)
 #endif /* DEBUG_COUNTER */
 
 /* calculate partial checksum */
-static uint32
+uint32
 ip_cksum_partial(uint32 sum, uint8 *val8, uint32 count)
 {
 	uint32 i;
@@ -5429,7 +5429,7 @@ ip_cksum_partial(uint32 sum, uint8 *val8, uint32 count)
 }
 
 /* calculate IP checksum */
-static uint16
+uint16
 ip_cksum(uint32 sum, uint8 *val8, uint32 count)
 {
 	uint16 *val16 = (uint16 *)val8;

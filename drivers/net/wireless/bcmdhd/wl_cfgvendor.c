@@ -990,7 +990,7 @@ wl_cfgvendor_set_scan_cfg(struct wiphy *wiphy, struct wireless_dev *wdev,
 				}
 				scan_param->nchannel_buckets = nla_get_u32(iter);
 				if (scan_param->nchannel_buckets >=
-				    GSCAN_MAX_CH_BUCKETS) {
+					GSCAN_MAX_CH_BUCKETS) {
 					WL_ERR(("ncha_buck out of range %d\n",
 					scan_param->nchannel_buckets));
 					err = -EINVAL;
@@ -1165,11 +1165,10 @@ wl_cfgvendor_hotlist_cfg(struct wiphy *wiphy,
 			err = -EINVAL;
 			goto exit;
 		}
-
 	}
 
 	if (dhd_dev_pno_set_cfg_gscan(bcmcfg_to_prmry_ndev(cfg),
-	      DHD_PNO_GEOFENCE_SCAN_CFG_ID, hotlist_params, flush) < 0) {
+		DHD_PNO_GEOFENCE_SCAN_CFG_ID, hotlist_params, flush) < 0) {
 		WL_ERR(("Could not set GSCAN HOTLIST cfg error: %d\n", err));
 		err = -EINVAL;
 		goto exit;
@@ -1496,8 +1495,11 @@ static int
 wl_cfgvendor_get_wake_reason_stats(struct wiphy *wiphy,
         struct wireless_dev *wdev, const void *data, int len)
 {
+#if defined(DHD_WAKE_EVENT_STATUS) || defined(DHD_WAKE_RX_STATUS)
 	struct net_device *ndev = wdev_to_ndev(wdev);
+	dhd_pub_t *dhdp = wl_cfg80211_get_dhdp(ndev);
 	wake_counts_t *pwake_count_info;
+#endif /* DHD_WAKE_EVENT_STATUS || DHD_WAKE_RX_STATUS */
 	int ret, mem_needed;
 #if defined(DHD_WAKE_EVENT_STATUS)
 	int flowid;
@@ -1508,11 +1510,12 @@ wl_cfgvendor_get_wake_reason_stats(struct wiphy *wiphy,
 #endif /* CUSTOM_WAKE_REASON_STATS */
 #endif /* DHD_WAKE_EVENT_STATUS */
 	struct sk_buff *skb = NULL;
-	dhd_pub_t *dhdp = wl_cfg80211_get_dhdp(ndev);
 
 	WL_DBG(("Recv get wake status info cmd.\n"));
 
+#if defined(DHD_WAKE_EVENT_STATUS) || defined(DHD_WAKE_RX_STATUS)
 	pwake_count_info = dhd_get_wakecount(dhdp);
+#endif /* DHD_WAKE_EVENT_STATUS || DHD_WAKE_RX_STATUS */
 	mem_needed =  VENDOR_REPLY_OVERHEAD + (ATTRIBUTE_U32_LEN * 20) +
 		(WLC_E_LAST * sizeof(uint));
 
@@ -1857,9 +1860,6 @@ wl_cfgvendor_set_latency_mode(struct wiphy *wiphy,
 #ifdef SUPPORT_LATENCY_CRITICAL_DATA
 	bool enable;
 #endif /* SUPPORT_LATENCY_CRITICAL_DATA */
-#if defined(WL_AUTO_QOS) && defined(DHD_QOS_ON_SOCK_FLOW)
-	dhd_pub_t *dhdp = wl_cfg80211_get_dhdp(wdev->netdev);
-#endif /* WL_AUTO_QOS && DHD_QOS_ON_SOCK_FLOW */
 
 	nla_for_each_attr(iter, data, len, rem) {
 		type = nla_type(iter);
@@ -1868,10 +1868,6 @@ wl_cfgvendor_set_latency_mode(struct wiphy *wiphy,
 				latency_mode = nla_get_u32(iter);
 				WL_DBG(("%s,Setting latency mode %u\n", __FUNCTION__,
 					latency_mode));
-#if defined(WL_AUTO_QOS) && defined(DHD_QOS_ON_SOCK_FLOW)
-				/* Enable/Disable qos monitoring */
-				dhd_wl_sock_qos_set_status(dhdp, latency_mode);
-#endif /* WL_AUTO_QOS && DHD_QOS_ON_SOCK_FLOW */
 #ifdef SUPPORT_LATENCY_CRITICAL_DATA
 				enable = latency_mode ? true : false;
 				err = wldev_iovar_setint(wdev->netdev,
@@ -4136,7 +4132,6 @@ exit:
 	return ret;
 }
 
-int8 chanbuf[CHANSPEC_STR_LEN];
 static int
 wl_cfgvendor_nan_parse_datapath_args(struct wiphy *wiphy,
 	const void *buf, int len, nan_datapath_cmd_data_t *cmd_data)
@@ -7992,9 +7987,9 @@ wl_cfgvendor_get_radio_stats(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 			radio_h.on_time_pno_scan = (uint32)(radio_v1->on_time_pno_scan / 1000);
 			radio_h.on_time_hs20 = radio_v1->on_time_hs20;
 			if (i == (cfg->num_radios - 1)) {
-				radio_h_v2.num_channels = num_channels;
+				radio_h.num_channels = num_channels;
 			} else {
-				radio_h_v2.num_channels = 0;
+				radio_h.num_channels = 0;
 			}
 			err = memcpy_s(out_radio_stat, avail_radio_stat_len,
 					&radio_h, sizeof(wifi_radio_stat_h));
@@ -8913,12 +8908,12 @@ wl_cfgvendor_dbg_trigger_mem_dump(struct wiphy *wiphy,
 	dhd_pub_t *dhdp = (dhd_pub_t *)(cfg->pub);
 	u32 supported_features = 0;
 
-	WL_ERR(("wl_cfgvendor_dbg_trigger_mem_dump %d\n", __LINE__));
+	WL_ERR(("%d\n", __LINE__));
 
 	ret = dhd_os_dbg_get_feature(dhdp, &supported_features);
 	if (!(supported_features & DBG_MEMORY_DUMP_SUPPORTED)) {
 		WL_ERR(("not support DBG_MEMORY_DUMP_SUPPORTED\n"));
-		ret = -3; //WIFI_ERROR_NOT_SUPPORTED=-3
+		return -EOPNOTSUPP;
 		goto exit;
 	}
 
@@ -11037,6 +11032,19 @@ wl_cfgvendor_custom_mapping_of_dscp_reset(struct wiphy *wiphy,
 }
 #endif /* WL_CUSTOM_MAPPING_OF_DSCP */
 
+#ifndef WL_CELLULAR_CHAN_AVOID
+static int
+wl_cfgvendor_cellavoid_set_cell_channels(struct wiphy *wiphy,
+	struct wireless_dev *wdev, const void  *data, int len)
+{
+#if (ANDROID_VERSION >= 13)
+	return WIFI_SUCCESS;
+#else
+	return WIFI_ERROR_NOT_SUPPORTED;
+#endif
+}
+#endif /* WL_CELLULAR_CHAN_AVOID */
+
 int
 wl_cfgvendor_multista_set_primary_connection(struct wiphy *wiphy,
 	struct wireless_dev *wdev, const void  *data, int len)
@@ -12883,7 +12891,7 @@ const struct nla_policy custom_setting_attr_policy[CUSTOM_SETTING_ATTRIBUTE_MAX]
 };
 #endif /* WL_CUSTOM_MAPPING_OF_DSCP */
 
-#ifdef WL_CELLULAR_CHAN_AVOID
+//#ifdef WL_CELLULAR_CHAN_AVOID
 const struct nla_policy cellavoid_attr_policy[CELLAVOID_ATTRIBUTE_MAX] = {
 	[CELLAVOID_ATTRIBUTE_CNT] = { .type = NLA_U32 },
 	[CELLAVOID_ATTRIBUTE_CONFIG] = { .type = NLA_NESTED },
@@ -12892,7 +12900,7 @@ const struct nla_policy cellavoid_attr_policy[CELLAVOID_ATTRIBUTE_MAX] = {
 	[CELLAVOID_ATTRIBUTE_PWRCAP] = { .type = NLA_U32 },
 	[CELLAVOID_ATTRIBUTE_MANDATORY] = { .type = NLA_U32 },
 };
-#endif /* WL_CELLULAR_CHAN_AVOID */
+//#endif /* WL_CELLULAR_CHAN_AVOID */
 
 #ifdef WL_USABLE_CHAN
 const struct nla_policy usable_chan_attr_policy[USABLECHAN_ATTRIBUTE_MAX] = {
@@ -13987,7 +13995,7 @@ static struct wiphy_vendor_command wl_vendor_cmds [] = {
 #endif /* LINUX_VERSION >= 5.3 */
 	},
 #endif /* WL_CUSTOM_MAPPING_OF_DSCP */
-#ifdef WL_CELLULAR_CHAN_AVOID
+//#ifdef WL_CELLULAR_CHAN_AVOID
 	{
 		{
 			.vendor_id = OUI_GOOGLE,
@@ -14000,7 +14008,7 @@ static struct wiphy_vendor_command wl_vendor_cmds [] = {
 		.maxattr = CELLAVOID_ATTRIBUTE_MAX
 #endif /* LINUX_VERSION >= 5.3 */
 	},
-#endif /* WL_CELLULAR_CHAN_AVOID */
+//#endif /* WL_CELLULAR_CHAN_AVOID */
 #ifdef TPUT_DEBUG_DUMP
 	{
 		{

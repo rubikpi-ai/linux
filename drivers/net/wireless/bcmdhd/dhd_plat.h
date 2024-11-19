@@ -53,9 +53,9 @@
 #define WLAN_PLAT_NODFS_FLAG	0x01
 #define WLAN_PLAT_AP_FLAG	0x02
 struct wifi_platform_data {
-	int (*set_power)(int val, wifi_adapter_info_t *adapter);
+	int (*set_power)(wifi_adapter_info_t *adapter, int val);
 	int (*set_reset)(int val);
-	int (*set_carddetect)(int val);
+	int (*set_carddetect)(wifi_adapter_info_t *adapter, int val);
 #ifdef DHD_COREDUMP
 	int (*set_coredump)(const char *buf, int buf_len, const char *info);
 #endif /* DHD_COREDUMP */
@@ -64,17 +64,18 @@ struct wifi_platform_data {
 #else
 	void *(*mem_prealloc)(int section, unsigned long size);
 #endif
-	int (*get_mac_addr)(unsigned char *buf, int ifidx);
-#ifdef BCMSDIO
+	int (*get_mac_addr)(wifi_adapter_info_t *adapter, unsigned char *buf, int ifidx);
+#ifdef DHD_USE_HOST_WAKE
 	int (*get_wake_irq)(void);
-#endif
+	int (*get_oob_gpio_level)(void);
+#endif /* DHD_USE_HOST_WAKE */
 #ifdef CUSTOM_FORCE_NODFS_FLAG
 	void *(*get_country_code)(char *ccode, u32 flags);
 #else /* defined (CUSTOM_FORCE_NODFS_FLAG) */
 	void *(*get_country_code)(char *ccode);
 #endif
 };
-#endif
+#endif /* CONFIG_WIFI_CONTROL_FUNC */
 
 #include <linux/pci.h>
 

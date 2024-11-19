@@ -1380,6 +1380,8 @@ typedef struct wl_assoc_params_v1 {
 /* FW to delete PMKSA of bssid listed in assoc params */
 #define WL_ASSOC_PARAM_FLAG_DEL_PMKSA	0x0002u
 #define WL_ASSOC_PARAM_FLAG_ACTIVE6G	0x0004u
+/* Flag indicates extauth use wl_ext_auth_evt_t or wl_auth_start_evt_t */
+#define WL_ASSOC_PARAM_FLAG_EXTAUTH_EVT	0x0100u
 
 #define WL_ASSOC_PARAMS_FIXED_SIZE      OFFSETOF(wl_assoc_params_t, chanspec_list)
 #define WL_ASSOC_PARAMS_FIXED_SIZE_V1   OFFSETOF(wl_assoc_params_v1_t, chanspec_list)
@@ -19445,6 +19447,12 @@ typedef struct wl_proxd_iov {
 	uint8			PAD[1];
 	wl_proxd_tlv_t		tlvs[BCM_FLEX_ARRAY];	/**< variable */
 } wl_proxd_iov_t;
+
+#if defined(BCM_FLEX_ARRAY) && (CHK_EMPTY(BCM_FLEX_ARRAY) == 1)
+#define WL_PROXD_IOV_SET_ONE_BUF_LEN (sizeof(wl_proxd_iov_t) + sizeof(wl_proxd_tlv_t))
+#else
+#define WL_PROXD_IOV_SET_ONE_BUF_LEN sizeof(wl_proxd_iov_t)
+#endif /* BCM_FLEX_ARRAY && CHECK_EMPTY(BCM_FLEX_ARRAY) */
 
 #else /* !FTM */
 typedef wl_ftm_session_id_t wl_proxd_session_id_t;

@@ -448,4 +448,6 @@ void * dhd_bus_get_socram_buf(struct dhd_bus *bus, struct dhd_pub *dhdp);
 
 void dhd_bus_set_signature_path(struct dhd_bus *bus, char *sig_path);
 
+int dhdsdio_mpdu_init(dhd_pub_t *dhdp);
+
 #endif /* _dhd_bus_h_ */

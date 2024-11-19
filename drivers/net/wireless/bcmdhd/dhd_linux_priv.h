@@ -545,7 +545,7 @@ extern uint sssr_enab;
 extern uint fis_enab;
 #endif /* DHD_SSSR_DUMP */
 
-#if defined(ANDROID_VERSION) && (LINUX_VERSION_CODE  >= KERNEL_VERSION(4, 14, 0))
+#if (ANDROID_VERSION > 0) && (LINUX_VERSION_CODE  >= KERNEL_VERSION(4, 14, 0))
 #define WAKELOCK_BACKPORT
 #endif
 

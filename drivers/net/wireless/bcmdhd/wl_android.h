@@ -110,6 +110,7 @@ typedef struct _compat_android_wifi_priv_cmd {
 #define ANDROID_AMPDU_LEVEL	(1 << 9)
 #define ANDROID_TVPM_LEVEL	(1 << 10)
 #define ANDROID_BTC_LEVEL	(1 << 11)
+#define ANDROID_SWDIV_LEVEL	(1 << 12)
 #define ANDROID_MSG_LEVEL	(1 << 0)
 
 #define WL_MSG(name, arg1, args...) \

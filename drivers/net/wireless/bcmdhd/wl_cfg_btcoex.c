@@ -584,10 +584,11 @@ int wl_cfg80211_set_btcoex_dhcp(struct net_device *dev, dhd_pub_t *dhd, char *co
 		}
 	}
 #ifdef  OEM_ANDROID
-	else if (powermode_val == '2') {
+	else if (powermode_val == '2')
 #else
-	else if (powermode_val == '0') {
+	else if (powermode_val == '0')
 #endif
+	{
 
 #if defined(OEM_ANDROID) && defined(DHCP_SCAN_SUPPRESS)
 		/* Since DHCP is complete, enable the scan back */

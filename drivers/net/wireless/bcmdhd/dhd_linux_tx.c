@@ -418,6 +418,14 @@ BCMFASTPATH(__dhd_sendpkt)(dhd_pub_t *dhdp, int ifidx, void *pktbuf)
 
 #ifdef PROP_TXSTATUS
 	if (dhd_wlfc_is_supported(dhdp)) {
+		DHD_GENERAL_LOCK(dhdp, flags);
+		if (ifp->del_in_progress) {
+			DHD_GENERAL_UNLOCK(dhdp, flags);
+			PKTCFREE(dhdp->osh, pktbuf, TRUE);
+			return -ENODEV;
+		}
+		DHD_GENERAL_UNLOCK(dhdp, flags);
+
 		/* store the interface ID */
 		DHD_PKTTAG_SETIF(PKTTAG(pktbuf), ifidx);
 
@@ -881,12 +889,6 @@ BCMFASTPATH(dhd_start_xmit)(struct sk_buff *skb, struct net_device *net)
 #endif /* (BCMPCIE) && (DHD_VSDB_SKIP_ORPHAN) && defined(WL_CFG80211) */
 	skb_orphan(skb);
 #endif /* LINUX_VERSION_CODE >= 4.19.0 && DHD_TCP_PACING_SHIFT */
-
-	/* move from dhdsdio_sendfromq(), try to orphan skb early */
-	if (dhd->pub.conf->orphan_move == 2)
-		PKTORPHAN(skb, dhd->pub.conf->tsq);
-	else if (dhd->pub.conf->orphan_move == 3)
-		skb_orphan(skb);
 
 #ifdef DHDTCPSYNC_FLOOD_BLK
 	if (dhd_tcpdata_get_flag(&dhd->pub, pktbuf) == FLAG_SYNCACK) {

@@ -398,6 +398,35 @@ extern int dhd_get_suspend_bcn_li_dtim(dhd_pub_t *dhd, int *dtim_period, int *bc
 extern int dhd_get_suspend_bcn_li_dtim(dhd_pub_t *dhd);
 #endif /* OEM_ANDROID && BCMPCIE */
 
+#ifdef CUSTOMER_HW4
+#ifdef MIMO_ANT_SETTING
+#ifdef DHD_EXPORT_CNTL_FILE
+extern unsigned long antsel;
+#endif /* DHD_EXPORT_CNTL_FILE */
+extern int dhd_sel_ant_from_file(dhd_pub_t *dhd);
+#endif /* MIMO_ANT_SETTING */
+#ifdef WRITE_WLANINFO
+#define MAX_VERSION_LEN		512
+#ifdef DHD_EXPORT_CNTL_FILE
+extern char version_info[MAX_VERSION_LEN];
+#endif /* DHD_EXPORT_CNTL_FILE */
+extern uint32 sec_save_wlinfo(char *firm_ver, char *dhd_ver, char *nvram_p, char *clm_ver);
+#endif /* WRITE_WLANINFO */
+#ifdef LOGTRACE_FROM_FILE
+extern int dhd_logtrace_from_file(dhd_pub_t *dhd);
+#ifdef DHD_EXPORT_CNTL_FILE
+extern unsigned long logtrace_val;
+#endif /* DHD_EXPORT_CNTL_FILE */
+#endif /* LOGTRACE_FROM_FILE */
+#ifdef GEN_SOFTAP_INFO_FILE
+#define SOFTAP_INFO_BUF_SZ 512
+#ifdef DHD_EXPORT_CNTL_FILE
+extern char softapinfostr[SOFTAP_INFO_BUF_SZ];
+#endif /* DHD_EXPORT_CNTL_FILE */
+extern uint32 sec_save_softap_info(void);
+#endif /* GEN_SOFTAP_INFO_FILE */
+#endif /* CUSTOMER_HW4 */
+
 #ifdef DHD_SEND_HANG_PRIVCMD_ERRORS
 extern uint32 report_hang_privcmd_err;
 #endif /* DHD_SEND_HANG_PRIVCMD_ERRORS */
@@ -562,6 +591,7 @@ wifi_adapter_info_t* dhd_wifi_platform_get_adapter(uint32 bus_type, uint32 bus_n
 int wifi_platform_set_power(wifi_adapter_info_t *adapter, bool on, unsigned long msec);
 int wifi_platform_bus_enumerate(wifi_adapter_info_t *adapter, bool device_present);
 int wifi_platform_get_irq_number(wifi_adapter_info_t *adapter, unsigned long *irq_flags_ptr);
+extern int wifi_platform_get_irq_level(wifi_adapter_info_t *adapter);
 int wifi_platform_get_mac_addr(wifi_adapter_info_t *adapter, unsigned char *buf, int ifidx);
 #ifdef DHD_COREDUMP
 int wifi_platform_set_coredump(wifi_adapter_info_t *adapter, const char *buf, int buf_len,

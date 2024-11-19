@@ -735,7 +735,7 @@ rtt_alloc_getset_buf(dhd_pub_t *dhd, wl_proxd_method_t method, wl_proxd_session_
 
 	*p_out_bufsize = 0;	/* init */
 	/* calculate the whole buffer size, including one reserve-tlv entry in the header */
-	proxd_iovsize = sizeof(wl_proxd_iov_t) + tlvs_bufsize;
+	proxd_iovsize = WL_PROXD_IOV_SET_ONE_BUF_LEN + tlvs_bufsize;
 
 	p_proxd_iov = (wl_proxd_iov_t *)MALLOCZ(dhd->osh, proxd_iovsize);
 	if (p_proxd_iov == NULL) {

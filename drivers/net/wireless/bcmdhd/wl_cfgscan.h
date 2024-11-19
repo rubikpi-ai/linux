@@ -232,8 +232,10 @@ typedef struct ap_oper_data {
 extern void wl_get_ap_chanspecs(struct bcm_cfg80211 *cfg, wl_ap_oper_data_t *ap_data);
 
 extern int wl_android_get_sta_channel(struct bcm_cfg80211 *cfg);
+#ifdef WL_SUPPORT_AUTO_CHANNEL
 extern int wl_handle_acs_concurrency_cases(struct bcm_cfg80211 *cfg,
 		drv_acs_params_t *parameter, int qty, uint32 *pList);
+#endif /* WL_SUPPORT_AUTO_CHANNEL */
 #ifdef WL_SCHED_SCAN
 extern void wl_cfgscan_sched_scan_stop_work(struct work_struct *work);
 #endif /* WL_SCHED_SCAN */
@@ -249,8 +251,7 @@ void set_roam_band(int band);
 #endif /* ESCAN_CHANNEL_CACHE */
 
 #ifdef WL11U
-extern bcm_tlv_t * 
-wl_cfg80211_find_interworking_ie(const u8 *parse, u32 len);
+extern bcm_tlv_t * wl_cfg80211_find_interworking_ie(const u8 *parse, u32 len);
 extern s32
 wl_cfg80211_add_iw_ie(struct bcm_cfg80211 *cfg, struct net_device *ndev, s32 bssidx, s32 pktflag,
 	uint8 ie_id, uint8 *data, uint8 data_len);

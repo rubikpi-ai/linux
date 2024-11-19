@@ -886,13 +886,10 @@ osl_pktalloced(osl_t *osh)
 #include <linux/kallsyms.h>
 #include <net/sock.h>
 void
-osl_pkt_orphan_partial(struct sk_buff *skb, int tsq)
+osl_pkt_orphan_partial(struct sk_buff *skb)
 {
 	uint32 fraction;
 	static void *p_tcp_wfree = NULL;
-
-	if (tsq <= 0)
-		return;
 
 	if (!skb->destructor || skb->destructor == sock_wfree)
 		return;
@@ -920,9 +917,8 @@ osl_pkt_orphan_partial(struct sk_buff *skb, int tsq)
 	 * sk_wmem_alloc to allow more skb can be allocated for this
 	 * socket for better cusion meeting WiFi device requirement
 	 */
-	fraction = skb->truesize * (tsq - 1) / tsq;
+	fraction = skb->truesize * (TSQ_MULTIPLIER - 1) / TSQ_MULTIPLIER;
 	skb->truesize -= fraction;
 	atomic_sub(fraction, (atomic_t *)&skb->sk->sk_wmem_alloc);
-	skb_orphan(skb);
 }
 #endif /* LINUX_VERSION >= 3.6.0 && TSQ_MULTIPLIER */

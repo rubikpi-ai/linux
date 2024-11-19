@@ -55,6 +55,9 @@
 #include <linux/bug.h>
 #include <linux/skbuff.h>
 #include <linux/init.h>
+#ifndef CONFIG_ARCH_EXYNOS
+#include <osl.h>
+#endif /* CONFIG_ARCH_EXYNOS */
 
 #ifdef CONFIG_BROADCOM_WIFI_RESERVED_MEM
 /* Please refer to 'enum dhd_prealloc_index' in dhd.h */
@@ -270,8 +273,13 @@ void
 EXPORT_SYMBOL(dhd_wlan_mem_prealloc);
 
 #ifdef DHD_DUMP_BUF_KVMALLOC
+#ifdef CONFIG_ARCH_EXYNOS
 #define DUMP_BUF_MALLOC(size)   kvmalloc(size, GFP_KERNEL)
 #define DUMP_BUF_MFREE(addr)    kvfree(addr)
+#else
+#define DUMP_BUF_MALLOC(size)   KVMALLOC(NULL, size)
+#define DUMP_BUF_MFREE(addr)    KVFREE(NULL, addr)
+#endif /* CONFIG_ARCH_EXYNOS */
 #else
 #define DUMP_BUF_MALLOC(size)   kmalloc(size, GFP_KERNEL)
 #define DUMP_BUF_MFREE(addr)    kfree(addr)

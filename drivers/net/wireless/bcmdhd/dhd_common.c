@@ -172,6 +172,11 @@ int log_print_threshold = 0;
  */
 #ifdef DHD_DEBUGABILITY_LOG_DUMP_RING
 int dhd_msg_level = DHD_ERROR_VAL | DHD_EVENT_VAL
+#ifdef SYNAINTERNAL
+		| DHD_MSGTRACE_VAL
+		| DHD_FWLOG_VAL
+		| DHD_IOVAR_MEM_VAL
+#endif /* SYNAINTERNAL */
 #ifdef BOARD_HIKEY
 		| DHD_FWLOG_VAL
 #endif /* BOARD_HIKEY */
@@ -180,6 +185,9 @@ int dhd_msg_level = DHD_ERROR_VAL | DHD_EVENT_VAL
 #endif /* REDUCE_PM_LOG */
 	        | DHD_PKT_MON_VAL;
 int dhd_log_level = DHD_ERROR_VAL | DHD_EVENT_VAL
+#ifdef SYNAINTERNAL
+		| DHD_MSGTRACE_VAL
+#endif /* SYNAINTERNAL */
 		| DHD_RPM_VAL
 		| DHD_PKT_MON_VAL | DHD_FWLOG_VAL | DHD_IOVAR_MEM_VAL;
 #else
@@ -503,8 +511,12 @@ enum {
 	IOV_SAR_MODE,
 #endif /* SYNA_SAR_CUSTOMER_PARAMETER */
 #ifdef CSI_SUPPORT
+	IOV_CSI_VERSION,
 	IOV_CSI_CONFIG,
 #endif /* CSI_SUPPORT */
+#if defined(EXT_REGD_INFO) && defined(WL_SELF_MANAGED_REGDOM)
+	IOV_REGULATORY_DUMP,
+#endif /* defined(EXT_REGD_INFO) && defined(WL_SELF_MANAGED_REGDOM) */
 #ifdef WLEASYMESH
 	IOV_1905_AL_UCAST,
 	IOV_1905_AL_MCAST,
@@ -681,8 +693,12 @@ const bcm_iovar_t dhd_iovars[] = {
 	{"sarmode", IOV_SAR_MODE, (0), 0, IOVT_UINT32, 0},
 #endif /* SYNA_SAR_CUSTOMER_PARAMETER */
 #ifdef CSI_SUPPORT
-	{"csi_config", IOV_CSI_CONFIG, (0), 0, IOVT_BUFFER, sizeof(uint32)},
+	{"csi_version", IOV_CSI_VERSION, 0, 0,	IOVT_UINT8,	sizeof(uint32)},
+	{"csi_config", IOV_CSI_CONFIG,	 0, 0,	IOVT_BUFFER,	sizeof(uint32)},
 #endif /* CSI_SUPPORT */
+#if defined(EXT_REGD_INFO) && defined(WL_SELF_MANAGED_REGDOM)
+	{"regulatory_dump", IOV_REGULATORY_DUMP, 0, 0, IOVT_UINT32, sizeof(uint32)},
+#endif /* defined(EXT_REGD_INFO) && defined(WL_SELF_MANAGED_REGDOM) */
 	/* --- add new iovars *ABOVE* this line --- */
 #ifdef WLEASYMESH
 	{"1905_al_ucast", IOV_1905_AL_UCAST, 0, 0, IOVT_BUFFER, ETHER_ADDR_LEN},
@@ -2940,7 +2956,7 @@ int dhd_sar_set_parameter(dhd_pub_t *dhd_pub, int advance_mode)
 				__FUNCTION__));
 			return BCME_BADARG;
 		}
-		sarctrl_iov.ver = sarctrl->ver;
+		sarctrl_iov.ver = sar_ver | (sar_param_num << SAR_PARAM_NUM_OFFSET);
 		err = memcpy_s(sarctrl_iov.sarctrl, MAX_SAR_PARAMS_NUM * sizeof(u32),
 			sarctrl->sarctrl, file_sar_num * sizeof(u32));
 		if (err) {
@@ -2949,7 +2965,7 @@ int dhd_sar_set_parameter(dhd_pub_t *dhd_pub, int advance_mode)
 			return BCME_BADARG;
 		}
 	} else {
-		/* prepare IOVAR for old version*/
+		/* prepare IOVAR for old version */
 		sarctrl_iov.ver   = sarctrl->ver & SAR_PARAM_VER_MASK;
 		sarctrl_iov.basic = sarctrl->basic;
 		sarctrl_iov.rsdb  = sarctrl->rsdb;
@@ -4340,6 +4356,9 @@ dhd_doiovar(dhd_pub_t *dhd_pub, const bcm_iovar_t *vi, uint32 actionid, const ch
 #endif /* SYNA_SAR_CUSTOMER_PARAMETER */
 
 #ifdef CSI_SUPPORT
+	case IOV_GVAL(IOV_CSI_VERSION):
+		bcmerror = dhd_csi_version(dhd_pub, arg, val_size, FALSE);
+		break;
 	case IOV_GVAL(IOV_CSI_CONFIG):
 		bcmerror = dhd_csi_config(dhd_pub, arg, val_size, FALSE);
 		break;
@@ -4347,6 +4366,13 @@ dhd_doiovar(dhd_pub_t *dhd_pub, const bcm_iovar_t *vi, uint32 actionid, const ch
 		bcmerror = dhd_csi_config(dhd_pub, arg, val_size, TRUE);
 		break;
 #endif /* CSI_SUPPORT */
+
+#if defined(EXT_REGD_INFO) && defined(WL_SELF_MANAGED_REGDOM)
+	case IOV_GVAL(IOV_REGULATORY_DUMP):
+	case IOV_SVAL(IOV_REGULATORY_DUMP):
+		bcmerror = wl_cfg80211_reg_dump_all("user check");
+		break;
+#endif /* defined(EXT_REGD_INFO) && defined(WL_SELF_MANAGED_REGDOM) */
 #ifdef WLEASYMESH
 	case IOV_SVAL(IOV_1905_AL_UCAST): {
 		uint32  bssidx;
@@ -5668,7 +5694,9 @@ wl_show_host_event(dhd_pub_t *dhd_pub, wl_event_msg_t *event, void *event_data,
 		break;
 #if defined(CSI_SUPPORT)
 	case WLC_E_CSI:
-		/* defferred the process due to extra IOVAR may execute */
+		/* do not process here as the whole CSI event will
+		 * be direclty pass to CSI module for processing
+		 */
 		break;
 #endif /* CSI_SUPPORT */
 	case WLC_E_SCAN:
@@ -6134,7 +6162,7 @@ wl_process_host_event(dhd_pub_t *dhd_pub, int *ifidx, void *pktdata, uint pktlen
 	uint32 type, status, datalen, reason;
 	uint16 flags;
 	uint evlen;
-	int ret;
+	int ret = BCME_OK;
 	uint16 usr_subtype;
 #if defined(__linux__)
 	dhd_if_t *ifp = NULL;
@@ -6227,22 +6255,40 @@ wl_process_host_event(dhd_pub_t *dhd_pub, int *ifidx, void *pktdata, uint pktlen
 #ifdef PROP_TXSTATUS
 		{
 			uint8* ea = pvt_data->eth.ether_dhost;
-			WLFC_DBGMESG(("WLC_E_IF: idx:%d, action:%s, iftype:%s, ["MACDBG"]\n"
-						  ,ifevent->ifidx,
-						  ((ifevent->opcode == WLC_E_IF_ADD) ? "ADD":"DEL"),
-						  ((ifevent->role == 0) ? "STA":"AP "),
-						  MAC2STRDBG(ea)));
+			WLFC_DBGMESG(("WLC_E_IF: idx:%d, action:%s, iftype:%s, ["MACDBG"]\n",
+				ifevent->ifidx,
+				((ifevent->opcode == WLC_E_IF_ADD) ? "ADD":"DEL"),
+				((ifevent->role == 0) ? "STA":"AP "),
+				MAC2STRDBG(ea)));
 			(void)ea;
 
 			if (ifevent->opcode == WLC_E_IF_CHANGE)
 				dhd_wlfc_interface_event(dhd_pub,
 					eWLFC_MAC_ENTRY_ACTION_UPDATE,
 					ifevent->ifidx, ifevent->role, ea);
-			else
+			else {
+#if defined(__linux__)
+				/* Early set interface "del_in_progress" to prevent from packets
+				 * flooding to interface which is going to be removed. That would
+				 * cause proptx transit_count not consistent and has entry
+				 * suppressed issue.
+				 */
+				if (ifevent->opcode == WLC_E_IF_DEL) {
+					unsigned long fl;
+					ifp = dhd_get_ifp(dhd_pub, ifevent->ifidx);
+					if (ifp && !ifp->static_if) {
+						DHD_GENERAL_LOCK(dhd_pub, fl);
+						ifp->del_in_progress = true;
+						DHD_GENERAL_UNLOCK(dhd_pub, fl);
+					}
+				}
+#endif /* __linux__ */
+
 				dhd_wlfc_interface_event(dhd_pub,
 					((ifevent->opcode == WLC_E_IF_ADD) ?
 					eWLFC_MAC_ENTRY_ACTION_ADD : eWLFC_MAC_ENTRY_ACTION_DEL),
 					ifevent->ifidx, ifevent->role, ea);
+			}
 
 			/* dhd already has created an interface by default, for 0 */
 			if (ifevent->ifidx == 0)
@@ -6384,17 +6430,13 @@ wl_process_host_event(dhd_pub_t *dhd_pub, int *ifidx, void *pktdata, uint pktlen
 		 * wpa_supplicant only handles different BSSID case.
 		 */
 		if ((status == WLC_E_STATUS_SUCCESS) &&
-			(IS_STA_IFACE(ndev_to_wdev(ifp->net)) || IS_P2P_GC(ndev_to_wdev(ifp->net))) &&
+			(IS_STA_IFACE(ndev_to_wdev(ifp->net)) ||
+			IS_P2P_GC(ndev_to_wdev(ifp->net))) &&
 			wl_cfg80211_is_event_from_connected_bssid(ifp->net, event, event->ifidx)) {
 			ifp->recv_reassoc_evt = TRUE;
 		}
 		break;
 #endif /* DHD_POST_EAPOL_M1_AFTER_ROAM_EVT */
-#if defined(CSI_SUPPORT)
-	case WLC_E_CSI:
-		dhd_csi_event_handler(dhd_pub, event, (void *)event_data);
-		break;
-#endif /* CSI_SUPPORT */
 	case WLC_E_LINK:
 #ifdef PCIE_FULL_DONGLE
 		if (dhd_update_interface_link_status(dhd_pub, (uint8)dhd_ifname2idx(dhd_pub->info,
@@ -6411,7 +6453,34 @@ wl_process_host_event(dhd_pub_t *dhd_pub, int *ifidx, void *pktdata, uint pktlen
 			dhd_flow_rings_delete(dhd_pub, (uint8)dhd_ifname2idx(dhd_pub->info,
 				event->ifname));
 		}
+#else
+#ifdef PROP_TXSTATUS
+		/* Link up */
+		if (flags) {
+			struct wl_event_data_if *ifevent = (struct wl_event_data_if *)event_data;
+			uint8* ea = pvt_data->eth.ether_dhost;
+			uint8 ifindex = (uint8)dhd_ifname2idx(dhd_pub->info, event->ifname);
+			DHD_ERROR(("WLC_E_LINK: idx:%d, action:%s, "
+			              "iftype:%s, ["MACDBG"]\n",
+			              ifevent->ifidx,
+			              ((flags) ? "UP":"DOWN"),
+			              ((ifevent->role == 0) ? "STA":"AP "),
+			              MAC2STRDBG(ea)));
+			(void)ea;
+
+			/* only need to handle STA here */
+			if (!ifevent->role) {
+				dhd_wlfc_interface_event(dhd_pub,
+					eWLFC_MAC_ENTRY_ACTION_DEL,
+					ifindex, ifevent->role, ea);
+				dhd_wlfc_interface_event(dhd_pub,
+					eWLFC_MAC_ENTRY_ACTION_ADD,
+					ifindex, ifevent->role, ea);
+			}
+		}
+#endif /* PROP_TXSTATUS */
 #endif /* PCIE_FULL_DONGLE */
+
 		/* fall through */
 		fallthrough;
 	case WLC_E_DEAUTH:
@@ -6503,7 +6572,7 @@ wl_process_host_event(dhd_pub_t *dhd_pub, int *ifidx, void *pktdata, uint pktlen
 	}
 #endif /* SHOW_EVENTS */
 
-	return (BCME_OK);
+	return (ret);
 } /* wl_process_host_event */
 
 int
@@ -6604,13 +6673,14 @@ int
 dhd_pktfilter_mode_change(dhd_pub_t * dhd, int enable)
 {
 	int   rc = 0;
-    uint  operation_mode = PKT_FILTER_MODE_DISABLE;
+	uint  operation_mode = PKT_FILTER_MODE_DISABLE;
 
-    operation_mode =  dhd_master_mode
-                       | ((enable)?(0):(PKT_FILTER_MODE_DISABLE));
+	operation_mode =  dhd_master_mode
+		| ((enable)?(0):(PKT_FILTER_MODE_DISABLE));
 
-    /* Contorl the master mode */
-    rc = dhd_wl_ioctl_set_intiovar(dhd, "pkt_filter_mode", operation_mode, WLC_SET_VAR, TRUE, 0);
+	/* Contorl the master mode */
+	rc = dhd_wl_ioctl_set_intiovar(dhd,
+		"pkt_filter_mode", operation_mode, WLC_SET_VAR, TRUE, 0);
 
 	return rc;
 }
@@ -11747,7 +11817,7 @@ dhd_ota_buf_clean(dhd_pub_t *dhdp)
 }
 #endif /* SUPPORT_OTA_UPDATE */
 
-#if defined(OEM_ANDROID) && !defined(AP) && defined(WLP2P)
+#if !defined(AP) && defined(WLP2P)
 /* From Android JerryBean release, the concurrent mode is enabled by default and the firmware
  * name would be fw_bcmdhd.bin. So we need to determine whether P2P is enabled in the STA
  * firmware and accordingly enable concurrent mode (Apply P2P settings). SoftAP firmware
@@ -11804,7 +11874,7 @@ dhd_get_concurrent_capabilites(dhd_pub_t *dhd)
 	}
 	return 0;
 }
-#endif /* defined(OEM_ANDROID) && !defined(AP) && defined(WLP2P) */
+#endif /* !defined(AP) && defined(WLP2P) */
 
 #ifdef SUPPORT_AP_POWERSAVE
 int dhd_set_ap_powersave(dhd_pub_t *dhdp, int ifidx, int enable)

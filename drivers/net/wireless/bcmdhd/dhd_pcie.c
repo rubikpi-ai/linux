@@ -1271,9 +1271,9 @@ dhdpcie_bus_intstatus(dhd_bus_t *bus)
 			return intstatus;
 		}
 
-#ifndef DHD_READ_INTSTATUS_IN_DPC
+#ifndef DHD_PCIE_READ_INTSTATUS_IN_DPC
 		intstatus &= intmask;
-#endif /* DHD_READ_INTSTATUS_IN_DPC */
+#endif /* DHD_PCIE_READ_INTSTATUS_IN_DPC */
 
 #ifdef DHD_MMIO_TRACE
 		dhd_bus_mmio_trace(bus, bus->pcie_mailbox_mask, intmask, FALSE);
@@ -1478,7 +1478,7 @@ dhdpcie_bus_isr(dhd_bus_t *bus)
 			}
 		}
 
-#ifndef DHD_READ_INTSTATUS_IN_DPC
+#ifndef DHD_PCIE_READ_INTSTATUS_IN_DPC
 		if (bus->d2h_intr_method == PCIE_MSI &&
 				!dhd_conf_legacy_msi_chip(bus->dhd)) {
 			/* For MSI, as intstatus is cleared by firmware, no need to read */
@@ -1517,7 +1517,7 @@ skip_intstatus_read:
 
 		/* Count the interrupt call */
 		bus->intrcount++;
-#endif /* DHD_READ_INTSTATUS_IN_DPC */
+#endif /* DHD_PCIE_READ_INTSTATUS_IN_DPC */
 
 		bus->ipend = TRUE;
 
@@ -2138,6 +2138,10 @@ dhdpcie_dongle_attach(dhd_bus_t *bus)
 	if (BCM4349_CHIP(chipid) || BCM4350_CHIP(chipid) || BCM4345_CHIP(chipid)) {
 		DHD_ERROR(("Disable CTO\n"));
 		bus->cto_enable = FALSE;
+	}
+	else if (dhd_conf_legacy_cto_chip(chipid)) {
+		DHD_ERROR(("Disable CTO for chip 0x%x\n", chipid));
+		bus->cto_enable = FALSE;
 	} else {
 		DHD_ERROR(("Enable CTO\n"));
 		bus->cto_enable = TRUE;
@@ -2462,6 +2466,9 @@ dhdpcie_dongle_attach(dhd_bus_t *bus)
 			break;
 		case BCM4382_CHIP_ID:
 			bus->dongle_ram_base = CR4_4382_RAM_BASE;
+			break;
+		case BCM4383_CHIP_ID:
+			bus->dongle_ram_base = CR4_4383_RAM_BASE;
 			break;
 		case BCM4387_CHIP_GRPID:
 			bus->dongle_ram_base = CR4_4387_RAM_BASE;
@@ -3471,13 +3478,13 @@ bool dhd_bus_watchdog(dhd_pub_t *dhd)
 		}
 	}
 
-#ifdef DHD_READ_INTSTATUS_IN_DPC
+#ifdef DHD_PCIE_READ_INTSTATUS_IN_DPC
 	if (bus->poll) {
 		bus->ipend = TRUE;
 		bus->dpc_sched = TRUE;
 		dhd_sched_dpc(bus->dhd);     /* queue DPC now!! */
 	}
-#endif /* DHD_READ_INTSTATUS_IN_DPC */
+#endif /* DHD_PCIE_READ_INTSTATUS_IN_DPC */
 
 #ifdef DEVICE_TX_STUCK_DETECT
 	if (dhd->bus->dev_tx_stuck_monitor == TRUE) {
@@ -3863,6 +3870,9 @@ dhd_bus_download_firmware(struct dhd_bus *bus, osl_t *osh,
 #if defined(LINUX) || defined(linux)
 	dhdpcie_dump_resource(bus);
 #endif /* LINUX || linux */
+
+	if (CHIPID(bus->sih->chip) == BCM43711_CHIP_ID)
+		si_pmu_43711a0_udr_war(bus->sih);
 
 	ret = dhdpcie_download_firmware(bus, osh);
 
@@ -4321,7 +4331,8 @@ dhdpcie_download_code_file(struct dhd_bus *bus, char *pfw_path)
 		/* Upload image with MEMBLOCK size */
 		while ((len = dhd_os_get_image_block((char*)memptr, MEMBLOCK, imgbuf))) {
 			if (len < 0) {
-				DHD_ERROR(("%s: dhd_os_get_image_block failed (%d)\n", __FUNCTION__, len));
+				DHD_ERROR(("%s: dhd_os_get_image_block failed (%d)\n",
+					__func__, len));
 				bcmerror = BCME_ERROR;
 				goto upload_err;
 			}
@@ -4889,6 +4900,9 @@ _dhdpcie_download_firmware(struct dhd_bus *bus)
 	if (!dlok) {
 		DHD_ERROR(("%s:%d dongle image download failed\n", __FUNCTION__, __LINE__));
 		goto err;
+	}
+	if (CHIPID(bus->sih->chip) == BCM43711_CHIP_ID) {
+		si_pmu_43711a0_pll_war(bus->sih);
 	}
 
 	/* EXAMPLE: nvram_array */
@@ -5983,8 +5997,7 @@ BCMFASTPATH(dhd_bus_schedule_queue)(struct dhd_bus  *bus, uint16 flow_id, bool t
 		}
 
 		while ((txp = dhd_flow_queue_dequeue(bus->dhd, queue)) != NULL) {
-			if (bus->dhd->conf->orphan_move <= 1)
-				PKTORPHAN(txp, bus->dhd->conf->tsq);
+			PKTORPHAN(txp);
 
 			/*
 			 * Modifying the packet length caused P2P cert failures.
@@ -11807,7 +11820,7 @@ void dhd_dump_intr_counters(dhd_pub_t *dhd, struct bcmstrbuf *strbuf)
 		GET_SEC_USEC(bus->last_oob_irq_thr_time),
 		GET_SEC_USEC(bus->last_oob_irq_enable_time),
 		GET_SEC_USEC(bus->last_oob_irq_disable_time), dhdpcie_get_oob_irq_status(bus),
-		dhdpcie_get_oob_irq_level());
+		dhdpcie_get_oob_irq_level(bus));
 #endif /* BCMPCIE_OOB_HOST_WAKE */
 	bcm_bprintf(strbuf, "\ncurrent_time="SEC_USEC_FMT" isr_entry_time="SEC_USEC_FMT
 		" prev_isr_entry_time="SEC_USEC_FMT" isr_exit_time="SEC_USEC_FMT"\n"
@@ -13181,7 +13194,7 @@ BCMFASTPATH(dhd_bus_dpc)(struct dhd_bus *bus)
 	DHD_BUS_BUSY_SET_IN_DPC(bus->dhd);
 	DHD_GENERAL_UNLOCK(bus->dhd, flags);
 
-#ifdef DHD_READ_INTSTATUS_IN_DPC
+#ifdef DHD_PCIE_READ_INTSTATUS_IN_DPC
 	if (bus->ipend) {
 		bus->ipend = FALSE;
 		bus->intstatus = dhdpcie_bus_intstatus(bus);
@@ -13191,14 +13204,16 @@ BCMFASTPATH(dhd_bus_dpc)(struct dhd_bus *bus)
 		}
 		bus->intrcount++;
 	}
-#endif /* DHD_READ_INTSTATUS_IN_DPC */
+#endif /* DHD_PCIE_READ_INTSTATUS_IN_DPC */
 
 	resched = dhdpcie_bus_process_mailbox_intr(bus, bus->intstatus);
 	if (!resched) {
 		bus->intstatus = 0;
-#ifdef DHD_READ_INTSTATUS_IN_DPC
+
+#ifdef DHD_PCIE_READ_INTSTATUS_IN_DPC
 INTR_ON:
-#endif /* DHD_READ_INTSTATUS_IN_DPC */
+#endif /* DHD_PCIE_READ_INTSTATUS_IN_DPC */
+
 		bus->dpc_exit_time = OSL_LOCALTIME_NS();
 		bus->dpc_time_usec = DIV_U64_BY_U64((bus->dpc_exit_time - bus->dpc_entry_time),
 			NSEC_PER_USEC);
@@ -14867,6 +14882,8 @@ dhdpcie_chipmatch(uint16 vendor, uint16 device)
 		case BCM4388_D11AX_ID:
 		case BCM4389_CHIP_ID:
 		case BCM4389_D11AX_ID:
+		case BCM4383_CHIP_ID:
+		case BCM4383_D11AX_ID:
 		case BCM4385_D11AX_ID:
 		case BCM4385_CHIP_ID:
 
@@ -17645,7 +17662,7 @@ dhd_pcie_intr_count_dump(dhd_pub_t *dhd)
 		GET_SEC_USEC(bus->last_oob_irq_disable_time)));
 	DHD_ERROR(("oob_irq_enabled=%d oob_gpio_level=%d\n",
 		dhdpcie_get_oob_irq_status(bus),
-		dhdpcie_get_oob_irq_level()));
+		dhdpcie_get_oob_irq_level(bus)));
 
 #if defined(__linux__)
 	dhd_plat_pin_dbg_show(bus->dhd->plat_info);

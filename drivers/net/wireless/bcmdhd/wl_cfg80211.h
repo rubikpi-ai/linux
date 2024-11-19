@@ -156,10 +156,6 @@ struct wl_ibss;
 #endif /* WL_SAE */
 #endif /* WL_CLIENT_SAE */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0) && !defined(WL_SAE))
-#define WL_SAE
-#endif /* LINUX_VERSION_CODE >= (4, 17, 0) && !(WL_SAE) */
-
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 17, 0)) && !defined(WL_DISABLE_SCAN_TYPE) && \
 	!defined(WL_SCAN_TYPE)
 #define WL_SCAN_TYPE
@@ -776,13 +772,6 @@ do {									\
 
 #define WL_SD(x)
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 7, 0))
-#define ieee80211_band nl80211_band
-#define IEEE80211_BAND_2GHZ NL80211_BAND_2GHZ
-#define IEEE80211_BAND_5GHZ NL80211_BAND_5GHZ
-#define IEEE80211_NUM_BANDS NUM_NL80211_BANDS
-#endif
-
 #define WL_SCAN_RETRY_MAX   3
 #define WL_NUM_PMKIDS_MAX   MAXPMKID
 #define WL_SCAN_BUF_MAX     (1024 * 8)
@@ -954,6 +943,7 @@ do {									\
 #endif
 
 /* Join pref defines */
+#define JOIN_PREF_RSSI_LEN              0x02
 #define JOIN_PREF_RSSI_SIZE		4	/* RSSI pref header size in bytes */
 #define JOIN_PREF_WPA_HDR_SIZE		4	/* WPA pref header size in bytes */
 #define JOIN_PREF_WPA_TUPLE_SIZE	12	/* Tuple size in bytes */
@@ -2319,7 +2309,7 @@ struct bcm_cfg80211 {
 	uint16  actframe_params_ver;
 	struct ether_addr af_randmac;
 	bool randomized_gas_tx;
-	u8 country[WLC_CNTRY_BUF_SZ];
+	u8 country[WLC_CNTRY_BUF_SZ + 1];
 	u8 latency_mode;
 #ifdef WL_MBO_HOST
 	void *btmreq;
@@ -2454,6 +2444,31 @@ typedef struct wl_wips_event_info {
 	int16 deauth_RSSI;
 } wl_wips_event_info_t;
 
+/* Added for HOSTAPD required ACS action */
+#ifdef WL_SUPPORT_AUTO_CHANNEL
+#define APCS_MAX_RETRY        10
+#define APCS_DEFAULT_2G_CH    1
+#define APCS_DEFAULT_5G_CH    149
+#define APCS_DEFAULT_6G_CH    5
+
+enum wl_vendor_attr_acs_offload {
+	BRCM_VENDOR_ATTR_ACS_CHANNEL_INVALID = 0,
+	BRCM_VENDOR_ATTR_ACS_PRIMARY_FREQ,
+	BRCM_VENDOR_ATTR_ACS_SECONDARY_FREQ,
+	BRCM_VENDOR_ATTR_ACS_VHT_SEG0_CENTER_CHANNEL,
+	BRCM_VENDOR_ATTR_ACS_VHT_SEG1_CENTER_CHANNEL,
+
+	BRCM_VENDOR_ATTR_ACS_HW_MODE,
+	BRCM_VENDOR_ATTR_ACS_HT_ENABLED,
+	BRCM_VENDOR_ATTR_ACS_HT40_ENABLED,
+	BRCM_VENDOR_ATTR_ACS_VHT_ENABLED,
+	BRCM_VENDOR_ATTR_ACS_CHWIDTH,
+	BRCM_VENDOR_ATTR_ACS_CH_LIST,
+	BRCM_VENDOR_ATTR_ACS_FREQ_LIST,
+
+	BRCM_VENDOR_ATTR_ACS_LAST
+};
+
 /* defined for hw_mode in hostapd.conf */
 enum hostapd_hw_mode {
 	HOSTAPD_MODE_IEEE80211B,
@@ -2463,6 +2478,15 @@ enum hostapd_hw_mode {
 	HOSTAPD_MODE_IEEE80211ANY,
 	NUM_HOSTAPD_MODES
 };
+
+typedef struct acs_selected_channels {
+	u32 pri_freq; /* save slelcted primary frequency */
+	u32 sec_freq; /* save slelcted secondary frequency */
+	u8 vht_seg0_center_ch;
+	u8 vht_seg1_center_ch;
+	u16 ch_width;
+	enum hostapd_hw_mode hw_mode;
+} acs_selected_channels_t;
 
 typedef struct drv_acs_params {
 	enum hostapd_hw_mode hw_mode;
@@ -2479,51 +2503,22 @@ typedef struct drv_acs_params {
 	chanspec_t scc_chspec;
 } drv_acs_params_t;
 
+typedef struct acs_delay_work {
+	struct delayed_work acs_delay_work;
+	int init_flag;
+
+	struct net_device *ndev;
+	uint8  spect;
+	uint   wait_timeout;
+	chanspec_t ch_chosen;
+	drv_acs_params_t parameter;
+} acs_delay_work_t;
+#endif /* WL_SUPPORT_AUTO_CHANNEL */
+
 #define IS_5G_APCS_CHANNEL(channel) ((channel == 149) || \
 	(channel == 153) || \
 	(channel == 157) || \
 	(channel == 161))
-
-#ifdef WL_SOFTAP_ACS
-/* Added for HOSTAPD required ACS action */
-#define APCS_MAX_RETRY        10
-#define APCS_DEFAULT_2G_CH    1
-#define APCS_DEFAULT_5G_CH    149
-
-enum wl_vendor_attr_acs_offload {
-	BRCM_VENDOR_ATTR_ACS_CHANNEL_INVALID = 0,
-	BRCM_VENDOR_ATTR_ACS_PRIMARY_FREQ,
-	BRCM_VENDOR_ATTR_ACS_SECONDARY_FREQ,
-	BRCM_VENDOR_ATTR_ACS_VHT_SEG0_CENTER_CHANNEL,
-	BRCM_VENDOR_ATTR_ACS_VHT_SEG1_CENTER_CHANNEL,
-	BRCM_VENDOR_ATTR_ACS_HW_MODE,
-	BRCM_VENDOR_ATTR_ACS_HT_ENABLED,
-	BRCM_VENDOR_ATTR_ACS_HT40_ENABLED,
-	BRCM_VENDOR_ATTR_ACS_VHT_ENABLED,
-	BRCM_VENDOR_ATTR_ACS_CHWIDTH,
-	BRCM_VENDOR_ATTR_ACS_CH_LIST,
-	BRCM_VENDOR_ATTR_ACS_FREQ_LIST,
-
-	BRCM_VENDOR_ATTR_ACS_LAST
-};
-
-typedef struct acs_selected_channels {
-	u32 pri_freq; /* save slelcted primary frequency */
-	u32 sec_freq; /* save slelcted secondary frequency */
-	u8 vht_seg0_center_ch;
-	u8 vht_seg1_center_ch;
-	u16 ch_width;
-	enum hostapd_hw_mode hw_mode;
-} acs_selected_channels_t;
-
-typedef struct acs_delay_work {
-	struct delayed_work acs_delay_work;
-	u32 init_flag;
-	struct net_device *ndev;
-	chanspec_t ch_chosen;
-	drv_acs_params_t parameter;
-} acs_delay_work_t;
-#endif /* WL_SOFTAP_ACS */
 
 /* Struct used to populate fields needed for
 * wsec_info passphrase iovar config..
@@ -2713,11 +2708,17 @@ wl_alloc_netinfo(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 	return err;
 }
 
+extern atomic_t reboot_in_progress;
 static inline void
 wl_delete_all_netinfo(struct bcm_cfg80211 *cfg)
 {
 	struct net_info *_net_info, *next;
 	unsigned long int flags;
+
+	if (OSL_ATOMIC_READ(cfg->osh, &reboot_in_progress) > -1) {
+		WL_ERR(("reboot_in_progress\n"));
+		return;
+	}
 
 	WL_CFG_NET_LIST_SYNC_LOCK(&cfg->net_list_sync, flags);
 	GCC_DIAGNOSTIC_PUSH_SUPPRESS_CAST();
@@ -3832,8 +3833,13 @@ extern s32 wl_cfgvendor_notify_twt_event(struct bcm_cfg80211 *cfg,
 extern int wl_get_all_sideband_chanspecs(uint center_channel, chanspec_band_t band,
 	chanspec_bw_t bw, chanspec_t *chspecs, int *cnt);
 
+#define CH_BANDWIDTH_160MHZ    160
+#define CH_BANDWIDTH_80MHZ     80
+#define CH_BANDWIDTH_40MHZ     40
+#define CH_BANDWIDTH_20MHZ     20
+
 #ifdef WL_USABLE_CHAN
-int wl_get_usable_channels(struct bcm_cfg80211 *cfg, usable_channel_info_t *u_info);
+extern int wl_get_usable_channels(struct bcm_cfg80211 *cfg, usable_channel_info_t *u_info);
 #endif /* WL_USABLE_CHAN */
 
 extern int wl_cfg80211_reassoc(struct net_device *dev, struct ether_addr *bssid,
@@ -3856,6 +3862,10 @@ extern void wl_cfg80211_wdev_unlock(struct wireless_dev *wdev);
 extern u8 *wl_get_up_table_netinfo(struct bcm_cfg80211 *cfg, struct net_device *ndev);
 extern void wl_store_up_table_netinfo(struct bcm_cfg80211 *cfg,
 	struct net_device *ndev, u8 *uptable);
+
+#ifdef EXT_REGD_INFO
+extern int wl_cfg80211_reg_dump_all(const char *pTip);
+#endif /* EXT_REGD_INFO */
 
 /* Added wl_reassoc_params_cvt_v1 due to mis-sync between DHD and FW
  * Because Dongle use wl_reassoc_params_v1_t for WLC_REASSOC

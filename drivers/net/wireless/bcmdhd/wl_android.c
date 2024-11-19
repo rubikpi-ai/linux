@@ -607,9 +607,6 @@ static int wlc_wbtext_get_roam_prof(struct net_device *ndev, wl_roamprof_band_t 
 	uint8 band, uint8 *roam_prof_ver, uint8 *roam_prof_size);
 #endif /* WBTEXT */
 #ifdef WES_SUPPORT
-#ifdef WBTEXT
-static int wl_android_wbtext_enable(struct net_device *dev, int mode);
-#endif /* WBTEXT */
 /* wl_roam.c */
 extern int get_roamscan_mode(struct net_device *dev, int *mode);
 extern int set_roamscan_mode(struct net_device *dev, int mode);
@@ -617,44 +614,6 @@ extern int get_roamscan_chanspec_list(struct net_device *dev, chanspec_t *chansp
 extern int set_roamscan_chanspec_list(struct net_device *dev, uint n, chanspec_t *chanspecs);
 extern int add_roamscan_chanspec_list(struct net_device *dev, uint n, chanspec_t *chanspecs);
 
-static char* legacy_cmdlist[] =
-{
-	CMD_GETROAMSCANCHLEGACY, CMD_ADDROAMSCANCHLEGACY,
-	CMD_GETROAMSCANFQLEGACY, CMD_ADDROAMSCANFQLEGACY,
-	CMD_GETROAMTRIGLEGACY, CMD_SETROAMTRIGLEGACY,
-	CMD_REASSOCLEGACY, CMD_REASSOCFREQLEGACY,
-	CMD_GETSCANCHANNELTIMELEGACY, CMD_SETSCANCHANNELTIMELEGACY,
-	CMD_GETSCANUNASSOCTIMELEGACY, CMD_SETSCANUNASSOCTIMELEGACY,
-	CMD_GETSCANPASSIVETIMELEGACY, CMD_SETSCANPASSIVETIMELEGACY,
-	CMD_GETSCANHOMETIMELEGACY, CMD_SETSCANHOMETIMELEGACY,
-	CMD_GETSCANHOMEAWAYTIMELEGACY, CMD_SETSCANHOMEAWAYTIMELEGACY,
-	"\0"
-};
-
-static char* ncho_cmdlist[] =
-{
-	CMD_ROAMTRIGGER_GET, CMD_ROAMTRIGGER_SET,
-	CMD_ROAMDELTA_GET, CMD_ROAMDELTA_SET,
-	CMD_ROAMSCANPERIOD_GET, CMD_ROAMSCANPERIOD_SET,
-	CMD_FULLROAMSCANPERIOD_GET, CMD_FULLROAMSCANPERIOD_SET,
-	CMD_COUNTRYREV_GET, CMD_COUNTRYREV_SET,
-	CMD_GETROAMSCANCONTROL,	CMD_SETROAMSCANCONTROL,
-	CMD_GETROAMSCANCHANNELS, CMD_SETROAMSCANCHANNELS, CMD_ADDROAMSCANCHANNELS,
-	CMD_GETROAMSCANFREQS, CMD_SETROAMSCANFREQS, CMD_ADDROAMSCANFREQS,
-	CMD_SENDACTIONFRAME,
-	CMD_REASSOC, CMD_REASSOCFREQ,
-	CMD_GETSCANCHANNELTIME,	CMD_SETSCANCHANNELTIME,
-	CMD_GETSCANUNASSOCTIME,	CMD_SETSCANUNASSOCTIME,
-	CMD_GETSCANPASSIVETIME,	CMD_SETSCANPASSIVETIME,
-	CMD_GETSCANHOMETIME, CMD_SETSCANHOMETIME,
-	CMD_GETSCANHOMEAWAYTIME, CMD_SETSCANHOMEAWAYTIME,
-	CMD_GETSCANNPROBES, CMD_SETSCANNPROBES,
-	CMD_GETDFSSCANMODE,
-	CMD_SETJOINPREFER,
-	CMD_GETWESMODE,	CMD_SETWESMODE,
-	CMD_GETROAMALLOWBAND, CMD_SETROAMALLOWBAND,
-	"\0"
-};
 #endif /* WES_SUPPORT */
 #ifdef ROAM_CHANNEL_CACHE
 extern void wl_update_roamscan_cache_by_band(struct net_device *dev, int band);
@@ -676,117 +635,6 @@ extern char iface_name[IFNAMSIZ];
 #ifdef DHD_PM_CONTROL_FROM_FILE
 extern bool g_pm_control;
 #endif	/* DHD_PM_CONTROL_FROM_FILE */
-
-/* private command support for restoring roam/scan parameters */
-#if defined(SUPPORT_RESTORE_SCAN_PARAMS) || defined(WES_SUPPORT)
-#define CMD_RESTORE_SCAN_PARAMS "RESTORE_SCAN_PARAMS"
-
-typedef int (*PRIV_CMD_HANDLER) (struct net_device *dev, char *command);
-typedef int (*PRIV_CMD_HANDLER_WITH_LEN) (struct net_device *dev, char *command, int total_len);
-
-enum {
-	RESTORE_TYPE_UNSPECIFIED = 0,
-	RESTORE_TYPE_PRIV_CMD = 1,
-	RESTORE_TYPE_PRIV_CMD_WITH_LEN = 2
-};
-
-typedef struct android_restore_scan_params {
-	char command[64];
-	int parameter;
-	int cmd_type;
-	union {
-		PRIV_CMD_HANDLER cmd_handler;
-		PRIV_CMD_HANDLER_WITH_LEN cmd_handler_w_len;
-	};
-} android_restore_scan_params_t;
-
-/* function prototypes of private command handler */
-int wl_android_default_set_scan_params(struct net_device *dev, char *command, int total_len);
-static int wl_android_set_roam_trigger(struct net_device *dev, char* command);
-int wl_android_set_roam_delta(struct net_device *dev, char* command);
-int wl_android_set_roam_scan_period(struct net_device *dev, char* command);
-int wl_android_set_full_roam_scan_period(struct net_device *dev, char* command);
-int wl_android_set_roam_scan_control(struct net_device *dev, char *command);
-int wl_android_set_scan_channel_time(struct net_device *dev, char *command);
-int wl_android_set_scan_home_time(struct net_device *dev, char *command);
-int wl_android_set_scan_home_away_time(struct net_device *dev, char *command);
-int wl_android_set_scan_nprobes(struct net_device *dev, char *command);
-static int wl_android_set_band(struct net_device *dev, char *command);
-int wl_android_set_wes_mode(struct net_device *dev, char *command);
-int wl_android_set_okc_mode(struct net_device *dev, char *command);
-int wl_android_set_scan_passive_time(struct net_device *dev, char *command);
-int wl_android_set_roam_allowed_band(struct net_device *dev, char *command);
-
-/* default values */
-#ifdef ROAM_API
-#define DEFAULT_ROAM_TIRGGER	-75
-#define DEFAULT_ROAM_DELTA	10
-#define DEFAULT_ROAMSCANPERIOD	10
-#define DEFAULT_FULLROAMSCANPERIOD_SET	120
-#endif /* ROAM_API */
-#ifdef WES_SUPPORT
-#define DEFAULT_ROAMSCANCONTROL	0
-#define DEFAULT_SCANCHANNELTIME	40
-#ifdef BCM4361_CHIP
-#define DEFAULT_SCANHOMETIME	60
-#else
-#define DEFAULT_SCANHOMETIME	45
-#endif /* BCM4361_CHIP */
-#define DEFAULT_SCANPROBES		2
-#define DEFAULT_DFSSCANMODE		1
-#define DEFAULT_WESMODE			0
-#define DEFAULT_OKCMODE			1
-#endif /* WES_SUPPORT */
-#define DEFAULT_BAND		0
-#ifdef WBTEXT
-#define DEFAULT_WBTEXT_ENABLE	1
-#endif /* WBTEXT */
-
-/* restoring parameter list, please don't change order */
-static android_restore_scan_params_t restore_params[] =
-{
-/* wbtext need to be disabled while updating roam/scan parameters */
-#ifdef WBTEXT
-	{ CMD_WBTEXT_ENABLE, 0, RESTORE_TYPE_PRIV_CMD_WITH_LEN,
-		.cmd_handler_w_len = wl_android_wbtext},
-#endif /* WBTEXT */
-#ifdef ROAM_API
-	{ CMD_ROAMTRIGGER_SET, DEFAULT_ROAM_TIRGGER,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_roam_trigger},
-	{ CMD_ROAMDELTA_SET, DEFAULT_ROAM_DELTA,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_roam_delta},
-	{ CMD_ROAMSCANPERIOD_SET, DEFAULT_ROAMSCANPERIOD,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_roam_scan_period},
-	{ CMD_FULLROAMSCANPERIOD_SET, DEFAULT_FULLROAMSCANPERIOD_SET,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_full_roam_scan_period},
-#endif /* ROAM_API */
-#ifdef WES_SUPPORT
-	{ CMD_SETROAMSCANCONTROL, DEFAULT_ROAMSCANCONTROL,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_roam_scan_control},
-	{ CMD_SETSCANCHANNELTIME, DEFAULT_SCANCHANNELTIME,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_scan_channel_time},
-	{ CMD_SETSCANHOMETIME, DEFAULT_SCANHOMETIME,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_scan_home_time},
-	{ CMD_GETSCANHOMEAWAYTIME, DHD_SCAN_HOME_AWAY_TIME,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_scan_home_away_time},
-	{ CMD_SETSCANNPROBES, DEFAULT_SCANPROBES,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_scan_nprobes},
-	{ CMD_SETWESMODE, DEFAULT_WESMODE,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_wes_mode},
-	{ CMD_SETSCANPASSIVETIME, DHD_SCAN_PASSIVE_TIME,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_scan_passive_time},
-	{ CMD_SETROAMALLOWBAND, WLC_ROAM_ALLOW_BAND_AUTO,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_roam_allowed_band},
-#endif /* WES_SUPPORT */
-	{ CMD_SETBAND, DEFAULT_BAND,
-		RESTORE_TYPE_PRIV_CMD, .cmd_handler = wl_android_set_band},
-#ifdef WBTEXT
-	{ CMD_WBTEXT_ENABLE, DEFAULT_WBTEXT_ENABLE,
-		RESTORE_TYPE_PRIV_CMD_WITH_LEN, .cmd_handler_w_len = wl_android_wbtext},
-#endif /* WBTEXT */
-	{ "\0", 0, RESTORE_TYPE_UNSPECIFIED, .cmd_handler = NULL}
-};
-#endif /* SUPPORT_RESTORE_SCAN_PARAMS || WES_SUPPORT */
 
 #ifdef SUPPORT_LATENCY_CRITICAL_DATA
 #define CMD_GET_LATENCY_CRITICAL_DATA	"GET_LATENCY_CRT_DATA"
@@ -1406,13 +1254,17 @@ wl_android_get_band(struct net_device *dev, char *command, int total_len)
 	struct bcm_cfg80211 *cfg = wl_get_cfg(dev);
 #endif /* WL_6G_BAND */
 
+#ifdef WL_IF_BAND
 	error = wldev_iovar_getint(dev, "if_band", &band);
 	if (error == BCME_UNSUPPORTED) {
+#endif /* WL_IF_BAND */
 		error = wldev_get_band(dev, &band);
 		if (error) {
 			return BCME_ERROR;
 		}
+#ifdef WL_IF_BAND
 	}
+#endif /* WL_IF_BAND */
 
 	/* Changed Band types to Band Definition */
 	switch (band) {
@@ -1504,14 +1356,6 @@ wl_android_set_band(struct net_device *dev, char *command)
 #endif /* ROAM_CHANNEL_CACHE */
 	return error;
 }
-
-#if defined(WES_SUPPORT) && defined(WBTEXT)
-static bool wl_android_check_wbtext_support(struct net_device *dev)
-{
-	dhd_pub_t *dhdp = wl_cfg80211_get_dhdp(dev);
-	return dhdp->wbtext_support;
-}
-#endif /* WES_SUPPORT && WBTEXT */
 
 int
 wl_android_rcroam_turn_on(struct net_device *dev, int rcroam_enab)
@@ -1617,27 +1461,6 @@ static int wl_android_wbtext(struct net_device *dev, char *command, int total_le
 	}
 	return error;
 }
-
-#ifdef WES_SUPPORT
-static int
-wl_android_wbtext_enable(struct net_device *dev, int mode)
-{
-	int error = BCME_OK;
-	char commandp[WLC_IOCTL_SMLEN];
-
-	if (wl_android_check_wbtext_support(dev)) {
-		bzero(commandp, sizeof(commandp));
-		snprintf(commandp, WLC_IOCTL_SMLEN, "WBTEXT_ENABLE %d", mode);
-		error = wl_android_wbtext(dev, commandp, WLC_IOCTL_SMLEN);
-		if (error) {
-			WL_ERR(("Failed to set WBTEXT = %d\n", error));
-			return error;
-		}
-	}
-
-	return error;
-}
-#endif /* WES_SUPPORT */
 
 static int wl_cfg80211_wbtext_btm_timer_threshold(struct net_device *dev,
 	char *command, int total_len)
@@ -2356,7 +2179,7 @@ int wl_android_wifi_off(struct net_device *dev, bool force_off)
 	}
 #endif	/* BCMPCIE && DHD_DEBUG_UART */
 	dhd_net_if_lock(dev);
-	WL_MSG(dev->name, " g_wifi_on=%d force_off=%d\n", g_wifi_on, force_off);
+	WL_MSG(dev->name, "g_wifi_on=%d force_off=%d\n", g_wifi_on, force_off);
 	if (g_wifi_on || force_off) {
 #if defined(BCMSDIO) || defined(BCMPCIE) || defined(BCMDBUS)
 		ret = dhd_net_bus_devreset(dev, TRUE);
@@ -2364,6 +2187,11 @@ int wl_android_wifi_off(struct net_device *dev, bool force_off)
 		dhd_net_bus_suspend(dev);
 #endif /* BCMSDIO */
 #endif /* BCMSDIO || BCMPCIE || BCMDBUS */
+#ifdef RMMOD_POWER_DOWN_LATER
+		if (atomic_read(&exit_in_progress))
+			WL_MSG(dev->name, "module exit in progress\n");
+		else
+#endif
 		dhd_net_wifi_platform_set_power(dev, FALSE, WIFI_TURNOFF_DELAY);
 		g_wifi_on = FALSE;
 	}

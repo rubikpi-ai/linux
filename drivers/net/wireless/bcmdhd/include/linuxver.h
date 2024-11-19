@@ -759,17 +759,24 @@ static inline bool binary_sema_up(tsk_ctl_t *tsk)
 #define SMP_RD_BARRIER_DEPENDS(x) smp_rmb(x)
 #endif
 
+#ifdef BCMPCIE
+#define NAME_SUFFIX "_pcie"
+#else
+#define NAME_SUFFIX "_sdio"
+#endif
+
 #define PROC_START(thread_func, owner, tsk_ctl, flags, name) \
 { \
 	sema_init(&((tsk_ctl)->sema), 0); \
 	init_completion(&((tsk_ctl)->completed)); \
 	init_completion(&((tsk_ctl)->flushed)); \
 	(tsk_ctl)->parent = owner; \
-	(tsk_ctl)->proc_name = name;  \
+	(tsk_ctl)->proc_name = name NAME_SUFFIX;  \
 	(tsk_ctl)->terminated = FALSE; \
 	(tsk_ctl)->flush_ind = FALSE; \
 	(tsk_ctl)->up_cnt = 0; \
-	(tsk_ctl)->p_task  = kthread_run(thread_func, tsk_ctl, (char*)name); \
+	(tsk_ctl)->p_task  = kthread_run(thread_func, \
+		tsk_ctl, "%s%s", (char*)(name), NAME_SUFFIX); \
 	if (IS_ERR((tsk_ctl)->p_task)) { \
 		(tsk_ctl)->thr_pid = -1; \
 		DBG_THR(("%s(): thread:%s create failed\n", __FUNCTION__, \
@@ -1095,5 +1102,15 @@ static inline void do_gettimeofday(struct timeval *tv)
 #define strlcpy(a, b, c)	strscpy(a, b, c)
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0) */
 #endif /* !defined(FREEBSD) && !defined(MACOSX) && !defined(BCM_USE_PLATFORM_STRLCPY) */
+
+/* USERCOPY_CACHE or USERCOPY_MAXLEN is to fix for "kernel BUG at mm/usercopy.c:102!" due to
+  * folio_size(folio) is always return PAGE_SIZE(4096) in check_heap_object(), this issue only happened
+  * when CONFIG_HARDENED_USERCOPY enabled and check_heap_object() is modified from kernel 5.19,
+  * so use these 2 conditions to undefine USERCOPY_CACHE and USERCOPY_MAXLEN
+  */
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)) || !defined(CONFIG_HARDENED_USERCOPY)
+#undef USERCOPY_CACHE
+#undef USERCOPY_MAXLEN
+#endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)) || !defined(CONFIG_HARDENED_USERCOPY) */
 
 #endif /* _linuxver_h_ */

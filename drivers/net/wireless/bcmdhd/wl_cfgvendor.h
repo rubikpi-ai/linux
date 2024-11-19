@@ -676,7 +676,7 @@ enum custom_setting_attributes {
 	CUSTOM_SETTING_ATTRIBUTE_MAX
 };
 
-#ifdef WL_CELLULAR_CHAN_AVOID
+//#ifdef WL_CELLULAR_CHAN_AVOID
 enum wifi_cellavoid_attributes {
 	CELLAVOID_ATTRIBUTE_INVALID   = 0,
 	CELLAVOID_ATTRIBUTE_CNT       = 1,
@@ -688,7 +688,7 @@ enum wifi_cellavoid_attributes {
 	/* Add more attributes here */
 	CELLAVOID_ATTRIBUTE_MAX
 };
-#endif /* WL_CELLULAR_CHAN_AVOID */
+//#endif /* WL_CELLULAR_CHAN_AVOID */
 
 #ifdef WL_USABLE_CHAN
 enum wifi_usable_channel_attributes {

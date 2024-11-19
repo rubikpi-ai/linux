@@ -49,12 +49,14 @@ int wl_ext_iapsta_alive_preinit(struct net_device *dev);
 int wl_ext_iapsta_alive_postinit(struct net_device *dev);
 int wl_ext_iapsta_attach(struct net_device *net);
 void wl_ext_iapsta_dettach(struct net_device *net);
-int wl_ext_iapsta_enable(struct net_device *dev, char *command, int total_len);
-int wl_ext_iapsta_disable(struct net_device *dev, char *command, int total_len);
 int wl_ext_isam_param(struct net_device *dev, char *command, int total_len);
 int wl_ext_isam_status(struct net_device *dev, char *command, int total_len);
+#ifdef ISAM_CONFIG
 int wl_ext_isam_init(struct net_device *dev, char *command, int total_len);
 int wl_ext_iapsta_config(struct net_device *dev, char *command, int total_len);
+int wl_ext_iapsta_enable(struct net_device *dev, char *command, int total_len);
+int wl_ext_iapsta_disable(struct net_device *dev, char *command, int total_len);
+#endif
 void wl_ext_add_remove_pm_enable_work(struct net_device *dev, bool add);
 bool wl_ext_iapsta_other_if_enabled(struct net_device *net);
 bool wl_ext_sta_connecting(struct net_device *dev);

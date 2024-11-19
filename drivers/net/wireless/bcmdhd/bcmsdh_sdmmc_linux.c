@@ -263,7 +263,9 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 	int err;
 	sdioh_info_t *sdioh;
 	struct sdio_func *func = dev_to_sdio_func(pdev);
+#if defined(RUBIKPI_MMC_PM_KEEP_POWER)
 	mmc_pm_flag_t sdio_flags;
+#endif
 
 	printf("%s Enter func->num=%d\n", __FUNCTION__, func->num);
 	if (func->num != 2)
@@ -294,7 +296,6 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 		return err;
 	}
 #endif
-
 	smp_mb();
 
 	printf("%s Exit\n", __FUNCTION__);
@@ -403,7 +404,7 @@ static struct sdio_driver dummy_sdmmc_driver = {
 	.remove		= dummy_remove,
 	.name		= "dummy_sdmmc",
 	.id_table	= bcmsdh_sdmmc_ids,
-	};
+};
 
 int sdio_func_reg_notify(void* semaphore)
 {
