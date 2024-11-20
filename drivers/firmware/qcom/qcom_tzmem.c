@@ -3,13 +3,18 @@
  * Memory allocator for buffers shared with the TrustZone.
  *
  * Copyright (C) 2023-2024 Linaro Ltd.
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
+
+#define pr_fmt(fmt) "qcom_tzmem: [%d][%s]: " fmt, __LINE__,  __func__
 
 #include <linux/bug.h>
 #include <linux/cleanup.h>
 #include <linux/dma-mapping.h>
 #include <linux/err.h>
 #include <linux/firmware/qcom/qcom_tzmem.h>
+#include <linux/firmware/qcom/qcom_scm.h>
+#include <dt-bindings/firmware/qcom,scm.h>
 #include <linux/genalloc.h>
 #include <linux/gfp.h>
 #include <linux/kernel.h>
@@ -19,6 +24,12 @@
 #include <linux/slab.h>
 #include <linux/spinlock.h>
 #include <linux/types.h>
+#include <linux/of_platform.h>
+#include <linux/of_reserved_mem.h>
+#include <linux/platform_device.h>
+#include <linux/mod_devicetable.h>
+#include <linux/module.h>
+#include <linux/device.h>
 
 #include "qcom_tzmem.h"
 
@@ -44,6 +55,54 @@ struct qcom_tzmem_chunk {
 	size_t size;
 	struct qcom_tzmem_pool *owner;
 };
+#define MAXSHMVMS 4
+#define PERM_BITS 3
+#define VM_BITS 16
+#define VMID_NUM_HYP 0
+#define VMID_NUM_HLOS 1
+#define SELF_OWNER_BIT 1
+#define SHM_NUM_VM_SHIFT 9
+#define SHM_VM_MASK 0xFFFF
+#define SHM_PERM_MASK 0x7
+
+#define SHMBRIDGE_E_NOT_SUPPORTED 4	/* SHMbridge is not implemented */
+
+#define AC_ERR_SHARED_MEMORY_SINGLE_SOURCE 15
+
+/* ns_vmids */
+#define UPDATE_NS_VMIDS(ns_vmids, id)	\
+				(((uint64_t)(ns_vmids) << VM_BITS) \
+				| ((uint64_t)(id) & SHM_VM_MASK))
+
+/* ns_perms */
+#define UPDATE_NS_PERMS(ns_perms, perm)	\
+				(((uint64_t)(ns_perms) << PERM_BITS) \
+				| ((uint64_t)(perm) & SHM_PERM_MASK))
+
+/* pfn_and_ns_perm_flags = paddr | ns_perms */
+#define UPDATE_PFN_AND_NS_PERM_FLAGS(paddr, ns_perms)	\
+				((uint64_t)(paddr) | (ns_perms))
+
+
+/* ipfn_and_s_perm_flags = ipaddr | tz_perm */
+#define UPDATE_IPFN_AND_S_PERM_FLAGS(ipaddr, tz_perm)	\
+				((uint64_t)(ipaddr) | (uint64_t)(tz_perm))
+
+/* size_and_flags when dest_vm is not HYP */
+#define UPDATE_SIZE_AND_FLAGS(size, destnum)	\
+				((size) | (destnum) << SHM_NUM_VM_SHIFT)
+
+struct bridge_list {
+	struct list_head head;
+	struct mutex lock;
+};
+
+struct bridge_list_entry {
+	struct list_head list;
+	phys_addr_t paddr;
+	uint64_t handle;
+	int32_t ref_count;
+};
 
 static struct device *qcom_tzmem_dev;
 static RADIX_TREE(qcom_tzmem_chunks, GFP_ATOMIC);
@@ -66,6 +125,17 @@ static void qcom_tzmem_cleanup_area(struct qcom_tzmem_area *area)
 
 }
 
+static int32_t __qcom_tzmem_register(phys_addr_t paddr, size_t size, uint32_t *ns_vmid_list,
+		uint32_t *ns_vm_perm_list, uint32_t ns_vmid_num, uint32_t tz_perm, uint64_t *handle)
+{
+	return 0;
+}
+
+static int32_t __qcom_tzmem_deregister(uint64_t handle)
+{
+	return 0;
+}
+
 #elif IS_ENABLED(CONFIG_QCOM_TZMEM_MODE_SHMBRIDGE)
 
 #include <linux/firmware/qcom/qcom_scm.h>
@@ -74,6 +144,8 @@ static void qcom_tzmem_cleanup_area(struct qcom_tzmem_area *area)
 #define QCOM_SHM_BRIDGE_NUM_VM_SHIFT 9
 
 static bool qcom_tzmem_using_shm_bridge;
+static struct bridge_list bridge_list_head;
+static bool support_hyp;
 
 /* List of machines that are known to not support SHM bridge correctly. */
 static const char *const qcom_tzmem_blacklist[] = {
@@ -97,6 +169,9 @@ static int qcom_tzmem_init(void)
 
 	if (!ret)
 		qcom_tzmem_using_shm_bridge = true;
+
+	mutex_init(&bridge_list_head.lock);
+	INIT_LIST_HEAD(&bridge_list_head.head);
 
 	return ret;
 
@@ -143,7 +218,239 @@ static void qcom_tzmem_cleanup_area(struct qcom_tzmem_area *area)
 	kfree(handle);
 }
 
+static int32_t qcom_tzmem_list_add_locked(phys_addr_t paddr,
+						uint64_t handle)
+{
+	struct bridge_list_entry *entry;
+
+	entry = kzalloc(sizeof(*entry), GFP_KERNEL);
+	if (!entry)
+		return -ENOMEM;
+	entry->handle = handle;
+	entry->paddr = paddr;
+	entry->ref_count = 0;
+
+	list_add_tail(&entry->list, &bridge_list_head.head);
+	return 0;
+}
+
+static void qcom_tzmem_list_del_locked(uint64_t handle)
+{
+	struct bridge_list_entry *entry;
+
+	list_for_each_entry(entry, &bridge_list_head.head, list) {
+		if (entry->handle == handle) {
+			list_del(&entry->list);
+			kfree(entry);
+			break;
+		}
+	}
+}
+
+/**
+ * qcom_tzmem_list_dec_refcount_locked: Decrement the reference count of
+ *					registered shmbridge and if refcount reached to zero delete
+ *					the shmbridge (i.e send a scm call to tz and remove that
+ *					from out local list too.
+ *					API suppose to be called in a locked enviorment.
+ *
+ * Return 0 in case of success else error code in case of failure
+ */
+static int32_t qcom_tzmem_list_dec_refcount_locked(uint64_t handle)
+{
+	struct bridge_list_entry *entry;
+	int32_t ret = -EINVAL;
+
+	list_for_each_entry(entry, &bridge_list_head.head, list)
+		if (entry->handle == handle) {
+
+			if (entry->ref_count > 0) {
+				/* decrement reference count */
+				entry->ref_count--;
+				pr_debug("bridge on %lld exists decrease refcount :%d\n",
+						handle, entry->ref_count);
+
+				if (entry->ref_count == 0) {
+				/* All valid reference are freed, it's time to delete the bridge */
+					//ret = qcom_scm_delete_shm_bridge(handle);
+					ret = qcom_scm_shm_bridge_delete(qcom_tzmem_dev, handle);
+					if (ret) {
+						pr_err("Failed to del bridge %lld, ret = %d\n",
+								handle, ret);
+						/* restore reference count in case of failure */
+						entry->ref_count++;
+						goto exit;
+					}
+					qcom_tzmem_list_del_locked(handle);
+				}
+				ret = 0;
+			} else
+				pr_err("ref_count should not be negative handle %lld , refcount: %d\n",
+					 handle, entry->ref_count);
+			break;
+		}
+exit:
+	if (ret == -EINVAL)
+		pr_err("Not able to find bridge handle %lld in map\n", handle);
+
+	return ret;
+}
+
+/**
+ * qcom_tzmem_list_inc_refcount_locked: Increment the ref count in case if
+ *					we try to register a pre-registered phyaddr with shmbridge
+ *					and provide a valid handle to the caller API which was
+ *					passed by caller as a pointer.
+ *					API suppose to be called in a locked enviorment.
+ *
+ * Return 0 in case of success else error code in case of failure.
+ */
+static int32_t qcom_tzmem_list_inc_refcount_locked(phys_addr_t paddr, uint64_t *handle)
+{
+	struct bridge_list_entry *entry;
+	int32_t ret = -EINVAL;
+
+	list_for_each_entry(entry, &bridge_list_head.head, list)
+		if (entry->paddr == paddr) {
+
+			entry->ref_count++;
+			pr_debug("%s: bridge on %llx exists increase refcount :%d\n",
+				__func__, (uint64_t)paddr, entry->ref_count);
+
+			/* update handle in case we found paddr already exist */
+			*handle = entry->handle;
+			ret = 0;
+			break;
+		}
+	if (ret)
+		pr_err("Not able to find bridge paddr %llx in map\n", (uint64_t)paddr);
+	return ret;
+}
+
+static int32_t qcom_tzmem_query_locked(phys_addr_t paddr)
+{
+	struct bridge_list_entry *entry;
+
+	list_for_each_entry(entry, &bridge_list_head.head, list)
+		if (entry->paddr == paddr) {
+			pr_debug("A bridge on %llx exists\n", (uint64_t)paddr);
+			return -EEXIST;
+		}
+	return 0;
+}
+
+/* Register paddr & size as a bridge, return bridge handle */
+static int32_t __qcom_tzmem_register(
+		phys_addr_t paddr,
+		size_t size,
+		uint32_t *ns_vmid_list,
+		uint32_t *ns_vm_perm_list,
+		uint32_t ns_vmid_num,
+		uint32_t tz_perm,
+		uint64_t *handle)
+
+{
+	int32_t ret = 0;
+	uint64_t pfn_and_ns_perm_flags = 0;
+	uint64_t ipfn_and_s_perm_flags = 0;
+	uint64_t size_and_flags = 0;
+	uint64_t ns_perms = 0;
+	uint64_t ns_vmids = 0;
+	int i = 0;
+
+	if (!qcom_tzmem_using_shm_bridge)
+		return 0;
+
+	if (!handle || !ns_vmid_list || !ns_vm_perm_list ||
+				ns_vmid_num > MAXSHMVMS) {
+		pr_err("invalid input parameters\n");
+		return -EINVAL;
+	}
+
+	mutex_lock(&bridge_list_head.lock);
+	ret = qcom_tzmem_query_locked(paddr);
+	if (ret) {
+		pr_debug("found 0%llu already exist with shmbridge\n", paddr);
+		goto bridge_exist;
+	}
+
+	for (i = 0; i < ns_vmid_num; i++) {
+		ns_perms = UPDATE_NS_PERMS(ns_perms, ns_vm_perm_list[i]);
+		ns_vmids = UPDATE_NS_VMIDS(ns_vmids, ns_vmid_list[i]);
+	}
+
+	pfn_and_ns_perm_flags = UPDATE_PFN_AND_NS_PERM_FLAGS(paddr, ns_perms);
+	ipfn_and_s_perm_flags = UPDATE_IPFN_AND_S_PERM_FLAGS(paddr, tz_perm);
+	size_and_flags = UPDATE_SIZE_AND_FLAGS(size, ns_vmid_num);
+
+	if (support_hyp) {
+		size_and_flags |= SELF_OWNER_BIT << 1;
+		size_and_flags |= QCOM_SCM_PERM_RW << 2;
+	}
+
+	pr_debug("%s: desc.args[0] %llx, args[1] %llx, args[2] %llx, args[3] %llx\n",
+		__func__, pfn_and_ns_perm_flags, ipfn_and_s_perm_flags,
+		size_and_flags, ns_vmids);
+
+	ret = qcom_scm_shm_bridge_create(qcom_tzmem_dev, pfn_and_ns_perm_flags,
+			ipfn_and_s_perm_flags, size_and_flags, ns_vmids,
+			handle);
+
+	if (ret) {
+		pr_err("create shmbridge failed, ret = %d\n", ret);
+
+		/*
+		 * If bridge is already existing and we are not real owner also paddr
+		 * not exist in our map we will add an entry in our map and go for
+		 * deregister for this since QTEE also maintain ref_count. So for this
+		 * we should deregister to decrease ref_count in QTEE.
+		 */
+		if (ret == AC_ERR_SHARED_MEMORY_SINGLE_SOURCE)
+			pr_err("bridge %llu exist but not registered in our map\n", paddr);
+		else {
+			ret = -EINVAL;
+			goto exit;
+		}
+	}
+
+	ret = qcom_tzmem_list_add_locked(paddr, *handle);
+bridge_exist:
+	ret = qcom_tzmem_list_inc_refcount_locked(paddr, handle);
+exit:
+	mutex_unlock(&bridge_list_head.lock);
+	return ret;
+}
+
+/* Deregister bridge */
+static int32_t __qcom_tzmem_deregister(uint64_t handle)
+{
+	int32_t ret = 0;
+
+	if (!qcom_tzmem_using_shm_bridge)
+		return 0;
+
+	mutex_lock(&bridge_list_head.lock);
+	ret = qcom_tzmem_list_dec_refcount_locked(handle);
+	mutex_unlock(&bridge_list_head.lock);
+
+	return ret;
+}
+
 #endif /* CONFIG_QCOM_TZMEM_MODE_SHMBRIDGE */
+
+int32_t qcom_tzmem_register(phys_addr_t paddr, size_t size, uint32_t *ns_vmid_list,
+		uint32_t *ns_vm_perm_list, uint32_t ns_vmid_num, uint32_t tz_perm, uint64_t *handle)
+{
+	return __qcom_tzmem_register(paddr, size, ns_vmid_list, ns_vm_perm_list,
+			ns_vmid_num, tz_perm, handle);
+}
+EXPORT_SYMBOL_GPL(qcom_tzmem_register);
+
+int32_t qcom_tzmem_deregister(uint64_t handle)
+{
+	return __qcom_tzmem_deregister(handle);
+}
+EXPORT_SYMBOL_GPL(qcom_tzmem_deregister);
 
 static int qcom_tzmem_pool_add_memory(struct qcom_tzmem_pool *pool,
 				      size_t size, gfp_t gfp)
