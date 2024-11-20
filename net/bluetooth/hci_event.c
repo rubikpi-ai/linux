@@ -3369,6 +3369,11 @@ static void hci_disconn_complete_evt(struct hci_dev *hdev, void *data,
 	if (!conn)
 		goto unlock;
 
+	/* Wake up disc_ev_comp here is ok. Since we hold the hdev lock
+	 * hci_abort_conn_sync will wait hdev lock release to continue.
+	 */
+	complete(&conn->disc_ev_comp);
+
 	if (ev->status) {
 		mgmt_disconnect_failed(hdev, &conn->dst, conn->type,
 				       conn->dst_type, ev->status);

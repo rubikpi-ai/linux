@@ -1010,6 +1010,14 @@ static struct hci_conn *__hci_conn_add(struct hci_dev *hdev, int type, bdaddr_t 
 
 	hci_conn_init_sysfs(conn);
 
+	/* This disc_ev_comp is inited when we send a disconnect request to
+	 * the remote device but fail to receive the disconnect complete
+	 * event within the expected time (2 seconds). This occurs because
+	 * the remote device doesn't ack the terminate indication, forcing
+	 * the controller to wait for the supervision timeout.
+	 */
+	init_completion(&conn->disc_ev_comp);
+
 	return conn;
 }
 
