@@ -3463,7 +3463,7 @@
 				 <&apps_smmu 0x481 0x00>;
 			interconnects = <&aggre2_noc MASTER_CRYPTO_CORE0 0 &mc_virt SLAVE_EBI1 0>;
 			interconnect-names = "memory";
-			qcom,icc_bw = <799783>;
+			qcom,icc_bw = <12473>;
 		};
 
 		lpass_ag_noc: interconnect-lpass-ag-noc@3c40000 {
