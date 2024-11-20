@@ -25,6 +25,7 @@
 		serial2 = &uart17;
 		spi16 = &spi16;
 		ufshc1 = &ufs_mem_hc;
+		ufshc2 = &ufs_mem_hc2;
 		scmichannels = &scmichannels;
 	};
 
@@ -322,6 +323,10 @@
 	status = "okay";
 };
 
+&scmi4 {
+	status = "okay";
+};
+
 &scmi5 {
 	status = "okay";
 };
@@ -458,6 +463,13 @@
 &ufs_mem_hc {
 	reset-gpios = <&tlmm 149 GPIO_ACTIVE_LOW>;
 	power-domains = <&scmi3_pd 0>;
+
+	status = "okay";
+};
+
+&ufs_mem_hc2 {
+	reset-gpios = <&tlmm 150 GPIO_ACTIVE_LOW>;
+	power-domains = <&scmi4_pd 0>;
 
 	status = "okay";
 };
