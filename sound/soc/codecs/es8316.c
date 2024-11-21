@@ -34,6 +34,8 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 #include <linux/regmap.h>
+#include <sound/jack.h>
+#include <net/netlink.h>
 #include "es8316.h"
 
 #define INVALID_GPIO -1
@@ -43,6 +45,10 @@
 #define MCLK 0
 static int es8316_init_reg = 0;
 static struct snd_soc_component *es8316_component;
+
+struct sock *nlsk = NULL;
+extern struct net init_net;
+#define NETLINK_TEST 31
 
 static const struct reg_default es8316_reg_defaults[] = {
 	{0x00, 0x03}, {0x01, 0x03}, {0x02, 0x00}, {0x03, 0x20},
@@ -86,6 +92,23 @@ struct es8316_priv {
 	bool spk_active_level;
 	int power_en_gpio;
 	int pwr_count;
+	struct mutex lock;
+	struct snd_soc_jack *jack;
+	int irq;
+	int irq_gpio;
+	bool jd;
+};
+
+static int detect;
+
+typedef enum  {
+	ES8316_DISCONNECT = 0,
+	ES8316_CONNECTION = 1,
+} es8316_connection_status;
+
+const char *const es8316_status_string[] = {
+	[ES8316_DISCONNECT] = "Headset Disconnect",
+	[ES8316_CONNECTION] = "Headset Connection",
 };
 
 /*
@@ -981,6 +1004,17 @@ static void hp_work(struct work_struct *work)
 	}
 }
 */
+
+static struct snd_soc_jack es8316_jack;
+
+/* Headset jack detection DAPM pins */
+static struct snd_soc_jack_pin es8316_headset_pins[] = {
+	{
+		.pin = "Headset",
+		.mask = SND_JACK_HEADSET,
+	},
+};
+
 static int es8316_probe(struct snd_soc_component *component)
 {
 	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
@@ -1014,11 +1048,22 @@ static int es8316_probe(struct snd_soc_component *component)
 		snd_soc_component_write(component, ES8316_SYS_PDN_REG0D, 0x3F);
 		snd_soc_component_write(component, ES8316_SYS_LP1_REG0E, 0x3F);
 		snd_soc_component_write(component, ES8316_SYS_LP2_REG0F, 0x1F);
-		snd_soc_component_write(component, ES8316_RESET_REG00, 0x00);			
+		// snd_soc_component_write(component, ES8316_RESET_REG00, 0x00);
 		}
 	}
 	INIT_DELAYED_WORK(&es8316->pcm_pop_work,
 				pcm_pop_work_events);
+
+	ret = snd_soc_card_jack_new_pins(component->card, "Headset",
+				    SND_JACK_HEADSET | SND_JACK_BTN_0,
+				    &es8316_jack,
+				    es8316_headset_pins,
+				    ARRAY_SIZE(es8316_headset_pins));
+	if (ret)
+		pr_err("%s: new a jack failed\n", __func__);
+
+	snd_soc_component_set_jack(component, &es8316_jack, NULL);
+
 	return ret;
 }
 
@@ -1028,14 +1073,181 @@ static void es8316_remove(struct snd_soc_component *component)
 	//return 0;
 }
 
+static const struct regmap_range es8316_volatile_ranges[] = {
+	regmap_reg_range(ES8316_GPIO_FLAG, ES8316_GPIO_FLAG),
+};
+
+static const struct regmap_access_table es8316_volatile_table = {
+	.yes_ranges	= es8316_volatile_ranges,
+	.n_yes_ranges	= ARRAY_SIZE(es8316_volatile_ranges),
+};
+
 const struct regmap_config es8316_regmap_config = {
 	.reg_bits	= 8,
 	.val_bits	= 8,
 	.max_register	= ES8316_TEST3_REG53,
 	.cache_type	= REGCACHE_RBTREE,
+	.volatile_table	= &es8316_volatile_table,
 	.reg_defaults = es8316_reg_defaults,
 	.num_reg_defaults = ARRAY_SIZE(es8316_reg_defaults),
 };
+
+static void es8316_device_connect_status_notify(es8316_connection_status status)
+{
+	const char *ptr = es8316_status_string[status];
+	int len = strlen(ptr) + 1;
+	struct sk_buff *nl_skb;
+	struct nlmsghdr *nlh;
+	int ret;
+
+	if (!nlsk) {
+		pr_err("%s: nlsk is NULL\n", __func__);
+		return;
+	}
+
+	nl_skb = nlmsg_new(len, GFP_ATOMIC);
+	if (!nl_skb) {
+		pr_err("%s: netlink alloc failure\n", __func__);
+		return;
+	}
+
+	nlh = nlmsg_put(nl_skb, 0, 0, NETLINK_TEST, len, 0);
+	if (!nlh) {
+		pr_err("%s: nlmsg_put failaure\n", __func__);
+		nlmsg_free(nl_skb);
+		return;
+	}
+
+	memcpy(nlmsg_data(nlh), ptr, len);
+	ret = netlink_unicast(nlsk, nl_skb, 200, MSG_DONTWAIT);
+	pr_info("%s: send msg[%s] ret[%d]\n", __func__, ptr, ret);
+
+	return;
+}
+
+static irqreturn_t es8316_irq(int irq, void *data)
+{
+	struct es8316_priv *es8316 = data;
+	struct snd_soc_component *comp = es8316_component;
+	unsigned int flags;
+
+	dev_err(comp->dev, "Enter into %s\n", __func__);
+
+	mutex_lock(&es8316->lock);
+	msleep(500);
+	regmap_read(es8316->regmap, ES8316_GPIO_FLAG, &flags);
+
+	if (flags == 0x00)
+		goto out; /* Powered-down / reset */
+
+	/* Catch spurious IRQ before set_jack is called */
+	if (!es8316->jack)
+		goto out;
+
+	if (flags & 0x04) {
+		pr_err("%s: Detected 3.5mm headphone connection\n", __func__);
+		detect = 1;
+		es8316_device_connect_status_notify(ES8316_CONNECTION);
+		snd_soc_jack_report(es8316->jack,
+					SND_JACK_HEADSET,
+					SND_JACK_HEADSET);
+	} else {
+		pr_err("%s: Detected 3.5mm headphone disconnection\n", __func__);
+		detect = 0;
+		es8316_device_connect_status_notify(ES8316_DISCONNECT);
+		snd_soc_jack_report(es8316->jack, 0,
+					    SND_JACK_HEADSET);
+	}
+
+out:
+    mdelay(5);
+
+	mutex_unlock(&es8316->lock);
+	dev_dbg(comp->dev, "Exit %s\n", __func__);
+	return IRQ_HANDLED;
+}
+
+static void es8316_enable_micbias_for_mic_gnd_short_detect(
+	struct snd_soc_component *component)
+{
+	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(component);
+
+	snd_soc_dapm_mutex_lock(dapm);
+	snd_soc_dapm_force_enable_pin_unlocked(dapm, "Analog power");
+	snd_soc_dapm_sync_unlocked(dapm);
+	snd_soc_dapm_mutex_unlock(dapm);
+	msleep(20);
+}
+
+static void es8316_disable_micbias_for_mic_gnd_short_detect(
+	struct snd_soc_component *component)
+{
+	struct snd_soc_dapm_context *dapm = snd_soc_component_get_dapm(component);
+
+	snd_soc_dapm_mutex_lock(dapm);
+	snd_soc_dapm_disable_pin_unlocked(dapm, "Analog power");
+	snd_soc_dapm_sync_unlocked(dapm);
+	snd_soc_dapm_mutex_unlock(dapm);
+}
+
+static void es8316_enable_jack_detect(struct snd_soc_component *component,
+				      struct snd_soc_jack *jack)
+{
+	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
+	static int initial=0;
+	if (!initial) {
+		es8316->jd = false;
+		mutex_lock(&es8316->lock);
+
+		es8316->jack = jack;
+		if (es8316->jack->status & SND_JACK_MICROPHONE)
+			es8316_enable_micbias_for_mic_gnd_short_detect(component);
+
+		snd_soc_component_update_bits(component, ES8316_GPIO_DEBOUNCE,
+				      ES8316_GPIO_ENABLE_INTERRUPT,
+				      ES8316_GPIO_ENABLE_INTERRUPT);
+
+		mutex_unlock(&es8316->lock);
+		/* Enable irq and sync initial jack state */
+		enable_irq(es8316->irq);
+		es8316_irq(es8316->irq, es8316);
+		initial = 1;
+	}
+}
+
+static void es8316_disable_jack_detect(struct snd_soc_component *component)
+{
+	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
+
+	if (!es8316->jack)
+		return; /* Already disabled (or never enabled) */
+
+	disable_irq(es8316->irq);
+
+	mutex_lock(&es8316->lock);
+
+	snd_soc_component_update_bits(component, ES8316_GPIO_DEBOUNCE,
+				      ES8316_GPIO_ENABLE_INTERRUPT, 0);
+
+	if (es8316->jack->status & SND_JACK_MICROPHONE) {
+		es8316_disable_micbias_for_mic_gnd_short_detect(component);
+		snd_soc_jack_report(es8316->jack, 0, SND_JACK_BTN_0);
+	}
+
+	es8316->jack = NULL;
+
+	mutex_unlock(&es8316->lock);
+}
+
+static int es8316_set_jack(struct snd_soc_component *component,
+			   struct snd_soc_jack *jack, void *data)
+{
+	if (jack)
+		es8316_enable_jack_detect(component, jack);
+	else
+		es8316_disable_jack_detect(component);
+	return 0;
+}
 
 static const struct snd_soc_component_driver soc_component_dev_es8316 = {
 	.probe =	es8316_probe,
@@ -1043,6 +1255,7 @@ static const struct snd_soc_component_driver soc_component_dev_es8316 = {
 	.suspend =	es8316_suspend,
 	.resume =	es8316_resume,
 	.set_bias_level = es8316_set_bias_level,
+	.set_jack		= es8316_set_jack,
 
 	.controls = es8316_snd_controls,
 	.num_controls = ARRAY_SIZE(es8316_snd_controls),
@@ -1052,8 +1265,26 @@ static const struct snd_soc_component_driver soc_component_dev_es8316 = {
 	.num_dapm_routes = ARRAY_SIZE(es8316_dapm_routes),
 };
 
+static ssize_t detect_info_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	return snprintf(buf, 4, "%d\n", detect);
+}
+
+static DEVICE_ATTR_RO(detect_info);
+
+static struct attribute *es8316_sysfs_attrs[] = {
+	&dev_attr_detect_info.attr,
+	NULL,
+};
+
+static struct attribute_group es8316_sysfs_attr_grp = {
+	.attrs = es8316_sysfs_attrs,
+};
+
 static int es8316_i2c_probe(struct i2c_client *i2c)
 {
+	struct device *dev = &i2c->dev;
 	struct es8316_priv *es8316;
 	int ret = -1;
 	//int hp_irq;
@@ -1128,6 +1359,30 @@ static int es8316_i2c_probe(struct i2c_client *i2c)
 	}
 	*/
 
+	es8316->irq_gpio = of_get_named_gpio(np, "irq-gpio", 0);
+	if (es8316->irq_gpio < 0) {
+		dev_err(dev, "no irq-gpio provided, will not power on device");
+	} else {
+		dev_info(dev, "irq-gpio provided ok");
+		ret = devm_gpio_request_one(dev, es8316->irq_gpio,
+									GPIOF_IN, "irq-gpio");
+		es8316->irq = gpio_to_irq(es8316->irq_gpio);
+	}
+
+	mutex_init(&es8316->lock);
+
+	ret = devm_request_threaded_irq(dev, es8316->irq, NULL, es8316_irq,
+					IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING | IRQF_ONESHOT,
+					"es8316", es8316);
+	if (ret == 0) {
+		/* Gets re-enabled by es8316_set_jack() */
+		disable_irq(es8316->irq);
+		dev_warn(dev, "success to get IRQ %d: %d\n", es8316->irq, ret);
+	} else {
+		dev_warn(dev, "Failed to get IRQ %d: %d\n", es8316->irq, ret);
+		es8316->irq = -ENXIO;
+	}
+
 	es8316->power_en_gpio = of_get_named_gpio(np, "power_en-gpio", 0);
 	if (es8316->power_en_gpio < 0) {
 		pr_err("no power_en-gpio provided, will not power on device");
@@ -1143,6 +1398,16 @@ static int es8316_i2c_probe(struct i2c_client *i2c)
 				gpio_set_value(es8316->power_en_gpio, 1);
 			}
 		}
+	}
+
+	ret = sysfs_create_group(&dev->kobj, &es8316_sysfs_attr_grp);
+	if (ret)
+		pr_err("%s: sysfs group creation failed %d\n", __func__, ret);
+
+	nlsk = netlink_kernel_create(&init_net, NETLINK_TEST, NULL);
+	if (!nlsk) {
+		pr_err("%s: netlink_kernel_create error !\n", __func__);
+		return -EINVAL;
 	}
 
 	ret = snd_soc_register_component(&i2c->dev,
