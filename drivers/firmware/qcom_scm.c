@@ -1214,40 +1214,38 @@ EXPORT_SYMBOL_GPL(qcom_scm_ice_set_key);
  * Return: 0 on success; -errno on failure.
  */
 int qcom_scm_derive_sw_secret(const u8 *wkey, size_t wkey_size,
-			      u8 *sw_secret, size_t sw_secret_size)
+		u8 *sw_secret, size_t sw_secret_size)
 {
 	struct qcom_scm_desc desc = {
 		.svc = QCOM_SCM_SVC_ES,
 		.cmd =  QCOM_SCM_ES_DERIVE_SW_SECRET,
 		.arginfo = QCOM_SCM_ARGS(4, QCOM_SCM_RW,
-					 QCOM_SCM_VAL, QCOM_SCM_RW,
-					 QCOM_SCM_VAL),
+					QCOM_SCM_VAL, QCOM_SCM_RW,
+					QCOM_SCM_VAL),
 		.args[1] = wkey_size,
 		.args[3] = sw_secret_size,
 		.owner = ARM_SMCCC_OWNER_SIP,
 	};
 
-	void *wkey_buf, *secret_buf;
-	dma_addr_t wkey_phys, secret_phys;
 	int ret;
 
-	/*
-	 * Like qcom_scm_ice_set_key(), we use dma_alloc_coherent() to properly
-	 * get a physical address, while guaranteeing that we can zeroize the
-	 * key material later using memzero_explicit().
-	 */
-	wkey_buf = dma_alloc_coherent(__scm->dev, wkey_size, &wkey_phys, GFP_KERNEL);
+	void *wkey_buf __free(qcom_tzmem) = qcom_tzmem_alloc(__scm->mempool,
+										wkey_size,
+										GFP_KERNEL);
 	if (!wkey_buf)
 		return -ENOMEM;
-	secret_buf = dma_alloc_coherent(__scm->dev, sw_secret_size, &secret_phys, GFP_KERNEL);
+
+	void *secret_buf __free(qcom_tzmem) = qcom_tzmem_alloc(__scm->mempool,
+										sw_secret_size,
+										GFP_KERNEL);
 	if (!secret_buf) {
 		ret = -ENOMEM;
-		goto err_free_wrapped;
+		goto out_free_wrapped;
 	}
 
 	memcpy(wkey_buf, wkey, wkey_size);
-	desc.args[0] = wkey_phys;
-	desc.args[2] = secret_phys;
+	desc.args[0] = qcom_tzmem_to_phys(wkey_buf);
+	desc.args[2] = qcom_tzmem_to_phys(secret_buf);
 
 	ret = qcom_scm_call(__scm->dev, &desc, NULL);
 	if (!ret)
@@ -1255,12 +1253,8 @@ int qcom_scm_derive_sw_secret(const u8 *wkey, size_t wkey_size,
 
 	memzero_explicit(secret_buf, sw_secret_size);
 
-	dma_free_coherent(__scm->dev, sw_secret_size, secret_buf, secret_phys);
-
-err_free_wrapped:
+out_free_wrapped:
 	memzero_explicit(wkey_buf, wkey_size);
-
-	dma_free_coherent(__scm->dev, wkey_size, wkey_buf, wkey_phys);
 
 	return ret;
 }
