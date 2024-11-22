@@ -2965,7 +2965,7 @@ static int sde_connector_populate_mode_info(struct drm_connector *conn,
 		rc = sde_connector_get_mode_info(&c_conn->base, mode, NULL,
 				&mode_info);
 		if (rc) {
-			SDE_ERROR_CONN(c_conn,
+			SDE_DEBUG_CONN(c_conn,
 				"failed to get mode info for mode %s\n",
 				mode->name);
 			continue;

@@ -1136,7 +1136,7 @@ static int dsi_panel_parse_triggers(struct dsi_host_common_cfg *host,
 	rc = utils->read_u32(utils->data, "qcom,mdss-dsi-te-pin-select",
 			&host->te_mode);
 	if (rc) {
-		DSI_WARN("[%s] fallback to default te-pin-select\n", name);
+		DSI_DEBUG("[%s] fallback to default te-pin-select\n", name);
 		host->te_mode = 1;
 		rc = 0;
 	}

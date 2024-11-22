@@ -5988,7 +5988,7 @@ static int dsi_display_init(struct dsi_display *display)
 
 	rc = component_add(&pdev->dev, &dsi_display_comp_ops);
 	if (rc) {
-		DSI_ERR("component add failed, rc=%d\n", rc);
+		DSI_DEBUG("component add failed, rc=%d\n", rc);
 		goto comp_add_fail;
 	}
 
@@ -6095,7 +6095,7 @@ int dsi_display_dev_probe(struct platform_device *pdev)
 	} else {
 		display_bootargs = of_get_property(of_find_node_by_path("/chosen"),
 					"display_bootargs", NULL);
-		DSI_ERR("-------display_bootargs=%s-----------\n",display_bootargs);
+		DSI_DEBUG("-------display_bootargs=%s-----------\n",display_bootargs);
 
 		panel_node = of_find_node_by_name(mdp_node, display_bootargs);
 		if (!panel_node) {
@@ -7704,7 +7704,7 @@ int dsi_display_find_mode(struct dsi_display *display,
 	kvfree(priv_info);
 
 	if (!*out_mode) {
-		DSI_ERR("[%s] failed to find mode for v_active %u h_active %u fps %u pclk %u\n",
+		DSI_DEBUG("[%s] failed to find mode for v_active %u h_active %u fps %u pclk %u\n",
 				display->name, cmp->timing.v_active,
 				cmp->timing.h_active, cmp->timing.refresh_rate,
 				cmp->pixel_clk_khz);
