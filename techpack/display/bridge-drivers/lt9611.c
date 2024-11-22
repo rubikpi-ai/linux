@@ -127,12 +127,13 @@ struct lt9611 {
 
 	struct i2c_client *client;
 
-	bool hpd_supported;
 	bool power_on;
 	/* can be accessed from different threads, so protect this with ocm_lock */
 	bool hdmi_connected;
 	bool edid_read_sts;
 	bool edid_read_en;
+	bool pm_enable;
+	bool pm_work_sts;
 
 	/* external display platform device */
 	struct platform_device *ext_pdev;
@@ -153,9 +154,9 @@ struct lt9611 {
 	unsigned int cec_tx_status;
 	struct cec_notifier *cec_notifier;
 
+	struct delayed_work pm_work;
 	/* Dynamic Mode Switch support */
 	struct drm_display_mode curr_mode;
-	bool fix_mode;
 	struct lt9611_mode debug_mode;
 	u8 edid_buf[256];
 };
@@ -1478,9 +1479,12 @@ static void lt9611_bridge_enable(struct drm_bridge *bridge)
 				&lt9611->ext_audio_data.codec,
 				EXT_DISPLAY_CABLE_CONNECT);
 	}
-	lt9611_lock(lt9611);
-	lt9611_on(lt9611, true);
-	lt9611_unlock(lt9611);
+
+	if (!lt9611->pm_enable) {
+		lt9611_lock(lt9611);
+		lt9611_on(lt9611, true);
+		lt9611_unlock(lt9611);
+	}
 }
 
 static void lt9611_bridge_disable(struct drm_bridge *bridge)
@@ -1509,6 +1513,75 @@ static void lt9611_bridge_disable(struct drm_bridge *bridge)
 	}
 }
 
+static void lt9611_pm_work(struct work_struct *work)
+{
+	struct delayed_work *lt9611_delayed_work = to_delayed_work(work);
+	struct lt9611 *lt9611 = container_of(lt9611_delayed_work, struct lt9611, pm_work);
+	unsigned int hpd_status;
+
+	dev_info(lt9611->dev, "lt9611_pm_work start !\n");
+	lt9611_lock(lt9611);
+
+	regmap_read(lt9611->regmap, 0x825e, &hpd_status);
+
+	if ((hpd_status & 0x04) == 0x04) {
+		lt9611->hdmi_connected = true;
+		lt9611->edid_read_en = false;
+	} else {
+		lt9611->hdmi_connected = false;
+	}
+
+	lt9611->pm_enable = false;
+
+	if (lt9611->pm_work_sts) {
+		lt9611->hdmi_connected = false;
+
+		schedule_delayed_work(&lt9611->pm_work, msecs_to_jiffies(500));
+	} else {
+		enable_irq(lt9611->client->irq);
+	}
+
+	wake_up_all(&lt9611->wq);
+	schedule_work(&lt9611->work);
+
+	lt9611_unlock(lt9611);
+}
+
+static int lt9611_pm_resume(struct device *dev)
+{
+	struct lt9611 *lt9611;
+	unsigned int hpd_status;
+
+	if (!dev)
+		return -ENODEV;
+
+	lt9611 = dev_get_drvdata(dev);
+
+	dev_info(lt9611->dev, "bridge pm resume\n");
+
+	schedule_delayed_work(&lt9611->pm_work, msecs_to_jiffies(2000));
+
+	return 0;
+}
+
+static int lt9611_pm_suspend(struct device *dev)
+{
+	struct lt9611 *lt9611;
+
+	if (!dev)
+		return -ENODEV;
+
+	lt9611 = dev_get_drvdata(dev);
+
+	dev_info(lt9611->dev, "bridge pm suspend\n");
+
+	lt9611->pm_enable = true;
+	lt9611->pm_work_sts = true;
+	disable_irq(lt9611->client->irq);
+
+	return 0;
+}
+
 static void lt9611_bridge_mode_set(struct drm_bridge *bridge,
 				      const struct drm_display_mode *mode,
 				      const struct drm_display_mode *adj_mode)
@@ -1527,23 +1600,28 @@ static enum drm_connector_status lt9611_bridge_detect(struct drm_bridge *bridge)
 	int ret;
 	bool connected = true;
 
+	if (lt9611->pm_work_sts) {
+		lt9611->pm_work_sts = false;
+
+		return connector_status_disconnected;
+	}
+
 	lt9611_lock(lt9611);
 
-	if (lt9611->hpd_supported) {
-		ret = regmap_read(lt9611->regmap, 0x825e, &reg_val);
+	ret = regmap_read(lt9611->regmap, 0x825e, &reg_val);
 
-		if (ret) {
-			dev_info(lt9611->dev, "failed to read hpd status: %d\n", ret);
+	if (ret) {
+		dev_info(lt9611->dev, "failed to read hpd status: %d\n", ret);
+	} else {
+		dev_info(lt9611->dev, "success to read hpd status: %d\n", reg_val);
+		if ((reg_val & 0x04) == 0x04) {
+			connected  = true;
 		} else {
-			dev_info(lt9611->dev, "success to read hpd status: %d\n", reg_val);
-			if ((reg_val & 0x04) == 0x04) {
-				connected  = true;
-			} else {
-				connected  = false;
-				lt9611_on(lt9611, true);
-			}
+			connected  = false;
+			lt9611_on(lt9611, true);
 		}
 	}
+
 	lt9611->hdmi_connected = connected;
 
 	lt9611_unlock(lt9611);
@@ -2045,7 +2123,6 @@ static ssize_t edid_mode_store(struct device *dev,
 	if (!hdisplay || !vdisplay || !vrefresh)
 		goto err;
 
-	lt9611->fix_mode = true;
 	lt9611->debug_mode.h_active = hdisplay;
 	lt9611->debug_mode.v_active = vdisplay;
 	lt9611->debug_mode.v_refresh = vrefresh;
@@ -2055,7 +2132,6 @@ static ssize_t edid_mode_store(struct device *dev,
 
 	return count;
 err:
-	lt9611->fix_mode = false;
 	return -EINVAL;
 }
 
@@ -2184,14 +2260,14 @@ static int lt9611_probe(struct i2c_client *client)
 	ret = lt9611_read_device_rev(lt9611);
 	if (ret) {
 		dev_err(dev, "failed to read chip rev\n");
-	} else {
-		lt9611->hpd_supported = true;
 	}
 
 	init_waitqueue_head(&lt9611->wq);
 	INIT_WORK(&lt9611->work, lt9611_hpd_work);
 	INIT_WORK(&lt9611->cec_recv_work, lt9611_cec_recv_work);
 	INIT_WORK(&lt9611->cec_transmit_work, lt9611_cec_transmit_work);
+
+	INIT_DELAYED_WORK(&lt9611->pm_work, lt9611_pm_work);
 
 	ret = devm_request_threaded_irq(dev, client->irq, NULL,
 					lt9611_irq_thread_handler,
@@ -2204,9 +2280,7 @@ static int lt9611_probe(struct i2c_client *client)
 
 	lt9611->bridge.funcs = &lt9611_bridge_funcs;
 	lt9611->bridge.of_node = client->dev.of_node;
-	lt9611->bridge.ops = DRM_BRIDGE_OP_DETECT | DRM_BRIDGE_OP_EDID | DRM_BRIDGE_OP_MODES;
-	if (lt9611->hpd_supported)
-		lt9611->bridge.ops |= DRM_BRIDGE_OP_HPD;
+	lt9611->bridge.ops = DRM_BRIDGE_OP_DETECT | DRM_BRIDGE_OP_EDID | DRM_BRIDGE_OP_MODES | DRM_BRIDGE_OP_HPD;
 
 	ret = lt9611_cec_adap_init(lt9611);
 	if (ret)
@@ -2238,6 +2312,7 @@ static void lt9611_remove(struct i2c_client *client)
 	/* TODO check order of closing wq */
 	cancel_work_sync(&lt9611->cec_recv_work);
 	cancel_work_sync(&lt9611->cec_transmit_work);
+	cancel_delayed_work_sync(&lt9611->pm_work);
 	if (lt9611->cec_adapter)
 		cec_unregister_adapter(lt9611->cec_adapter);
 
@@ -2260,11 +2335,17 @@ static const struct of_device_id lt9611_match_table[] = {
 };
 MODULE_DEVICE_TABLE(of, lt9611_match_table);
 
+static const struct dev_pm_ops lt9611_pm_ops = {
+	.suspend = lt9611_pm_suspend,
+	.resume = lt9611_pm_resume,
+};
+
 static struct i2c_driver lt9611_driver = {
 	.driver = {
 		.name = "lt9611",
 		.of_match_table = lt9611_match_table,
 		.dev_groups = lt9611_attr_groups,
+		.pm = &lt9611_pm_ops,
 	},
 	.probe = lt9611_probe,
 	.remove = lt9611_remove,
