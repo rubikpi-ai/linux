@@ -360,6 +360,7 @@ struct dw_pcie_rp {
 	raw_spinlock_t		lock;
 	DECLARE_BITMAP(msi_irq_in_use, MAX_MSI_IRQS);
 	struct pci_eq_presets	presets;
+	bool			use_linkup_irq;
 };
 
 struct dw_pcie_ep_ops {
