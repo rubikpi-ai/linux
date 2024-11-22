@@ -671,7 +671,7 @@
 };
 
 &usb_2_dwc3 {
-	dr_mode = "otg";
+	dr_mode = "host";
 };
 
 &spi10 {
