@@ -4094,11 +4094,6 @@ int dsi_ctrl_set_vid_engine_state(struct dsi_ctrl *dsi_ctrl,
 					state, skip_op);
 	dsi_ctrl_update_state(dsi_ctrl, DSI_CTRL_OP_VID_ENGINE, state);
 
-	if (on) {
-		DSI_CTRL_ERR(dsi_ctrl, "Init lt9611\n");
-	} else {
-		DSI_CTRL_ERR(dsi_ctrl, "Disable lt9611 output\n");
-	}
 error:
 	mutex_unlock(&dsi_ctrl->ctrl_lock);
 	return rc;

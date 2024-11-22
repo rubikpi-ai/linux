@@ -674,7 +674,7 @@ static int msm_component_bind_all(struct device *dev,
 
 	ret = component_bind_all(dev, drm_dev);
 	if (ret)
-		DRM_ERROR("component_bind_all failed: %d\n", ret);
+		DRM_DEBUG("component_bind_all failed: %d\n", ret);
 
 	return ret;
 }
