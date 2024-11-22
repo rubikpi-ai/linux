@@ -58,39 +58,11 @@ typedef enum {
 	MIPI_2PORT = 0x03,
 } mipi_port_counts;
 
-typedef enum {
-	VIDEO_1024x600_60HZ = 0,
-	VIDEO_1920x1080_60HZ,
-	VIDEO_2560x1440_60HZ,
-	VIDEO_3840x2160_30HZ,
-	VIDEO_1280x720_60HZ,
-	VIDEO_640x480_60Hz,
-	VIDEO_720x480_60Hz,
-	VIDEO_720x576_60Hz,
-	VIDEO_800x600_60Hz,
-	VIDEO_1024x768_60Hz,
-	VIDEO_1280x768_60Hz,
-	VIDEO_1280x800_60Hz,
-	VIDEO_1600x1200_60Hz,
-	VIDEO_INDEX_MAX
-} video_format_id;
-
-struct lt9611_mode {
-	u16 h_front_porch;
-	u16 h_pulse_width;
-	u16 h_back_porch;
-	u16 h_active;
-	u16 h_total;
-	u16 v_front_porch;
-	u16 v_pulse_width;
-	u16 v_back_porch;
-	u16 v_active;
-	u16 v_total;
-	u8  v_refresh;
-	bool h_polarity;
-	bool v_polarity;
-	u8 vic;
-	u32 pclk_khz;
+enum lt9611_aspect_ratio_type {
+	RATIO_UNKOWN = 0,
+	RATIO_4_3,
+	RATIO_16_9,
+	RATIO_16_10,
 };
 
 struct lt9611 {
@@ -114,7 +86,6 @@ struct lt9611 {
 
 	mipi_port_counts mipi_port_counts;
 	mipi_lane_counts mipi_lane_counts;
-	video_format_id video_format_id;
 	audio_intf audio_out_intf;
 
 	struct gpio_desc *reset_gpio;
@@ -157,27 +128,17 @@ struct lt9611 {
 	struct delayed_work pm_work;
 	/* Dynamic Mode Switch support */
 	struct drm_display_mode curr_mode;
-	struct lt9611_mode debug_mode;
 	u8 edid_buf[256];
 };
 
 #define LT9611_PAGE_CONTROL	0xff
 
-static struct lt9611_mode lt9611_modes[] = {
-	{ 44,  88,  188,  1024,   1344,  3,   6,  16,  600,  625,   60,  0,  0,  0,  50400  }, // video_1024x600_60Hz
-	{ 88,  44,  148,  1920,   2200,  4,   5,  36,  1080, 1125,  60,  1,  1,  16, 148500 }, // video_1920x1080_60Hz
-	{ 48,  32,  80,   2560,   2720,  3,   5,  33,  1440, 1481,  60,  1,  1,  0,  241700 }, // video_2560x1440_60Hz
-	{ 176, 88,  296,  3840,   4400,  8,   10, 72,  2160, 2250,  30,  1,  1,  95, 297000 }, // video_3840x2160_30Hz
-	{ 110, 40,  220,  1280,   1650,  5,   5,  20,  720,  750,   60,  1,  1,  4,  74250  }, // video_1280x720_60Hz
-	{ 16,  96,  48,   640,    800,   10,  2,  33,  480,  525,   60,  0,  0,  1,  25000  }, // video_640x480_60Hz
-	{ 16,  62,  60,   720,    858,   9,   6,  30,  480,  525,   60,  0,  0,  2,  27000  }, // video_720x480_60Hz
-	{ 12,  64,  68,   720,    864,   5,   5,  39,  576,  625,   60,  0,  0,  17, 27000  }, // video_720x576_60Hz
-	{ 48,  128, 88,   800,    1056,  1,   4,  23,  600,  628,   60,  1,  1,  0,  40000  }, // video_800x600_60Hz
-	{ 24,  136, 160,  1024,   1344,  3,   6,  29,  768,  806,   60,  0,  0,  0,  65000  }, // video_1024x768_60Hz
-	{ 64,  128, 192,  1280,   1664,  3,   7,  20,  768,  798,   60,  0,  1,  0,  79500  }, // video_1280x768_60Hz
-	{ 28,  32,  100,  1280,   1440,  2,   6,  15,  800,  823,   60,  0,  0,  0,  71000  }, // video_1280x800_60Hz
-	{ 64,  192, 304,  1600,   2160,  1,   3,  46,  1200, 1250,  60,  1,  1,  0,  162000 }, // video_1600x1200_60Hz
-};
+#define	MPEG_PKT_EN 0x01
+#define	AIF_PKT_EN  0x02
+#define SPD_PKT_EN	0x04
+#define AVI_PKT_EN	0x08
+#define UD1_PKT_EN	0x10
+#define UD0_PKT_EN	0x20
 
 static const struct regmap_range_cfg lt9611_ranges[] = {
 	{
@@ -661,7 +622,6 @@ static int lt9611_video_check(struct lt9611 *lt9611)
 	u32 v_total, vactive, hactive_a, hactive_b, h_total_sysclk;
 	int temp;
 	unsigned int mipi_video_format = 0;
-	video_format_id i;
 
 	/* top module video check */
 
@@ -701,15 +661,8 @@ static int lt9611_video_check(struct lt9611 *lt9611)
 		 "video check: hactive_a=%d, hactive_b=%d, vactive=%d, v_total=%d, h_total_sysclk=%d, mipi_video_format=%d\n",
 		 hactive_a, hactive_b, vactive, v_total, h_total_sysclk, mipi_video_format);
 
-	// Adaptive Resolution
-	for (i = 0; i < VIDEO_INDEX_MAX; i++) {
-		if ((hactive_a == lt9611_modes[i].h_active) && (vactive == lt9611_modes[i].v_active)) {
-			lt9611->video_format_id = i;
-			break;
-		}
-	}
-
-	if (lt9611->video_format_id == VIDEO_3840x2160_30HZ) {
+	// settle config
+	if ((hactive_a == 3840) && (vactive == 2160)) {
 		regmap_write(lt9611->regmap, 0x8302, 0x10);
 		regmap_write(lt9611->regmap, 0x8306, 0x10);
 	}
@@ -722,14 +675,13 @@ end:
 }
 
 u8 pcr_m_ex = 0x00;
-static int lt9611_pll_setup(struct lt9611 *lt9611, const struct drm_display_mode *mode, unsigned int *postdiv)
+static int lt9611_pll_setup(struct lt9611 *lt9611)
 {
 	u32 pclk;
 	u8 pcr_m;
 	u8 hdmi_post_div;
 	unsigned int pll_lock_flag ,cal_done_flag ,band_out;
 	u8 i;
-	struct lt9611_mode *cfg;
 	const struct reg_sequence reg_cfg[] = {
 		/* txpll init */
 		{ 0x8123, 0x40 },
@@ -743,23 +695,20 @@ static int lt9611_pll_setup(struct lt9611 *lt9611, const struct drm_display_mode
 		{ 0x812a, 0x20 },
 	};
 
-	cfg = &lt9611_modes[lt9611->video_format_id];
-	pclk = cfg->pclk_khz;
+	pclk = lt9611->curr_mode.clock;
 
 	regmap_multi_reg_write(lt9611->regmap, reg_cfg, ARRAY_SIZE(reg_cfg));
 
 	if (pclk > 150000) {
 		regmap_write(lt9611->regmap, 0x812d, 0x88);
-		*postdiv = 1;
+		hdmi_post_div = 1;
 	} else if (pclk > 70000) {
 		regmap_write(lt9611->regmap, 0x812d, 0x99);
-		*postdiv = 2;
+		hdmi_post_div = 2;
 	} else {
 		regmap_write(lt9611->regmap, 0x812d, 0xaa);
-		*postdiv = 4;
+		hdmi_post_div = 4;
 	}
-
-	hdmi_post_div = *postdiv;
 
 	pcr_m = (u8)((pclk * 5 * hdmi_post_div) / 27000);
 	pcr_m --;
@@ -812,22 +761,15 @@ static int lt9611_pll_setup(struct lt9611 *lt9611, const struct drm_display_mode
 	return 0;
 }
 
-static void lt9611_pcr_setup(struct lt9611 *lt9611, const struct drm_display_mode *mode, unsigned int postdiv)
+static void lt9611_pcr_setup(struct lt9611 *lt9611)
 {
-	video_format_id video_format_id = lt9611->video_format_id;
-	struct lt9611_mode *cfg;
 	u8 POL;
-	u16 hact;
+	struct drm_display_mode *mode = &lt9611->curr_mode;
 
-	cfg = &lt9611_modes[video_format_id];
-	hact = cfg->h_active;
-	POL = (cfg-> h_polarity)*0x02 + (cfg-> v_polarity);
+	POL = ((mode->flags & DRM_MODE_FLAG_PHSYNC) ? 0x02 : 0x00) |
+			((mode->flags & DRM_MODE_FLAG_PVSYNC) ? 0x01 : 0x00);
 	POL = ~POL;
 	POL &= 0x03;
-
-	hact = (hact>>2);
-	hact += 0x50;
-	hact = (0x3e0>hact ? hact:0x3e0);
 
 	// single port
 	regmap_write(lt9611->regmap, 0x830b, 0x01); //vsync mode
@@ -843,7 +785,10 @@ static void lt9611_pcr_setup(struct lt9611 *lt9611, const struct drm_display_mod
 	regmap_write(lt9611->regmap, 0x834a, 0x40); //offset //0x10
 	regmap_write(lt9611->regmap, 0x831d, 0x10|POL); //PCR de mode step setting.
 
-	if (video_format_id == VIDEO_1024x600_60HZ) {
+	// 1024x600_60Hz
+	if ((mode->hdisplay == 1024) &&
+            (mode->vdisplay == 600) &&
+            (drm_mode_vrefresh(mode)) == 60) {
 		regmap_write(lt9611->regmap, 0x8324, 0x70); //bit[7:4]v/h/de mode; line for clk stb[11:8]
 		regmap_write(lt9611->regmap, 0x8325, 0x80); //line for clk stb[7:0]
 		regmap_write(lt9611->regmap, 0x832a, 0x10); //clk stable in
@@ -854,29 +799,24 @@ static void lt9611_pcr_setup(struct lt9611 *lt9611, const struct drm_display_mod
 	}
 }
 
-static void lt9611_mipi_video_setup(struct lt9611 *lt9611,
-				    const struct drm_display_mode *mode)
+static void lt9611_mipi_video_setup(struct lt9611 *lt9611)
 {
 	u32 h_total, h_act, hpw, hfp, hss;
 	u32 v_total, v_act, vpw, vfp, vss;
-	video_format_id video_id;
-	struct lt9611_mode *cfg;
+	struct drm_display_mode *mode = &lt9611->curr_mode;
 
-	video_id = lt9611->video_format_id;
-	cfg = &lt9611_modes[video_id];
+	h_total = mode->htotal;
+	v_total = mode->vtotal;
 
-	h_total = cfg->h_active + cfg->h_front_porch + cfg->h_pulse_width + cfg->h_back_porch;
-	v_total = cfg->v_active + cfg->v_front_porch + cfg->v_pulse_width + cfg->v_back_porch;
+	h_act = mode->hdisplay;
+	hpw = mode->hsync_end - mode->hsync_start;
+	hfp = mode->hsync_start - mode->hdisplay;
+	hss = mode->htotal - mode->hsync_start;
 
-	h_act = cfg->h_active;
-	hpw = cfg->h_pulse_width;
-	hfp = cfg->h_front_porch;
-	hss = cfg->h_pulse_width + cfg->h_back_porch;
-
-	v_act = cfg->v_active;
-	vpw = cfg->v_pulse_width;
-	vfp = cfg->v_front_porch;
-	vss = cfg->v_pulse_width + cfg->v_back_porch;
+	v_act = mode->vdisplay;
+	vpw = mode->vsync_end - mode->vsync_start;
+	vfp = mode->vsync_start - mode->vdisplay;
+	vss = mode->vtotal - mode->vsync_start;
 
 	regmap_write(lt9611->regmap, 0x830d, (u8)(v_total / 256));
 	regmap_write(lt9611->regmap, 0x830e, (u8)(v_total % 256));
@@ -910,22 +850,48 @@ static int lt9611_pcr_start(struct lt9611 *lt9611)
 	return 0;
 }
 
+static unsigned int gcd(unsigned int a, unsigned int b)
+{
+	while (b != 0) {
+		unsigned int t = b;
+		b = a % b;
+		a = t;
+	}
+
+	return a;
+}
+
+static enum lt9611_aspect_ratio_type lt9611_cal_aspect_ratio(const struct drm_display_mode *mode)
+{
+	unsigned int width = mode->hdisplay;
+	unsigned int height = mode->vdisplay;
+	unsigned int divisor, aspect_width, aspect_height;
+
+	divisor = gcd(width, height);
+	aspect_width = width / divisor;
+	aspect_height = height / divisor;
+
+	pr_info("Aspect Ratio = %u : %u\n",  aspect_width, aspect_height);
+
+	if (aspect_width == 4 && aspect_height == 3) {
+		return RATIO_4_3;
+	} else if (aspect_width == 16 && aspect_height == 9) {
+		return RATIO_16_9;
+	} else {
+		return RATIO_UNKOWN;
+	}
+}
+
 static void lt9611_hdmi_tx_digital(struct lt9611 *lt9611, bool is_hdmi)
 {
-	struct lt9611_mode *cfg;
-	video_format_id video_id;
-	u32 vic;
-	u8 AR = 0x02;
+	u32 vic = drm_match_cea_mode(&lt9611->curr_mode);
+	u8 AR = lt9611_cal_aspect_ratio(&lt9611->curr_mode);;
 	u8 pb0,pb2,pb4;
 	u8 infoFrame_en;
 
-	video_id = lt9611->video_format_id;
+	infoFrame_en = (AIF_PKT_EN | AVI_PKT_EN);
+	pb2 =  (AR << 4) + 0x08;
 
-	cfg = &lt9611_modes[video_id];
-	vic = cfg->vic;
-
-	infoFrame_en = (0x02|0x08);
-	pb2 =  (AR<<4) + 0x08;
 	if(vic == 95) {
 		pb4 = 0x00;
 	} else {
@@ -957,7 +923,7 @@ static void lt9611_hdmi_tx_digital(struct lt9611 *lt9611, bool is_hdmi)
 	regmap_write(lt9611->regmap, 0x8412, 0x64); //act_h_blank
 
 	if(vic == 95) {
-		regmap_write(lt9611->regmap, 0x843d, infoFrame_en|0x20);
+		regmap_write(lt9611->regmap, 0x843d, (infoFrame_en | UD0_PKT_EN));
 		regmap_write(lt9611->regmap, 0x8474, 0x81); //HB0
 		regmap_write(lt9611->regmap, 0x8475, 0x01); //HB1
 		regmap_write(lt9611->regmap, 0x8476, 0x05); //HB2
@@ -974,7 +940,7 @@ static void lt9611_hdmi_tx_digital(struct lt9611 *lt9611, bool is_hdmi)
 
 static void lt9611_HDP_Interrupt_Handle(struct lt9611 *lt9611)
 {
-	unsigned int postdiv, reg;
+	unsigned int reg;
 
 	/* Disable HDMI output */
 	regmap_write(lt9611->regmap, 0x8130, 0x00);
@@ -989,9 +955,9 @@ static void lt9611_HDP_Interrupt_Handle(struct lt9611 *lt9611)
 			lt9611_LowPower_mode(lt9611, 0);
 			msleep(100);
 			lt9611_video_check(lt9611);
-			lt9611_pll_setup(lt9611, NULL, &postdiv);
-			lt9611_pcr_setup(lt9611, NULL, 0);
-			lt9611_mipi_video_setup(lt9611, NULL);
+			lt9611_pll_setup(lt9611);
+			lt9611_pcr_setup(lt9611);
+			lt9611_mipi_video_setup(lt9611);
 			regmap_write(lt9611->regmap, 0x8326, pcr_m_ex);
 			lt9611_pcr_start(lt9611);
 			lt9611_hdmi_tx_digital(lt9611, true);
@@ -1235,23 +1201,6 @@ static int lt9611_regulator_enable(struct lt9611 *lt9611)
 	return 0;
 }
 
-static struct lt9611_mode *lt9611_find_mode(const struct drm_display_mode *mode)
-{
-	int i;
-
-	for (i = 0; i < ARRAY_SIZE(lt9611_modes); i++) {
-		if (lt9611_modes[i].h_active == mode->hdisplay &&
-		    lt9611_modes[i].h_total == mode->htotal &&
-		    lt9611_modes[i].v_active == mode->vdisplay &&
-		    lt9611_modes[i].v_total == mode->vtotal &&
-		    lt9611_modes[i].v_refresh == drm_mode_vrefresh(mode)) {
-			return &lt9611_modes[i];
-		}
-	}
-
-	return NULL;
-}
-
 static struct mipi_dsi_device *lt9611_attach_dsi(struct lt9611 *lt9611,
 						    struct device_node *dsi_node)
 {
@@ -1355,9 +1304,13 @@ static enum drm_connector_status lt9611_connector_detect(struct drm_connector *c
 static enum drm_mode_status lt9611_connector_mode_valid(struct drm_connector *connector,
 							   struct drm_display_mode *mode)
 {
-	struct lt9611_mode *lt9611_mode = lt9611_find_mode(mode);
+	if ((mode->hdisplay == 3840) &&
+            (mode->vdisplay == 2160) &&
+            (drm_mode_vrefresh(mode) == 60)) {
+		return MODE_BAD;
+	}
 
-	return lt9611_mode ? MODE_OK : MODE_BAD;
+	return MODE_OK;
 }
 
 static const struct drm_connector_helper_funcs lt9611_bridge_connector_helper_funcs = {
@@ -1440,18 +1393,19 @@ lt9611_bridge_mode_valid(struct drm_bridge *bridge,
 			    const struct drm_display_info *info,
 			    const struct drm_display_mode *mode)
 {
-	struct lt9611_mode *lt9611_mode;
-	struct lt9611 *lt9611 = bridge_to_lt9611(bridge);
-
-	lt9611_mode = lt9611_find_mode(mode);
-
 	//dev_info(lt9611->dev, "%s: %s: %d(%d:%d:%d:%d) x %d(%d:%d:%d:%d)-%d\n",
-	//		lt9611_mode ? "MODE_OK": "MODE_BAD", mode->name,
+	//		"MODE_OK", mode->name,
 	//		mode->hdisplay, mode->htotal, mode->hsync_start, mode->hsync_end, mode->hskew,
 	//		mode->vdisplay, mode->vtotal, mode->vsync_start, mode->vsync_end, mode->vscan,
 	//		drm_mode_vrefresh(mode));
 
-	return lt9611_mode ? MODE_OK : MODE_BAD;
+	if ((mode->hdisplay == 3840) &&
+            (mode->vdisplay == 2160) &&
+            (drm_mode_vrefresh(mode) == 60)) {
+		return MODE_BAD;
+	}
+
+	return MODE_OK;
 }
 
 static void lt9611_bridge_enable(struct drm_bridge *bridge)
@@ -1550,7 +1504,6 @@ static void lt9611_pm_work(struct work_struct *work)
 static int lt9611_pm_resume(struct device *dev)
 {
 	struct lt9611 *lt9611;
-	unsigned int hpd_status;
 
 	if (!dev)
 		return -ENODEV;
@@ -1708,7 +1661,6 @@ static struct edid *lt9611_bridge_get_edid(struct drm_bridge *bridge,
 					      struct drm_connector *connector)
 {
 	struct lt9611 *lt9611 = bridge_to_lt9611(bridge);
-	int ret;
 
 	return drm_do_get_edid(connector, lt9611_get_edid_block, lt9611);
 }
@@ -1951,7 +1903,6 @@ static int lt9611_cec_transmit(struct cec_adapter *adap, u8 attempts,
 		u32 signal_free_time, struct cec_msg *msg)
 {
 	int i;
-	unsigned int reg_cec_flag;
 	struct lt9611 *lt9611 = cec_get_drvdata(adap);
 	unsigned int len = (msg->len > CEC_MAX_MSG_SIZE) ? CEC_MAX_MSG_SIZE : msg->len;
 
@@ -2123,10 +2074,6 @@ static ssize_t edid_mode_store(struct device *dev,
 	if (!hdisplay || !vdisplay || !vrefresh)
 		goto err;
 
-	lt9611->debug_mode.h_active = hdisplay;
-	lt9611->debug_mode.v_active = vdisplay;
-	lt9611->debug_mode.v_refresh = vrefresh;
-
 	dev_info(lt9611->dev, "fixed mode hdisplay=%d vdisplay=%d, vrefresh=%d\n",
 			hdisplay, vdisplay, vrefresh);
 
@@ -2140,7 +2087,6 @@ static ssize_t send_cec_msg_store(struct device *dev,
 	size_t count)
 {
 	int i, value;
-	u8 reg_cec_flag;
 	u8 len = (u8) strlen(buf);
 	__u8 msg[CEC_MAX_MSG_SIZE];
 	size_t j;
@@ -2249,7 +2195,6 @@ static int lt9611_probe(struct i2c_client *client)
 	if (ret)
 		goto err_of_put;
 
-	lt9611->video_format_id = VIDEO_1920x1080_60HZ;
 	lt9611->mipi_lane_counts = MIPI_4LANE;
 	lt9611->mipi_port_counts = MIPI_1PORT;
 	lt9611->audio_out_intf = I2S;
