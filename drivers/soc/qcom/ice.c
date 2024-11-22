@@ -66,8 +66,6 @@
 #define qcom_ice_readl(engine, reg)	\
 	readl((engine)->base + (reg))
 
-static bool qcom_ice_create_error;
-
 struct qcom_ice {
 	struct device *dev;
 	void __iomem *base;
@@ -611,15 +609,17 @@ struct qcom_ice *of_qcom_ice_get(struct device *dev)
 		goto out;
 	}
 
-	ice = platform_get_drvdata(pdev);
-	if (!ice) {
+	base = devm_platform_ioremap_resource(pdev, 0);
+	if (IS_ERR(base)) {
+		dev_warn(&pdev->dev, "ICE registers not found\n");
+		return PTR_ERR(base);
+	}
+
+	ice = qcom_ice_create(&pdev->dev, base);
+	if (IS_ERR(ice)) {
 		dev_err(dev, "Cannot get ice instance from %s\n",
 			dev_name(&pdev->dev));
 		platform_device_put(pdev);
-		if (qcom_ice_create_error)
-			ice = ERR_PTR(-EOPNOTSUPP);
-		else
-			ice = ERR_PTR(-EPROBE_DEFER);
 		goto out;
 	}
 
@@ -637,45 +637,6 @@ out:
 	return ice;
 }
 EXPORT_SYMBOL_GPL(of_qcom_ice_get);
-
-static int qcom_ice_probe(struct platform_device *pdev)
-{
-	struct qcom_ice *engine;
-	void __iomem *base;
-
-	base = devm_platform_ioremap_resource(pdev, 0);
-	if (IS_ERR(base)) {
-		dev_warn(&pdev->dev, "ICE registers not found\n");
-		return PTR_ERR(base);
-	}
-
-	engine = qcom_ice_create(&pdev->dev, base);
-
-	if (IS_ERR(engine)) {
-		qcom_ice_create_error = true;
-		return PTR_ERR(engine);
-	}
-
-	platform_set_drvdata(pdev, engine);
-
-	return 0;
-}
-
-static const struct of_device_id qcom_ice_of_match_table[] = {
-	{ .compatible = "qcom,inline-crypto-engine" },
-	{ },
-};
-MODULE_DEVICE_TABLE(of, qcom_ice_of_match_table);
-
-static struct platform_driver qcom_ice_driver = {
-	.probe	= qcom_ice_probe,
-	.driver = {
-		.name = "qcom-ice",
-		.of_match_table = qcom_ice_of_match_table,
-	},
-};
-
-module_platform_driver(qcom_ice_driver);
 
 MODULE_DESCRIPTION("Qualcomm Inline Crypto Engine driver");
 MODULE_LICENSE("GPL");
