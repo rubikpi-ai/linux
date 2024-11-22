@@ -143,6 +143,7 @@ struct lt9611 {
 	/* CEC support */
 	struct cec_adapter *cec_adapter;
 	u8 cec_log_addr;
+	u8 cec_tx_data;
 	bool cec_en;
 	bool cec_support;
 	struct work_struct cec_recv_work;
@@ -161,7 +162,7 @@ struct lt9611 {
 #define LT9611_PAGE_CONTROL	0xff
 
 static struct lt9611_mode lt9611_modes[] = {
-	{ 44,  88,  188,  1024,   1344,  3,   6,  16,  600,  625,   60,  0,  0,  0,  50400  }, // video_1026x600_60Hz
+	{ 44,  88,  188,  1024,   1344,  3,   6,  16,  600,  625,   60,  0,  0,  0,  50400  }, // video_1024x600_60Hz
 	{ 88,  44,  148,  1920,   2200,  4,   5,  36,  1080, 1125,  60,  1,  1,  16, 148500 }, // video_1920x1080_60Hz
 	{ 48,  32,  80,   2560,   2720,  3,   5,  33,  1440, 1481,  60,  1,  1,  0,  241700 }, // video_2560x1440_60Hz
 	{ 176, 88,  296,  3840,   4400,  8,   10, 72,  2160, 2250,  30,  1,  1,  95, 297000 }, // video_3840x2160_30Hz
@@ -1023,11 +1024,24 @@ static void lt9611_power_on(struct lt9611 *lt9611)
 	lt9611_hdmi_tx_phy(lt9611);
 
 	//init and enable hpd interrupt
-	regmap_write(lt9611->regmap, 0x8258, 0x0a);//Det HPD 0x0a --> 0x08
-	regmap_write(lt9611->regmap, 0x8259, 0x00);//HPD debounce width
+	regmap_write(lt9611->regmap, 0x8258, 0x0a); //Det HPD 0x0a --> 0x08
+	regmap_write(lt9611->regmap, 0x8259, 0x00); //HPD debounce width
 	regmap_write(lt9611->regmap, 0x8207, 0xff); //clear3
 	regmap_write(lt9611->regmap, 0x8207, 0x3f); //clear3
 	regmap_write(lt9611->regmap, 0x8203, 0x3f); //mask3  //Tx_det
+
+	//cec init and enable cec interrupt
+	regmap_write(lt9611->regmap, 0x800d, 0xff);
+	regmap_write(lt9611->regmap, 0x8015, 0xf1); //reset cec logic
+	regmap_write(lt9611->regmap, 0x8015, 0xf9);
+	regmap_write(lt9611->regmap, 0x86fe, 0xa5); //clk div
+
+	regmap_write(lt9611->regmap, 0x86fa, 0x00); //cec interrup mask
+	regmap_write(lt9611->regmap, 0x86fc, 0x7f); //cec irq clr
+	regmap_write(lt9611->regmap, 0x86fc, 0x00);
+	regmap_write(lt9611->regmap, 0x8201, 0x7f); //mask bit[7]
+	regmap_write(lt9611->regmap, 0x8205, 0xff); //clr bit[7]
+	regmap_write(lt9611->regmap, 0x8205, 0x7f);
 
 	msleep(200);
 	lt9611->power_on = true;
@@ -1049,24 +1063,52 @@ static irqreturn_t lt9611_irq_thread_handler(int irq, void *dev_id)
 {
 	struct lt9611 *lt9611 = dev_id;
 	unsigned int hpd_status = 0;
+	unsigned int irq_flag0, irq_flag1;
+	unsigned int cec_status;
 
 	lt9611_lock(lt9611);
 
-	regmap_write(lt9611->regmap, 0x8207, 0xff); //clear3
-	regmap_write(lt9611->regmap, 0x8207, 0x3f); //clear3
+	regmap_read(lt9611->regmap, 0x820d, &irq_flag0); // cec interrupt
+	regmap_read(lt9611->regmap, 0x820f, &irq_flag1); // hpd interrupt
 
-	regmap_read(lt9611->regmap, 0x825e, &hpd_status);
-	if (hpd_status & 0x04 == 0x04) {
-		msleep(10);
+	//0x80 disconnected, 0x40 connected
+	if (irq_flag1 & 0xc0) {
+		regmap_write(lt9611->regmap, 0x8207, 0xff); //clear hpd interrupt
+		regmap_write(lt9611->regmap, 0x8207, 0x3f); //clear hpd interrupt
+
 		regmap_read(lt9611->regmap, 0x825e, &hpd_status);
 		if (hpd_status & 0x04 == 0x04) {
-			lt9611->hdmi_connected = true;
+			msleep(10);
+			regmap_read(lt9611->regmap, 0x825e, &hpd_status);
+			if (hpd_status & 0x04 == 0x04) {
+				lt9611->hdmi_connected = true;
+				cec_queue_pin_hpd_event(lt9611->cec_adapter, true, 0);
+			}
+		} else {
+			lt9611->hdmi_connected = false;
+			cec_notifier_phys_addr_invalidate(lt9611->cec_notifier);
+			cec_queue_pin_hpd_event(lt9611->cec_adapter, false, 0);
 		}
-	} else {
-		lt9611->hdmi_connected = false;
+		wake_up_all(&lt9611->wq);
+		schedule_work(&lt9611->work);
 	}
-	wake_up_all(&lt9611->wq);
-	schedule_work(&lt9611->work);
+
+	if ((irq_flag0 & 0x80) == 0x80) {
+		regmap_read(lt9611->regmap, 0x86d2, &cec_status);
+
+		lt9611->cec_status = cec_status;
+
+		regmap_write(lt9611->regmap, 0x86fc, 0x7f); //cec irq clr
+		regmap_write(lt9611->regmap, 0x86fc, 0x00);
+
+		regmap_write(lt9611->regmap, 0x8205, 0xff); //clear3
+		regmap_write(lt9611->regmap, 0x8205, 0x7f);
+
+		if (lt9611->cec_status) {
+			schedule_work(&lt9611->cec_transmit_work);
+			schedule_work(&lt9611->cec_recv_work);
+		}
+	}
 
 	lt9611_unlock(lt9611);
 
@@ -1661,6 +1703,250 @@ static int lt9611_read_device_rev(struct lt9611 *lt9611)
 	return ret;
 }
 
+int lt9611_read_cec_msg(struct lt9611 *lt9611, struct cec_msg *msg)
+{
+	unsigned int cec_val, cec_len, i;
+	int ret = 0;
+
+	pr_info("%s: Enter \n", __func__);
+
+	lt9611_lock(lt9611);
+	regmap_write(lt9611->regmap, 0x86f5, 0x01); //lock rx data buff
+	regmap_read(lt9611->regmap, 0x86d3, &cec_len);
+	msg->len = (cec_len > CEC_MAX_MSG_SIZE) ? CEC_MAX_MSG_SIZE : cec_len;
+
+	/* TODO: implement regmap_bulk_read */
+	for (i = 0; i < cec_len; i++) {
+		regmap_read(lt9611->regmap, 0x86d4 + i, &cec_val);
+		msg->msg[i] = cec_val;
+	}
+
+	regmap_write(lt9611->regmap, 0x86f5, 0x00); //unlock rx data buff
+	lt9611_unlock(lt9611);
+
+	/* TODO hexdump */
+	if (cec_len == 0) {
+		ret = -EINVAL;
+		pr_err("ERROR: CEC message length = %u, skip read CEC message.\n", cec_len);
+	} else {
+		for (i = 0; i < msg->len; i++)
+			dev_err(lt9611->dev, "received msg[%d] = %x", i, msg->msg[i]);
+	}
+
+	return ret;
+}
+
+void lt9611_cec_transmit_work(struct work_struct *work)
+{
+	struct lt9611 *lt9611 = container_of(work, struct lt9611,
+					cec_transmit_work);
+
+	dev_info(lt9611->dev, "cec_status 0x%x : cec_tx_data %0x\n", lt9611->cec_status, lt9611->cec_tx_data);
+	if ((lt9611->cec_tx_data == 0x44) || (lt9611->cec_tx_data == 0x88) || (lt9611->cec_tx_data == 0xbb)) {
+		lt9611->cec_tx_data = 0x00;
+		cec_transmit_attempt_done(lt9611->cec_adapter, CEC_TX_STATUS_NACK);
+
+		return;
+	}
+
+	if (lt9611->cec_status & BIT(2))
+		cec_transmit_attempt_done(lt9611->cec_adapter, CEC_TX_STATUS_NACK);
+	else if (lt9611->cec_status & BIT(0))
+		cec_transmit_attempt_done(lt9611->cec_adapter, CEC_TX_STATUS_OK);
+}
+
+void lt9611_cec_recv_work(struct work_struct *work)
+{
+	struct lt9611 *lt9611 = container_of(work, struct lt9611, cec_recv_work);
+	struct cec_msg cec_msg = {};
+
+	pr_info("%s: Enter \n", __func__);
+	if (!lt9611->cec_status) {
+		dev_err(lt9611->dev, "cec message is receiving\n");
+		return;
+	}
+
+	if (lt9611_read_cec_msg(lt9611, &cec_msg) == 0)
+		cec_received_msg(lt9611->cec_adapter, &cec_msg);
+}
+
+static int lt9611_cec_enable(struct cec_adapter *adap, bool enable)
+{
+	struct lt9611 *lt9611 = cec_get_drvdata(adap);
+
+	lt9611->cec_en = enable;
+	return 0;
+}
+
+static int lt9611_cec_log_addr(struct cec_adapter *adap, u8 logical_addr)
+{
+	struct lt9611 *lt9611 = cec_get_drvdata(adap);
+	unsigned int reg0 = 0x00, reg1 = 0x80;
+
+	pr_info("%s: Enter , cec_log_addr 0x%x\n", __func__, logical_addr);
+	lt9611->cec_log_addr = logical_addr;
+	if (logical_addr != CEC_LOG_ADDR_INVALID) {
+		switch(logical_addr) {
+			case 0:
+				reg0 = 0x01;
+				reg1 = 0x00;
+				break;
+			case 1:
+				reg0 = 0x02;
+				reg1 = 0x00;
+				break;
+			case 2:
+				reg0 = 0x03;
+				reg1 = 0x00;
+				break;
+			case 3:
+				reg0 = 0x04;
+				reg1 = 0x00;
+				break;
+			case 4:
+				reg0 = 0x10;
+				reg1 = 0x00;
+				break;
+			case 5:
+				reg0 = 0x20;
+				reg1 = 0x00;
+				break;
+			case 6:
+				reg0 = 0x30;
+				reg1 = 0x00;
+				break;
+			case 7:
+				reg0 = 0x40;
+				reg1 = 0x00;
+				break;
+			case 8:
+				reg0 = 0x00;
+				reg1 = 0x01;
+				break;
+			case 9:
+				reg0 = 0x00;
+				reg1 = 0x02;
+				break;
+			case 10:
+				reg0 = 0x00;
+				reg1 = 0x03;
+				break;
+			case 11:
+				reg0 = 0x00;
+				reg1 = 0x04;
+				break;
+			case 12:
+				reg0 = 0x00;
+				reg1 = 0x10;
+				break;
+			case 13:
+				reg0 = 0x00;
+				reg1 = 0x20;
+				break;
+			case 14:
+				reg0 = 0x00;
+				reg1 = 0x30;
+				break;
+			case 15:
+				reg0 = 0x00;
+				reg1 = 0x40;
+				break;
+			default:
+				break;
+		}
+
+		lt9611_lock(lt9611);
+		regmap_write(lt9611->regmap, 0x86f7, reg0);
+		regmap_write(lt9611->regmap, 0x86f8, reg1);
+		lt9611_unlock(lt9611);
+	}
+
+	return 0;
+}
+
+static int lt9611_cec_transmit(struct cec_adapter *adap, u8 attempts,
+		u32 signal_free_time, struct cec_msg *msg)
+{
+	int i;
+	unsigned int reg_cec_flag;
+	struct lt9611 *lt9611 = cec_get_drvdata(adap);
+	unsigned int len = (msg->len > CEC_MAX_MSG_SIZE) ? CEC_MAX_MSG_SIZE : msg->len;
+
+	pr_info("%s: Enter \n", __func__);
+
+	lt9611_lock(lt9611);
+	regmap_write(lt9611->regmap, 0x86f5, 0x01); //lock rx data buff
+	regmap_write(lt9611->regmap, 0x86f4, len);
+
+	/* TODO check regmap_bulk_write */
+	for (i = 0; i < len; i++)
+		regmap_write(lt9611->regmap, 0x86e4 + i, msg->msg[i]);
+
+	regmap_write(lt9611->regmap, 0x86f9, 0x03); //start send msg
+	msleep(25 * i);
+	regmap_write(lt9611->regmap, 0x86f5, 0x00); //unlock rx data buff
+	regmap_write(lt9611->regmap, 0x86f9, 0x02);
+	lt9611_unlock(lt9611);
+
+	lt9611->cec_tx_data = msg->msg[0];
+
+	/* TODO: check hexdump */
+	for (i = 0; i < len; i++)
+		dev_err(lt9611->dev, "cec transmit msg[%d] = %x\n", i, msg->msg[i]);
+
+	return 0;
+}
+
+struct cec_adap_ops lt9611_cec_ops = {
+	.adap_enable = lt9611_cec_enable,
+	.adap_log_addr = lt9611_cec_log_addr,
+	.adap_transmit = lt9611_cec_transmit,
+};
+
+static int lt9611_cec_adap_init(struct lt9611 *lt9611)
+{
+	int ret = 0;
+	struct cec_adapter *adap = NULL;
+	unsigned int cec_flags = CEC_CAP_DEFAULTS;
+
+	adap = cec_allocate_adapter(&lt9611_cec_ops, lt9611,
+			"lt9611_cec", cec_flags, 1);
+	if (!adap) {
+		dev_err(lt9611->dev, "cec adapter allocate failed\n");
+		return -ENOMEM;
+	}
+
+	lt9611->cec_notifier = cec_notifier_cec_adap_register(lt9611->dev,
+						NULL, adap);
+	if (!lt9611->cec_notifier) {
+		dev_err(lt9611->dev, "get cec notifier failed\n");
+		cec_delete_adapter(adap);
+		lt9611->cec_adapter = NULL;
+		lt9611->cec_support = false;
+		lt9611->cec_en = false;
+		return -ENOMEM;
+	}
+
+	ret = cec_register_adapter(adap, lt9611->dev);
+	if (ret != 0) {
+		dev_err(lt9611->dev, "register cec adapter failed\n");
+		cec_delete_adapter(adap);
+		lt9611->cec_adapter = NULL;
+		lt9611->cec_support = false;
+		lt9611->cec_en = false;
+	} else {
+		dev_err(lt9611->dev, "CEC adapter registered\n");
+		lt9611->cec_en = true;
+		lt9611->cec_support = true;
+		lt9611->cec_log_addr = CEC_LOG_ADDR_PLAYBACK_1;
+
+		lt9611->cec_adapter = adap;
+		cec_s_log_addrs(lt9611->cec_adapter, NULL, false);
+	}
+
+	return ret;
+}
+
 static int lt9611_hdmi_hw_params(struct device *dev, void *data,
 				    struct hdmi_codec_daifmt *fmt,
 				    struct hdmi_codec_params *hparms)
@@ -1768,10 +2054,63 @@ err:
 	return -EINVAL;
 }
 
+static ssize_t send_cec_msg_store(struct device *dev,
+	struct device_attribute *attr, const char *buf,
+	size_t count)
+{
+	int i, value;
+	u8 reg_cec_flag;
+	u8 len = (u8) strlen(buf);
+	__u8 msg[CEC_MAX_MSG_SIZE];
+	size_t j;
+	char hex[3];
+	struct lt9611 *lt9611 = dev_get_drvdata(dev);
+
+	if (!lt9611) {
+		pr_err("lt9611 is NULL\n");
+		return -EINVAL;
+	}
+
+	memset(msg, 0, CEC_MAX_MSG_SIZE);
+
+	len = (len > CEC_MAX_MSG_SIZE) ? 16 : len;
+	len = len / 2;
+	for (j = 0; j < len; j++) {
+        strncpy(hex, buf + j*2, 2);
+        hex[2] = '\0';
+
+		sscanf(hex, "%x", &value);
+		msg[j] = (__u8)value;
+    }
+
+	lt9611_lock(lt9611);
+
+	regmap_write(lt9611->regmap, 0x86f5, 0x01); //lock rx data buff
+	regmap_write(lt9611->regmap, 0x86f4, len);
+
+	for (i = 0; i < len; i++)
+		regmap_write(lt9611->regmap, 0x86e4 + i, msg[i]);
+
+	regmap_write(lt9611->regmap, 0x86f9, 0x03); //start send msg
+	msleep(25 * i);
+	regmap_write(lt9611->regmap, 0x86f5, 0x00); //unlock rx data buff
+	regmap_write(lt9611->regmap, 0x86f9, 0x02);
+
+	lt9611_unlock(lt9611);
+
+	/* To check what message sent */
+	for (i = 0; i < len; i++)
+		pr_err("lt9611 transmitting msg[%d] = %x\n", i, msg[i]);
+
+	return count;
+}
+
 static DEVICE_ATTR_RW(edid_mode);
+static DEVICE_ATTR_WO(send_cec_msg);
 
 static struct attribute *lt9611_attrs[] = {
 	&dev_attr_edid_mode.attr,
+	&dev_attr_send_cec_msg.attr,
 	NULL,
 };
 
@@ -1846,6 +2185,8 @@ static int lt9611_probe(struct i2c_client *client)
 
 	init_waitqueue_head(&lt9611->wq);
 	INIT_WORK(&lt9611->work, lt9611_hpd_work);
+	INIT_WORK(&lt9611->cec_recv_work, lt9611_cec_recv_work);
+	INIT_WORK(&lt9611->cec_transmit_work, lt9611_cec_transmit_work);
 
 	ret = devm_request_threaded_irq(dev, client->irq, NULL,
 					lt9611_irq_thread_handler,
@@ -1862,6 +2203,7 @@ static int lt9611_probe(struct i2c_client *client)
 	if (lt9611->hpd_supported)
 		lt9611->bridge.ops |= DRM_BRIDGE_OP_HPD;
 
+	ret = lt9611_cec_adap_init(lt9611);
 	if (ret)
 		dev_err(dev, "CEC init failed. ret=%d\n", ret);
 	else
