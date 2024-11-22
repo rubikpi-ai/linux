@@ -132,6 +132,7 @@ struct lt9611 {
 	/* can be accessed from different threads, so protect this with ocm_lock */
 	bool hdmi_connected;
 	bool edid_read_sts;
+	bool edid_read_en;
 
 	/* external display platform device */
 	struct platform_device *ext_pdev;
@@ -1077,11 +1078,12 @@ static irqreturn_t lt9611_irq_thread_handler(int irq, void *dev_id)
 		regmap_write(lt9611->regmap, 0x8207, 0x3f); //clear hpd interrupt
 
 		regmap_read(lt9611->regmap, 0x825e, &hpd_status);
-		if (hpd_status & 0x04 == 0x04) {
+		if ((hpd_status & 0x04) == 0x04) {
 			msleep(10);
 			regmap_read(lt9611->regmap, 0x825e, &hpd_status);
-			if (hpd_status & 0x04 == 0x04) {
+			if ((hpd_status & 0x04) == 0x04) {
 				lt9611->hdmi_connected = true;
+				lt9611->edid_read_en = false;
 				cec_queue_pin_hpd_event(lt9611->cec_adapter, true, 0);
 			}
 		} else {
@@ -1534,7 +1536,7 @@ static enum drm_connector_status lt9611_bridge_detect(struct drm_bridge *bridge)
 			dev_info(lt9611->dev, "failed to read hpd status: %d\n", ret);
 		} else {
 			dev_info(lt9611->dev, "success to read hpd status: %d\n", reg_val);
-			if (reg_val & 0x04 == 0x04) {
+			if ((reg_val & 0x04) == 0x04) {
 				connected  = true;
 			} else {
 				connected  = false;
@@ -1562,53 +1564,56 @@ static int lt9611_get_edid_block(void *data, u8 *buf, unsigned int block, size_t
 	if (block >= EDID_NUM_BLOCKS)
 		return -EINVAL;
 
-	if (!lt9611->edid_read_sts) {
-		lt9611_lock(lt9611);
+	if (!lt9611->edid_read_en) {
+		if (!lt9611->edid_read_sts) {
+			lt9611_lock(lt9611);
 
-		regmap_write(lt9611->regmap, 0x8503,0xc9);
-		regmap_write(lt9611->regmap, 0x8504,0xA0); //0xA0 is EDID device address
-		regmap_write(lt9611->regmap, 0x8505,0x00); //0x00 is EDID offset address
-		regmap_write(lt9611->regmap, 0x8506,0x20); //length for read
-		regmap_write(lt9611->regmap, 0x8514,0x7f);
+			regmap_write(lt9611->regmap, 0x8503,0xc9);
+			regmap_write(lt9611->regmap, 0x8504,0xA0); //0xA0 is EDID device address
+			regmap_write(lt9611->regmap, 0x8505,0x00); //0x00 is EDID offset address
+			regmap_write(lt9611->regmap, 0x8506,0x20); //length for read
+			regmap_write(lt9611->regmap, 0x8514,0x7f);
 
-		for(i = 0;i < 8;i ++) { // block 0
-			regmap_write(lt9611->regmap, 0x8505,i*32); //0x00 is EDID offset address
-			regmap_write(lt9611->regmap, 0x8507,0x36);
-			regmap_write(lt9611->regmap, 0x8507,0x34); //0x31
-			regmap_write(lt9611->regmap, 0x8507,0x37); //0x37
-			msleep(5); // wait 5ms for reading edid data.
+			for(i = 0;i < 8;i ++) { // block 0
+				regmap_write(lt9611->regmap, 0x8505,i*32); //0x00 is EDID offset address
+				regmap_write(lt9611->regmap, 0x8507,0x36);
+				regmap_write(lt9611->regmap, 0x8507,0x34); //0x31
+				regmap_write(lt9611->regmap, 0x8507,0x37); //0x37
+				msleep(5); // wait 5ms for reading edid data.
 
-			regmap_read(lt9611->regmap, 0x8540, &reg);
-			if(reg & 0x02) { //KEY_DDC_ACCS_DONE=1
 				regmap_read(lt9611->regmap, 0x8540, &reg);
-				if(reg & 0x50) { //DDC No Ack or Abitration lost
-					goto end;
+				if(reg & 0x02) { //KEY_DDC_ACCS_DONE=1
+					regmap_read(lt9611->regmap, 0x8540, &reg);
+					if(reg & 0x50) { //DDC No Ack or Abitration lost
+						goto end;
+					} else {
+						for(j = 0; j < 32; j ++) {
+							regmap_read(lt9611->regmap, 0x8583, &reg);
+							lt9611->edid_buf[i*32+j]= reg & 0xFF;
+							if((i == 3) && ( j == 30)) {
+								extended_flag = reg & 0x03;
+							}
+						}
+						if(i == 3) {
+							if(extended_flag < 1) { //no block 1, stop reading edid.
+								goto end;
+							}
+						}
+					}
 				} else {
-					for(j = 0; j < 32; j ++) {
-						regmap_read(lt9611->regmap, 0x8583, &reg);
-						lt9611->edid_buf[i*32+j]= reg & 0xFF;
-						if((i == 3) && ( j == 30)) {
-							extended_flag = reg & 0x03;
-						}
-					}
-					if(i == 3) {
-						if(extended_flag < 1) { //no block 1, stop reading edid. 
-							goto end; 
-						}
-					}
+					goto end;
 				}
-			} else {
-				goto end;
 			}
-		}
 
-		lt9611->edid_read_sts = true;
+			lt9611->edid_read_sts = true;
+			lt9611->edid_read_en = true;
 
 end:
-		regmap_write(lt9611->regmap, 0x8503,0xc2);
-		regmap_write(lt9611->regmap, 0x8507,0x1f);
+			regmap_write(lt9611->regmap, 0x8503,0xc2);
+			regmap_write(lt9611->regmap, 0x8507,0x1f);
 
-		lt9611_unlock(lt9611);
+			lt9611_unlock(lt9611);
+		}
 	}
 
 	if (block == 0) {
