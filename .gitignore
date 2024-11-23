@@ -170,3 +170,10 @@ sphinx_*/
 
 # Rust analyzer configuration
 /rust-project.json
+
+# RUBIKPi
+!initramfs-qcom-image-qcm6490.cpio.gz
+!efi.bin
+/rubikpi/output
+/rubikpi/tools/pack/image_temp
+/rubikpi/tools/pack/dtb_temp
