@@ -88,7 +88,7 @@ build_fat_img() {
 
 	# Delete any previous image.
 	if [ -e ${FATIMG} ]; then
-		rm ${FATIMG}
+		rm ${FATIMG} -f
 	fi
 
 	mkfs.vfat ${FATSIZE} -n ${BOOTIMG_VOLUME_ID} ${MKFSVFAT_EXTRAOPTS} -C ${FATIMG} ${BLOCKS}
@@ -113,7 +113,7 @@ do_dtb_package()
 
 	build_fat_img $TOP_DIR/rubikpi/tools/pack/dtb_temp/dtb $TOP_DIR/rubikpi/output/pack/dtb.bin
 
-	rm $TOP_DIR/rubikpi/tools/pack/dtb_temp -r
+	rm $TOP_DIR/rubikpi/tools/pack/dtb_temp -rf
 }
 
 DEFAULT_CMD_LINE="root=/dev/disk/by-partlabel/system rw rootwait console=ttyMSM0,115200n8 earlycon pcie_pme=nomsi kernel.sched_pelt_multiplier=4 rcupdate.rcu_expedited=1 rcu_nocbs=0-7 kpti=off kasan=off kasan.stacktrace=off no-steal-acc page_owner=on swiotlb=128"
@@ -134,7 +134,7 @@ do_image_package()
 
 	cp $TOP_DIR/arch/arm64/boot/Image $TOP_DIR/rubikpi/tools/pack/image_temp
 
-	python3.10 $TOP_DIR/rubikpi/tools/pack/ukify build \
+	sudo python3.10 $TOP_DIR/rubikpi/tools/pack/ukify build \
 		--efi-arch=aa64 \
 		--stub=$TOP_DIR/rubikpi/tools/pack/linuxaa64.efi.stub \
 		--linux=$TOP_DIR/rubikpi/tools/pack/image_temp/Image \
@@ -148,9 +148,9 @@ do_image_package()
 
 	sudo cp $TOP_DIR/rubikpi/tools/pack/image_temp/uki.efi $TOP_DIR/rubikpi/tools/pack/image_temp/mnt/EFI/Linux
 	sudo umount $TOP_DIR/rubikpi/tools/pack/image_temp/mnt
-	cp $TOP_DIR/rubikpi/tools/pack/image_temp/efi.bin $TOP_DIR/rubikpi/output/pack
+	sudo cp $TOP_DIR/rubikpi/tools/pack/image_temp/efi.bin $TOP_DIR/rubikpi/output/pack
 
-	rm $TOP_DIR/rubikpi/tools/pack/image_temp -r
+	rm $TOP_DIR/rubikpi/tools/pack/image_temp -rf
 }
 
 # ========================== Start ========================================
