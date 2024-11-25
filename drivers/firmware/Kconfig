@@ -214,6 +214,7 @@ config MTK_ADSP_IPC
 
 config QCOM_SCM
 	tristate
+	select QCOM_TZMEM
 
 config QCOM_SCM_DOWNLOAD_MODE_DEFAULT
 	bool "Qualcomm download mode enabled by default"
