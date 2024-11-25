@@ -41,8 +41,9 @@ usage() {
 	echo
 	echo "\033[1;37mOptions:\033[0m"
 	echo "\033[1;37m  -h, --help\033[0m   display this help message"
-	echo "\033[1;37m  --dtb_package\033[0m    generate a burnable device tree image"
-	echo "\033[1;37m  --image_package\033[0m    generate a burnable kernel image"
+	echo "\033[1;37m  -dp, --dtb_package\033[0m    generate a burnable device tree image"
+	echo "\033[1;37m  -ip, --image_package\033[0m    generate a burnable kernel image"
+	echo "\033[1;37m  -a, --build_all\033[0m    Complete compilation of kernel"
 	echo
 }
 
@@ -96,8 +97,6 @@ build_fat_img() {
 	# Copy FATSOURCEDIR recursively into the image file directly
 	mcopy -i ${FATIMG} -s ${FATSOURCEDIR}/* ::/
 }
-
-
 
 do_dtb_package()
 {
@@ -153,12 +152,22 @@ do_image_package()
 	rm $TOP_DIR/rubikpi/tools/pack/image_temp -rf
 }
 
+do_build_all()
+{
+	if [ ! -e "$TOP_DIR/.config" ]; then
+		make ARCH=arm64 rubik_pi3_defconfig
+	fi
+
+	make ARCH=arm64 CROSS_COMPILE=aarch64-qcom-linux- -j`nproc`
+}
+
 # ========================== Start ========================================
 while true; do
 	case "$1" in
-		-h|--help)          usage; exit 0;;
-		--dtb_package)      do_dtb_package ;;
-		--image_package)    do_image_package ;;
+		-h|--help)              usage; exit 0;;
+		-dp|--dtb_package)      do_dtb_package ;;
+		-ip|--image_package)    do_image_package ;;
+		-a|--build_all)         do_build_all ;;
 	esac
 	shift
 

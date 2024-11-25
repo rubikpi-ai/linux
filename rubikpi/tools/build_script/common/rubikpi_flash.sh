@@ -40,8 +40,8 @@ usage() {
 	echo "\033[1;37mOptions:\033[0m"
 	echo "\033[1;37m  -h, --help\033[0m   display this help message"
 	echo "\033[1;37m  -r, --reboot\033[0m  exit fastboot mode"
-	echo "\033[1;37m  --dtb\033[0m    flash device tree image"
-	echo "\033[1;37m  --image\033[0m    flash kernel image"
+	echo "\033[1;37m  -d, --dtb\033[0m    flash device tree image"
+	echo "\033[1;37m  -i, --image\033[0m    flash kernel image"
 	echo
 }
 
@@ -70,10 +70,10 @@ do_fastboot_reboot() {
 # ========================== Start ========================================
 while true; do
 	case "$1" in
-		-h|--help)          usage; exit 0;;
-		--dtb)      do_dtb_flash ;;
-		--image)    do_image_flash ;;
-		-r|--reboot)    do_fastboot_reboot ;;
+		-h|--help)           usage; exit 0;;
+		-d|--dtb)            do_dtb_flash ;;
+		-i|--image)          do_image_flash ;;
+		-r|--reboot)         do_fastboot_reboot ;;
 	esac
 	shift
 
