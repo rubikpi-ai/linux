@@ -3,6 +3,7 @@ DISPLAY_ROOT := $(abs_srctree)/techpack/display
 CAMERA_KERNEL_ROOT := $(abs_srctree)/techpack/camera-kernel
 CAMERA_ARCH := qcm6490
 KERNEL_ROOT := $(abs_srctree)
+KERNEL_SRC  := $(abs_srctree)
 MACHINE := qcm6490
 
 export DISPLAY_ROOT
