@@ -329,6 +329,7 @@ struct ath11k_vif {
 
 	u16 tx_seq_no;
 	struct wmi_wmm_params_all_arg wmm_params;
+	struct wmi_wmm_params_all_arg muedca_params;
 	struct list_head list;
 	union {
 		struct {
