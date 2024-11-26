@@ -49,7 +49,7 @@
 			};
 		};
 
-		pmm8620au_0_sail_xo_therm {
+		pmm8620au_0_sail_xo {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&pmm8620au_0_adc PM8775_1_ADC5_GEN3_AMUX6_THM_100K_PU>;
@@ -68,7 +68,7 @@
 			};
 		};
 
-		pmm8620au_0_ufs0_therm {
+		pmm8620au_0_ufs0 {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&pmm8620au_0_adc PM8775_1_ADC5_GEN3_AMUX5_THM_100K_PU>;
@@ -87,7 +87,7 @@
 			};
 		};
 
-		pmm8620au_0_xo-therm {
+		pmm8620au_0_xo {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&pmm8620au_0_adc PM8775_1_ADC5_GEN3_AMUX1_THM_100K_PU>;
@@ -146,7 +146,7 @@
 			};
 		};
 
-		pmm8650au_1_sdram_therm {
+		pmm8650au_1_sdram {
 			polling-delay-passive = <0>;
 			polling-delay = <0>;
 			thermal-sensors = <&pmm8650au_1_adc PM8775_2_ADC5_GEN3_AMUX6_THM_100K_PU>;
