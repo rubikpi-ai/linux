@@ -990,6 +990,8 @@
 	pinctrl-1 = <&sdc2_clk_sleep>, <&sdc2_cmd_sleep>, <&sdc2_data_sleep>;
 	vdda-supply = <&sdio_bt_reset_1p8_vreg>;
 
+	gpio_bt_reg_on = <&tlmm 17 0>;
+
 	non-removable;
 
 	/delete-property/ cd-gpios;

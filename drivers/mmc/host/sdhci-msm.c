@@ -17,6 +17,9 @@
 #include <linux/of.h>
 #include <linux/pinctrl/consumer.h>
 #include <linux/reset.h>
+#include <linux/gpio.h>
+#include <linux/of_gpio.h>
+#include <linux/device.h>
 
 #include <soc/qcom/ice.h>
 
@@ -290,6 +293,7 @@ struct sdhci_msm_host {
 	u32 dll_config;
 	u32 ddr_config;
 	bool vqmmc_enabled;
+	u32 gpio_bt_reg_on;
 	struct regulator *vdda;
 };
 
@@ -2401,6 +2405,39 @@ static int sdhci_msm_gcc_reset(struct device *dev, struct sdhci_host *host)
 	return ret;
 }
 
+static ssize_t bt_reg_store(struct device *dev, struct device_attribute *attr, const char *buf, size_t count)
+{
+	struct sdhci_host *host = dev_get_drvdata(dev);
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_msm_host *msm_host = sdhci_pltfm_priv(pltfm_host);
+
+	if (buf[0] == '1') {
+		if (msm_host->gpio_bt_reg_on > 0) {
+			gpio_direction_output(msm_host->gpio_bt_reg_on, 1);
+		}
+		msleep(200);
+	} else if (buf[0] == '0') {
+		if (msm_host->gpio_bt_reg_on > 0) {
+			gpio_direction_output(msm_host->gpio_bt_reg_on, 0);
+		}
+		msleep(20);
+	} else {
+		pr_err("[err] gpio_bt_reg_on contrl error:%s\n", buf);
+	}
+
+	return count;
+}
+
+static ssize_t bt_reg_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct sdhci_host *host = dev_get_drvdata(dev);
+	struct sdhci_pltfm_host *pltfm_host = sdhci_priv(host);
+	struct sdhci_msm_host *msm_host = sdhci_pltfm_priv(pltfm_host);
+
+	return sprintf(buf, "%d\n", gpio_get_value(msm_host->gpio_bt_reg_on));
+}
+static DEVICE_ATTR(bt_reg, 0644, bt_reg_show, bt_reg_store);
+
 static int sdhci_msm_probe(struct platform_device *pdev)
 {
 	struct sdhci_host *host;
@@ -2428,6 +2465,15 @@ static int sdhci_msm_probe(struct platform_device *pdev)
 	ret = regulator_enable(msm_host->vdda);
 	if (ret)
 		dev_err(&pdev->dev, "cannot enable vdda regulator\n");
+
+	msm_host->gpio_bt_reg_on  = of_get_named_gpio(pdev->dev.of_node,
+					"gpio_bt_reg_on",  0);
+	if (msm_host->gpio_bt_reg_on < 0)
+		pr_err("[err] gpio_bt_reg_on not provided in devicetree\n");
+	ret = device_create_file( &pdev->dev, &dev_attr_bt_reg);
+	if (ret) {
+		pr_err("[err] Failed to create sysfs bt_reg file: %d\n", ret);
+	}
 
 	ret = mmc_of_parse(host->mmc);
 	if (ret)
