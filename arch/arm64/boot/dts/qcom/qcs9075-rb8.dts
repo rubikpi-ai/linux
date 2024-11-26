@@ -20,6 +20,7 @@
 	aliases {
 		serial0 = &uart10;
 		serial1 = &uart17;
+		ufshc1 = &ufs_mem_hc;
 	};
 
 	chosen {
@@ -823,6 +824,23 @@
 &uart19 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
+};
+
+&ufs_mem_hc {
+	reset-gpios = <&tlmm 149 GPIO_ACTIVE_LOW>;
+	vcc-supply = <&vreg_l8a>;
+	vcc-max-microamp = <1100000>;
+	vccq-supply = <&vreg_l4c>;
+	vccq-max-microamp = <1200000>;
+
+	status = "okay";
+};
+
+&ufs_mem_phy {
+	vdda-phy-supply = <&vreg_l4a>;
+	vdda-pll-supply = <&vreg_l1c>;
+
+	status = "okay";
 };
 
 &usb_0 {
