@@ -1323,6 +1323,83 @@
 
 			#freq-domain-cells = <1>;
 		};
+
+		pcie0: pci@400000000 {
+			compatible = "qcom,pcie-ecam-rc";
+			reg = <0x4 0x00000000 0x0 0x10000000>;
+
+			device_type = "pci";
+
+			#address-cells = <3>;
+			#size-cells = <2>;
+
+			ranges = <0x01000000 0x0 0x40000000 0x0 0x40000000 0x0 0x100000>,
+				 <0x02000000 0x0 0x40100000 0x0 0x40100000 0x0 0x1ff00000>,
+				 <0x43000000 0x4 0x10100000 0x4 0x10100000 0x0 0x100000>;
+			bus-range = <0x00 0xff>;
+
+			dma-coherent;
+
+			linux,pci-domain = <0>;
+
+			interrupts = <GIC_SPI 307 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 308 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 309 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 312 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 313 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 314 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 374 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-parent = <&intc>;
+
+			iommus = <&pcie_smmu 0x00 0x7f>;
+			iommu-map = <0x0 &pcie_smmu 0x0000 0x1>,
+				    <0x100 &pcie_smmu 0x0001 0x1>,
+				    <0x200 &pcie_smmu 0x0002 0x1>,
+				    <0x300 &pcie_smmu 0x0003 0x1>;
+
+			status = "disabled";
+		};
+
+		pcie1: pci@600000000 {
+			compatible = "qcom,pcie-ecam-rc";
+			reg = <0x6 0x00000000 0x0 0x10000000>;
+
+			device_type = "pci";
+
+			#address-cells = <3>;
+			#size-cells = <2>;
+
+			ranges = <0x01000000 0x0 0x60000000 0x0 0x60000000 0x0 0x100000>,
+				 <0x02000000 0x0 0x60100000 0x0 0x60100000 0x0 0x1ff00000>,
+				 <0x43000000 0x6 0x10100000 0x6 0x10100000 0x0 0x100000>;
+			bus-range = <0x00 0xff>;
+
+			dma-coherent;
+
+			linux,pci-domain = <1>;
+
+			interrupts = <GIC_SPI 519 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 141 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 142 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 143 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 144 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-parent = <&intc>;
+
+			iommus = <&pcie_smmu 0x80 0x7f>;
+			iommu-map = <0x0 &pcie_smmu 0x0080 0x1>,
+				    <0x100 &pcie_smmu 0x0081 0x1>,
+				    <0x200 &pcie_smmu 0x0082 0x1>,
+				    <0x208 &pcie_smmu 0x0083 0x1>,
+				    <0x210 &pcie_smmu 0x0084 0x1>,
+				    <0x300 &pcie_smmu 0x0085 0x1>,
+				    <0xab00 &pcie_smmu 0x0086 0x1>;
+
+			status = "disabled";
+		};
 	};
 
 	thermal-zones {

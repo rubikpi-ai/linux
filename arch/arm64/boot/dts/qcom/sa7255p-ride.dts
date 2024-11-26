@@ -54,6 +54,18 @@
 	status = "okay";
 };
 
+&pcie0 {
+	power-domains = <&scmi5_pd 0>;
+	power-domain-names = "power";
+	status = "okay";
+};
+
+&pcie1 {
+	power-domains = <&scmi6_pd 0>;
+	power-domain-names = "power";
+	status = "okay";
+};
+
 &qupv3_id_0 {
 	status = "okay";
 };
@@ -75,6 +87,14 @@
 };
 
 &scmi3 {
+	status = "okay";
+};
+
+&scmi5 {
+	status = "okay";
+};
+
+&scmi6 {
 	status = "okay";
 };
 
