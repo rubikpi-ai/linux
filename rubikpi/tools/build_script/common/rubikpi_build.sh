@@ -143,7 +143,7 @@ do_image_package()
 		--output=$TOP_DIR/rubikpi/tools/pack/image_temp/uki.efi
 
 	cp $TOP_DIR/rubikpi/tools/pack/efi.bin $TOP_DIR/rubikpi/tools/pack/image_temp
-	sudo mount $TOP_DIR/rubikpi/tools/pack/image_temp/efi.bin $TOP_DIR/rubikpi/tools/pack/image_temp/mnt
+	sudo mount $TOP_DIR/rubikpi/tools/pack/image_temp/efi.bin $TOP_DIR/rubikpi/tools/pack/image_temp/mnt --options rw
 
 	sudo cp $TOP_DIR/rubikpi/tools/pack/image_temp/uki.efi $TOP_DIR/rubikpi/tools/pack/image_temp/mnt/EFI/Linux
 	sudo umount $TOP_DIR/rubikpi/tools/pack/image_temp/mnt
@@ -158,7 +158,7 @@ do_build_all()
 		make ARCH=arm64 rubik_pi3_defconfig
 	fi
 
-	make ARCH=arm64 CROSS_COMPILE=aarch64-qcom-linux- -j`nproc`
+	make ARCH=arm64 CROSS_COMPILE=aarch64-qcom-linux- LOCALVERSION="" -j`nproc`
 }
 
 # ========================== Start ========================================
