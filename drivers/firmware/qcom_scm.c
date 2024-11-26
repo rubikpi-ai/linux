@@ -6,6 +6,7 @@
 #include <linux/platform_device.h>
 #include <linux/init.h>
 #include <linux/interrupt.h>
+#include <linux/cleanup.h>
 #include <linux/completion.h>
 #include <linux/cpumask.h>
 #include <linux/err.h>
@@ -24,7 +25,6 @@
 #include <linux/reset-controller.h>
 #include <linux/sizes.h>
 #include <linux/arm-smccc.h>
-#include <linux/qtee_shmbridge.h>
 
 #include "qcom_scm.h"
 #include "qcom/qcom_tzmem.h"
@@ -945,14 +945,13 @@ int qcom_scm_assign_mem(phys_addr_t mem_addr, size_t mem_sz,
 	struct qcom_scm_mem_map_info *mem_to_map;
 	phys_addr_t mem_to_map_phys;
 	phys_addr_t dest_phys;
-	dma_addr_t ptr_phys;
+	phys_addr_t ptr_phys;
 	size_t mem_to_map_sz;
 	size_t dest_sz;
 	size_t src_sz;
 	size_t ptr_sz;
 	int next_vm;
 	__le32 *src;
-	void *ptr;
 	int ret, i, b;
 	u64 srcvm_bits = *srcvm;
 
@@ -962,9 +961,12 @@ int qcom_scm_assign_mem(phys_addr_t mem_addr, size_t mem_sz,
 	ptr_sz = ALIGN(src_sz, SZ_64) + ALIGN(mem_to_map_sz, SZ_64) +
 			ALIGN(dest_sz, SZ_64);
 
-	ptr = dma_alloc_coherent(__scm->dev, ptr_sz, &ptr_phys, GFP_KERNEL);
+	void *ptr __free(qcom_tzmem) = qcom_tzmem_alloc(__scm->mempool,
+							ptr_sz, GFP_KERNEL);
 	if (!ptr)
 		return -ENOMEM;
+
+	ptr_phys = qcom_tzmem_to_phys(ptr);
 
 	/* Fill source vmid detail */
 	src = ptr;
@@ -994,7 +996,6 @@ int qcom_scm_assign_mem(phys_addr_t mem_addr, size_t mem_sz,
 
 	ret = __qcom_scm_assign_mem(__scm->dev, mem_to_map_phys, mem_to_map_sz,
 				    ptr_phys, src_sz, dest_phys, dest_sz);
-	dma_free_coherent(__scm->dev, ptr_sz, ptr, ptr_phys);
 	if (ret) {
 		dev_err(__scm->dev,
 			"Assign memory protection call failed %d\n", ret);
@@ -1175,59 +1176,20 @@ int qcom_scm_ice_set_key(u32 index, const u8 *key, u32 key_size,
 		.args[4] = data_unit_size,
 		.owner = ARM_SMCCC_OWNER_SIP,
 	};
-	void *keybuf;
-	dma_addr_t key_phys;
-	struct qtee_shm shm_key_phys;
+
 	int ret;
-	bool use_qtee_shmbridge;
 
-	use_qtee_shmbridge = qtee_shmbridge_is_enabled();
-	if (use_qtee_shmbridge) {
-		ret = qtee_shmbridge_allocate_shm(key_size, &shm_key_phys);
-		if (ret) {
-			pr_err("%s, smbridge allocate error\n", __func__);
-			return -ENOMEM;
-		}
-
-		memcpy(shm_key_phys.vaddr, key, key_size);
-		qtee_shmbridge_flush_shm_buf(&shm_key_phys);
-		desc.args[1] = shm_key_phys.paddr;
-	} else {
-
-	       /*
-		* 'key' may point to vmalloc()'ed memory, but we need to pass a
-		* physical address that's been properly flushed.  The sanctioned way to
-		* do this is by using the DMA API.  But as is best practice for crypto
-		* keys, we also must wipe the key after use.  This makes kmemdup() +
-		* dma_map_single() not clearly correct, since the DMA API can use
-		* bounce buffers.  Instead, just use dma_alloc_coherent().  Programming
-		* keys is normally rare and thus not performance-critical.
-		*/
-
-		keybuf = dma_alloc_coherent(__scm->dev, key_size, &key_phys,
-									GFP_KERNEL);
-		if (!keybuf)
-			return -ENOMEM;
-		memcpy(keybuf, key, key_size);
-		desc.args[1] = key_phys;
-	}
+	void *keybuf __free(qcom_tzmem) = qcom_tzmem_alloc(__scm->mempool,
+							   key_size,
+							   GFP_KERNEL);
+	if (!keybuf)
+		return -ENOMEM;
+	memcpy(keybuf, key, key_size);
+	desc.args[1] = qcom_tzmem_to_phys(keybuf);
 
 	ret = qcom_scm_call(__scm->dev, &desc, NULL);
-	if (ret) {
-		pr_err("%s, scm call failed ret: %d\n", __func__, ret);
-		goto exit;
-	}
 
-	if (use_qtee_shmbridge)
-		qtee_shmbridge_inv_shm_buf(&shm_key_phys);
-	else
-		memzero_explicit(keybuf, key_size);
-
-exit:
-	if (use_qtee_shmbridge)
-		qtee_shmbridge_free_shm(&shm_key_phys);
-	else
-		dma_free_coherent(__scm->dev, key_size, keybuf, key_phys);
+	memzero_explicit(keybuf, key_size);
 
 	return ret;
 }
@@ -1267,78 +1229,38 @@ int qcom_scm_derive_sw_secret(const u8 *wkey, size_t wkey_size,
 
 	void *wkey_buf, *secret_buf;
 	dma_addr_t wkey_phys, secret_phys;
-	struct qtee_shm shm_wkey_phys, shm_secret_phys;
 	int ret;
-	bool use_qtee_shmbridge;
 
-	use_qtee_shmbridge = qtee_shmbridge_is_enabled();
-	if (use_qtee_shmbridge) {
-		ret = qtee_shmbridge_allocate_shm(sw_secret_size, &shm_secret_phys);
-		if (ret) {
-			pr_err("%s, smbridge allocate error\n", __func__);
-			return -ENOMEM;
-		}
-		memset(shm_secret_phys.vaddr, 0, sw_secret_size);
-		qtee_shmbridge_flush_shm_buf(&shm_secret_phys);
-
-		ret = qtee_shmbridge_allocate_shm(wkey_size, &shm_wkey_phys);
-		if (ret) {
-			qtee_shmbridge_free_shm(&shm_secret_phys);
-			pr_err("%s, smbridge allocate error\n", __func__);
-			return -ENOMEM;
-		}
-		memcpy(shm_wkey_phys.vaddr, wkey, wkey_size);
-		qtee_shmbridge_flush_shm_buf(&shm_wkey_phys);
-		desc.args[0] = shm_wkey_phys.paddr;
-		desc.args[2] = shm_secret_phys.paddr;
-	} else {
-
-	       /*
-		* Like qcom_scm_ice_set_key(), we use dma_alloc_coherent() to properly
-		* get a physical address, while guaranteeing that we can zeroize the
-		* key material later using memzero_explicit().
-		*/
-		wkey_buf = dma_alloc_coherent(__scm->dev, wkey_size, &wkey_phys, GFP_KERNEL);
-		if (!wkey_buf)
-			return -ENOMEM;
-		secret_buf = dma_alloc_coherent(__scm->dev, sw_secret_size, &secret_phys,
-						GFP_KERNEL);
-		if (!secret_buf) {
-			memzero_explicit(wkey_buf, wkey_size);
-			dma_free_coherent(__scm->dev, wkey_size, wkey_buf, wkey_phys);
-			return -ENOMEM;
-		}
-
-		memcpy(wkey_buf, wkey, wkey_size);
-		desc.args[0] = wkey_phys;
-		desc.args[2] = secret_phys;
+	/*
+	 * Like qcom_scm_ice_set_key(), we use dma_alloc_coherent() to properly
+	 * get a physical address, while guaranteeing that we can zeroize the
+	 * key material later using memzero_explicit().
+	 */
+	wkey_buf = dma_alloc_coherent(__scm->dev, wkey_size, &wkey_phys, GFP_KERNEL);
+	if (!wkey_buf)
+		return -ENOMEM;
+	secret_buf = dma_alloc_coherent(__scm->dev, sw_secret_size, &secret_phys, GFP_KERNEL);
+	if (!secret_buf) {
+		ret = -ENOMEM;
+		goto err_free_wrapped;
 	}
+
+	memcpy(wkey_buf, wkey, wkey_size);
+	desc.args[0] = wkey_phys;
+	desc.args[2] = secret_phys;
 
 	ret = qcom_scm_call(__scm->dev, &desc, NULL);
-	if (ret) {
-		pr_err("%s, scm call failed ret: %d\n", __func__, ret);
-		goto exit;
-	}
-
-	if (use_qtee_shmbridge) {
-		qtee_shmbridge_inv_shm_buf(&shm_secret_phys);
-		memcpy(sw_secret, shm_secret_phys.vaddr, sw_secret_size);
-		qtee_shmbridge_inv_shm_buf(&shm_wkey_phys);
-	} else {
+	if (!ret)
 		memcpy(sw_secret, secret_buf, sw_secret_size);
-	}
 
-exit:
+	memzero_explicit(secret_buf, sw_secret_size);
 
-	if (use_qtee_shmbridge) {
-		qtee_shmbridge_free_shm(&shm_secret_phys);
-		qtee_shmbridge_free_shm(&shm_wkey_phys);
-	} else {
-		memzero_explicit(secret_buf, sw_secret_size);
-		dma_free_coherent(__scm->dev, sw_secret_size, secret_buf, secret_phys);
-		memzero_explicit(wkey_buf, wkey_size);
-		dma_free_coherent(__scm->dev, wkey_size, wkey_buf, wkey_phys);
-	}
+	dma_free_coherent(__scm->dev, sw_secret_size, secret_buf, secret_phys);
+
+err_free_wrapped:
+	memzero_explicit(wkey_buf, wkey_size);
+
+	dma_free_coherent(__scm->dev, wkey_size, wkey_buf, wkey_phys);
 
 	return ret;
 }
@@ -1372,53 +1294,26 @@ int qcom_scm_generate_ice_key(u8 *lt_key, size_t lt_key_size)
 
 	void *lt_key_buf;
 	dma_addr_t lt_key_phys;
-	struct qtee_shm shm_lt_key_phys;
 	int ret;
-	bool use_qtee_shmbridge;
 
-	use_qtee_shmbridge = qtee_shmbridge_is_enabled();
-	if (use_qtee_shmbridge) {
-		ret = qtee_shmbridge_allocate_shm(lt_key_size, &shm_lt_key_phys);
-		if (ret) {
-			pr_err("%s, smbridge allocate error\n", __func__);
-			return -ENOMEM;
-		}
-		memset(shm_lt_key_phys.vaddr, 0, lt_key_size);
-		qtee_shmbridge_flush_shm_buf(&shm_lt_key_phys);
-		desc.args[0] = shm_lt_key_phys.paddr;
-	} else {
+	/*
+	 * Like qcom_scm_ice_set_key(), we use dma_alloc_coherent() to properly
+	 * get a physical address, while guaranteeing that we can zeroize the
+	 * key material later using memzero_explicit().
+	 */
+	lt_key_buf = dma_alloc_coherent(__scm->dev, lt_key_size, &lt_key_phys, GFP_KERNEL);
+	if (!lt_key_buf)
+		return -ENOMEM;
 
-	       /*
-		* Like qcom_scm_ice_set_key(), we use dma_alloc_coherent() to properly
-		* get a physical address, while guaranteeing that we can zeroize the
-		* key material later using memzero_explicit().
-		*/
-		lt_key_buf = dma_alloc_coherent(__scm->dev, lt_key_size, &lt_key_phys, GFP_KERNEL);
-		if (!lt_key_buf)
-			return -ENOMEM;
-		desc.args[0] = lt_key_phys;
-	}
+	desc.args[0] = lt_key_phys;
 
 	ret = qcom_scm_call(__scm->dev, &desc, NULL);
-	if (ret) {
-		pr_err("%s, scm call failed ret: %d\n", __func__, ret);
-		goto exit;
-	}
-
-	if (use_qtee_shmbridge) {
-		qtee_shmbridge_inv_shm_buf(&shm_lt_key_phys);
-		memcpy(lt_key, shm_lt_key_phys.vaddr, lt_key_size);
-	} else {
+	if (!ret)
 		memcpy(lt_key, lt_key_buf, lt_key_size);
-	}
 
-exit:
-	if (use_qtee_shmbridge) {
-		qtee_shmbridge_free_shm(&shm_lt_key_phys);
-	} else {
-		memzero_explicit(lt_key_buf, lt_key_size);
-		dma_free_coherent(__scm->dev, lt_key_size, lt_key_buf, lt_key_phys);
-	}
+	memzero_explicit(lt_key_buf, lt_key_size);
+
+	dma_free_coherent(__scm->dev, lt_key_size, lt_key_buf, lt_key_phys);
 
 	return ret;
 }
@@ -1459,78 +1354,39 @@ int qcom_scm_prepare_ice_key(const u8 *lt_key, size_t lt_key_size,
 
 	void *lt_key_buf, *eph_key_buf;
 	dma_addr_t lt_key_phys, eph_key_phys;
-	struct qtee_shm shm_lt_key_phys, shm_eph_key_phys;
 	int ret;
-	bool use_qtee_shmbridge;
 
-	use_qtee_shmbridge = qtee_shmbridge_is_enabled();
-	if (use_qtee_shmbridge) {
-		ret = qtee_shmbridge_allocate_shm(eph_key_size, &shm_eph_key_phys);
-		if (ret) {
-			pr_err("%s, smbridge allocate error\n", __func__);
-			return -ENOMEM;
-		}
-		memset(shm_eph_key_phys.vaddr, 0, eph_key_size);
-		qtee_shmbridge_flush_shm_buf(&shm_eph_key_phys);
-
-		ret = qtee_shmbridge_allocate_shm(lt_key_size, &shm_lt_key_phys);
-		if (ret) {
-			qtee_shmbridge_free_shm(&shm_eph_key_phys);
-			pr_err("%s, smbridge allocate error\n", __func__);
-			return -ENOMEM;
-		}
-		memcpy(shm_lt_key_phys.vaddr, lt_key, lt_key_size);
-		qtee_shmbridge_flush_shm_buf(&shm_lt_key_phys);
-		desc.args[0] = shm_lt_key_phys.paddr;
-		desc.args[2] = shm_eph_key_phys.paddr;
-	} else {
-
-	       /*
-		* Like qcom_scm_ice_set_key(), we use dma_alloc_coherent() to properly
-		* get a physical address, while guaranteeing that we can zeroize the
-		* key material later using memzero_explicit().
-		*/
-		lt_key_buf = dma_alloc_coherent(__scm->dev, lt_key_size, &lt_key_phys, GFP_KERNEL);
-		if (!lt_key_buf)
-			return -ENOMEM;
-
-		eph_key_buf = dma_alloc_coherent(__scm->dev, eph_key_size, &eph_key_phys,
-						 GFP_KERNEL);
-		if (!eph_key_buf) {
-			memzero_explicit(lt_key_buf, lt_key_size);
-			dma_free_coherent(__scm->dev, lt_key_size, lt_key_buf, lt_key_phys);
-			return -ENOMEM;
-		}
-
-		memcpy(lt_key_buf, lt_key, lt_key_size);
-		desc.args[0] = lt_key_phys;
-		desc.args[2] = eph_key_phys;
+	/*
+	 * Like qcom_scm_ice_set_key(), we use dma_alloc_coherent() to properly
+	 * get a physical address, while guaranteeing that we can zeroize the
+	 * key material later using memzero_explicit().
+	 */
+	lt_key_buf = dma_alloc_coherent(__scm->dev, lt_key_size, &lt_key_phys, GFP_KERNEL);
+	if (!lt_key_buf)
+		return -ENOMEM;
+	eph_key_buf = dma_alloc_coherent(__scm->dev, eph_key_size, &eph_key_phys, GFP_KERNEL);
+	if (!eph_key_buf) {
+		ret = -ENOMEM;
+		goto err_free_longterm;
 	}
+
+	memcpy(lt_key_buf, lt_key, lt_key_size);
+	desc.args[0] = lt_key_phys;
+	desc.args[2] = eph_key_phys;
 
 	ret = qcom_scm_call(__scm->dev, &desc, NULL);
-	if (ret) {
-		pr_err("%s, scm call failed ret: %d\n", __func__, ret);
-		goto exit;
-	}
-
-	if (use_qtee_shmbridge) {
-		qtee_shmbridge_inv_shm_buf(&shm_eph_key_phys);
-		memcpy(eph_key, shm_eph_key_phys.vaddr, eph_key_size);
-		qtee_shmbridge_inv_shm_buf(&shm_lt_key_phys);
-	} else {
+	if (!ret)
 		memcpy(eph_key, eph_key_buf, eph_key_size);
-	}
-exit:
 
-	if (use_qtee_shmbridge) {
-		qtee_shmbridge_free_shm(&shm_eph_key_phys);
-		qtee_shmbridge_free_shm(&shm_lt_key_phys);
-	} else {
-		memzero_explicit(eph_key_buf, eph_key_size);
-		dma_free_coherent(__scm->dev, eph_key_size, eph_key_buf, eph_key_phys);
-		memzero_explicit(lt_key_buf, lt_key_size);
-		dma_free_coherent(__scm->dev, lt_key_size, lt_key_buf, lt_key_phys);
-	}
+	memzero_explicit(eph_key_buf, eph_key_size);
+
+	dma_free_coherent(__scm->dev, eph_key_size, eph_key_buf, eph_key_phys);
+
+err_free_longterm:
+	memzero_explicit(lt_key_buf, lt_key_size);
+
+	dma_free_coherent(__scm->dev, lt_key_size, lt_key_buf, lt_key_phys);
+
 	return ret;
 }
 EXPORT_SYMBOL_GPL(qcom_scm_prepare_ice_key);
@@ -1567,84 +1423,43 @@ int qcom_scm_import_ice_key(const u8 *imp_key, size_t imp_key_size,
 	};
 
 	void *imp_key_buf, *lt_key_buf;
-	struct qtee_shm shm_imp_key_phys, shm_lt_key_phys;
 	dma_addr_t imp_key_phys, lt_key_phys;
 	int ret;
-	bool use_qtee_shmbridge;
-
-	use_qtee_shmbridge = qtee_shmbridge_is_enabled();
-	if (use_qtee_shmbridge) {
-
-		ret = qtee_shmbridge_allocate_shm(imp_key_size, &shm_imp_key_phys);
-		if (ret) {
-			pr_err("%s, smbridge allocate error\n", __func__);
-			return -ENOMEM;
-		}
-		memcpy(shm_imp_key_phys.vaddr, imp_key, imp_key_size);
-		qtee_shmbridge_flush_shm_buf(&shm_imp_key_phys);
-
-		ret = qtee_shmbridge_allocate_shm(lt_key_size, &shm_lt_key_phys);
-		if (ret) {
-			qtee_shmbridge_free_shm(&shm_imp_key_phys);
-			pr_err("%s, smbridge allocate error\n", __func__);
-			return -ENOMEM;
-		}
-		memset(shm_lt_key_phys.vaddr, 0, lt_key_size);
-		qtee_shmbridge_flush_shm_buf(&shm_lt_key_phys);
-		desc.args[0] = shm_imp_key_phys.paddr;
-		desc.args[2] = shm_lt_key_phys.paddr;
-	} else {
-	       /*
-		* Like qcom_scm_ice_set_key(), we use dma_alloc_coherent() to properly
-		* get a physical address, while guaranteeing that we can zeroize the
-		* key material later using memzero_explicit().
-		*/
-		imp_key_buf = dma_alloc_coherent(__scm->dev, imp_key_size, &imp_key_phys,
-						 GFP_KERNEL);
-		if (!imp_key_buf)
-			return -ENOMEM;
-		lt_key_buf = dma_alloc_coherent(__scm->dev, lt_key_size, &lt_key_phys, GFP_KERNEL);
-		if (!lt_key_buf) {
-			memzero_explicit(imp_key_buf, imp_key_size);
-			dma_free_coherent(__scm->dev, imp_key_size, imp_key_buf, imp_key_phys);
-			return -ENOMEM;
-		}
-
-		memcpy(imp_key_buf, imp_key, imp_key_size);
-		desc.args[0] = imp_key_phys;
-		desc.args[2] = lt_key_phys;
+	/*
+	 * Like qcom_scm_ice_set_key(), we use dma_alloc_coherent() to properly
+	 * get a physical address, while guaranteeing that we can zeroize the
+	 * key material later using memzero_explicit().
+	 */
+	imp_key_buf = dma_alloc_coherent(__scm->dev, imp_key_size, &imp_key_phys, GFP_KERNEL);
+	if (!imp_key_buf)
+		return -ENOMEM;
+	lt_key_buf = dma_alloc_coherent(__scm->dev, lt_key_size, &lt_key_phys, GFP_KERNEL);
+	if (!lt_key_buf) {
+		ret = -ENOMEM;
+		goto err_free_longterm;
 	}
+
+	memcpy(imp_key_buf, imp_key, imp_key_size);
+	desc.args[0] = imp_key_phys;
+	desc.args[2] = lt_key_phys;
 
 	ret = qcom_scm_call(__scm->dev, &desc, NULL);
-	if (ret) {
-		pr_err("%s, scm call failed ret: %d\n", __func__, ret);
-		goto exit;
-	}
-
-	if (use_qtee_shmbridge) {
-		qtee_shmbridge_inv_shm_buf(&shm_lt_key_phys);
-		memcpy(lt_key, shm_lt_key_phys.vaddr, lt_key_size);
-
-		qtee_shmbridge_inv_shm_buf(&shm_imp_key_phys);
-	} else {
+	if (!ret)
 		memcpy(lt_key, lt_key_buf, lt_key_size);
-	}
 
-exit:
+	memzero_explicit(lt_key_buf, lt_key_size);
 
-	if (use_qtee_shmbridge) {
-		qtee_shmbridge_free_shm(&shm_imp_key_phys);
-		qtee_shmbridge_free_shm(&shm_lt_key_phys);
-	} else {
-		memzero_explicit(lt_key_buf, lt_key_size);
-		dma_free_coherent(__scm->dev, lt_key_size, lt_key_buf, lt_key_phys);
-		memzero_explicit(imp_key_buf, imp_key_size);
-		dma_free_coherent(__scm->dev, imp_key_size, imp_key_buf, imp_key_phys);
-	}
+	dma_free_coherent(__scm->dev, lt_key_size, lt_key_buf, lt_key_phys);
+
+err_free_longterm:
+	memzero_explicit(imp_key_buf, imp_key_size);
+
+	dma_free_coherent(__scm->dev, imp_key_size, imp_key_buf, imp_key_phys);
 
 	return ret;
 }
 EXPORT_SYMBOL_GPL(qcom_scm_import_ice_key);
+
 
 /**
  * qcom_scm_hdcp_available() - Check if secure environment supports HDCP.
@@ -1770,8 +1585,6 @@ EXPORT_SYMBOL_GPL(qcom_scm_lmh_profile_change);
 int qcom_scm_lmh_dcvsh(u32 payload_fn, u32 payload_reg, u32 payload_val,
 		       u64 limit_node, u32 node_id, u64 version)
 {
-	dma_addr_t payload_phys;
-	u32 *payload_buf;
 	int ret, payload_size = 5 * sizeof(u32);
 
 	struct qcom_scm_desc desc = {
@@ -1786,7 +1599,9 @@ int qcom_scm_lmh_dcvsh(u32 payload_fn, u32 payload_reg, u32 payload_val,
 		.owner = ARM_SMCCC_OWNER_SIP,
 	};
 
-	payload_buf = dma_alloc_coherent(__scm->dev, payload_size, &payload_phys, GFP_KERNEL);
+	u32 *payload_buf __free(qcom_tzmem) = qcom_tzmem_alloc(__scm->mempool,
+							       payload_size,
+							       GFP_KERNEL);
 	if (!payload_buf)
 		return -ENOMEM;
 
@@ -1796,11 +1611,10 @@ int qcom_scm_lmh_dcvsh(u32 payload_fn, u32 payload_reg, u32 payload_val,
 	payload_buf[3] = 1;
 	payload_buf[4] = payload_val;
 
-	desc.args[0] = payload_phys;
+	desc.args[0] = qcom_tzmem_to_phys(payload_buf);
 
 	ret = qcom_scm_call(__scm->dev, &desc, NULL);
 
-	dma_free_coherent(__scm->dev, payload_size, payload_buf, payload_phys);
 	return ret;
 }
 EXPORT_SYMBOL_GPL(qcom_scm_lmh_dcvsh);
