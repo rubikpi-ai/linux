@@ -359,6 +359,10 @@ static struct snd_soc_card snd_soc_qcs9100_data = {
 	.num_dapm_routes = ARRAY_SIZE(qcs9100_dapm_routes),
 };
 
+static struct snd_soc_card snd_soc_qcs9075_rb8_data = {
+	.name = "qcs9075-rb8",
+};
+
 static void qcm6490_add_be_ops(struct snd_soc_card *card)
 {
 	struct snd_soc_dai_link *link;
@@ -424,6 +428,7 @@ static const struct of_device_id snd_qcm6490_dt_match[] = {
 	{.compatible = "qcom,qcs6490-rb3gen2-vision-sndcard", .data = &qcs6490_rb3gen2_vision_data},
 	{.compatible = "qcom,qcs8300-sndcard", .data = &snd_soc_qcs8300_data},
 	{.compatible = "qcom,qcs9100-sndcard", .data = &snd_soc_qcs9100_data},
+	{.compatible = "qcom,qcs9075-rb8-sndcard", .data = &snd_soc_qcs9075_rb8_data},
 	{}
 };
 
