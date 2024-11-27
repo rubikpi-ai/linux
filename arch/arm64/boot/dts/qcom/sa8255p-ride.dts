@@ -32,6 +32,10 @@
 	};
 };
 
+&aoss_qmp {
+	status = "disabled";
+};
+
 &adreno_smmu {
 	power-domains = <&scmi15_pd 0>;
 
