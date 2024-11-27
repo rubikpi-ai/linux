@@ -237,10 +237,40 @@
 	status = "disabled";
 };
 
+&pcie0_ep {
+	#dma-cells = <1>;
+	dmas = <&pcie0_ep 0>, <&pcie0_ep 1>;
+	dma-names = "rx", "tx";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie0_ep_clkreq_default &pcie0_ep_perst_default
+		    &pcie0_ep_wake_default>;
+	reset-gpio = <&tlmm 2 GPIO_ACTIVE_LOW>;
+	wake-gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>;
+	power-domains = <&scmi5_pd 1>;
+	power-domain-names = "power";
+
+	status = "disabled";
+};
+
 &pcie1 {
 	power-domains = <&scmi6_pd 0>;
 	power-domain-names = "power";
 	status = "okay";
+};
+
+&pcie1_ep {
+	#dma-cells = <1>;
+	dmas = <&pcie1_ep 0>, <&pcie1_ep 1>;
+	dma-names = "rx", "tx";
+	pinctrl-names = "default";
+	pinctrl-0 = <&pcie1_ep_clkreq_default &pcie1_ep_perst_default
+		    &pcie1_ep_wake_default>;
+	reset-gpio = <&tlmm 4 GPIO_ACTIVE_LOW>;
+	wake-gpios = <&tlmm 5 GPIO_ACTIVE_HIGH>;
+	power-domains = <&scmi6_pd 1>;
+	power-domain-names = "power";
+
+	status = "disabled";
 };
 
 &pmm8654au_0_thermal {
@@ -361,6 +391,48 @@
 			drive-strength = <16>;
 			bias-pull-up;
 		};
+	};
+
+	pcie0_ep_clkreq_default: pcie-ep-clkreq-default-state {
+		pins = "gpio1";
+		function = "pcie0_clkreq";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	pcie0_ep_perst_default: pcie-ep-perst-default-state {
+		pins = "gpio2";
+		function = "gpio";
+		drive-strength = <16>;
+		bias-pull-down;
+	};
+
+	pcie0_ep_wake_default: pcie-ep-wake-default-state {
+		pins = "gpio0";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	pcie1_ep_clkreq_default: pcie-ep-clkreq-default-state {
+		pins = "gpio3";
+		function = "pcie1_clkreq";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	pcie1_ep_perst_default: pcie-ep-perst-default-state {
+		pins = "gpio4";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+	};
+
+	pcie1_ep_wake_default: pcie-ep-wake-default-state {
+		pins = "gpio5";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
 	};
 };
 
