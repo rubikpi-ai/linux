@@ -56,5 +56,10 @@
 };
 
 &spi12 {
-	status = "disabled";
+	status = "okay";
+	spidev@0 {
+		compatible = "qcom,spidev";
+		spi-max-frequency = <50000000>;
+		reg = <0>;
+	};
 };
