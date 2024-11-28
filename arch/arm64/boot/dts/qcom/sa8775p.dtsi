@@ -1390,11 +1390,6 @@
 			no-map;
 		};
 
-		gunyah_md_mem: gunyah-md@91a80000 {
-			reg = <0x0 0x91a80000 0x0 0x80000>;
-			no-map;
-		};
-
 		aoss_backup_mem: aoss-backup@91b00000 {
 			reg = <0x0 0x91b00000 0x0 0x40000>;
 			no-map;
@@ -1420,11 +1415,6 @@
 			no-map;
 		};
 
-		tz_ffi_mem: tz-ffi@91c00000 {
-			reg = <0x0 0x91c00000 0x0 0x1400000>;
-			no-map;
-		};
-
 		lpass_machine_learning_mem: lpass-machine-learning@93b00000 {
 			reg = <0x0 0x93b00000 0x0 0xf00000>;
 			no-map;
@@ -1445,16 +1435,6 @@
 			no-map;
 		};
 
-		q6_adsp_dtb_mem: q6-adsp-dtb@97a00000 {
-			reg = <0x0 0x97a00000 0x0 0x80000>;
-			no-map;
-		};
-
-		q6_gdsp0_dtb_mem: q6-gdsp0-dtb@97a80000 {
-			reg = <0x0 0x97a80000 0x0 0x80000>;
-			no-map;
-		};
-
 		pil_gdsp0_mem: pil-gdsp0@97b00000 {
 			reg = <0x0 0x97b00000 0x0 0x1e00000>;
 			no-map;
@@ -1465,16 +1445,6 @@
 			no-map;
 		};
 
-		q6_gdsp1_dtb_mem: q6-gdsp1-dtb@9b700000 {
-			reg = <0x0 0x9b700000 0x0 0x80000>;
-			no-map;
-		};
-
-		q6_cdsp0_dtb_mem: q6-cdsp0-dtb@9b780000 {
-			reg = <0x0 0x9b780000 0x0 0x80000>;
-			no-map;
-		};
-
 		pil_cdsp0_mem: pil-cdsp0@9b800000 {
 			reg = <0x0 0x9b800000 0x0 0x1e00000>;
 			no-map;
@@ -1482,11 +1452,6 @@
 
 		pil_gpu_mem: pil-gpu@9d600000 {
 			reg = <0x0 0x9d600000 0x0 0x2000>;
-			no-map;
-		};
-
-		q6_cdsp1_dtb_mem: q6-cdsp1-dtb@9d680000 {
-			reg = <0x0 0x9d680000 0x0 0x80000>;
 			no-map;
 		};
 
@@ -1505,8 +1470,8 @@
 			no-map;
 		};
 
-		audio_mdf_mem: audio-mdf-region@ad000000 {
-			reg = <0x0 0xad000000 0x0 0x2000000>;
+		audio_mdf_mem: audio-mdf-region@ae000000 {
+			reg = <0x0 0xae000000 0x0 0x1000000>;
 			no-map;
 		};
 
@@ -1561,7 +1526,7 @@
 		};
 
 		trusted_apps_mem: trusted-apps@d1900000 {
-			reg = <0x0 0xd1900000 0x0 0x1c00000>;
+			reg = <0x0 0xd1900000 0x0 0x3800000>;
 			no-map;
 		};
 
