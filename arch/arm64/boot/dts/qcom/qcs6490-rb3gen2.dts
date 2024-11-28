@@ -27,6 +27,8 @@
 	model = "Qualcomm Technologies, Inc. Robotics RB3gen2";
 	compatible = "qcom,qcs6490-rb3gen2", "qcom,qcm6490";
 
+	qcom,msm-id = <497 0x10000>, <498 0x10000>, <475 0x10000>, <515 0x10000>;
+	qcom,board-id = <32 0x5>, <32 0x605>;
 
 	aliases {
 		serial0 = &uart5;
@@ -447,73 +449,6 @@
 		vreg_bob_3p296: bob {
 			regulator-min-microvolt = <3008000>;
 			regulator-max-microvolt = <3960000>;
-		};
-	};
-};
-
-&camcc {
-	status = "okay";
-};
-
-&camss {
-	status = "disabled";
-	ports {
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		/* The port index denotes CSIPHY id i.e. csiphy2 */
-		port@3 {
-			reg = <3>;
-			csiphy3_ep: endpoint {
-				clock-lanes = <7>;
-				data-lanes = <0 1 2 3>;
-				remote-endpoint = <&imx412_ep>;
-			};
-		};
-	};
-};
-
-&cci0 {
-	status = "okay";
-};
-
-&cci1 {
-	status = "okay";
-};
-
-&cci1_i2c1 {
-	camera@1a {
-		/*
-		 * rb3gen2 ships with an imx577. qcom treats imx412
-		 * and imx577 the same way. Absent better data do the same here.
-		 */
-		compatible = "sony,imx412";
-		reg = <0x1a>;
-
-		reset-gpios = <&tlmm 78 GPIO_ACTIVE_LOW>;
-		pinctrl-names = "default", "suspend";
-		pinctrl-0 = <&cam2_default>;
-		pinctrl-1 = <&cam2_suspend>;
-
-		clocks = <&camcc CAM_CC_MCLK3_CLK>,
-				 <&camcc CAM_CC_MCLK2_CLK>;
-		assigned-clocks = <&camcc CAM_CC_MCLK3_CLK>,
-				 <&camcc CAM_CC_MCLK2_CLK>;
-		assigned-clock-rates = <24000000>,
-							   <24000000>;
-
-		dovdd-supply  = <&vreg_l18b_1p8>;
-		/* avdd-supply = <&vdc_5v>;
-		 * dvdd-supply = <&vdc_5v>;
-		 */
-
-		port {
-			imx412_ep: endpoint {
-				clock-lanes = <7>;
-				link-frequencies = /bits/ 64 <600000000>;
-				data-lanes = <0 1 2 3>;
-				remote-endpoint = <&csiphy3_ep>;
-			};
 		};
 	};
 };
@@ -1062,7 +997,7 @@
 	iommus = <&apps_smmu 0xe0 0x0>;
 	snps,dis_u2_susphy_quirk;
 	snps,dis_enblslpm_quirk;
-	phys = <&usb_1_hsphy>, <&usb_1_ssphy>;
+	phys = <&usb_1_hsphy>, <&usb_1_qmpphy QMP_USB43DP_USB3_PHY>;
 	phy-names = "usb2-phy", "usb3-phy";
 	maximum-speed = "super-speed";
 	snps,dis-u2-entry-quirk;

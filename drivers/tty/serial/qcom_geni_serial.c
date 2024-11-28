@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2017-2018, The Linux foundation. All rights reserved.
-// Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2023-2024, Qualcomm Innovation Center, Inc. All rights reserved.
 
 /* Disable MMIO tracing to prevent excessive logging of unwanted MMIO traces */
 #define __DISABLE_TRACE_MMIO__
@@ -22,6 +22,7 @@
 #include <linux/slab.h>
 #include <linux/tty.h>
 #include <linux/tty_flip.h>
+#include <soc/qcom/qup_fw_load.h>
 #include <dt-bindings/interconnect/qcom,icc.h>
 
 #define CREATE_TRACE_POINTS
@@ -114,7 +115,7 @@ void serial_trace_log(struct device *dev, const char *fmt, ...)
 /* We always configure 4 bytes per FIFO word */
 #define BYTES_PER_FIFO_WORD		4U
 
-#define DMA_RX_BUF_SIZE		2048
+#define DMA_RX_BUF_SIZE		4096
 
 struct qcom_geni_device_data {
 	bool console;
@@ -1136,8 +1137,13 @@ static int qcom_geni_serial_port_setup(struct uart_port *uport)
 
 	proto = geni_se_read_proto(&port->se);
 	if (proto != GENI_SE_UART) {
-		dev_err(uport->dev, "Invalid FW loaded, proto: %d\n", proto);
-		return -ENXIO;
+		ret = geni_load_se_firmware(&port->se, GENI_SE_UART);
+		if (ret) {
+			dev_err(uport->dev,
+				"Cannot load firmware from linux for uart proto: %d error: %d\n",
+				proto, ret);
+			return -ENXIO;
+		}
 	}
 
 	qcom_geni_serial_stop_rx(uport);

@@ -27,6 +27,7 @@ properties:
           - qcom,msm8996-ufshc
           - qcom,msm8998-ufshc
           - qcom,qcs8300-ufshc
+          - qcom,sa7255p-ufshc
           - qcom,sa8255p-ufshc
           - qcom,sa8775p-ufshc
           - qcom,sc7280-ufshc
@@ -243,6 +244,7 @@ allOf:
         compatible:
           contains:
             enum:
+              - qcom,sa7255p-ufshc
               - qcom,sa8255p-ufshc
     then:
       required:

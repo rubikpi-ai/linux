@@ -5,6 +5,7 @@
 
 #include <linux/bitops.h>
 #include <linux/err.h>
+#include <linux/firmware/qcom/qcom_scm.h>
 #include <linux/interrupt.h>
 #include <linux/io.h>
 #include <linux/iopoll.h>
@@ -35,18 +36,31 @@ struct eud_chip {
 	struct usb_role_switch		*role_sw;
 	void __iomem			*base;
 	void __iomem			*mode_mgr;
+	phys_addr_t			mode_mgr_phys;
 	unsigned int			int_status;
 	int				irq;
 	bool				enabled;
 	bool				usb_attached;
 };
 
+struct eud_cfg {
+	bool secure_eud_en;
+};
+
 static int enable_eud(struct eud_chip *priv)
 {
+	int ret;
+
 	writel(EUD_ENABLE, priv->base + EUD_REG_CSR_EUD_EN);
 	writel(EUD_INT_VBUS | EUD_INT_SAFE_MODE,
 			priv->base + EUD_REG_INT1_EN_MASK);
-	writel(1, priv->mode_mgr + EUD_REG_EUD_EN2);
+	if (priv->mode_mgr_phys && !priv->mode_mgr) {
+		ret = qcom_scm_io_writel(priv->mode_mgr_phys + EUD_REG_EUD_EN2, 1);
+		if (ret)
+			return ret;
+	} else {
+		writel(1, priv->mode_mgr + EUD_REG_EUD_EN2);
+	}
 
 	return usb_role_switch_set_role(priv->role_sw, USB_ROLE_DEVICE);
 }
@@ -54,7 +68,10 @@ static int enable_eud(struct eud_chip *priv)
 static void disable_eud(struct eud_chip *priv)
 {
 	writel(0, priv->base + EUD_REG_CSR_EUD_EN);
-	writel(0, priv->mode_mgr + EUD_REG_EUD_EN2);
+	if (priv->mode_mgr_phys && !priv->mode_mgr)
+		qcom_scm_io_writel(priv->mode_mgr_phys + EUD_REG_EUD_EN2, 0);
+	else
+		writel(0, priv->mode_mgr + EUD_REG_EUD_EN2);
 }
 
 static ssize_t enable_show(struct device *dev,
@@ -178,6 +195,8 @@ static void eud_role_switch_release(void *data)
 static int eud_probe(struct platform_device *pdev)
 {
 	struct eud_chip *chip;
+	struct resource *res;
+	const struct eud_cfg *cfg;
 	int ret;
 
 	chip = devm_kzalloc(&pdev->dev, sizeof(*chip), GFP_KERNEL);
@@ -200,9 +219,22 @@ static int eud_probe(struct platform_device *pdev)
 	if (IS_ERR(chip->base))
 		return PTR_ERR(chip->base);
 
-	chip->mode_mgr = devm_platform_ioremap_resource(pdev, 1);
-	if (IS_ERR(chip->mode_mgr))
-		return PTR_ERR(chip->mode_mgr);
+	cfg = of_device_get_match_data(&pdev->dev);
+	if (!cfg)
+		return -EINVAL;
+
+	if (cfg->secure_eud_en) {
+		res = platform_get_resource(pdev, IORESOURCE_MEM, 1);
+		if (!res)
+			return -ENODEV;
+		chip->mode_mgr_phys = res->start;
+		chip->mode_mgr = NULL;
+	} else {
+		chip->mode_mgr = devm_platform_ioremap_resource(pdev, 1);
+		if (IS_ERR(chip->mode_mgr))
+			return PTR_ERR(chip->mode_mgr);
+		chip->mode_mgr_phys = 0;
+	}
 
 	chip->irq = platform_get_irq(pdev, 0);
 	ret = devm_request_threaded_irq(&pdev->dev, chip->irq, handle_eud_irq,
@@ -228,8 +260,17 @@ static void eud_remove(struct platform_device *pdev)
 	disable_irq_wake(chip->irq);
 }
 
+static const struct eud_cfg nonsecure_eud = {
+	.secure_eud_en = false,
+};
+
+static const struct eud_cfg secure_eud = {
+	.secure_eud_en = true,
+};
+
 static const struct of_device_id eud_dt_match[] = {
-	{ .compatible = "qcom,sc7280-eud" },
+	{ .compatible = "qcom,eud", .data = &nonsecure_eud },
+	{ .compatible = "qcom,secure-eud", .data = &secure_eud },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, eud_dt_match);

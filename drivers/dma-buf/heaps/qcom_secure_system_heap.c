@@ -41,7 +41,7 @@
  *	Andrew F. Davis <afd@ti.com>
  *
  * Copyright (c) 2020-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/dma-buf.h>
@@ -562,8 +562,13 @@ static struct dma_buf *system_heap_allocate(struct dma_heap *heap,
 		dma_unmap_sgtable(dma_heap_get_dev(heap), &non_secure_table, DMA_BIDIRECTIONAL, 0);
 
 		hyp_ret = hyp_assign_sg_from_flags(&non_secure_table, sys_heap->vmid, true);
-		if (hyp_ret)
+		if (hyp_ret) {
+			if (hyp_ret != -EADDRNOTAVAIL)
+				/* Set hyp_ret = 0 so that we free the non-secure pages */
+				hyp_ret = 0;
+
 			goto free_non_secure_sg;
+		}
 	}
 
 	perms = msm_secure_get_vmid_perms(sys_heap->vmid);

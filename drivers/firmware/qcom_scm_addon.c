@@ -57,6 +57,10 @@
 /* IDs for QCOM_SCM_INFO_BW_PROF_ID */
 #define QCOM_SCM_INFO_BW_PROF_ID	0x07
 
+/* IDs for CAMERA */
+#define QCOM_SCM_SVC_CAMERA			0x18
+#define QCOM_SCM_CAMERA_UPDATE_CAMNOC_QOS	0xA
+
 static int __qcom_scm_get_feat_version(struct device *dev, u64 feat_id, u64 *version)
 {
 	int ret;
@@ -595,14 +599,16 @@ EXPORT_SYMBOL_GPL(qcom_scm_ddrbw_profiler);
  * qcom_scm_she_op() - request TZ SHE (Secure Hardware Extension) service
  *		       to perform crypto operations based on SHE tables.
  */
-int qcom_scm_she_op(u64 _arg1, u64 _arg2, u64 _arg3, u64 _arg4)
+int qcom_scm_she_op(u64 _arg1, u64 _arg2, u64 _arg3, u64 _arg4, u64 *res1)
 {
 	int ret;
+
 	struct qcom_scm_desc desc = {
 		.svc = QCOM_SCM_SVC_SHE,
 		.cmd = QCOM_SCM_SHE_ID,
 		.owner = ARM_SMCCC_OWNER_SIP,
-		.arginfo = QCOM_SCM_ARGS(4),
+		.arginfo = QCOM_SCM_ARGS(4, QCOM_SCM_VAL, QCOM_SCM_VAL,
+				     QCOM_SCM_RW, QCOM_SCM_VAL),
 	};
 	struct qcom_scm_res res;
 
@@ -613,6 +619,55 @@ int qcom_scm_she_op(u64 _arg1, u64 _arg2, u64 _arg3, u64 _arg4)
 
 	ret = qcom_scm_call(__scm ? __scm->dev : NULL, &desc, &res);
 
-	return ret ? : res.result[0];
+	/* The result from SHE service must be handled by the SHE client */
+	if (res1)
+		*res1 = res.result[0];
+
+	return ret;
 }
 EXPORT_SYMBOL_GPL(qcom_scm_she_op);
+
+int qcom_scm_camera_update_camnoc_qos(uint32_t use_case_id,
+	uint32_t cam_qos_cnt, struct qcom_scm_camera_qos *cam_qos)
+{
+	int ret;
+	dma_addr_t payload_phys;
+	u32 *payload_buf = NULL;
+	u32 payload_size = 0;
+
+	if ((cam_qos_cnt > QCOM_SCM_CAMERA_MAX_QOS_CNT) || (cam_qos_cnt && !cam_qos)) {
+		pr_err("Invalid input SmartQoS count: %d\n", cam_qos_cnt);
+		return -EINVAL;
+	}
+
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_CAMERA,
+		.cmd = QCOM_SCM_CAMERA_UPDATE_CAMNOC_QOS,
+		.owner = ARM_SMCCC_OWNER_SIP,
+		.args[0] = use_case_id,
+		.args[2] = payload_size,
+		.arginfo = QCOM_SCM_ARGS(3, QCOM_SCM_VAL, QCOM_SCM_RW, QCOM_SCM_VAL),
+	};
+
+	payload_size = cam_qos_cnt * sizeof(struct qcom_scm_camera_qos);
+
+	/* fill all required qos settings */
+	if (use_case_id && payload_size && cam_qos) {
+		payload_buf = dma_alloc_coherent(__scm->dev,
+						 payload_size, &payload_phys, GFP_KERNEL);
+		if (!payload_buf)
+			return -ENOMEM;
+
+		memcpy(payload_buf, cam_qos, payload_size);
+		desc.args[1] = payload_phys;
+		desc.args[2] = payload_size;
+
+	}
+	ret = qcom_scm_call(__scm->dev, &desc, NULL);
+
+	if (payload_buf)
+		dma_free_coherent(__scm->dev, payload_size, payload_buf, payload_phys);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(qcom_scm_camera_update_camnoc_qos);

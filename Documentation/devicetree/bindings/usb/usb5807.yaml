@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/usb/usb5807.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Microchip USB 3.1 SuperSpeed Hub Controller
+
+maintainers:
+  - Mike Looijmans <mike.looijmans@topic.nl>
+
+properties:
+  compatible:
+    enum:
+      - microchip,usb5807
+
+  reg:
+    maxItems: 1
+
+  reset-gpios:
+    description: |
+      Should specify the gpio for hub reset
+
+  swap-dx-lanes:
+    $ref: /schemas/types.yaml#/definitions/uint8-array
+    description: |
+      Specifies the ports which will swap the differential-pair (D+/D-),
+      default is not-swapped.
+
+additionalProperties: false
+
+required:
+  - compatible
+  - reg
+
+examples:
+  - |
+    #include <dt-bindings/gpio/gpio.h>
+
+    i2c {
+      #address-cells = <1>;
+      #size-cells = <0>;
+
+      usb-hub@2d {
+        compatible = "microchip,usb5807";
+        reg = <0x2d>;
+        reset-gpios = <&gpio1 4 GPIO_ACTIVE_LOW>;
+        /* Swapped D+/D- on port 0 */
+        swap-dx-lanes = <0>;
+      };
+    };

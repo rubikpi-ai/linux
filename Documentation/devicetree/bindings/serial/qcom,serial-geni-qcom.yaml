@@ -18,6 +18,8 @@ allOf:
         compatible:
           contains:
             enum:
+              - qcom,sa7255p-geni-uart
+              - qcom,sa7255p-geni-debug-uart
               - qcom,sa8255p-geni-uart
               - qcom,sa8255p-geni-debug-uart
     then:
@@ -47,6 +49,8 @@ properties:
     enum:
       - qcom,geni-uart
       - qcom,geni-debug-uart
+      - qcom,sa7255p-geni-uart
+      - qcom,sa7255p-geni-debug-uart
       - qcom,sa8255p-geni-uart
       - qcom,sa8255p-geni-debug-uart
 
@@ -91,6 +95,13 @@ properties:
   reg:
     maxItems: 1
 
+  qcom,load-firmware: true
+    description: Optional property which indicate if QUP firmware to be loaded from Linux.
+
+  qcom,xfer-mode:
+    const: 1
+    description: Value 1,2 and 3 represents FIFO, CPU DMA and GSI DMA mode respectively. This is an optional property.
+
 required:
   - compatible
   - interrupts
@@ -115,6 +126,8 @@ examples:
         interconnects = <&qup_virt MASTER_QUP_CORE_0 0 &qup_virt SLAVE_QUP_CORE_0 0>,
                         <&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
         interconnect-names = "qup-core", "qup-config";
+        qcom,load-firmware;
+        qcom,xfer-mode = <1>;
     };
 
   - |

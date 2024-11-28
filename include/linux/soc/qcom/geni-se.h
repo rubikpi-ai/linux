@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef _LINUX_QCOM_GENI_SE
@@ -53,6 +53,7 @@ struct geni_icc_path {
 	unsigned int avg_bw;
 };
 
+
 /**
  * struct geni_se - GENI Serial Engine
  * @base:		Base Address of the Serial Engine's register block
@@ -71,6 +72,19 @@ struct geni_se {
 	unsigned int num_clk_levels;
 	unsigned long *clk_perf_tbl;
 	struct geni_icc_path icc_paths[3];
+};
+
+/**
+ * struct qup_se_rsc - Structure containing se details protocol and xfer mode
+ *
+ * @mode: transfer mode se fifo, dma or gsi.
+ * @protocol: Protocol spi or i2c or serial.
+ * @se: Pointer to the concerned serial engine.
+ */
+struct qup_se_rsc {
+	enum geni_se_xfer_mode mode;
+	enum geni_se_protocol_type protocol;
+	struct geni_se *se;
 };
 
 /* Common SE registers */
@@ -524,5 +538,8 @@ int geni_icc_enable(struct geni_se *se);
 int geni_icc_disable(struct geni_se *se);
 
 void geni_se_clks_off(struct geni_se *se);
+
+int geni_load_se_firmware(struct geni_se *se,
+			  enum geni_se_protocol_type protocol);
 #endif
 #endif

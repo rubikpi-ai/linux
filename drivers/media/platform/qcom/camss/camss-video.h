@@ -50,7 +50,8 @@ struct camss_video {
 	unsigned int nformats;
 };
 
-int msm_video_register(struct camss_video *video, struct v4l2_device *v4l2_dev, const char *name);
+int msm_video_register(struct camss_video *video, struct v4l2_device *v4l2_dev,
+		       const char *name);
 
 void msm_video_unregister(struct camss_video *video);
 

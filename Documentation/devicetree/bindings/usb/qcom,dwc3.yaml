@@ -26,6 +26,7 @@ properties:
           - qcom,qcm2290-dwc3
           - qcom,qcs404-dwc3
           - qcom,qcs8300-dwc3
+          - qcom,sa7255p-dwc3
           - qcom,sa8255p-dwc3
           - qcom,sa8775p-dwc3
           - qcom,sc7180-dwc3
@@ -493,7 +494,9 @@ allOf:
       properties:
         compatible:
           contains:
-            const: qcom,sa8255p-dwc3
+            enum:
+              - qcom,sa7255p-dwc3
+              - qcom,sa8255p-dwc3
     then:
       required:
         - power-domains

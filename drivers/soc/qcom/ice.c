@@ -66,8 +66,6 @@
 #define qcom_ice_readl(engine, reg)	\
 	readl((engine)->base + (reg))
 
-static bool qcom_ice_create_error;
-
 struct qcom_ice {
 	struct device *dev;
 	void __iomem *base;
@@ -618,14 +616,10 @@ struct qcom_ice *of_qcom_ice_get(struct device *dev)
 	}
 
 	ice = qcom_ice_create(&pdev->dev, base);
-	if (!ice) {
+	if (IS_ERR(ice)) {
 		dev_err(dev, "Cannot get ice instance from %s\n",
 			dev_name(&pdev->dev));
 		platform_device_put(pdev);
-		if (qcom_ice_create_error)
-			ice = ERR_PTR(-EOPNOTSUPP);
-		else
-			ice = ERR_PTR(-EPROBE_DEFER);
 		goto out;
 	}
 
