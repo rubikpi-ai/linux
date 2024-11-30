@@ -2868,7 +2868,7 @@
 				assigned-clock-rates = <19200000>;
 
 				operating-points-v2 = <&mdp_opp_table>;
-				power-domains = <&rpmhpd RPMHPD_MMCX>;
+				power-domains = <&rpmhpd QCS8300_MMCX>;
 
 				interrupt-parent = <&mdss>;
 				interrupts = <0>;
