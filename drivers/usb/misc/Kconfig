@@ -251,6 +251,15 @@ config USB_EZUSB_FX2
 	  Say Y here if you need EZUSB device support.
 	  (Cypress FX/FX2/FX2LP microcontrollers)
 
+config USB_HUB_USB5807
+	tristate "USB5807 Hub Controller Configuration Driver"
+	depends on I2C
+	help
+	  This option enables support for configuration via SMBus of the
+	  Microchip USB5807 USB 3.1 Hub Controller. Configuration parameters may
+	  be set in devicetree.
+	  Say Y or M here if you need to configure such a device via SMBus.
+
 config USB_HUB_USB251XB
 	tristate "USB251XB Hub Controller Configuration Driver"
 	depends on I2C
