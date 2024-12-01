@@ -3,7 +3,7 @@
  * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
-#define pr_fmt(fmt) "%s:[%s][%d]: " fmt, KBUILD_MODNAME, __func__, __LINE__
+#define pr_fmt(fmt) "tz_log:[%s][%d]: " fmt, __func__, __LINE__
 
 #include <linux/debugfs.h>
 #include <linux/errno.h>
@@ -19,7 +19,7 @@
 #include <linux/of.h>
 #include <linux/dma-buf.h>
 #include <linux/firmware/qcom/qcom_scm.h>
-#include <linux/qtee_shmbridge.h>
+#include <linux/firmware/qcom/qcom_tzmem.h>
 #include <linux/proc_fs.h>
 #include <linux/version.h>
 #if IS_ENABLED(CONFIG_MSM_TMECOM_QMP)
@@ -1470,7 +1470,7 @@ static int tzdbg_register_qsee_log_buf(struct platform_device *pdev)
 		return -ENOMEM;
 
 	if (!tzdbg.is_encrypted_log_enabled) {
-		ret = qtee_shmbridge_register(coh_pmem,
+		ret = qcom_tzmem_register(coh_pmem,
 			qseelog_buf_size,
 			ns_vm_shm.ns_vmids,
 			ns_vm_shm.ns_vm_perms,
@@ -1501,7 +1501,7 @@ static int tzdbg_register_qsee_log_buf(struct platform_device *pdev)
 
 exit_dereg_bridge:
 	if (!tzdbg.is_encrypted_log_enabled)
-		qtee_shmbridge_deregister(qseelog_shmbridge_handle);
+		qcom_tzmem_deregister(qseelog_shmbridge_handle);
 exit_free_mem:
 	dma_free_coherent(&pdev->dev, qseelog_buf_size,
 			(void *)g_qsee_log, coh_pmem);
@@ -1511,7 +1511,7 @@ exit_free_mem:
 static void tzdbg_free_qsee_log_buf(struct platform_device *pdev)
 {
 	if (!tzdbg.is_encrypted_log_enabled)
-		qtee_shmbridge_deregister(qseelog_shmbridge_handle);
+		qcom_tzmem_deregister(qseelog_shmbridge_handle);
 	dma_free_coherent(&pdev->dev, qseelog_buf_size,
 				(void *)g_qsee_log, coh_pmem);
 }
@@ -1542,7 +1542,7 @@ static int tzdbg_allocate_encrypted_log_buf(struct platform_device *pdev)
 	if (enc_qseelog_info.vaddr == NULL)
 		return -ENOMEM;
 
-	ret = qtee_shmbridge_register(enc_qseelog_info.paddr,
+	ret = qcom_tzmem_register(enc_qseelog_info.paddr,
 			enc_qseelog_info.size,
 			ns_vm_shm.ns_vmids,
 			ns_vm_shm.ns_vm_perms,
@@ -1563,7 +1563,7 @@ static int tzdbg_allocate_encrypted_log_buf(struct platform_device *pdev)
 	if (enc_tzlog_info.vaddr == NULL)
 		goto exit_unreg_qseelog;
 
-	ret = qtee_shmbridge_register(enc_tzlog_info.paddr,
+	ret = qcom_tzmem_register(enc_tzlog_info.paddr,
 			enc_tzlog_info.size,
 			ns_vm_shm.ns_vmids,
 			ns_vm_shm.ns_vm_perms,
@@ -1583,7 +1583,7 @@ exit_free_tzlog:
 	dma_free_coherent(&pdev->dev, enc_tzlog_info.size,
 			enc_tzlog_info.vaddr, enc_tzlog_info.paddr);
 exit_unreg_qseelog:
-	qtee_shmbridge_deregister(enc_qseelog_info.shmb_handle);
+	qcom_tzmem_deregister(enc_qseelog_info.shmb_handle);
 exit_free_qseelog:
 	dma_free_coherent(&pdev->dev, enc_qseelog_info.size,
 			enc_qseelog_info.vaddr, enc_qseelog_info.paddr);
@@ -1592,10 +1592,10 @@ exit_free_qseelog:
 
 static void tzdbg_free_encrypted_log_buf(struct platform_device *pdev)
 {
-	qtee_shmbridge_deregister(enc_tzlog_info.shmb_handle);
+	qcom_tzmem_deregister(enc_tzlog_info.shmb_handle);
 	dma_free_coherent(&pdev->dev, enc_tzlog_info.size,
 			enc_tzlog_info.vaddr, enc_tzlog_info.paddr);
-	qtee_shmbridge_deregister(enc_qseelog_info.shmb_handle);
+	qcom_tzmem_deregister(enc_qseelog_info.shmb_handle);
 	dma_free_coherent(&pdev->dev, enc_qseelog_info.size,
 			enc_qseelog_info.vaddr, enc_qseelog_info.paddr);
 }

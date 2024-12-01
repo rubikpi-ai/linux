@@ -7,6 +7,7 @@ config QCOM_TZMEM
 
 choice
 	prompt "TrustZone interface memory allocator mode"
+	depends on QCOM_TZMEM
 	default QCOM_TZMEM_MODE_GENERIC
 	help
 	  Selects the mode of the memory allocator providing memory buffers of
@@ -19,11 +20,21 @@ config QCOM_TZMEM_MODE_GENERIC
 	  Use the generic allocator mode. The memory is page-aligned, non-cachable
 	  and physically contiguous.
 
+config QCOM_TZMEM_MODE_SHMBRIDGE
+	bool "SHM Bridge"
+	help
+	  Use Qualcomm Shared Memory Bridge. The memory has the same alignment as
+	  in the 'Generic' allocator but is also explicitly marked as an SHM Bridge
+	  buffer.
+
+	  With this selected, all buffers passed to the TrustZone must be allocated
+	  using the TZMem allocator or else the TrustZone will refuse to use them.
+
 endchoice
 
 config QTI_TZ_LOG
 	tristate "QTI Trust Zone (TZ) Log Driver"
-	depends on QTEE_SHM_BRIDGE && PROC_FS
+	depends on QCOM_TZMEM && PROC_FS && QCOM_SCM
 	help
 	  Provide debugging capability with a procfs interface for messages produced
 	  by the Secure code (Trust zone). These messages provide diagnostic information

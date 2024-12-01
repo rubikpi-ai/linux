@@ -11,8 +11,8 @@
 #include <linux/err.h>
 #include <linux/of.h>
 #include <linux/of_address.h>
+#include <linux/firmware/qcom/qcom_tzmem.h>
 #include <soc/qcom/memory_dump.h>
-#include <linux/qtee_shmbridge.h>
 #include <soc/qcom/secure_buffer.h>
 #include <linux/of_device.h>
 #include <linux/dma-mapping.h>
@@ -1051,7 +1051,7 @@ static int mem_dump_alloc(struct platform_device *pdev)
 	sg_free_table(&mem_dump_sgt);
 
 	memset(dump_vaddr, 0x0, total_size);
-	ret = qtee_shmbridge_register(phys_addr, total_size, ns_vmids,
+	ret = qcom_tzmem_register(phys_addr, total_size, ns_vmids,
 			ns_vm_perms, 1, PERM_READ|PERM_WRITE, &shm_bridge_handle);
 	if (ret) {
 		dev_err(&pdev->dev, "Failed to create shm bridge.ret=%d\n", ret);
@@ -1061,13 +1061,13 @@ static int mem_dump_alloc(struct platform_device *pdev)
 	ret = init_memory_dump(dump_vaddr, phys_addr);
 	if (ret) {
 		dev_err(&pdev->dev, "Memory Dump table set up is failed\n");
-		qtee_shmbridge_deregister(shm_bridge_handle);
+		qcom_tzmem_deregister(shm_bridge_handle);
 		return ret;
 	}
 
 	ret = init_memdump_imem_area(total_size);
 	if (ret) {
-		qtee_shmbridge_deregister(shm_bridge_handle);
+		qcom_tzmem_deregister(shm_bridge_handle);
 		return ret;
 	}
 

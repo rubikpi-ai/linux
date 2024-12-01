@@ -122,15 +122,6 @@ static int32_t qtee_shmbridge_enable(bool enable)
 		return ret;
 	}
 
-	ret = qcom_scm_enable_shm_bridge();
-
-	if (ret) {
-		pr_err("Failed to enable shmbridge, ret = %d\n", ret);
-
-		if (ret == -EIO || ret == SHMBRIDGE_E_NOT_SUPPORTED)
-			pr_warn("shmbridge is not supported by this target\n");
-		return ret;
-	}
 	qtee_shmbridge_enabled = true;
 	pr_warn("shmbridge is enabled\n");
 	return ret;
