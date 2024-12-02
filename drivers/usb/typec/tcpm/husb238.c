@@ -72,10 +72,7 @@ static void husb238_handler_work(struct work_struct *work)
                           PD_SRC_CURRENT[status & 0x0F]);
 	} else {
 		scnprintf(husb_buf, PAGE_SIZE, "%s\n", PD_QC_SRC_VOLTAGE[ 9 ]);
-		mod_delayed_work(chip->wq, &chip->husb238_handler,
-                                 msecs_to_jiffies(HUSB238_DEBOUNCE_DELAY_MS));
 	}
-	dev_err(dev, "%s\n", husb_buf);
 }
 
 static ssize_t power_supply_show(struct device *_dev, struct device_attribute *attr,

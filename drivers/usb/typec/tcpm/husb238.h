@@ -7,7 +7,7 @@
 
 /* HUSB238 ADDR */
 #define HUSB238                   0x08
-#define HUSB238_DEBOUNCE_DELAY_MS 10000
+#define HUSB238_DEBOUNCE_DELAY_MS 2000
 /* REG ADDR */
 #define PD_STATUS0                0x00
 #define PD_STATUS1                0x01
