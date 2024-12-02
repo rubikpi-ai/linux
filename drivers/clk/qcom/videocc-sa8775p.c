@@ -466,6 +466,19 @@ static struct gdsc video_cc_mvs1_gdsc = {
 	.flags = RETAIN_FF_ENABLE | POLL_CFG_GDSCR | HW_CTRL,
 };
 
+static struct gdsc video_cc_mvs0_gdsc_sw_ctrl = {
+	.gdscr = 0x809c,
+	.en_rest_wait_val = 0x2,
+	.en_few_wait_val = 0x2,
+	.clk_dis_wait_val = 0x6,
+	.pd = {
+		.name = "video_cc_mvs0_gdsc",
+	},
+	.pwrsts = PWRSTS_OFF_ON,
+	.parent = &video_cc_mvs0c_gdsc.pd,
+	.flags = RETAIN_FF_ENABLE | POLL_CFG_GDSCR,
+};
+
 static struct clk_regmap *video_cc_sa8775p_clocks[] = {
 	[VIDEO_CC_AHB_CLK_SRC] = &video_cc_ahb_clk_src.clkr,
 	[VIDEO_CC_MVS0_CLK] = &video_cc_mvs0_clk.clkr,
@@ -551,9 +564,12 @@ static int video_cc_sa8775p_probe(struct platform_device *pdev)
 	clk_lucid_evo_pll_configure(&video_pll0, regmap, &video_pll0_config);
 	clk_lucid_evo_pll_configure(&video_pll1, regmap, &video_pll1_config);
 
-	/* Set mvs0c clock divider to div-3 on qcs8300 to fix infrequent video hangs */
-	if (of_device_is_compatible(pdev->dev.of_node, "qcom,qcs8300-videocc"))
+	if (of_device_is_compatible(pdev->dev.of_node, "qcom,qcs8300-videocc")) {
+		/* Set mvs0c clock divider to div-3 on qcs8300 to fix infrequent video hangs */
 		regmap_write(regmap, video_cc_mvs0c_div2_div_clk_src.reg, 2);
+
+		video_cc_sa8775p_gdscs[VIDEO_CC_MVS0_GDSC] = &video_cc_mvs0_gdsc_sw_ctrl;
+	}
 
 	/*
 	 * Keep clocks always enabled:
