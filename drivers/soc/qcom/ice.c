@@ -12,7 +12,7 @@
 #include <linux/delay.h>
 #include <linux/iopoll.h>
 #include <linux/of_platform.h>
-
+#include <linux/of_address.h>
 #include <linux/firmware/qcom/qcom_scm.h>
 
 #include <soc/qcom/ice.h>
@@ -75,6 +75,8 @@ struct qcom_ice {
 	u8 hwkm_version;
 	bool use_hwkm;
 	bool hwkm_init_complete;
+	uint32_t max_freq;
+	uint32_t min_freq;
 };
 
 union crypto_cfg {
@@ -509,6 +511,19 @@ int qcom_ice_import_key(struct qcom_ice *ice, const u8 *imp_key, size_t imp_key_
 }
 EXPORT_SYMBOL_GPL(qcom_ice_import_key);
 
+int qcom_ice_scale_clk(struct qcom_ice *ice, bool scale_up)
+{
+	int ret = 0;
+
+	if (scale_up && ice->max_freq)
+		ret = clk_set_rate(ice->core_clk, ice->max_freq);
+	else if (!scale_up && ice->min_freq)
+		ret = clk_set_rate(ice->core_clk, ice->min_freq);
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(qcom_ice_scale_clk);
+
 static struct qcom_ice *qcom_ice_create(struct device *dev,
 					void __iomem *base)
 {
@@ -574,6 +589,9 @@ struct qcom_ice *of_qcom_ice_get(struct device *dev)
 	struct device_node *node;
 	struct resource *res;
 	void __iomem *base;
+	const __be32 *prop;
+	int len;
+
 
 	if (!dev || !dev->of_node)
 		return ERR_PTR(-ENODEV);
@@ -621,6 +639,14 @@ struct qcom_ice *of_qcom_ice_get(struct device *dev)
 			dev_name(&pdev->dev));
 		platform_device_put(pdev);
 		goto out;
+	}
+
+	prop = of_get_property(node, "freq-table-hz", &len);
+	if (!prop || len < 2 * sizeof(uint32_t))
+		pr_err("Property not found or invalid length\n");
+	else {
+		ice->min_freq = be32_to_cpu(prop);
+		ice->max_freq = be32_to_cpu(prop);
 	}
 
 	ice->link = device_link_add(dev, &pdev->dev, DL_FLAG_AUTOREMOVE_SUPPLIER);
