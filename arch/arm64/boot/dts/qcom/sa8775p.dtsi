@@ -7100,7 +7100,7 @@
 				assigned-clock-rates = <19200000>;
 
 				operating-points-v2 = <&mdss0_mdp_opp_table>;
-				power-domains = <&rpmhpd RPMHPD_MMCX>;
+				power-domains = <&rpmhpd SA8775P_MMCX>;
 
 				interrupt-parent = <&mdss0>;
 				interrupts = <0>;
