@@ -4865,6 +4865,40 @@
 			qcom,extended_cti;
 		};
 
+		funnel@4940000 {
+			compatible = "arm,coresight-dynamic-funnel", "arm,primecell";
+			reg = <0x0 0x4940000 0x0 0x1000>,
+			      <0x0 0x4b87000 0x0 0x1000>;
+			reg-names = "funnel-base-dummy", "funnel-base-real";
+
+			clocks = <&aoss_qmp>;
+			clock-names = "apb_pclk";
+			qcom,duplicate-funnel;
+			arm,primecell-periphid = <0x000bb908>;
+
+			out-ports {
+				port {
+					turing0_dup_funnel_out: endpoint {
+						remote-endpoint =
+						<&turing0_funnel_in4>;
+					};
+				};
+			};
+
+			in-ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@3 {
+					reg = <3>;
+					turing0_dup_funnel_in3: endpoint {
+						remote-endpoint =
+						<&turing0_etm0_out>;
+					};
+				};
+			};
+		};
+
 		cti@4961000 {
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x4961000 0x0 0x1000>;
@@ -5898,9 +5932,9 @@
 					};
 				};
 
-				port@3 {
-					reg = <3>;
-					turing0_funnel_in3: endpoint {
+				port@4 {
+					reg = <4>;
+					turing0_funnel_in4: endpoint {
 						remote-endpoint =
 						<&turing0_etm0_out>;
 					};
@@ -7259,6 +7293,7 @@
 		compatible = "qcom,coresight-remote-etm";
 		device-name = "turing_etm0";
 
+		qcom,atid-num = <2>;
 		qcom,inst-id = <13>;
 		atid = <38 39>;
 
@@ -7266,7 +7301,7 @@
 			port {
 				turing0_etm0_out: endpoint {
 					remote-endpoint =
-					<&turing0_funnel_in3>;
+					<&turing0_dup_funnel_in3>;
 				};
 			};
 		};
