@@ -57,14 +57,14 @@ static const struct reg_default es8316_reg_defaults[] = {
 	{0x24, 0x01}, {0x25, 0x08}, {0x26, 0x10}, {0x27, 0xc0},
 	{0x28, 0x00}, {0x29, 0x1c}, {0x2a, 0x00}, {0x2b, 0xb0},
 	{0x2c, 0x32}, {0x2d, 0x03}, {0x2e, 0x00}, {0x2f, 0x11},
-	{0x30, 0x10}, {0x31, 0x00}, {0x32, 0x00}, {0x33, 0xc0},
-	{0x34, 0xc0}, {0x35, 0x1f}, {0x36, 0xf7}, {0x37, 0xfd},
+	{0x30, 0x10}, {0x31, 0x00}, {0x32, 0x00}, {0x33, 0x00},
+	{0x34, 0x00}, {0x35, 0x1f}, {0x36, 0xf7}, {0x37, 0xfd},
 	{0x38, 0xff}, {0x39, 0x1f}, {0x3a, 0xf7}, {0x3b, 0xfd},
 	{0x3c, 0xff}, {0x3d, 0x1f}, {0x3e, 0xf7}, {0x3f, 0xfd},
 	{0x40, 0xff}, {0x41, 0x1f}, {0x42, 0xf7}, {0x43, 0xfd},
 	{0x44, 0xff}, {0x45, 0x1f}, {0x46, 0xf7}, {0x47, 0xfd},
 	{0x48, 0xff}, {0x49, 0x1f}, {0x4a, 0xf7}, {0x4b, 0xfd},
-	{0x4c, 0xff}, {0x4d, 0x00}, {0x4e, 0x00}, {0x4f, 0xff},
+	{0x4c, 0xff}, {0x4d, 0x00}, {0x4e, 0x00}, //{0x4f, 0xff},
 	{0x50, 0x00}, {0x51, 0x00}, {0x52, 0x00}, {0x53, 0x00},
 };
 
@@ -117,7 +117,7 @@ static void pcm_pop_work_events(struct work_struct *work)
 			snd_soc_component_write(component, ES8316_CPHP_PDN2_REG1A, 0x10);		
 			snd_soc_component_write(component, ES8316_CPHP_LDOCTL_REG1B, 0x30);
 			snd_soc_component_write(component, ES8316_CPHP_PDN1_REG19, 0x03);
-			snd_soc_component_write(component, ES8316_CPHP_ICAL_VOL_REG18, 0x00);
+			snd_soc_component_write(component, ES8316_CPHP_ICAL_VOL_REG18, 0x11);
 			snd_soc_component_write(component, ES8316_ADC_PDN_LINSEL_REG22, 0x30);
 			msleep(5);
 			snd_soc_component_write(component, ES8316_RESET_REG00, 0xC0);	
@@ -742,16 +742,17 @@ static int es8316_mute(struct snd_soc_dai *dai, int mute, int direction)
 	struct snd_soc_component *component = dai->component;
 	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
 	es8316->muted = mute;
-	if (mute) {
-		es8316_enable_spk(es8316, false);
-		msleep(100);
-		snd_soc_component_write(component, ES8316_DAC_SET1_REG30, 0x20);
-	} else if (direction == SNDRV_PCM_STREAM_PLAYBACK) {
-		snd_soc_component_write(component, ES8316_DAC_SET1_REG30, 0x00);
-		msleep(130);
-		if (!es8316->hp_inserted)
-			es8316_enable_spk(es8316, true);
+
+	pr_info("%s: mute(%d) direction(%d)\n", __func__, mute, direction);
+
+	if (direction == SNDRV_PCM_STREAM_PLAYBACK) {
+		if (mute) {
+			snd_soc_component_write(component, ES8316_DAC_SET1_REG30, 0x20);
+		} else {
+			snd_soc_component_write(component, ES8316_DAC_SET1_REG30, 0x00);
+		}
 	}
+
 	return 0;
 }
 
@@ -759,7 +760,7 @@ static int es8316_set_bias_level(struct snd_soc_component *component,
 				 enum snd_soc_bias_level level)
 {
 	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
-//	int ret;
+
 	switch (level) {
 	case SND_SOC_BIAS_ON:
 		break;
@@ -862,7 +863,7 @@ static int es8316_init_regs(struct snd_soc_component *component)
 	snd_soc_component_write(component, ES8316_CPHP_PDN2_REG1A, 0x10);
 	snd_soc_component_write(component, ES8316_CPHP_LDOCTL_REG1B, 0x30);
 	snd_soc_component_write(component, ES8316_CPHP_PDN1_REG19, 0x02);
-	snd_soc_component_write(component, ES8316_CPHP_ICAL_VOL_REG18, 0x00);
+	snd_soc_component_write(component, ES8316_CPHP_ICAL_VOL_REG18, 0x11);
 	snd_soc_component_write(component, ES8316_GPIO_SEL_REG4D, 0x00);
 	snd_soc_component_write(component, ES8316_GPIO_DEBUNCE_INT_REG4E, 0x02);
 	snd_soc_component_write(component, ES8316_TESTMODE_REG50, 0xA0);
@@ -886,7 +887,22 @@ static int es8316_init_regs(struct snd_soc_component *component)
 	snd_soc_component_write(component, ES8316_ADC_ALC3_REG2B, 0xa0);
 	snd_soc_component_write(component, ES8316_ADC_ALC4_REG2C, 0x05);
 	snd_soc_component_write(component, ES8316_ADC_ALC5_REG2D, 0x06);
-	snd_soc_component_write(component, ES8316_ADC_ALC6_REG2E, 0xab);	
+	snd_soc_component_write(component, ES8316_ADC_ALC6_REG2E, 0xab);
+
+	snd_soc_component_write(component, ES8316_SYS_VMIDSEL, 0xff);
+	snd_soc_component_write(component, ES8316_CLKMGR_ADCOSR, 0x32);
+
+	snd_soc_component_update_bits(component, ES8316_SERDATA_DAC,
+			    ES8316_SERDATA2_LEN_MASK, ES8316_SERDATA2_LEN_16);
+	snd_soc_component_update_bits(component, ES8316_SERDATA_ADC,
+			    ES8316_SERDATA2_LEN_MASK, ES8316_SERDATA2_LEN_16);
+
+	snd_soc_component_write(component, 0x01, 0x7f);
+	snd_soc_component_write(component, 0x02, 0x09);
+	snd_soc_component_update_bits(component, ES8316_ADC_PDN_LINSEL, 0xcf, 0x00);
+	snd_soc_component_write(component, 0x0a, 0x00);
+	snd_soc_component_write(component, 0x0d, 0x00);
+
 	return 0;
 }
 
