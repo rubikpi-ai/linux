@@ -743,6 +743,11 @@
 	};
 };
 
+&pmm8654au_0_pon_resin {
+	linux,code = <KEY_VOLUMEDOWN>;
+	status = "okay";
+};
+
 &uart0 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
