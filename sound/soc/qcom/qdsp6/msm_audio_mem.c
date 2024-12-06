@@ -722,8 +722,8 @@ static long msm_audio_mem_ioctl(struct file *file, unsigned int ioctl_num,
 		msm_audio_set_hyp_assign((int)ioctl_param, false);
 		break;
 	default:
-		pr_err("%s Entered default. Invalid ioctl num %u\n",
-			__func__, ioctl_num);
+		pr_err_ratelimited("%s Entered default. Invalid ioctl num %u\n",
+				   __func__, ioctl_num);
 		ret = -EINVAL;
 		break;
 	}
