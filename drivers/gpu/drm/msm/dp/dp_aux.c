@@ -4,6 +4,7 @@
  */
 
 #include <linux/delay.h>
+#include <linux/phy/phy.h>
 #include <drm/drm_print.h>
 
 #include "dp_reg.h"
@@ -19,9 +20,11 @@ enum msm_dp_aux_err {
 	DP_AUX_ERR_PHY,
 };
 
-struct dp_aux_private {
+struct msm_dp_aux_private {
 	struct device *dev;
-	struct dp_catalog *catalog;
+	struct msm_dp_catalog *catalog;
+
+	struct phy *phy;
 
 	struct mutex mutex;
 	struct completion comp;
@@ -39,12 +42,12 @@ struct dp_aux_private {
 	u32 offset;
 	u32 segment;
 
-	struct drm_dp_aux dp_aux;
+	struct drm_dp_aux msm_dp_aux;
 };
 
 #define MAX_AUX_RETRIES			5
 
-static ssize_t dp_aux_write(struct dp_aux_private *aux,
+static ssize_t msm_dp_aux_write(struct msm_dp_aux_private *aux,
 			struct drm_dp_aux_msg *msg)
 {
 	u8 data[4];
@@ -85,12 +88,11 @@ static ssize_t dp_aux_write(struct dp_aux_private *aux,
 		/* index = 0, write */
 		if (i == 0)
 			reg |= DP_AUX_DATA_INDEX_WRITE;
-		aux->catalog->aux_data = reg;
-		dp_catalog_aux_write_data(aux->catalog);
+		msm_dp_catalog_aux_write_data(aux->catalog, reg);
 	}
 
-	dp_catalog_aux_clear_trans(aux->catalog, false);
-	dp_catalog_aux_clear_hw_interrupts(aux->catalog);
+	msm_dp_catalog_aux_clear_trans(aux->catalog, false);
+	msm_dp_catalog_aux_clear_hw_interrupts(aux->catalog);
 
 	reg = 0; /* Transaction number == 1 */
 	if (!aux->native) { /* i2c */
@@ -104,13 +106,12 @@ static ssize_t dp_aux_write(struct dp_aux_private *aux,
 	}
 
 	reg |= DP_AUX_TRANS_CTRL_GO;
-	aux->catalog->aux_data = reg;
-	dp_catalog_aux_write_trans(aux->catalog);
+	msm_dp_catalog_aux_write_trans(aux->catalog, reg);
 
 	return len;
 }
 
-static ssize_t dp_aux_cmd_fifo_tx(struct dp_aux_private *aux,
+static ssize_t msm_dp_aux_cmd_fifo_tx(struct msm_dp_aux_private *aux,
 			      struct drm_dp_aux_msg *msg)
 {
 	ssize_t ret;
@@ -118,7 +119,7 @@ static ssize_t dp_aux_cmd_fifo_tx(struct dp_aux_private *aux,
 
 	reinit_completion(&aux->comp);
 
-	ret = dp_aux_write(aux, msg);
+	ret = msm_dp_aux_write(aux, msg);
 	if (ret < 0)
 		return ret;
 
@@ -130,7 +131,7 @@ static ssize_t dp_aux_cmd_fifo_tx(struct dp_aux_private *aux,
 	return ret;
 }
 
-static ssize_t dp_aux_cmd_fifo_rx(struct dp_aux_private *aux,
+static ssize_t msm_dp_aux_cmd_fifo_rx(struct msm_dp_aux_private *aux,
 		struct drm_dp_aux_msg *msg)
 {
 	u32 data;
@@ -138,21 +139,20 @@ static ssize_t dp_aux_cmd_fifo_rx(struct dp_aux_private *aux,
 	u32 i, actual_i;
 	u32 len = msg->size;
 
-	dp_catalog_aux_clear_trans(aux->catalog, true);
+	msm_dp_catalog_aux_clear_trans(aux->catalog, true);
 
 	data = DP_AUX_DATA_INDEX_WRITE; /* INDEX_WRITE */
 	data |= DP_AUX_DATA_READ;  /* read */
 
-	aux->catalog->aux_data = data;
-	dp_catalog_aux_write_data(aux->catalog);
+	msm_dp_catalog_aux_write_data(aux->catalog, data);
 
 	dp = msg->buffer;
 
 	/* discard first byte */
-	data = dp_catalog_aux_read_data(aux->catalog);
+	data = msm_dp_catalog_aux_read_data(aux->catalog);
 
 	for (i = 0; i < len; i++) {
-		data = dp_catalog_aux_read_data(aux->catalog);
+		data = msm_dp_catalog_aux_read_data(aux->catalog);
 		*dp++ = (u8)((data >> DP_AUX_DATA_OFFSET) & 0xff);
 
 		actual_i = (data >> DP_AUX_DATA_INDEX_OFFSET) & 0xFF;
@@ -163,7 +163,7 @@ static ssize_t dp_aux_cmd_fifo_rx(struct dp_aux_private *aux,
 	return i;
 }
 
-static void dp_aux_update_offset_and_segment(struct dp_aux_private *aux,
+static void msm_dp_aux_update_offset_and_segment(struct msm_dp_aux_private *aux,
 					     struct drm_dp_aux_msg *input_msg)
 {
 	u32 edid_address = 0x50;
@@ -185,7 +185,7 @@ static void dp_aux_update_offset_and_segment(struct dp_aux_private *aux,
 }
 
 /**
- * dp_aux_transfer_helper() - helper function for EDID read transactions
+ * msm_dp_aux_transfer_helper() - helper function for EDID read transactions
  *
  * @aux: DP AUX private structure
  * @input_msg: input message from DRM upstream APIs
@@ -196,7 +196,7 @@ static void dp_aux_update_offset_and_segment(struct dp_aux_private *aux,
  * This helper function is used to fix EDID reads for non-compliant
  * sinks that do not handle the i2c middle-of-transaction flag correctly.
  */
-static void dp_aux_transfer_helper(struct dp_aux_private *aux,
+static void msm_dp_aux_transfer_helper(struct msm_dp_aux_private *aux,
 				   struct drm_dp_aux_msg *input_msg,
 				   bool send_seg)
 {
@@ -238,7 +238,7 @@ static void dp_aux_transfer_helper(struct dp_aux_private *aux,
 		helper_msg.address = segment_address;
 		helper_msg.buffer = &aux->segment;
 		helper_msg.size = 1;
-		dp_aux_cmd_fifo_tx(aux, &helper_msg);
+		msm_dp_aux_cmd_fifo_tx(aux, &helper_msg);
 	}
 
 	/*
@@ -252,7 +252,7 @@ static void dp_aux_transfer_helper(struct dp_aux_private *aux,
 	helper_msg.address = input_msg->address;
 	helper_msg.buffer = &aux->offset;
 	helper_msg.size = 1;
-	dp_aux_cmd_fifo_tx(aux, &helper_msg);
+	msm_dp_aux_cmd_fifo_tx(aux, &helper_msg);
 
 end:
 	aux->offset += message_size;
@@ -265,15 +265,15 @@ end:
  * It will call aux_reset() function to reset the AUX channel,
  * if the waiting is timeout.
  */
-static ssize_t dp_aux_transfer(struct drm_dp_aux *dp_aux,
+static ssize_t msm_dp_aux_transfer(struct drm_dp_aux *msm_dp_aux,
 			       struct drm_dp_aux_msg *msg)
 {
 	ssize_t ret;
 	int const aux_cmd_native_max = 16;
 	int const aux_cmd_i2c_max = 128;
-	struct dp_aux_private *aux;
+	struct msm_dp_aux_private *aux;
 
-	aux = container_of(dp_aux, struct dp_aux_private, dp_aux);
+	aux = container_of(msm_dp_aux, struct msm_dp_aux_private, msm_dp_aux);
 
 	aux->native = msg->request & (DP_AUX_NATIVE_WRITE & DP_AUX_NATIVE_READ);
 
@@ -292,6 +292,10 @@ static ssize_t dp_aux_transfer(struct drm_dp_aux *dp_aux,
 		return -EINVAL;
 	}
 
+	ret = pm_runtime_resume_and_get(msm_dp_aux->dev);
+	if (ret)
+		return  ret;
+
 	mutex_lock(&aux->mutex);
 	if (!aux->initted) {
 		ret = -EIO;
@@ -309,24 +313,8 @@ static ssize_t dp_aux_transfer(struct drm_dp_aux *dp_aux,
 		goto exit;
 	}
 
-	/*
-	 * For eDP it's important to give a reasonably long wait here for HPD
-	 * to be asserted. This is because the panel driver may have _just_
-	 * turned on the panel and then tried to do an AUX transfer. The panel
-	 * driver has no way of knowing when the panel is ready, so it's up
-	 * to us to wait. For DP we never get into this situation so let's
-	 * avoid ever doing the extra long wait for DP.
-	 */
-	if (aux->is_edp) {
-		ret = dp_catalog_aux_wait_for_hpd_connect_state(aux->catalog);
-		if (ret) {
-			DRM_DEBUG_DP("Panel not ready for aux transactions\n");
-			goto exit;
-		}
-	}
-
-	dp_aux_update_offset_and_segment(aux, msg);
-	dp_aux_transfer_helper(aux, msg, true);
+	msm_dp_aux_update_offset_and_segment(aux, msg);
+	msm_dp_aux_transfer_helper(aux, msg, true);
 
 	aux->read = msg->request & (DP_AUX_I2C_READ & DP_AUX_NATIVE_READ);
 	aux->cmd_busy = true;
@@ -339,22 +327,22 @@ static ssize_t dp_aux_transfer(struct drm_dp_aux *dp_aux,
 		aux->no_send_stop = true;
 	}
 
-	ret = dp_aux_cmd_fifo_tx(aux, msg);
+	ret = msm_dp_aux_cmd_fifo_tx(aux, msg);
 	if (ret < 0) {
 		if (aux->native) {
 			aux->retry_cnt++;
 			if (!(aux->retry_cnt % MAX_AUX_RETRIES))
-				dp_catalog_aux_update_cfg(aux->catalog);
+				phy_calibrate(aux->phy);
 		}
 		/* reset aux if link is in connected state */
-		if (dp_catalog_link_is_connected(aux->catalog))
-			dp_catalog_aux_reset(aux->catalog);
+		if (msm_dp_catalog_link_is_connected(aux->catalog))
+			msm_dp_catalog_aux_reset(aux->catalog);
 	} else {
 		aux->retry_cnt = 0;
 		switch (aux->aux_error_num) {
 		case DP_AUX_ERR_NONE:
 			if (aux->read)
-				ret = dp_aux_cmd_fifo_rx(aux, msg);
+				ret = msm_dp_aux_cmd_fifo_rx(aux, msg);
 			msg->reply = aux->native ? DP_AUX_NATIVE_REPLY_ACK : DP_AUX_I2C_REPLY_ACK;
 			break;
 		case DP_AUX_ERR_DEFER:
@@ -376,23 +364,24 @@ static ssize_t dp_aux_transfer(struct drm_dp_aux *dp_aux,
 
 exit:
 	mutex_unlock(&aux->mutex);
+	pm_runtime_put_sync(msm_dp_aux->dev);
 
 	return ret;
 }
 
-irqreturn_t dp_aux_isr(struct drm_dp_aux *dp_aux)
+irqreturn_t msm_dp_aux_isr(struct drm_dp_aux *msm_dp_aux)
 {
 	u32 isr;
-	struct dp_aux_private *aux;
+	struct msm_dp_aux_private *aux;
 
-	if (!dp_aux) {
+	if (!msm_dp_aux) {
 		DRM_ERROR("invalid input\n");
 		return IRQ_NONE;
 	}
 
-	aux = container_of(dp_aux, struct dp_aux_private, dp_aux);
+	aux = container_of(msm_dp_aux, struct msm_dp_aux_private, msm_dp_aux);
 
-	isr = dp_catalog_aux_get_irq(aux->catalog);
+	isr = msm_dp_catalog_aux_get_irq(aux->catalog);
 
 	/* no interrupts pending, return immediately */
 	if (!isr)
@@ -414,7 +403,7 @@ irqreturn_t dp_aux_isr(struct drm_dp_aux *dp_aux)
 
 	if (isr & DP_INTR_AUX_ERROR) {
 		aux->aux_error_num = DP_AUX_ERR_PHY;
-		dp_catalog_aux_clear_hw_interrupts(aux->catalog);
+		msm_dp_catalog_aux_clear_hw_interrupts(aux->catalog);
 	} else if (isr & DP_INTR_NACK_DEFER) {
 		aux->aux_error_num = DP_AUX_ERR_NACK_DEFER;
 	} else if (isr & DP_INTR_WRONG_ADDR) {
@@ -440,74 +429,68 @@ irqreturn_t dp_aux_isr(struct drm_dp_aux *dp_aux)
 	return IRQ_HANDLED;
 }
 
-void dp_aux_enable_xfers(struct drm_dp_aux *dp_aux, bool enabled)
+void msm_dp_aux_enable_xfers(struct drm_dp_aux *msm_dp_aux, bool enabled)
 {
-	struct dp_aux_private *aux;
+	struct msm_dp_aux_private *aux;
 
-	aux = container_of(dp_aux, struct dp_aux_private, dp_aux);
+	aux = container_of(msm_dp_aux, struct msm_dp_aux_private, msm_dp_aux);
 	aux->enable_xfers = enabled;
 }
 
-void dp_aux_reconfig(struct drm_dp_aux *dp_aux)
+void msm_dp_aux_reconfig(struct drm_dp_aux *msm_dp_aux)
 {
-	struct dp_aux_private *aux;
+	struct msm_dp_aux_private *aux;
 
-	aux = container_of(dp_aux, struct dp_aux_private, dp_aux);
+	aux = container_of(msm_dp_aux, struct msm_dp_aux_private, msm_dp_aux);
 
-	dp_catalog_aux_update_cfg(aux->catalog);
-	dp_catalog_aux_reset(aux->catalog);
+	phy_calibrate(aux->phy);
+	msm_dp_catalog_aux_reset(aux->catalog);
 }
 
-void dp_aux_init(struct drm_dp_aux *dp_aux)
+void msm_dp_aux_init(struct drm_dp_aux *msm_dp_aux)
 {
-	struct dp_aux_private *aux;
+	struct msm_dp_aux_private *aux;
 
-	if (!dp_aux) {
+	if (!msm_dp_aux) {
 		DRM_ERROR("invalid input\n");
 		return;
 	}
 
-	aux = container_of(dp_aux, struct dp_aux_private, dp_aux);
+	aux = container_of(msm_dp_aux, struct msm_dp_aux_private, msm_dp_aux);
 
 	mutex_lock(&aux->mutex);
 
-	dp_catalog_aux_enable(aux->catalog, true);
+	msm_dp_catalog_aux_enable(aux->catalog, true);
 	aux->retry_cnt = 0;
 	aux->initted = true;
 
 	mutex_unlock(&aux->mutex);
 }
 
-void dp_aux_deinit(struct drm_dp_aux *dp_aux)
+void msm_dp_aux_deinit(struct drm_dp_aux *msm_dp_aux)
 {
-	struct dp_aux_private *aux;
+	struct msm_dp_aux_private *aux;
 
-	aux = container_of(dp_aux, struct dp_aux_private, dp_aux);
+	aux = container_of(msm_dp_aux, struct msm_dp_aux_private, msm_dp_aux);
 
 	mutex_lock(&aux->mutex);
 
 	aux->initted = false;
-	dp_catalog_aux_enable(aux->catalog, false);
+	msm_dp_catalog_aux_enable(aux->catalog, false);
 
 	mutex_unlock(&aux->mutex);
 }
 
-int dp_aux_register(struct drm_dp_aux *dp_aux)
+int msm_dp_aux_register(struct drm_dp_aux *msm_dp_aux)
 {
-	struct dp_aux_private *aux;
 	int ret;
 
-	if (!dp_aux) {
+	if (!msm_dp_aux) {
 		DRM_ERROR("invalid input\n");
 		return -EINVAL;
 	}
 
-	aux = container_of(dp_aux, struct dp_aux_private, dp_aux);
-
-	aux->dp_aux.name = "dpu_dp_aux";
-	aux->dp_aux.dev = aux->dev;
-	aux->dp_aux.transfer = dp_aux_transfer;
-	ret = drm_dp_aux_register(&aux->dp_aux);
+	ret = drm_dp_aux_register(msm_dp_aux);
 	if (ret) {
 		DRM_ERROR("%s: failed to register drm aux: %d\n", __func__,
 				ret);
@@ -517,15 +500,34 @@ int dp_aux_register(struct drm_dp_aux *dp_aux)
 	return 0;
 }
 
-void dp_aux_unregister(struct drm_dp_aux *dp_aux)
+void msm_dp_aux_unregister(struct drm_dp_aux *msm_dp_aux)
 {
-	drm_dp_aux_unregister(dp_aux);
+	drm_dp_aux_unregister(msm_dp_aux);
 }
 
-struct drm_dp_aux *dp_aux_get(struct device *dev, struct dp_catalog *catalog,
+static int msm_dp_wait_hpd_asserted(struct drm_dp_aux *msm_dp_aux,
+				 unsigned long wait_us)
+{
+	int ret;
+	struct msm_dp_aux_private *aux;
+
+	aux = container_of(msm_dp_aux, struct msm_dp_aux_private, msm_dp_aux);
+
+	ret = pm_runtime_resume_and_get(aux->dev);
+	if (ret)
+		return ret;
+
+	ret = msm_dp_catalog_aux_wait_for_hpd_connect_state(aux->catalog, wait_us);
+	pm_runtime_put_sync(aux->dev);
+
+	return ret;
+}
+
+struct drm_dp_aux *msm_dp_aux_get(struct device *dev, struct msm_dp_catalog *catalog,
+			      struct phy *phy,
 			      bool is_edp)
 {
-	struct dp_aux_private *aux;
+	struct msm_dp_aux_private *aux;
 
 	if (!catalog) {
 		DRM_ERROR("invalid input\n");
@@ -543,19 +545,31 @@ struct drm_dp_aux *dp_aux_get(struct device *dev, struct dp_catalog *catalog,
 
 	aux->dev = dev;
 	aux->catalog = catalog;
+	aux->phy = phy;
 	aux->retry_cnt = 0;
 
-	return &aux->dp_aux;
+	/*
+	 * Use the drm_dp_aux_init() to use the aux adapter
+	 * before registering AUX with the DRM device so that
+	 * msm eDP panel can be detected by generic_dep_panel_probe().
+	 */
+	aux->msm_dp_aux.name = "dpu_dp_aux";
+	aux->msm_dp_aux.dev = dev;
+	aux->msm_dp_aux.transfer = msm_dp_aux_transfer;
+	aux->msm_dp_aux.wait_hpd_asserted = msm_dp_wait_hpd_asserted;
+	drm_dp_aux_init(&aux->msm_dp_aux);
+
+	return &aux->msm_dp_aux;
 }
 
-void dp_aux_put(struct drm_dp_aux *dp_aux)
+void msm_dp_aux_put(struct drm_dp_aux *msm_dp_aux)
 {
-	struct dp_aux_private *aux;
+	struct msm_dp_aux_private *aux;
 
-	if (!dp_aux)
+	if (!msm_dp_aux)
 		return;
 
-	aux = container_of(dp_aux, struct dp_aux_private, dp_aux);
+	aux = container_of(msm_dp_aux, struct msm_dp_aux_private, msm_dp_aux);
 
 	mutex_destroy(&aux->mutex);
 
