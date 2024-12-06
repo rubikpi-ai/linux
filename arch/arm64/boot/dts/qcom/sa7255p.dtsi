@@ -13,12 +13,25 @@
 	#size-cells = <2>;
 
 	clocks {
-		xo_board_clk: xo-board-clk {
+		bi_tcxo_div2: bi-tcxo-div2-clk {
+			compatible = "fixed-factor-clock";
+			clocks = <&xo_board_clk>;
+			clock-mult = <1>;
+			clock-div = <2>;
+			#clock-cells = <0>;
+		};
+
+		gpll0_board_clk: gpll0-board-clk {
 			compatible = "fixed-clock";
 			#clock-cells = <0>;
 		};
 
 		sleep_clk: sleep-clk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+		};
+
+		xo_board_clk: xo-board-clk {
 			compatible = "fixed-clock";
 			#clock-cells = <0>;
 		};
@@ -33,6 +46,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x0>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 0>;
 			next-level-cache = <&L2_0>;
 			L2_0: l2-cache {
 			      compatible = "cache";
@@ -51,6 +65,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x100>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 0>;
 			next-level-cache = <&L2_1>;
 			L2_1: l2-cache {
 			      compatible = "cache";
@@ -64,6 +79,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x200>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 1>;
 			next-level-cache = <&L2_2>;
 			L2_2: l2-cache {
 			      compatible = "cache";
@@ -77,6 +93,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x300>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 1>;
 			next-level-cache = <&L2_3>;
 			L2_3: l2-cache {
 			      compatible = "cache";
@@ -90,6 +107,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x10000>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 2>;
 			next-level-cache = <&L2_4>;
 			L2_4: l2-cache {
 			      compatible = "cache";
@@ -107,6 +125,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x10100>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 2>;
 			next-level-cache = <&L2_5>;
 			L2_5: l2-cache {
 			      compatible = "cache";
@@ -120,6 +139,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x10200>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 2>;
 			next-level-cache = <&L2_6>;
 			L2_6: l2-cache {
 			      compatible = "cache";
@@ -133,6 +153,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x10300>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 2>;
 			next-level-cache = <&L2_7>;
 			L2_7: l2-cache {
 			      compatible = "cache";
@@ -1283,6 +1304,24 @@
 			reg = <0x0 0x17c10000 0x0 0x1000>;
 			clocks = <&sleep_clk>;
 			interrupts = <GIC_SPI 0 IRQ_TYPE_EDGE_RISING>;
+		};
+
+		cpufreq_hw: cpufreq-hw@18591000 {
+			compatible = "qcom,cpufreq-epss",
+				     "qcom,qcs8300-cpufreq-epss";
+			reg = <0x0 0x18591000 0x0 0x1000>,
+			      <0x0 0x18594000 0x0 0x1000>,
+			      <0x0 0x18593000 0x0 0x1000>;
+			reg-names = "freq-domain0", "freq-domain1", "freq-domain2";
+			interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "dcvsh-irq-0", "dcvsh-irq-1", "dcvsh-irq-2";
+
+			clocks = <&bi_tcxo_div2>, <&gpll0_board_clk>;
+			clock-names = "xo", "alternate";
+
+			#freq-domain-cells = <1>;
 		};
 	};
 
