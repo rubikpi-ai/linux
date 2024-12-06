@@ -20,6 +20,7 @@
 	aliases {
 		serial0 = &uart10;
 		serial1 = &uart17;
+		ufshc1 = &ufs_mem_hc;
 	};
 
 	chosen {
@@ -407,6 +408,23 @@
 	status = "okay";
 };
 
+&mdss0 {
+	status = "okay";
+};
+
+&mdss0_dp0 {
+	status = "okay";
+};
+
+&mdss0_dp0_out {
+	data-lanes = <0 1 2 3>;
+	link-frequencies = /bits/ 64 <1620000000 2700000000 5400000000 8100000000>;
+};
+
+&mdss0_edp_phy {
+	status = "okay";
+};
+
 &pmm8654au_1_gpios {
 	gpio-line-names = "PMIC_C_ID0",
 			  "PMIC_C_ID1",
@@ -587,7 +605,11 @@
 	};
 
 	/* FIXME: mdss0_dp0 is dependent on this so adding a dummy node for now */
-	dp_hot_plug_det: dp-hot-plug-det-state {};
+	dp_hot_plug_det: dp-hot-plug-det-state {
+		pins = "gpio101";
+		function = "edp0_hot";
+		bias-disable;
+	};
 
 	/* FIXME: mdss0_dp1 is dependent on this so adding a dummy node for now */
 	dp1_hot_plug_det: dp1-hot-plug-det-state {};
@@ -823,6 +845,23 @@
 &uart19 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
+};
+
+&ufs_mem_hc {
+	reset-gpios = <&tlmm 149 GPIO_ACTIVE_LOW>;
+	vcc-supply = <&vreg_l8a>;
+	vcc-max-microamp = <1100000>;
+	vccq-supply = <&vreg_l4c>;
+	vccq-max-microamp = <1200000>;
+
+	status = "okay";
+};
+
+&ufs_mem_phy {
+	vdda-phy-supply = <&vreg_l4a>;
+	vdda-pll-supply = <&vreg_l1c>;
+
+	status = "okay";
 };
 
 &usb_0 {
