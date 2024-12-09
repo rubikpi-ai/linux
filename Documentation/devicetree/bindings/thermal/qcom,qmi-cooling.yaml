@@ -43,6 +43,7 @@ properties:
       - qcom,qmi-cooling-modem
       - qcom,qmi-cooling-adsp
       - qcom,qmi-cooling-cdsp
+      - qcom,qmi-cooling-cdsp1
       - qcom,qmi-cooling-slpi
 
   vdd:
