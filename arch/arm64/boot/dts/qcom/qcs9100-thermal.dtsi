@@ -5,11 +5,6 @@
 
 &CPU0 {
 	#cooling-cells = <2>;
-	CPU0_idle: thermal-idle {
-		#cooling-cells = <2>;
-		duration-us = <800000>;
-		exit-latency-us = <10000>;
-	};
 };
 
 &CPU1 {
@@ -76,21 +71,6 @@
 };
 
 &thermal_zones {
-	cpu-0-0-0-thermal {
-		trips {
-			trip-point1 {
-				temperature = <116000>;
-			};
-		};
-
-		cooling-maps {
-			map0 {
-				trip = <&cpu_0_0_0_alert1>;
-				cooling-device = <&CPU0_idle 100 100>;
-			};
-		};
-	};
-
 	cpu-0-1-0-thermal {
 		trips {
 			trip-point1 {
@@ -132,21 +112,6 @@
 			map0 {
 				trip = <&cpu_0_3_0_alert1>;
 				cooling-device = <&CPU3_idle 100 100>;
-			};
-		};
-	};
-
-	cpu-0-0-1-thermal {
-		trips {
-			trip-point1 {
-				temperature = <116000>;
-			};
-		};
-
-		cooling-maps {
-			map0 {
-				trip = <&cpu_0_0_1_alert1>;
-				cooling-device = <&CPU0_idle 100 100>;
 			};
 		};
 	};
