@@ -527,6 +527,14 @@
 
 &thermal_zones {
 	gpuss-0-thermal {
+		trips {
+			gpuss_0_passive: trip-point1 {
+				temperature = <105000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+		};
+
 		cooling-maps {
 			map0 {
 				trip = <&gpuss_0_passive>;
@@ -536,6 +544,14 @@
 	};
 
 	gpuss-1-thermal {
+		trips {
+			gpuss_1_passive: trip-point1 {
+				temperature = <105000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+		};
+
 		cooling-maps {
 			map0 {
 				trip = <&gpuss_1_passive>;
@@ -545,6 +561,14 @@
 	};
 
 	gpuss-2-thermal {
+		trips {
+			gpuss_2_passive: trip-point1 {
+				temperature = <105000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+		};
+
 		cooling-maps {
 			map0 {
 				trip = <&gpuss_2_passive>;
@@ -554,6 +578,14 @@
 	};
 
 	gpuss-3-thermal {
+		trips {
+			gpuss_3_passive: trip-point1 {
+				temperature = <105000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+		};
+
 		cooling-maps {
 			map0 {
 				trip = <&gpuss_3_passive>;
@@ -563,6 +595,14 @@
 	};
 
 	gpuss-4-thermal {
+		trips {
+			gpuss_4_passive: trip-point1 {
+				temperature = <105000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+		};
+
 		cooling-maps {
 			map0 {
 				trip = <&gpuss_4_passive>;
@@ -572,6 +612,14 @@
 	};
 
 	gpuss-5-thermal {
+		trips {
+			gpuss_5_passive: trip-point1 {
+				temperature = <105000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+		};
+
 		cooling-maps {
 			map0 {
 				trip = <&gpuss_5_passive>;
