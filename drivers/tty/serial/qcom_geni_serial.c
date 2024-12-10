@@ -114,7 +114,7 @@ void serial_trace_log(struct device *dev, const char *fmt, ...)
 /* We always configure 4 bytes per FIFO word */
 #define BYTES_PER_FIFO_WORD		4U
 
-#define DMA_RX_BUF_SIZE		2048
+#define DMA_RX_BUF_SIZE		4096
 
 struct qcom_geni_device_data {
 	bool console;
