@@ -505,6 +505,7 @@ void dwc3_free_event_buffers(struct dwc3 *dwc)
 	if (evt)
 		dwc3_free_one_event_buffer(dwc, evt);
 }
+EXPORT_SYMBOL_GPL(dwc3_free_event_buffers);
 
 /**
  * dwc3_alloc_event_buffers - Allocates @num event buffers of size @length
@@ -1506,6 +1507,7 @@ void dwc3_core_exit_mode(struct dwc3 *dwc)
 	/* de-assert DRVVBUS for HOST and OTG mode */
 	dwc3_set_prtcap(dwc, DWC3_GCTL_PRTCAP_DEVICE);
 }
+EXPORT_SYMBOL_GPL(dwc3_core_exit_mode);
 
 static void dwc3_get_properties(struct dwc3 *dwc)
 {
