@@ -62,7 +62,8 @@ enum lt9611_aspect_ratio_type {
 	RATIO_UNKOWN = 0,
 	RATIO_4_3,
 	RATIO_16_9,
-	RATIO_16_10,
+	RATIO_64_27,
+	RATIO_256_135,
 };
 
 struct lt9611 {
@@ -877,6 +878,10 @@ static enum lt9611_aspect_ratio_type lt9611_cal_aspect_ratio(const struct drm_di
 		return RATIO_4_3;
 	} else if (aspect_width == 16 && aspect_height == 9) {
 		return RATIO_16_9;
+	} else if (aspect_width == 64 && aspect_height == 27) {
+		return RATIO_64_27;
+	} else if (aspect_width == 256 && aspect_height == 135) {
+		return RATIO_256_135;
 	} else {
 		return RATIO_UNKOWN;
 	}
@@ -1304,9 +1309,13 @@ static enum drm_connector_status lt9611_connector_detect(struct drm_connector *c
 static enum drm_mode_status lt9611_connector_mode_valid(struct drm_connector *connector,
 							   struct drm_display_mode *mode)
 {
-	if ((mode->hdisplay == 3840) &&
-            (mode->vdisplay == 2160) &&
-            (drm_mode_vrefresh(mode) == 60)) {
+	unsigned int pclk;
+
+	pclk = (mode->vtotal) * (mode->htotal) * (drm_mode_vrefresh(mode));
+	pclk = pclk / 1000;
+
+	// 3840x2160@30Hz
+	if (pclk > 297000) {
 		return MODE_BAD;
 	}
 
@@ -1393,15 +1402,13 @@ lt9611_bridge_mode_valid(struct drm_bridge *bridge,
 			    const struct drm_display_info *info,
 			    const struct drm_display_mode *mode)
 {
-	//dev_info(lt9611->dev, "%s: %s: %d(%d:%d:%d:%d) x %d(%d:%d:%d:%d)-%d\n",
-	//		"MODE_OK", mode->name,
-	//		mode->hdisplay, mode->htotal, mode->hsync_start, mode->hsync_end, mode->hskew,
-	//		mode->vdisplay, mode->vtotal, mode->vsync_start, mode->vsync_end, mode->vscan,
-	//		drm_mode_vrefresh(mode));
+	unsigned int pclk;
 
-	if ((mode->hdisplay == 3840) &&
-            (mode->vdisplay == 2160) &&
-            (drm_mode_vrefresh(mode) == 60)) {
+	pclk = (mode->vtotal) * (mode->htotal) * (drm_mode_vrefresh(mode));
+	pclk = pclk / 1000;
+
+	// 3840x2160@30Hz
+	if (pclk > 297000) {
 		return MODE_BAD;
 	}
 
@@ -1765,7 +1772,7 @@ int lt9611_read_cec_msg(struct lt9611 *lt9611, struct cec_msg *msg)
 		pr_err("ERROR: CEC message length = %u, skip read CEC message.\n", cec_len);
 	} else {
 		for (i = 0; i < msg->len; i++)
-			dev_err(lt9611->dev, "received msg[%d] = %x", i, msg->msg[i]);
+			dev_info(lt9611->dev, "received msg[%d] = %x", i, msg->msg[i]);
 	}
 
 	return ret;
