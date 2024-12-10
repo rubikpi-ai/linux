@@ -92,6 +92,7 @@ struct ethqos_emac_por {
 
 struct ethqos_emac_driver_data {
 	const struct ethqos_emac_por *por;
+	struct dwxgmac_addrs dwxgmac_addrs;
 	unsigned int num_por;
 	bool rgmii_config_loopback_en;
 	bool has_emac_ge_3;
@@ -290,6 +291,16 @@ static const struct ethqos_emac_por emac_v4_0_0_por[] = {
 	{ .offset = RGMII_IO_MACRO_CONFIG2,	.value = 0x00002060 },
 };
 
+static const struct ethqos_emac_por emac_v6_6_0_por[] = {
+	{ .offset = RGMII_IO_MACRO_CONFIG,	.value = 0x40c04c03 },
+	{ .offset = SDCC_HC_REG_DLL_CONFIG,	.value = 0xd642c },
+	{ .offset = SDCC_HC_REG_DDR_CONFIG,	.value = 0x80040868 },
+	{ .offset = SDCC_HC_REG_DLL_CONFIG2,	.value = 0xa001 },
+	{ .offset = SDCC_USR_CTL,		.value = 0x90106c0 },
+	{ .offset = RGMII_IO_MACRO_CONFIG2,	.value = 0x2200a0 },
+	{ .offset = SDCC_TEST_CTL, .value = 0x90106c0 },
+};
+
 static const struct ethqos_emac_driver_data emac_v4_0_0_data = {
 	.por = emac_v4_0_0_por,
 	.num_por = ARRAY_SIZE(emac_v4_0_0_por),
@@ -314,6 +325,24 @@ static const struct ethqos_emac_driver_data emac_v4_0_0_data = {
 		.mtl_high_cred_offset = 0x1000,
 		.mtl_low_cred = 0x00008024,
 		.mtl_low_cred_offset = 0x1000,
+	},
+};
+
+static const struct ethqos_emac_driver_data emac_v6_6_0_data = {
+	.por = emac_v6_6_0_por,
+	.num_por = ARRAY_SIZE(emac_v6_6_0_por),
+	.rgmii_config_loopback_en = false,
+	.dma_addr_width = 32,
+	.link_clk_name = "phyaux",
+	.dwxgmac_addrs = {
+		.dma_even_chan_base  = 0x00008500,
+		.dma_odd_chan_base = 0x00008580,
+		.dma_chan_offset = 0x00001000,
+		.mtl_chan_base = 0x00008000,
+		.mtl_chan_offset =  0x00001000,
+		.timestamp_base = 0x00007000,
+		.pps_base = 0x00007080,
+		.pps_offset = 0x10,
 	},
 };
 
@@ -875,6 +904,10 @@ static int qcom_ethqos_probe(struct platform_device *pdev)
 	if (ethqos->has_emac_ge_3)
 		plat_dat->dwmac4_addrs = &data->dwmac4_addrs;
 	plat_dat->pmt = 1;
+	if (plat_dat->has_xgmac) {
+		plat_dat->has_gmac4 = 0;
+		plat_dat->dwxgmac_addrs = &data->dwxgmac_addrs;
+	}
 	if (of_property_read_bool(np, "snps,tso"))
 		plat_dat->flags |= STMMAC_FLAG_TSO_EN;
 	if (of_device_is_compatible(np, "qcom,qcs404-ethqos"))
@@ -903,6 +936,7 @@ static const struct of_device_id qcom_ethqos_match[] = {
 	{ .compatible = "qcom,sc8280xp-ethqos", .data = &emac_v3_0_0_data},
 	{ .compatible = "qcom,sm8150-ethqos", .data = &emac_v2_1_0_data},
 	{ .compatible = "qcom,sa8620p-ethqos", .data = &emac_v4_0_0_data},
+	{ .compatible = "qcom,sa8797p-ethqos", .data = &emac_v6_6_0_data},
 	{ }
 };
 MODULE_DEVICE_TABLE(of, qcom_ethqos_match);
