@@ -13,6 +13,7 @@
 #include <linux/pwm.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
+#include <linux/pm.h>
 
 #define LPG_SUBTYPE_REG		0x05
 #define  LPG_SUBTYPE_LPG	0x2
@@ -139,6 +140,7 @@ struct lpg_channel {
 
 	u16 pwm_value;
 	bool enabled;
+	bool saved_enabled;
 
 	u64 period;
 	unsigned int clk_sel;
@@ -1310,6 +1312,61 @@ static int lpg_init_lut(struct lpg *lpg)
 	return 0;
 }
 
+static int lpg_suspend(struct device *dev)
+{
+	struct lpg *lpg = dev_get_drvdata(dev);
+	struct lpg_channel *chan;
+	int i;
+
+	mutex_lock(&lpg->lock);
+
+	for (i = 0; i < lpg->num_channels; i++) {
+		chan = &lpg->channels[i];
+
+		chan->saved_enabled = chan->enabled;
+
+		if (chan->enabled) {
+			chan->enabled = false;
+			lpg_apply(chan);
+
+		if (chan->triled_mask)
+			triled_set(lpg, chan->triled_mask, 0);
+		}
+	}
+
+	mutex_unlock(&lpg->lock);
+	return 0;
+}
+
+static int lpg_resume(struct device *dev)
+{
+	struct lpg *lpg = dev_get_drvdata(dev);
+	struct lpg_channel *chan;
+	int i;
+
+	mutex_lock(&lpg->lock);
+
+	for (i = 0; i < lpg->num_channels; i++) {
+		chan = &lpg->channels[i];
+
+		if (chan->saved_enabled) {
+			chan->enabled = true;
+			lpg_apply(chan);
+
+		if (chan->triled_mask)
+			triled_set(lpg, chan->triled_mask, chan->triled_mask);
+		}
+	}
+
+	mutex_unlock(&lpg->lock);
+	return 0;
+}
+
+static const struct dev_pm_ops lpg_pm_ops = {
+	.suspend = lpg_suspend,
+	.resume = lpg_resume,
+};
+
 static int lpg_probe(struct platform_device *pdev)
 {
 	struct device_node *np;
@@ -1536,6 +1593,7 @@ static struct platform_driver lpg_driver = {
 	.driver = {
 		.name = "qcom-spmi-lpg",
 		.of_match_table = lpg_of_table,
+		.pm = &lpg_pm_ops,
 	},
 };
 module_platform_driver(lpg_driver);
