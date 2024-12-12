@@ -759,6 +759,7 @@ static void mcp251xfd_chip_stop(struct mcp251xfd_priv *priv,
 
 	mcp251xfd_chip_interrupts_disable(priv);
 	mcp251xfd_chip_rx_int_disable(priv);
+	mcp251xfd_timestamp_stop(priv);
 	mcp251xfd_chip_sleep(priv);
 }
 
@@ -777,6 +778,8 @@ static int mcp251xfd_chip_start(struct mcp251xfd_priv *priv)
 	err = mcp251xfd_chip_timestamp_init(priv);
 	if (err)
 		goto out_chip_stop;
+
+	mcp251xfd_timestamp_start(priv);
 
 	err = mcp251xfd_set_bittiming(priv);
 	if (err)
@@ -1624,6 +1627,8 @@ static int mcp251xfd_open(struct net_device *ndev)
 	err = mcp251xfd_transceiver_enable(priv);
 	if (err)
 		goto out_mcp251xfd_ring_free;
+
+	mcp251xfd_timestamp_init(priv);
 
 	err = mcp251xfd_chip_start(priv);
 	if (err)
