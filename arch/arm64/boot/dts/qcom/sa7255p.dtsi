@@ -242,6 +242,17 @@
 			no-map;
 		};
 
+		aop_image_mem: aop-image-region@90800000 {
+			no-map;
+			reg = <0x0 0x90800000 0x0 0x60000>;
+		};
+
+		aop_cmd_db_mem: aop-cmd-db-region@90860000 {
+			compatible = "qcom,cmd-db";
+			no-map;
+			reg = <0x0 0x90860000 0x0 0x20000>;
+		};
+
 		uefi_log: uefi-log@908b0000 {
 			reg = <0x0 0x908b0000 0x0 0x10000>;
 			no-map;
@@ -284,6 +295,11 @@
 			no-map;
 		};
 
+		aoss_backup_mem: aoss-backup-region@91b00000 {
+			no-map;
+			reg = <0x0 0x91b00000 0x0 0x40000>;
+		};
+
 		cpucp_backup_mem: cpucp-backup@91b40000 {
 			reg = <0x0 0x91b40000 0x0 0x40000>;
 			no-map;
@@ -313,6 +329,51 @@
 		lpass_machine_learning_mem: lpass-machine-learning@93b00000 {
 			reg = <0x0 0x93b00000 0x0 0xf00000>;
 			no-map;
+		};
+
+		adsp_rpc_remote_heap_mem: adsp-rpc-remote-heap-region@94a00000 {
+			no-map;
+			reg = <0x0 0x94a00000 0x0 0x800000>;
+		};
+
+		camera_mem: camera-region@95200000 {
+			no-map;
+			reg = <0x0 0x95200000 0x0 0x500000>;
+		};
+
+		mproc_umdpil_mem: mproc-umdpil-region@95700000 {
+			no-map;
+			reg = <0x0 0x95700000 0x0 0x500000>;
+		};
+
+		adsp_mem: adsp-region@95c00000 {
+			no-map;
+			reg = <0x0 0x95c00000 0x0 0x1e00000>;
+		};
+
+		gpdsp_mem: gpdsp-region@97b00000 {
+			no-map;
+			reg = <0x0 0x97b00000 0x0 0x1e00000>;
+		};
+
+		cdsp_mem: cdsp-region@99980000 {
+			no-map;
+			reg = <0x0 0x99980000 0x0 0x1e00000>;
+		};
+
+		gpu_microcode_mem: gpu-microcode-region@9b780000 {
+			no-map;
+			reg = <0x0 0x9b780000 0x0 0x2000>;
+		};
+
+		cvp_mem: cvp-region@9b782000 {
+			no-map;
+			reg = <0x0 0x9b782000 0x0 0x700000>;
+		};
+
+		video_mem: video-region@9be82000 {
+			no-map;
+			reg = <0x0 0x9be82000 0x0 0x700000>;
 		};
 
 		firmware_mem: firmware-region@b0000000 {
@@ -353,6 +414,11 @@
 		qtee_mem: qtee@d1300000 {
 			reg = <0x0 0xd1300000 0x0 0x500000>;
 			no-map;
+		};
+
+		deep_sleep_back_up_mem: deep-sleep-back-up-region@d1800000 {
+			no-map;
+			reg = <0x0 0xd1800000 0x0 0x100000>;
 		};
 
 		trusted_apps_mem: trusted-apps@d1900000 {
