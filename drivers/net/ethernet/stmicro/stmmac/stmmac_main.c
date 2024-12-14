@@ -3000,9 +3000,9 @@ static int stmmac_init_dma_engine(struct stmmac_priv *priv)
 		/* DMA TX Mapping Configuration for offline channels */
 		for (chan = tx_channels_enabled; chan < tx_channels_supported; chan++)
 			stmmac_map_tx_offline_chan(priv, priv->ioaddr, priv->plat->dma_cfg, chan);
-	}
 
-	stmmac_desc_cache_compute(priv, priv->ioaddr);
+		stmmac_desc_cache_compute(priv, priv->ioaddr);
+	}
 
 	return ret;
 }
