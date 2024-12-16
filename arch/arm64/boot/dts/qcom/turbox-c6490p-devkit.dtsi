@@ -9,7 +9,6 @@
 
 	aliases {
 		/delete-property/ i2c2;
-		serial1 = &uart4;
 		serial2 = &uart7;
 		serial3 = &uart2;
 	};
@@ -119,114 +118,6 @@
 		};
 	};
 
-	soc: soc@0 {
-		gcc: clock-controller@100000 {
-			clocks = <&rpmhcc RPMH_CXO_CLK>,
-				 <&rpmhcc RPMH_CXO_CLK_A>, <&sleep_clk>,
-				 <0>, <&pcie0_lane>, <&pcie1_lane>,
-				 <0>, <0>, <0>,
-				 <&usb_1_ssphy>;
-			clock-names = "bi_tcxo", "bi_tcxo_ao", "sleep_clk",
-				      "pcie_0_pipe_clk", "pcie_1_pipe_clk",
-				      "ufs_phy_rx_symbol_0_clk", "ufs_phy_rx_symbol_1_clk",
-				      "ufs_phy_tx_symbol_0_clk",
-				      "usb3_phy_wrapper_gcc_usb30_pipe_clk";
-		};
-
-		pcie0: pci@1c00000 {
-			compatible = "qcom,pcie-sc7280";
-			reg = <0 0x01c00000 0 0x3000>,
-				  <0 0x60000000 0 0xf1d>,
-				  <0 0x60000f20 0 0xa8>,
-				  <0 0x60001000 0 0x1000>,
-				  <0 0x60100000 0 0x100000>;
-			reg-names = "parf", "dbi", "elbi", "atu", "config";
-			device_type = "pci";
-			cell-index = <0>;
-			linux,pci-domain = <0>;
-			bus-range = <0x80 0xff>;
-			num-lanes = <1>;
-			#address-cells = <3>;
-			#size-cells = <2>;
-			ranges = <0x01000000 0x0 0x00000000 0x0 0x60200000 0x0 0x100000>,
-				   <0x02000000 0x0 0x60300000 0x0 0x60300000 0x0 0x3d00000>;
-			interrupts = <GIC_SPI 141 IRQ_TYPE_LEVEL_HIGH>;
-			interrupt-names = "msi";
-			#interrupt-cells = <1>;
-			interrupt-map-mask = <0 0 0 0x7>;
-			interrupt-map = <0 0 0 1 &intc 0 0 0 149 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0 0 2 &intc 0 0 0 150 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0 0 3 &intc 0 0 0 151 IRQ_TYPE_LEVEL_HIGH>,
-				<0 0 0 4 &intc 0 0 0 152 IRQ_TYPE_LEVEL_HIGH>;
-			clocks = <&gcc GCC_PCIE_0_PIPE_CLK>,
-				   <&gcc GCC_PCIE_0_PIPE_CLK_SRC>,
-				   <&pcie0_lane>,
-				   <&rpmhcc RPMH_CXO_CLK>,
-				   <&gcc GCC_PCIE_0_AUX_CLK>,
-				   <&gcc GCC_PCIE_0_CFG_AHB_CLK>,
-				   <&gcc GCC_PCIE_0_MSTR_AXI_CLK>,
-				   <&gcc GCC_PCIE_0_SLV_AXI_CLK>,
-				   <&gcc GCC_PCIE_0_SLV_Q2A_AXI_CLK>,
-				   <&gcc GCC_AGGRE_NOC_PCIE_TBU_CLK>,
-				   <&gcc GCC_DDRSS_PCIE_SF_CLK>,
-				   <&gcc GCC_AGGRE_NOC_PCIE_CENTER_SF_AXI_CLK>,
-				   <&gcc GCC_AGGRE_NOC_PCIE_0_AXI_CLK>;
-			clock-names = "pipe",
-				"pipe_mux",
-				"phy_pipe",
-				"ref",
-				"aux",
-				"cfg",
-				"bus_master",
-				"bus_slave",
-				"slave_q2a",
-				"tbu",
-				"ddrss_sf_tbu",
-				"aggre0",
-				"aggre1";
-			assigned-clocks = <&gcc GCC_PCIE_0_AUX_CLK>;
-			assigned-clock-rates = <19200000>;
-			resets = <&gcc GCC_PCIE_0_BCR>;
-			reset-names = "pci";
-			power-domains = <&gcc GCC_PCIE_0_GDSC>;
-			phys = <&pcie0_lane>;
-			phy-names = "pciephy";
-			dma-coherent;
-			iommu-map = <0x8000 &apps_smmu 0x1c00 0x1>,
-				<0x8100 &apps_smmu 0x1c01 0x1>;
-			status = "disabled";
-		};
-
-		pcie0_phy: phy@1c06000 {
-			compatible = "qcom,sm8250-qmp-gen3x1-pcie-phy";
-			reg = <0 0x01c06000 0 0x1c0>;
-			#address-cells = <2>;
-			#size-cells = <2>;
-			ranges;
-			clocks = <&gcc GCC_PCIE_0_AUX_CLK>,
-				   <&gcc GCC_PCIE_0_CFG_AHB_CLK>,
-				   <&gcc GCC_PCIE_CLKREF_EN>,
-				   <&gcc GCC_PCIE0_PHY_RCHNG_CLK>;
-			clock-names = "aux", "cfg_ahb", "ref", "refgen";
-			resets = <&gcc GCC_PCIE_0_PHY_BCR>;
-			reset-names = "phy";
-			assigned-clocks = <&gcc GCC_PCIE0_PHY_RCHNG_CLK>;
-			assigned-clock-rates = <100000000>;
-			status = "disabled";
-			pcie0_lane: phy@1c0e200 {
-				reg = <0 0x01c06200 0 0x200>, /* tx */
-					  <0 0x01c06400 0 0x200>, /* rx */
-					  <0 0x01c06800 0 0x200>, /* pcs */
-					  <0 0x01c06c00 0 0x200>; /* pcs_pcie */
-				clocks = <&gcc GCC_PCIE_0_PIPE_CLK>;
-				clock-names = "pipe0";
-				#phy-cells = <0>;
-				#clock-cells = <0>;
-				clock-output-names = "pcie_0_pipe_clk";
-			};
-		};
-	};
-
 	fan0: pwm-fan {
 		compatible = "pwm-fan";
 		pwms = <&pm8350c_pwm 3 1000000>;
@@ -241,28 +132,6 @@
 
 &tlmm {
 	/delete-property/ gpio-reserved-ranges;
-
-	pcie0_reset_n: pcie0-reset-n-state {
-		pins = "gpio87";
-		function = "gpio";
-		drive-strength = <16>;
-		output-low;
-		bias-disable;
-	};
-
-	pcie0_wake_n: pcie0-wake-n-state {
-		pins = "gpio89";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-pull-up;
-	};
-
-	pcie0_clkreq_n: pcie0-clkreq-n-state {
-		pins = "gpio88";
-		function = "pcie0_clkreqn";
-		bias-pull-up;
-		drive-strength = <2>;
-	};
 
 	pcie1_wake_n: pcie1-wake-n-state {
 		pins = "gpio3";
@@ -653,7 +522,7 @@
 };
 
 &i2c12 {
-	status = "ok";
+	status = "disabled";
 	tca64_22: tca6424@22 {
 		compatible = "ti,tca6424";
 		reg = <0x22>;
@@ -673,7 +542,7 @@
 };
 
 &uart4 {
-	status = "okay";
+	status = "disabled";
 	pinctrl-0 = <&qup_uart4_tx>, <&qup_uart4_rx>;
 };
 
@@ -738,10 +607,7 @@
 
 &pcie0 {
 	status = "okay";
-	perst-gpios = <&tlmm 87 GPIO_ACTIVE_LOW>;
 	vdda-supply = <&usb_hub0_rest_vreg>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&pcie0_clkreq_n>, <&pcie0_reset_n>, <&pcie0_wake_n>;
 	pcieport0: pcie@0 {
 		pcie0_bus1_dev0_fn0: pcie0_bus1_dev0_fn0 {
 			reg = <0 0 0 0 0>;
@@ -1300,10 +1166,6 @@
 &pmk8350_rtc {
 	status = "okay";
 	allow-set-time;
-};
-
-&tcsr {
-	status = "disabled";
 };
 
 &pm7325b {
