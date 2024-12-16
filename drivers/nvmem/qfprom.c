@@ -68,6 +68,7 @@ struct qfprom_soc_data {
  * @secclk:       Clock supply.
  * @vcc:          Regulator supply.
  * @soc_data:     Data that for things that varies from SoC to SoC.
+ * @soc_cdata:    Data that are relevant to convey SoC constraints.
  */
 struct qfprom_priv {
 	void __iomem *qfpraw;
@@ -78,6 +79,7 @@ struct qfprom_priv {
 	struct clk *secclk;
 	struct regulator *vcc;
 	const struct qfprom_soc_data *soc_data;
+	const struct qfprom_soc_compatible_data *soc_cdata;
 };
 
 /**
@@ -99,15 +101,23 @@ struct qfprom_touched_values {
  *
  * @keepout: Array of keepout regions for this SoC.
  * @nkeepout: Number of elements in the keepout array.
+ * @word_size: Should be given for SoC where it is not possible
+ *	       to do incremental reading or bytewise and while
+ *	       it is possible read 4 byte at a time.
  */
 struct qfprom_soc_compatible_data {
 	const struct nvmem_keepout *keepout;
 	unsigned int nkeepout;
+	unsigned int word_size;
 };
 
 static const struct nvmem_keepout sc7180_qfprom_keepout[] = {
 	{.start = 0x128, .end = 0x148},
 	{.start = 0x220, .end = 0x228}
+};
+
+static const struct qfprom_soc_compatible_data sm8450_qfprom = {
+	.word_size = 4,
 };
 
 static const struct qfprom_soc_compatible_data sc7180_qfprom = {
@@ -317,21 +327,55 @@ exit_enabled_fuse_blowing:
 	return ret;
 }
 
-static int qfprom_reg_read(void *context,
-			unsigned int reg, void *_val, size_t bytes)
+static int __qfprom_reg_constraint_read(void __iomem *base, unsigned int reg,
+					void *_val, size_t bytes,
+					unsigned int word_size)
 {
-	struct qfprom_priv *priv = context;
+	unsigned int i;
 	u8 *val = _val;
-	int i = 0, words = bytes;
-	void __iomem *base = priv->qfpcorrected;
+	u32 read_val;
+	u8 *tmp;
 
-	if (read_raw_data && priv->qfpraw)
-		base = priv->qfpraw;
+	for (i = 0; i < bytes; i++, reg++) {
+		if (i == 0 || reg % word_size == 0) {
+			read_val = readl(base + (reg & ~(word_size - 1)));
+			tmp = (u8 *)&read_val;
+		}
+
+		val[i] = tmp[reg & (word_size - 1)];
+	}
+
+	return 0;
+}
+
+static int __qfprom_reg_read(void __iomem *base, unsigned int reg, void *_val,
+			     size_t bytes)
+{
+	u8 *val = _val;
+	int words = bytes;
+	int i = 0;
 
 	while (words--)
 		*val++ = readb(base + reg + i++);
 
 	return 0;
+}
+
+static int qfprom_reg_read(void *context,
+			unsigned int reg, void *_val, size_t bytes)
+{
+	struct qfprom_priv *priv = context;
+	void __iomem *base = priv->qfpcorrected;
+
+	if (read_raw_data && priv->qfpraw)
+		base = priv->qfpraw;
+
+	if (priv->soc_cdata && priv->soc_cdata->word_size == 4)
+		return __qfprom_reg_constraint_read(base, reg,
+				_val, bytes,
+				priv->soc_cdata->word_size);
+
+	return __qfprom_reg_read(base, reg, _val, bytes);
 }
 
 static void qfprom_runtime_disable(void *data)
@@ -390,6 +434,8 @@ static int qfprom_probe(struct platform_device *pdev)
 		econfig.nkeepout = soc_data->nkeepout;
 	}
 
+	priv->soc_cdata = soc_data;
+
 	/*
 	 * If more than one region is provided then the OS has the ability
 	 * to write.
@@ -447,6 +493,7 @@ static const struct of_device_id qfprom_of_match[] = {
 	{ .compatible = "qcom,qfprom",},
 	{ .compatible = "qcom,sc7180-qfprom", .data = &sc7180_qfprom},
 	{ .compatible = "qcom,sc7280-qfprom", .data = &sc7280_qfprom},
+	{ .compatible = "qcom,sm8450-qfprom", .data = &sm8450_qfprom},
 	{/* sentinel */},
 };
 MODULE_DEVICE_TABLE(of, qfprom_of_match);
