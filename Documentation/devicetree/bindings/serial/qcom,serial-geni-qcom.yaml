@@ -13,11 +13,42 @@ maintainers:
 allOf:
   - $ref: /schemas/serial/serial.yaml#
 
+  - if:
+      properties:
+        compatible:
+          contains:
+            enum:
+              - qcom,sa8255p-geni-uart
+              - qcom,sa8255p-geni-debug-uart
+    then:
+      required:
+        - power-domains
+        - power-domain-names
+      properties:
+        power-domains:
+          minItems: 2
+          maxItems: 2
+    else:
+      required:
+        - clocks
+        - clock-names
+      properties:
+        power-domains:
+          maxItems: 1
+        interconnects:
+          maxItems: 2
+        interconnect-names:
+          items:
+            - const: qup-core
+            - const: qup-config
+
 properties:
   compatible:
     enum:
       - qcom,geni-uart
       - qcom,geni-debug-uart
+      - qcom,sa8255p-geni-uart
+      - qcom,sa8255p-geni-debug-uart
 
   clocks:
     maxItems: 1
@@ -26,12 +57,10 @@ properties:
     const: se
 
   interconnects:
-    maxItems: 2
+    description: phandles of interconnect bw provider
 
   interconnect-names:
-    items:
-      - const: qup-core
-      - const: qup-config
+    description: names of interconnects
 
   interrupts:
     minItems: 1
@@ -51,15 +80,19 @@ properties:
       - const: sleep
 
   power-domains:
-    maxItems: 1
+    minItems: 1
+    maxItems: 2
+
+  power-domain-names:
+    items:
+      - const: power
+      - const: perf
 
   reg:
     maxItems: 1
 
 required:
   - compatible
-  - clocks
-  - clock-names
   - interrupts
   - reg
 
@@ -82,5 +115,16 @@ examples:
         interconnects = <&qup_virt MASTER_QUP_CORE_0 0 &qup_virt SLAVE_QUP_CORE_0 0>,
                         <&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
         interconnect-names = "qup-core", "qup-config";
+    };
+
+  - |
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+
+    serial@990000 {
+        compatible = "qcom,sa8255p-geni-uart";
+        reg = <0x990000 0x4000>;
+        interrupts = <GIC_SPI 531 IRQ_TYPE_LEVEL_HIGH>;
+        power-domains = <&scmi11_pd 4>, <&scmi11_dvfs 4>;
+        power-domain-names = "power", "perf";
     };
 ...

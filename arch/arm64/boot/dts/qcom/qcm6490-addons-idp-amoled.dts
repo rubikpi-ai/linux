@@ -1,0 +1,20 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * qcm6490-addons IDP amoled device tree source
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ */
+
+/dts-v1/;
+
+#include "qcm6490-addons-idp.dts"
+
+/ {
+	model = "Qualcomm Technologies, Inc. qcm6490-addons IDP + amoled platform";
+	compatible = "qcom,qcm6490-addons-idp-amoled","qcom,sc7280";
+
+	/* This will be deprecated soon */
+	qcom,msm-id = <497 0x10000>;
+	qcom,board-id = <34 0x2>, <34 0x602>;
+};

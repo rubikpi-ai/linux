@@ -193,7 +193,8 @@ static int qce_crypto_probe(struct platform_device *pdev)
 {
 	struct device *dev = &pdev->dev;
 	struct qce_device *qce;
-	int ret;
+	struct resource *res = NULL;
+	int ret = 0;
 
 	qce = devm_kzalloc(dev, sizeof(*qce), GFP_KERNEL);
 	if (!qce)
@@ -205,6 +206,18 @@ static int qce_crypto_probe(struct platform_device *pdev)
 	qce->base = devm_platform_ioremap_resource(pdev, 0);
 	if (IS_ERR(qce->base))
 		return PTR_ERR(qce->base);
+
+	if (device_property_read_bool(dev, "qce,cmd_desc_support")) {
+		qce->qce_cmd_desc_enable = true;
+		res = platform_get_resource(pdev, IORESOURCE_MEM, 0);
+		if (!res)
+			return -EINVAL;
+		qce->base_dma = dma_map_resource(dev, res->start, resource_size(res),
+						 DMA_BIDIRECTIONAL, 0);
+		ret = dma_mapping_error(dev, qce->base_dma);
+		if (ret)
+			return ret;
+	}
 
 	ret = dma_set_mask_and_coherent(dev, DMA_BIT_MASK(32));
 	if (ret < 0)

@@ -99,6 +99,13 @@ properties:
   '#sound-dai-cells':
     const: 1
 
+  qcom,always-on-supply:
+    type: boolean
+    description: Indicates whether the regulators' voltage needs to be parsed. If not present, the
+      codec driver will parse and manage the regulator voltages as specified in the devicetree.
+      This helps in determining if codec is powered by always on supply and it does not
+      regulator operation for voting for supply.
+
 required:
   - compatible
   - reset-gpios

@@ -13,8 +13,9 @@
 
 / {
 	model = "Qualcomm SA8775P Ride";
-	compatible = "qcom,sa8775p-ride", "qcom,sa8775p";
-	qcom,msm-id = <533 0x10000>, <534 0x10000>, <534 0x20000>;
+	compatible = "qcom,sa8775p-ride", "qcom,qcs9100", "qcom,sa8775p";
+	qcom,msm-id = <533 0x10000>, <534 0x10000>, <534 0x20000>,
+		      <667 0x10000>, <667 0x20000>;
 	qcom,board-id = <0x19 0>, <0x25 1>;
 
 	aliases {
@@ -523,6 +524,23 @@
 	status = "okay";
 };
 
+&mdss0 {
+	status = "okay";
+};
+
+&mdss0_dp0 {
+	status = "okay";
+};
+
+&mdss0_dp0_out {
+	data-lanes = <0 1 2 3>;
+	link-frequencies = /bits/ 64 <1620000000 2700000000 5400000000 8100000000>;
+};
+
+&mdss0_edp_phy {
+	status = "okay";
+};
+
 &pmm8654au_0_gpios {
 	gpio-line-names = "DS_EN",
 			  "POFF_COMPLETE",
@@ -536,6 +554,11 @@
 			  "CAM_DES3_EN",
 			  "UEFI",
 			  "ANALOG_PON_OPT";
+};
+
+&pmm8654au_0_pon_resin {
+	linux,code = <KEY_VOLUMEDOWN>;
+	status = "okay";
 };
 
 &pmm8654au_1_gpios {
@@ -635,6 +658,16 @@
 	pinctrl-0 = <&qup_spi16_default>;
 	pinctrl-names = "default";
 	status = "okay";
+	spidev@0 {
+		compatible = "rohm,dh2228fv";
+		reg = <0>;
+		spi-max-frequency = <10000000>;
+		spi-cpha;
+	};
+};
+
+&llcc {
+	status = "okay";
 };
 
 &llcc {
@@ -642,6 +675,12 @@
 };
 
 &tlmm {
+	dp_hot_plug_det: dp-hot-plug-det-state {
+		pins = "gpio101";
+		function = "edp0_hot";
+		bias-disable;
+	};
+
 	ethernet0_default: ethernet0-default-state {
 		ethernet0_mdc: ethernet0-mdc-pins {
 			pins = "gpio8";

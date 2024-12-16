@@ -87,6 +87,9 @@
 #define ENCRYPTED_TZ_LOG_ID 0
 #define ENCRYPTED_QSEE_LOG_ID 1
 
+#define PERM_BITS 3
+#define VM_BITS 16
+
 /*
  * Directory for TZ DBG logs
  */
@@ -478,6 +481,12 @@ static struct tzdbg tzdbg = {
 	.stat[TZDBG_TME_LOG].name = "tme_log",
 };
 
+struct ns_register_shmbridge_t {
+	uint32_t ns_vmids[VM_BITS];
+	uint32_t ns_vm_perms[PERM_BITS];
+	uint32_t ns_vm_nums;
+};
+
 static struct tzdbg_log_t *g_qsee_log;
 static struct tzdbg_log_v2_t *g_qsee_log_v2;
 static dma_addr_t coh_pmem;
@@ -490,6 +499,8 @@ static uint32_t tmecrashdump_address_offset;
 static uint64_t qseelog_shmbridge_handle;
 static struct encrypted_log_info enc_qseelog_info;
 static struct encrypted_log_info enc_tzlog_info;
+
+static bool support_hyp;
 
 /*
  * Debugfs data structure and functions
@@ -1430,9 +1441,17 @@ static int tzdbg_register_qsee_log_buf(struct platform_device *pdev)
 {
 	int ret = 0;
 	void *buf = NULL;
-	uint32_t ns_vmids[] = {QCOM_SCM_VMID_HLOS};
-	uint32_t ns_vm_perms[] = {QCOM_SCM_PERM_RW};
-	uint32_t ns_vm_nums = 1;
+
+	struct ns_register_shmbridge_t ns_vm_shm = {
+		.ns_vm_perms[0] = QCOM_SCM_PERM_RW,
+	};
+
+	if (support_hyp) {
+		ns_vm_shm.ns_vm_nums = 0;
+	} else {
+		ns_vm_shm.ns_vmids[0] = QCOM_SCM_VMID_HLOS;
+		ns_vm_shm.ns_vm_nums = 1;
+	}
 
 	if (tzdbg.is_enlarged_buf) {
 		if (of_property_read_u32((&pdev->dev)->of_node,
@@ -1452,7 +1471,10 @@ static int tzdbg_register_qsee_log_buf(struct platform_device *pdev)
 
 	if (!tzdbg.is_encrypted_log_enabled) {
 		ret = qtee_shmbridge_register(coh_pmem,
-			qseelog_buf_size, ns_vmids, ns_vm_perms, ns_vm_nums,
+			qseelog_buf_size,
+			ns_vm_shm.ns_vmids,
+			ns_vm_shm.ns_vm_perms,
+			ns_vm_shm.ns_vm_nums,
 			QCOM_SCM_PERM_RW,
 			&qseelog_shmbridge_handle);
 		if (ret) {
@@ -1497,9 +1519,16 @@ static void tzdbg_free_qsee_log_buf(struct platform_device *pdev)
 static int tzdbg_allocate_encrypted_log_buf(struct platform_device *pdev)
 {
 	int ret = 0;
-	uint32_t ns_vmids[] = {QCOM_SCM_VMID_HLOS};
-	uint32_t ns_vm_perms[] = {QCOM_SCM_PERM_RW};
-	uint32_t ns_vm_nums = 1;
+	struct ns_register_shmbridge_t ns_vm_shm = {
+		.ns_vm_perms[0] = QCOM_SCM_PERM_RW,
+	};
+
+	if (support_hyp) {
+		ns_vm_shm.ns_vm_nums = 0;
+	} else {
+		ns_vm_shm.ns_vmids[0] = QCOM_SCM_VMID_HLOS;
+		ns_vm_shm.ns_vm_nums = 1;
+	}
 
 	if (!tzdbg.is_encrypted_log_enabled)
 		return 0;
@@ -1514,9 +1543,12 @@ static int tzdbg_allocate_encrypted_log_buf(struct platform_device *pdev)
 		return -ENOMEM;
 
 	ret = qtee_shmbridge_register(enc_qseelog_info.paddr,
-			enc_qseelog_info.size, ns_vmids,
-			ns_vm_perms, ns_vm_nums,
-			QCOM_SCM_PERM_RW, &enc_qseelog_info.shmb_handle);
+			enc_qseelog_info.size,
+			ns_vm_shm.ns_vmids,
+			ns_vm_shm.ns_vm_perms,
+			ns_vm_shm.ns_vm_nums,
+			QCOM_SCM_PERM_RW,
+			&enc_qseelog_info.shmb_handle);
 	if (ret) {
 		pr_err("failed to create encr_qsee_log bridge, ret %d\n", ret);
 		goto exit_free_qseelog;
@@ -1532,8 +1564,12 @@ static int tzdbg_allocate_encrypted_log_buf(struct platform_device *pdev)
 		goto exit_unreg_qseelog;
 
 	ret = qtee_shmbridge_register(enc_tzlog_info.paddr,
-			enc_tzlog_info.size, ns_vmids, ns_vm_perms, ns_vm_nums,
-			QCOM_SCM_PERM_RW, &enc_tzlog_info.shmb_handle);
+			enc_tzlog_info.size,
+			ns_vm_shm.ns_vmids,
+			ns_vm_shm.ns_vm_perms,
+			ns_vm_shm.ns_vm_nums,
+			QCOM_SCM_PERM_RW,
+			&enc_tzlog_info.shmb_handle);
 	if (ret) {
 		pr_err("failed to create encr_tz_log bridge, ret = %d\n", ret);
 		goto exit_free_tzlog;
@@ -1784,6 +1820,14 @@ static int tz_log_probe(struct platform_device *pdev)
 	ret = tzdbg_get_tz_version();
 	if (ret)
 		return ret;
+
+	/*
+	 * This attribute indicates tz_log driver can create share memory through hypervisor,
+	 * which is associated with the share memory that registered by qtee_shmbridge dirver
+	 * with enabling hypervisor support.
+	 */
+	support_hyp = of_property_read_bool((&pdev->dev)->of_node,
+		"qcom,support-hypervisor");
 
 	/*
 	 * Get address that stores the physical location diagnostic data

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-// Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
 
 #include <linux/component.h>
 #include <linux/delay.h>
@@ -118,6 +118,7 @@ struct wcd937x_priv {
 	int dmic_4_5_clk_cnt;
 	atomic_t rx_clk_cnt;
 	atomic_t ana_clk_count;
+	bool has_always_on_supplies;
 };
 
 static const DECLARE_TLV_DB_SCALE(line_gain, 0, 7, 1);
@@ -1343,11 +1344,15 @@ static int wcd937x_codec_enable_vdd_buck(struct snd_soc_dapm_widget *w,
 			clear_bit(ALLOW_BUCK_DISABLE, &wcd937x->status_mask);
 			return 0;
 		}
-		ret = regulator_enable(wcd937x->buck_supply);
-		if (ret) {
-			dev_err(component->dev, "VDD_BUCK is not enabled\n");
-			return ret;
+
+		if (!wcd937x->has_always_on_supplies) {
+			ret = regulator_enable(wcd937x->buck_supply);
+			if (ret) {
+				dev_err(component->dev, "VDD_BUCK is not enabled\n");
+				return ret;
+			}
 		}
+
 		clear_bit(ALLOW_BUCK_DISABLE, &wcd937x->status_mask);
 		usleep_range(200, 250);
 		break;
@@ -2971,27 +2976,29 @@ static int wcd937x_probe(struct platform_device *pdev)
 	cfg = &wcd937x->mbhc_cfg;
 	cfg->swap_gnd_mic = wcd937x_swap_gnd_mic;
 
-	wcd937x->supplies[0].supply = "vdd-rxtx";
-	wcd937x->supplies[1].supply = "vdd-px";
-	wcd937x->supplies[2].supply = "vdd-mic-bias";
+	wcd937x->has_always_on_supplies = of_property_read_bool(dev->of_node,
+				"qcom,always-on-supply");
+	if (!wcd937x->has_always_on_supplies) {
+		wcd937x->supplies[0].supply = "vdd-rxtx";
+		wcd937x->supplies[1].supply = "vdd-px";
+		wcd937x->supplies[2].supply = "vdd-mic-bias";
+		ret = devm_regulator_bulk_get(dev, WCD937X_MAX_BULK_SUPPLY, wcd937x->supplies);
+		if (ret)
+			return dev_err_probe(dev, ret, "Failed to get supplies\n");
 
-	ret = devm_regulator_bulk_get(dev, WCD937X_MAX_BULK_SUPPLY, wcd937x->supplies);
-	if (ret)
-		return dev_err_probe(dev, ret, "Failed to get supplies\n");
+		ret = regulator_bulk_enable(WCD937X_MAX_BULK_SUPPLY, wcd937x->supplies);
+		if (ret)
+			return dev_err_probe(dev, ret, "Failed to enable supplies\n");
 
-	ret = regulator_bulk_enable(WCD937X_MAX_BULK_SUPPLY, wcd937x->supplies);
-	if (ret)
-		return dev_err_probe(dev, ret, "Failed to enable supplies\n");
-
-	/* Get the buck separately, as it needs special handling */
-	wcd937x->buck_supply = devm_regulator_get(dev, "vdd-buck");
-	if (IS_ERR(wcd937x->buck_supply))
-		return dev_err_probe(dev, PTR_ERR(wcd937x->buck_supply),
-				     "Failed to get buck supply\n");
-
-	ret = regulator_enable(wcd937x->buck_supply);
-	if (ret)
-		return dev_err_probe(dev, ret, "Failed to enable buck supply\n");
+		/* Get the buck separately, as it needs special handling */
+		wcd937x->buck_supply = devm_regulator_get(dev, "vdd-buck");
+		if (IS_ERR(wcd937x->buck_supply))
+			return dev_err_probe(dev, PTR_ERR(wcd937x->buck_supply),
+					"Failed to get buck supply\n");
+		ret = regulator_enable(wcd937x->buck_supply);
+		if (ret)
+			return dev_err_probe(dev, ret, "Failed to enable buck supply\n");
+	}
 
 	wcd937x_dt_parse_micbias_info(dev, wcd937x);
 

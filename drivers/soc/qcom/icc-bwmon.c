@@ -783,7 +783,8 @@ static int bwmon_probe(struct platform_device *pdev)
 	bwmon_disable(bwmon);
 	ret = devm_request_threaded_irq(dev, bwmon->irq, bwmon_intr,
 					bwmon_intr_thread,
-					IRQF_ONESHOT, dev_name(dev), bwmon);
+					IRQF_ONESHOT | IRQF_SHARED,
+					dev_name(dev), bwmon);
 	if (ret)
 		return dev_err_probe(dev, ret, "failed to request IRQ\n");
 

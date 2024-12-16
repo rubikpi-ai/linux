@@ -22,6 +22,7 @@
 #include "camss-csiphy.h"
 #include "camss-ispif.h"
 #include "camss-vfe.h"
+#include "camss-format.h"
 
 #define to_camss(ptr_module)	\
 	container_of(ptr_module, struct camss, ptr_module)
@@ -41,6 +42,13 @@
 
 #define CAMSS_RES_MAX 17
 
+enum camss_subdev_type {
+	CAMSS_SUBDEV_TYPE_CSIPHY,
+	CAMSS_SUBDEV_TYPE_CSID,
+	CAMSS_SUBDEV_TYPE_ISPIF,
+	CAMSS_SUBDEV_TYPE_VFE,
+};
+
 struct camss_subdev_resources {
 	char *regulators[CAMSS_RES_MAX];
 	char *clock[CAMSS_RES_MAX];
@@ -48,8 +56,12 @@ struct camss_subdev_resources {
 	u32 clock_rate[CAMSS_RES_MAX][CAMSS_RES_MAX];
 	char *reg[CAMSS_RES_MAX];
 	char *interrupt[CAMSS_RES_MAX];
-	u8 line_num;
-	const void *ops;
+	enum camss_subdev_type type;
+	union {
+		struct csiphy_subdev_resources csiphy;
+		struct csid_subdev_resources csid;
+		struct vfe_subdev_resources vfe;
+	};
 };
 
 struct icc_bw_tbl {
@@ -74,11 +86,13 @@ enum camss_version {
 	CAMSS_660,
 	CAMSS_845,
 	CAMSS_8250,
+	CAMSS_7280,
 };
 
 enum icc_count {
 	ICC_DEFAULT_COUNT = 0,
 	ICC_SM8250_COUNT = 4,
+	ICC_SM7280_COUNT = 4,
 };
 
 struct camss_resources {
@@ -93,6 +107,7 @@ struct camss_resources {
 	const unsigned int csid_num;
 	const unsigned int vfe_num;
 	const unsigned int vfe_lite_num;
+	int (*link_entities)(struct camss *camss);
 };
 
 struct camss {

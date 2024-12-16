@@ -18,6 +18,8 @@ properties:
     enum:
       - qcom,ipq9574-qmp-usb3-phy
       - qcom,qcm2290-qmp-usb3-phy
+      - qcom,qcs8300-qmp-usb3-uni-phy
+      - qcom,sa8255p-qmp-usb3-uni-phy
       - qcom,sa8775p-qmp-usb3-uni-phy
       - qcom,sc8280xp-qmp-usb3-uni-phy
       - qcom,sdx75-qmp-usb3-uni-phy
@@ -33,7 +35,12 @@ properties:
     maxItems: 4
 
   power-domains:
-    maxItems: 1
+    description: specifies phandles to PM domain provider nodes
+
+  power-domain-names:
+    items:
+      - const: usb_transfer
+      - const: usb_core
 
   resets:
     maxItems: 2
@@ -43,9 +50,11 @@ properties:
       - const: phy
       - const: phy_phy
 
-  vdda-phy-supply: true
+  vdda-phy-supply:
+    description: phandle to phy supply
 
-  vdda-pll-supply: true
+  vdda-pll-supply:
+    description: phandle to phy PLL supply
 
   "#clock-cells":
     const: 0
@@ -59,14 +68,6 @@ properties:
 required:
   - compatible
   - reg
-  - clocks
-  - clock-names
-  - resets
-  - reset-names
-  - vdda-phy-supply
-  - vdda-pll-supply
-  - "#clock-cells"
-  - clock-output-names
   - "#phy-cells"
 
 allOf:
@@ -109,6 +110,7 @@ allOf:
         compatible:
           contains:
             enum:
+              - qcom,qcs8300-qmp-usb3-uni-phy
               - qcom,sa8775p-qmp-usb3-uni-phy
               - qcom,sc8280xp-qmp-usb3-uni-phy
     then:
@@ -123,6 +125,33 @@ allOf:
             - const: pipe
       required:
         - power-domains
+
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: qcom,sa8255p-qmp-usb3-uni-phy
+    then:
+      required:
+        - power-domains
+        - power-domain-names
+      properties:
+        power-domains:
+          maxItems: 2
+    else:
+      required:
+        - clocks
+        - clock-names
+        - resets
+        - reset-names
+        - vdda-phy-supply
+        - vdda-pll-supply
+        - clock-output-names
+        - "#clock-cells"
+      properties:
+        power-domains:
+          maxItems: 1
+
 
 additionalProperties: false
 
@@ -154,4 +183,14 @@ examples:
       clock-output-names = "usb2_phy0_pipe_clk";
 
       #phy-cells = <0>;
+    };
+
+  - |
+    phy@88e8000 {
+      compatible = "qcom,sa8255p-qmp-usb3-uni-phy";
+      reg = <0x088e8000 0x2000>;
+      #phy-cells = <0>;
+
+      power-domains = <&scmi12_pd 2>, <&scmi12_pd 3>;
+      power-domain-names = "usb_transfer", "usb_core";
     };

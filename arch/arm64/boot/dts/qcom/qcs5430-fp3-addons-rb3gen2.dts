@@ -1,0 +1,41 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
+
+/dts-v1/;
+
+#include "qcs5430-fp1-addons-rb3gen2.dts"
+
+/ {
+	model = "Qualcomm Technologies, Inc. qcs5430 fp3 addons rb3gen2 platform";
+	compatible = "qcom,qcs5430-fp3-addons-rb3gen2","qcom,qcs5430";
+	qcom,msm-id = <0x3023F 0x10000>;
+	qcom,board-id = <32 0x5>, <32 0x605>;
+
+	cpus {
+		cpu-map {
+			cluster0 {
+				core6 {
+					cpu = <&CPU6>;
+				};
+
+				core7 {
+					cpu = <&CPU7>;
+				};
+			};
+		};
+	};
+};
+
+&CPU6 {
+	enable-method = "psci";
+};
+
+&CPU7 {
+	enable-method = "psci";
+};
+
+&pcie1 {
+	status = "ok";
+};

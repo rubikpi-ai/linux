@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
- * ​​​​Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * ​​​​Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/cdev.h>
@@ -152,7 +152,7 @@ static struct processor_specific_info proc_info[SMP2P_NUM_PROCS] = {
 		{NULL},	/*EMPTY*/
 		{NULL},	/*EMPTY*/
 		{NULL},	/*EMPTY*/
-		{NULL},	/*EMPTY*/
+		{"rdbg_cdsp1", SMEM_LC_DEBUGGER, 16*1024},		/*CDSP1*/
 		{NULL},	/*EMPTY*/
 		{NULL},	/*EMPTY*/
 		{NULL}	/*SMP2P_REMOTE_MOCK_PROC*/
@@ -1041,7 +1041,7 @@ static int rdbg_probe(struct platform_device *pdev)
 	int minor = 0;
 	int err = 0;
 	char *rdbg_compatible_string = "qcom,smp2p-interrupt-rdbg-";
-	int max_len = strlen(rdbg_compatible_string) + strlen("xx-out");
+	int max_len = strlen(rdbg_compatible_string) + strlen("xxx-out");
 	char *node_name = kcalloc(max_len, sizeof(char), GFP_KERNEL);
 
 	if (!node_name) {
@@ -1092,6 +1092,8 @@ static const struct of_device_id rdbg_match_table[] = {
 	{ .compatible = "qcom,smp2p-interrupt-rdbg-2-in", },
 	{ .compatible = "qcom,smp2p-interrupt-rdbg-5-out", },
 	{ .compatible = "qcom,smp2p-interrupt-rdbg-5-in", },
+	{ .compatible = "qcom,smp2p-interrupt-rdbg-12-out", },
+	{ .compatible = "qcom,smp2p-interrupt-rdbg-12-in", },
 	{}
 };
 

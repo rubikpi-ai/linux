@@ -15,14 +15,13 @@ properties:
     enum:
       - qcom,geni-i2c
       - qcom,geni-i2c-master-hub
+      - qcom,sa8255p-geni-i2c
 
   clocks:
-    minItems: 1
-    maxItems: 2
+    description: phandles for the clock providers
 
   clock-names:
-    minItems: 1
-    maxItems: 2
+    description: names for the clocks
 
   clock-frequency:
     default: 100000
@@ -36,12 +35,13 @@ properties:
       - const: rx
 
   interconnects:
-    minItems: 2
-    maxItems: 3
+    description: phandles of interconnect bw provider
 
   interconnect-names:
-    minItems: 2
-    maxItems: 3
+    items:
+      - const: qup-core
+      - const: qup-config
+      - const: qup-memory
 
   interrupts:
     maxItems: 1
@@ -69,8 +69,6 @@ properties:
 required:
   - compatible
   - interrupts
-  - clocks
-  - clock-names
   - reg
 
 allOf:
@@ -100,22 +98,28 @@ allOf:
           items:
             - const: qup-core
             - const: qup-config
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: qcom,sa8255p-geni-i2c
+    then:
+      required:
+        - power-domains
     else:
       properties:
         clocks:
-          maxItems: 1
-
+          minItems: 1
+          maxItems: 2
         clock-names:
-          const: se
-
+          minItems: 1
+          maxItems: 2
         interconnects:
-          minItems: 3
-
+          minItems: 2
+          maxItems: 3
         interconnect-names:
-          items:
-            - const: qup-core
-            - const: qup-config
-            - const: qup-memory
+          minItems: 2
+          maxItems: 3
 
 unevaluatedProperties: false
 
@@ -142,5 +146,17 @@ examples:
         interconnect-names = "qup-core", "qup-config", "qup-memory";
         power-domains = <&rpmhpd SC7180_CX>;
         required-opps = <&rpmhpd_opp_low_svs>;
+    };
+
+  - |
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+
+    i2c@984000 {
+        compatible = "qcom,sa8255p-geni-i2c";
+        reg = <0x984000 0x4000>;
+        interrupts = <GIC_SPI 551 IRQ_TYPE_LEVEL_HIGH>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+        power-domains = <&scmi9_pd 11>;
     };
 ...

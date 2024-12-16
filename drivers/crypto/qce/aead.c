@@ -86,6 +86,9 @@ static void qce_aead_done(void *data)
 		}
 	}
 
+	if (qce->qce_cmd_desc_enable)
+		qce_bam_release_lock(qce);
+
 	qce->async_req_done(qce, error);
 }
 
@@ -432,6 +435,9 @@ qce_aead_async_req_handle(struct crypto_async_request *async_req)
 		rctx->assoclen = req->assoclen - 8;
 	else
 		rctx->assoclen = req->assoclen;
+
+	if (qce->qce_cmd_desc_enable)
+		qce_bam_acquire_lock(qce);
 
 	diff_dst = (req->src != req->dst) ? true : false;
 	dir_src = diff_dst ? DMA_TO_DEVICE : DMA_BIDIRECTIONAL;

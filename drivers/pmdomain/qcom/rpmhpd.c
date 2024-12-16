@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /* Copyright (c) 2018, The Linux Foundation. All rights reserved.*/
+/* Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.*/
 
 #include <linux/err.h>
 #include <linux/init.h>
@@ -602,7 +603,31 @@ static const struct rpmhpd_desc x1e80100_desc = {
 	.num_pds = ARRAY_SIZE(x1e80100_rpmhpds),
 };
 
+/* QCS8300 RPMH power domains */
+static struct rpmhpd *qcs8300_rpmhpds[] = {
+	[QCS8300_CX] = &cx,
+	[QCS8300_CX_AO] = &cx_ao,
+	[QCS8300_EBI] = &ebi,
+	[QCS8300_GFX] = &gfx,
+	[QCS8300_LCX] = &lcx,
+	[QCS8300_LMX] = &lmx,
+	[QCS8300_MMCX] = &mmcx,
+	[QCS8300_MMCX_AO] = &mmcx_ao,
+	[QCS8300_MXC] = &mxc,
+	[QCS8300_MXC_AO] = &mxc_ao,
+	[QCS8300_MX] = &mx,
+	[QCS8300_MX_AO] = &mx_ao,
+	[QCS8300_NSP0] = &nsp0,
+	[QCS8300_NSP1] = &nsp1,
+};
+
+static const struct rpmhpd_desc qcs8300_desc = {
+	.rpmhpds = qcs8300_rpmhpds,
+	.num_pds = ARRAY_SIZE(qcs8300_rpmhpds),
+};
+
 static const struct of_device_id rpmhpd_match_table[] = {
+	{ .compatible = "qcom,qcs8300-rpmhpd", .data = &qcs8300_desc },
 	{ .compatible = "qcom,qdu1000-rpmhpd", .data = &qdu1000_desc },
 	{ .compatible = "qcom,sa8155p-rpmhpd", .data = &sa8155p_desc },
 	{ .compatible = "qcom,sa8540p-rpmhpd", .data = &sa8540p_desc },

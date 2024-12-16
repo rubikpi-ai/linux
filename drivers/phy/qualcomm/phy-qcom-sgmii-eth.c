@@ -432,6 +432,7 @@ static int qcom_dwmac_sgmii_phy_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id qcom_dwmac_sgmii_phy_of_match[] = {
+	{ .compatible = "qcom,qcs8300-dwmac-sgmii-phy" },
 	{ .compatible = "qcom,sa8775p-dwmac-sgmii-phy" },
 	{ },
 };

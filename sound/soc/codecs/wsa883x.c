@@ -1058,6 +1058,18 @@ static int wsa_get_temp(struct snd_kcontrol *kcontrol,
 	return 0;
 }
 
+static int wsa883x_get_dev_num(struct snd_kcontrol *kcontrol,
+		struct snd_ctl_elem_value *ucontrol)
+{
+	struct snd_soc_component *component =
+			snd_soc_kcontrol_component(kcontrol);
+
+	struct wsa883x_priv *wsa883x = snd_soc_component_get_drvdata(component);
+
+	ucontrol->value.integer.value[0] = wsa883x->slave->dev_num;
+	return 0;
+
+}
 
 static bool wsa883x_readonly_register(struct device *dev, unsigned int reg)
 {
@@ -1467,6 +1479,8 @@ static const struct snd_kcontrol_new wsa883x_snd_controls[] = {
 			     0x0, 0x1f, 1, pa_gain),
 	SOC_SINGLE_EXT("WSA Temp", SND_SOC_NOPM, 0, UINT_MAX, 0,
 		       wsa_get_temp, NULL),
+	SOC_SINGLE_EXT("WSA Get DevNum", SND_SOC_NOPM, 0, UINT_MAX, 0,
+			wsa883x_get_dev_num, NULL),
 	SOC_ENUM_EXT("WSA MODE", wsa_dev_mode_enum,
 		     wsa_dev_mode_get, wsa_dev_mode_put),
 	SOC_SINGLE_EXT("COMP Offset", SND_SOC_NOPM, 0, 4, 0,

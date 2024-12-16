@@ -138,20 +138,20 @@ enum llcc_reg_offset {
 };
 
 static const struct llcc_slice_config sa8775p_data[] =  {
-	{LLCC_CPUSS,    1, 2048, 1, 0, 0xFFF, 0x0, 0, 0, 0, 1, 1, 0, 0},
-	{LLCC_VIDSC0,   2, 512, 3, 1, 0xFFFF, 0x0, 0, 0, 0, 1, 0, 0, 0},
-	{LLCC_CPUSS1,   3, 1024, 1, 1, 0xFFF, 0x0, 0, 0, 0, 1, 0, 0, 0},
-	{LLCC_CPUHWT,   5, 512, 1, 1, 0xFFFF, 0x0, 0, 0, 0, 1, 0, 0, 0},
-	{LLCC_AUDIO,    6, 1024, 1, 1, 0xFFFF, 0x0, 0, 0, 0, 0, 0, 0, 0},
-	{LLCC_CMPT,     10, 4096, 1, 1, 0xFFFF, 0x0, 0, 0, 0, 1, 0, 0, 0},
+	{LLCC_CPUSS,    1, 2048, 1, 0, 0x00FF, 0x0, 0, 0, 0, 1, 1, 0, 0},
+	{LLCC_VIDSC0,   2, 512, 3, 1, 0x00FF, 0x0, 0, 0, 0, 1, 0, 0, 0},
+	{LLCC_CPUSS1,   3, 1024, 1, 1, 0x00FF, 0x0, 0, 0, 0, 1, 0, 0, 0},
+	{LLCC_CPUHWT,   5, 512, 1, 1, 0x00FF, 0x0, 0, 0, 0, 1, 0, 0, 0},
+	{LLCC_AUDIO,    6, 1024, 1, 1, 0x00FF, 0x0, 0, 0, 0, 0, 0, 0, 0},
+	{LLCC_CMPT,     10, 4096, 1, 1, 0x00FF, 0x0, 0, 0, 0, 1, 0, 0, 0},
 	{LLCC_GPUHTW,   11, 1024, 1, 1, 0x00FF, 0x0, 0, 0, 0, 1, 0, 0, 0},
 	{LLCC_GPU,      12, 1024, 1, 1, 0x00FF, 0x0, 0, 0, 0, 1, 0, 1, 0},
 	{LLCC_MMUHWT,   13, 1024, 1, 1, 0x00FF, 0x0, 0, 0, 0, 0, 1, 0, 0},
-	{LLCC_CMPTDMA,  15, 1024, 1, 1, 0xFFFF, 0x0, 0, 0, 0, 1, 0, 0, 0},
-	{LLCC_DISP,     16, 4096, 2, 1, 0xFFFF, 0x0, 0, 0, 0, 1, 0, 0, 0},
-	{LLCC_VIDFW,    17, 3072, 1, 0, 0xFFFF, 0x0, 0, 0, 0, 1, 0, 0, 0},
-	{LLCC_AUDHW,    22, 1024, 1, 1, 0xFFFF, 0x0, 0, 0, 0, 0, 0, 0, 0},
-	{LLCC_CVP,      28, 256, 3, 1, 0xFFFF, 0x0, 0, 0, 0, 1, 0, 0, 0},
+	{LLCC_CMPTDMA,  15, 1024, 1, 1, 0x00FF, 0x0, 0, 0, 0, 1, 0, 0, 0},
+	{LLCC_DISP,     16, 4096, 2, 1, 0x00FF, 0x0, 0, 0, 0, 1, 0, 0, 0},
+	{LLCC_VIDFW,    17, 3072, 1, 0, 0x00FF, 0x0, 0, 0, 0, 1, 0, 0, 0},
+	{LLCC_AUDHW,    22, 1024, 1, 1, 0x00FF, 0x0, 0, 0, 0, 0, 0, 0, 0},
+	{LLCC_CVP,      28, 256, 3, 1, 0x00FF, 0x0, 0, 0, 0, 1, 0, 0, 0},
 	{LLCC_APTCM,    30, 1024, 3, 1, 0x0, 0xF0, 1, 0, 0, 1, 0, 0, 0},
 	{LLCC_WRCACHE,    31, 512, 1, 1, 0x00FF, 0x0, 0, 0, 0, 0, 1, 0, 0},
 };
@@ -408,6 +408,14 @@ static const struct llcc_slice_config sm8650_data[] = {
 	{LLCC_VIDVSP,   28,  256, 3, 1, 0xFFFFFF, 0x0,      0, 0x0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 };
 
+static struct llcc_slice_config qcs8300_data[] =  {
+	{LLCC_GPUHTW,   11, 128, 1, 1, 0x00F, 0x0, 0, 0, 0, 1, 0, 0, 0},
+	{LLCC_GPU,      12, 512, 1, 1, 0x00F, 0x0, 0, 0, 0, 1, 0, 1, 0},
+	{LLCC_MMUHWT,   13, 128, 1, 1, 0x00F, 0x0, 0, 0, 0, 0, 1, 0, 0},
+	{LLCC_ECC,      26, 256, 3, 1, 0x00F, 0x0, 0, 0, 0, 0, 1, 0, 0},
+	{LLCC_WRCACHE,	31, 128, 1, 1, 0x00F, 0x0, 0, 0, 0, 0, 1, 0, 0},
+};
+
 static const struct llcc_slice_config qdu1000_data_2ch[] = {
 	{ LLCC_MDMHPGRW, 7, 512, 1, 1, 0xfff, 0x0, 0, 0, 0, 1, 0, 0, 0 },
 	{ LLCC_MODHW,    9, 256, 1, 1, 0xfff, 0x0, 0, 0, 0, 1, 0, 0, 0 },
@@ -502,6 +510,16 @@ static const u32 llcc_v1_reg_offset[] = {
 static const u32 llcc_v2_1_reg_offset[] = {
 	[LLCC_COMMON_HW_INFO]	= 0x00034000,
 	[LLCC_COMMON_STATUS0]	= 0x0003400c,
+};
+
+static const struct qcom_llcc_config qcs8300_cfg[] = {
+	{
+		.sct_data	= qcs8300_data,
+		.size		= ARRAY_SIZE(qcs8300_data),
+		.need_llcc_cfg	= true,
+		.reg_offset	= llcc_v2_1_reg_offset,
+		.edac_reg_offset = &llcc_v2_1_edac_reg_offset,
+	},
 };
 
 static const struct qcom_llcc_config qdu1000_cfg[] = {
@@ -674,6 +692,11 @@ static const struct qcom_llcc_config sm8650_cfg[] = {
 		.reg_offset	= llcc_v2_1_reg_offset,
 		.edac_reg_offset = &llcc_v2_1_edac_reg_offset,
 	},
+};
+
+static const struct qcom_sct_config qcs8300_cfgs = {
+	.llcc_config	= qcs8300_cfg,
+	.num_config	= ARRAY_SIZE(qcs8300_cfg),
 };
 
 static const struct qcom_sct_config qdu1000_cfgs = {
@@ -1224,12 +1247,17 @@ static int qcom_llcc_probe(struct platform_device *pdev)
 		goto err;
 	cfg = &cfgs->llcc_config[cfg_index];
 
-	ret = regmap_read(regmap, cfg->reg_offset[LLCC_COMMON_STATUS0], &num_banks);
-	if (ret)
-		goto err;
+	if (unlikely(!of_property_read_u32(dev->of_node, "num-banks", &num_banks))) {
+		/* errata: get num of llcc banks. */
+	} else {
+		ret = regmap_read(regmap, cfg->reg_offset[LLCC_COMMON_STATUS0], &num_banks);
+		if (ret)
+			goto err;
 
-	num_banks &= LLCC_LB_CNT_MASK;
-	num_banks >>= LLCC_LB_CNT_SHIFT;
+		num_banks &= LLCC_LB_CNT_MASK;
+		num_banks >>= LLCC_LB_CNT_SHIFT;
+	}
+
 	drv_data->num_banks = num_banks;
 
 	drv_data->regmaps = devm_kcalloc(dev, num_banks, sizeof(*drv_data->regmaps), GFP_KERNEL);
@@ -1315,6 +1343,7 @@ err:
 }
 
 static const struct of_device_id qcom_llcc_of_match[] = {
+	{ .compatible = "qcom,qcs8300-llcc", .data = &qcs8300_cfgs},
 	{ .compatible = "qcom,qdu1000-llcc", .data = &qdu1000_cfgs},
 	{ .compatible = "qcom,sa8775p-llcc", .data = &sa8775p_cfgs },
 	{ .compatible = "qcom,sc7180-llcc", .data = &sc7180_cfgs },

@@ -16,7 +16,7 @@
 #include "camss-vfe.h"
 
 /* VFE 2/3 are lite and have a different register layout */
-#define IS_LITE		(vfe->id >= 2 ? 1 : 0)
+#define IS_LITE		(vfe->res->is_lite)
 
 #define VFE_HW_VERSION			(0x00)
 

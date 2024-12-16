@@ -43,6 +43,91 @@ static const struct actlr_config sc7280_gfx_actlr_cfg[] = {
 	{ 0x0000, 0x07ff, PREFETCH_DEEP_GFX | CPRE | CMTLB },
 };
 
+static const struct actlr_config sa8775p_apps_actlr_cfg[] = {
+	{ 0x0800, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x0801, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x0802, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x0803, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x0840, 0x0480, PREFETCH_DISABLE | CMTLB },
+	{ 0x0860, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x3400, 0x0020, PREFETCH_DISABLE | CMTLB },
+	{ 0x3401, 0x0020, PREFETCH_DISABLE | CMTLB },
+	{ 0x3402, 0x0020, PREFETCH_DISABLE | CMTLB },
+	{ 0x3403, 0x0020, PREFETCH_DISABLE | CMTLB },
+	{ 0x1000, 0x0402, PREFETCH_DISABLE | CMTLB },
+	{ 0x1001, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x1800, 0x0402, PREFETCH_DISABLE | CMTLB },
+	{ 0x1801, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x0880, 0x0400, PREFETCH_SHALLOW | CPRE | CMTLB },
+	{ 0x0881, 0x0404, PREFETCH_SHALLOW | CPRE | CMTLB },
+	{ 0x0883, 0x0400, PREFETCH_SHALLOW | CPRE | CMTLB },
+	{ 0x0884, 0x0400, PREFETCH_SHALLOW | CPRE | CMTLB },
+	{ 0x0887, 0x0400, PREFETCH_SHALLOW | CPRE | CMTLB },
+	{ 0x2141, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2142, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2143, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2144, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2145, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2146, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2147, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2148, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2149, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x214a, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x214b, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x214c, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x214d, 0x0420, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2181, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2182, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2183, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2184, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2185, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2186, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2187, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2188, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2189, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x218a, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x218b, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x218c, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x218d, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x21ed, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x25cd, 0x0000, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2941, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2942, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2943, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2944, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2945, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2946, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2947, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2948, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2949, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x294a, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x294b, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x294c, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x294d, 0x04a0, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2981, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2982, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2983, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2984, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2985, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2986, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2987, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2988, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x2989, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x298a, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x298b, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x298c, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x298d, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+};
+
+static const struct actlr_config sa8775p_gfx_actlr_cfg[] = {
+	{ 0x0000, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+	{ 0x0001, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+	{ 0x0002, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+	{ 0x0004, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+	{ 0x0005, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+	{ 0x0007, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+};
+
 static const struct actlr_config sm8550_apps_actlr_cfg[] = {
 	{ 0x18a0, 0x0000, PREFETCH_SHALLOW | CPRE | CMTLB },
 	{ 0x18e0, 0x0000, PREFETCH_SHALLOW | CPRE | CMTLB },
@@ -431,6 +516,8 @@ static int qcom_adreno_smmu_init_context(struct arm_smmu_domain *smmu_domain,
 	 */
 
 	priv = dev_get_drvdata(dev);
+	if (!priv)
+		return -ENODATA;
 	priv->cookie = smmu_domain;
 	priv->get_ttbr1_cfg = qcom_adreno_smmu_get_ttbr1_cfg;
 	priv->set_ttbr0_cfg = qcom_adreno_smmu_set_ttbr0_cfg;
@@ -779,6 +866,16 @@ static const struct qcom_smmu_match_data sc7280_smmu_500_impl0_data = {
 	.actlrcfg_gfx_size = ARRAY_SIZE(sc7280_gfx_actlr_cfg),
 };
 
+static const struct qcom_smmu_match_data sa8775p_smmu_500_impl0_data = {
+	.impl = &qcom_smmu_500_impl,
+	.adreno_impl = &qcom_adreno_smmu_500_impl,
+	.cfg = &qcom_smmu_impl0_cfg,
+	.actlrcfg = sa8775p_apps_actlr_cfg,
+	.actlrcfg_size = ARRAY_SIZE(sa8775p_apps_actlr_cfg),
+	.actlrcfg_gfx = sa8775p_gfx_actlr_cfg,
+	.actlrcfg_gfx_size = ARRAY_SIZE(sa8775p_gfx_actlr_cfg),
+};
+
 static const struct qcom_smmu_match_data sm8550_smmu_500_impl0_data = {
 	.impl = &qcom_smmu_500_impl,
 	.adreno_impl = &qcom_adreno_smmu_500_impl,
@@ -807,6 +904,7 @@ static const struct of_device_id __maybe_unused qcom_smmu_impl_of_match[] = {
 	{ .compatible = "qcom,sc7180-smmu-500", .data = &qcom_smmu_500_impl0_data },
 	{ .compatible = "qcom,sc7180-smmu-v2", .data = &qcom_smmu_v2_data },
 	{ .compatible = "qcom,sc7280-smmu-500", .data = &sc7280_smmu_500_impl0_data },
+	{ .compatible = "qcom,sa8775p-smmu-500", .data = &sa8775p_smmu_500_impl0_data },
 	{ .compatible = "qcom,sc8180x-smmu-500", .data = &qcom_smmu_500_impl0_data },
 	{ .compatible = "qcom,sc8280xp-smmu-500", .data = &qcom_smmu_500_impl0_data },
 	{ .compatible = "qcom,sdm630-smmu-v2", .data = &qcom_smmu_v2_data },

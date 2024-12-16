@@ -11,7 +11,7 @@ maintainers:
 
 description: |
   The Remote Debug Driver interfaces with the Remote Debug stubs running on the
-   subsystem processors and does not drive or anage any hardware resources.
+   subsystem processors and does not drive or manage any hardware resources.
 
 properties:
   compatible:
@@ -27,6 +27,12 @@ properties:
            - enum:
                qcom,smp2p-interrupt-rdbg-5-in (inbound)
                qcom,smp2p-interrupt-rdbg-5-out (outbound)
+
+       - description: To communicate with cdsp1
+         items:
+           - enum:
+               qcom,smp2p-interrupt-rdbg-12-in (inbound)
+               qcom,smp2p-interrupt-rdbg-12-out (outbound)
 
 required:
    - compatible

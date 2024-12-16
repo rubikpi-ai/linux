@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  * Copyright (c) 2020-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/args.h>
@@ -74,6 +75,11 @@ enum {
 	OSM_L3_SLAVE_NODE,
 };
 
+enum {
+	EPSS_L3_CL1_MASTER_NODE = 20000,
+	EPSS_L3_CL1_SLAVE_NODE,
+};
+
 #define DEFINE_QNODE(_name, _id, _buswidth, ...)			\
 	static const struct qcom_osm_l3_node _name = {			\
 		.name = #_name,						\
@@ -99,6 +105,14 @@ static const struct qcom_osm_l3_node * const epss_l3_nodes[] = {
 	[SLAVE_EPSS_L3_SHARED] = &epss_l3_slave,
 };
 
+DEFINE_QNODE(epss_l3_cl1_master, EPSS_L3_CL1_MASTER_NODE, 32, EPSS_L3_CL1_SLAVE_NODE);
+DEFINE_QNODE(epss_l3_cl1_slave, EPSS_L3_CL1_SLAVE_NODE, 32);
+
+static const struct qcom_osm_l3_node * const epss_l3_cl1_nodes[] = {
+	[MASTER_EPSS_L3_APPS] = &epss_l3_cl1_master,
+	[SLAVE_EPSS_L3_SHARED] = &epss_l3_cl1_slave,
+};
+
 static const struct qcom_osm_l3_desc osm_l3 = {
 	.nodes = osm_l3_nodes,
 	.num_nodes = ARRAY_SIZE(osm_l3_nodes),
@@ -110,6 +124,14 @@ static const struct qcom_osm_l3_desc osm_l3 = {
 static const struct qcom_osm_l3_desc epss_l3_perf_state = {
 	.nodes = epss_l3_nodes,
 	.num_nodes = ARRAY_SIZE(epss_l3_nodes),
+	.lut_row_size = EPSS_LUT_ROW_SIZE,
+	.reg_freq_lut = EPSS_REG_FREQ_LUT,
+	.reg_perf_state = EPSS_REG_PERF_STATE,
+};
+
+static const struct qcom_osm_l3_desc epss_l3_cl1_perf_state = {
+	.nodes = epss_l3_cl1_nodes,
+	.num_nodes = ARRAY_SIZE(epss_l3_cl1_nodes),
 	.lut_row_size = EPSS_LUT_ROW_SIZE,
 	.reg_freq_lut = EPSS_REG_FREQ_LUT,
 	.reg_perf_state = EPSS_REG_PERF_STATE,
@@ -286,6 +308,8 @@ static const struct of_device_id osm_l3_of_match[] = {
 	{ .compatible = "qcom,sm8150-osm-l3", .data = &osm_l3 },
 	{ .compatible = "qcom,sc8180x-osm-l3", .data = &osm_l3 },
 	{ .compatible = "qcom,sm8250-epss-l3", .data = &epss_l3_perf_state },
+	{ .compatible = "qcom,sa8775p-epss-l3-cl0", .data = &epss_l3_perf_state },
+	{ .compatible = "qcom,sa8775p-epss-l3-cl1", .data = &epss_l3_cl1_perf_state },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, osm_l3_of_match);

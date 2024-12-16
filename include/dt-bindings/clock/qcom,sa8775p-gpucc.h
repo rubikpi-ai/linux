@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: (GPL-2.0-only OR BSD-2-Clause) */
 /*
- * Copyright (c) 2022, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022, 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  * Copyright (c) 2023, Linaro Limited
  */
 
@@ -31,6 +31,8 @@
 #define GPU_CC_MEMNOC_GFX_CLK			20
 #define GPU_CC_SLEEP_CLK			21
 #define GPU_CC_XO_CLK_SRC			22
+#define GPU_CC_CX_ACCU_SHIFT_CLK		23
+#define GPU_CC_GX_ACCU_SHIFT_CLK		24
 
 /* GPU_CC resets */
 #define GPUCC_GPU_CC_ACD_BCR			0

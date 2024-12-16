@@ -241,6 +241,12 @@ struct cqhci_host {
 	u32 quirks;
 #define CQHCI_QUIRK_SHORT_TXFR_DESC_SZ	0x1
 
+	/*
+	 * This quirk indicates that EMMC will be using HW wrapped keys
+	 * when using inline encryption.
+	 */
+#define CQHCI_QUIRK_USES_WRAPPED_CRYPTO_KEYS	0x2
+
 	bool enabled;
 	bool halted;
 	bool init_done;
@@ -280,6 +286,11 @@ struct cqhci_host {
 #endif
 };
 
+/* @derive_sw_secret: derive sw secret from a wrapped key
+ * @generate_key: generate a storage key and return longterm wrapped key
+ * @prepare_key: unwrap longterm key and return ephemeral wrapped key
+ * @import_key: import sw storage key and return longterm wrapped key
+ */
 struct cqhci_host_ops {
 	void (*dumpregs)(struct mmc_host *mmc);
 	void (*write_l)(struct cqhci_host *host, u32 val, int reg);
@@ -294,6 +305,17 @@ struct cqhci_host_ops {
 	int (*program_key)(struct cqhci_host *cq_host,
 			   const struct blk_crypto_key *bkey,
 			   const union cqhci_crypto_cfg_entry *cfg, int slot);
+	int (*derive_sw_secret)(struct cqhci_host *cq_host, const u8 wkey[],
+				unsigned int wkey_size,
+				u8 sw_secret[BLK_CRYPTO_SW_SECRET_SIZE]);
+	int (*generate_key)(struct cqhci_host *cq_host,
+			    u8 lt_key[BLK_CRYPTO_MAX_HW_WRAPPED_KEY_SIZE]);
+	int (*prepare_key)(struct cqhci_host *cq_host,
+			   const u8 *lt_key, size_t lt_key_size,
+			   u8 eph_key[BLK_CRYPTO_MAX_HW_WRAPPED_KEY_SIZE]);
+	int (*import_key)(struct cqhci_host *cq_host, const u8 *imp_key,
+			  size_t imp_key_size,
+			  u8 lt_key[BLK_CRYPTO_MAX_HW_WRAPPED_KEY_SIZE]);
 #endif
 };
 

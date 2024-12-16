@@ -25,7 +25,10 @@ static inline u32 qce_read(struct qce_device *qce, u32 offset)
 
 static inline void qce_write(struct qce_device *qce, u32 offset, u32 val)
 {
-	writel(val, qce->base + offset);
+	if (qce->qce_cmd_desc_enable)
+		qce_write_reg_dma(qce, offset, val, 1);
+	else
+		writel(val, qce->base + offset);
 }
 
 static inline void qce_write_array(struct qce_device *qce, u32 offset,
@@ -33,8 +36,12 @@ static inline void qce_write_array(struct qce_device *qce, u32 offset,
 {
 	int i;
 
-	for (i = 0; i < len; i++)
-		qce_write(qce, offset + i * sizeof(u32), val[i]);
+	for (i = 0; i < len; i++) {
+		if (qce->qce_cmd_desc_enable)
+			qce_write_reg_dma(qce, offset + i * sizeof(u32), val[i], 1);
+		else
+			qce_write(qce, offset + i * sizeof(u32), val[i]);
+	}
 }
 
 static inline void
@@ -42,8 +49,12 @@ qce_clear_array(struct qce_device *qce, u32 offset, unsigned int len)
 {
 	int i;
 
-	for (i = 0; i < len; i++)
-		qce_write(qce, offset + i * sizeof(u32), 0);
+	for (i = 0; i < len; i++) {
+		if (qce->qce_cmd_desc_enable)
+			qce_write_reg_dma(qce, offset + i * sizeof(u32), 0, 1);
+		else
+			qce_write(qce, offset + i * sizeof(u32), 0);
+	}
 }
 
 static u32 qce_config_reg(struct qce_device *qce, int little)
@@ -157,10 +168,14 @@ static int qce_setup_regs_ahash(struct crypto_async_request *async_req)
 	__be32 mackey[QCE_SHA_HMAC_KEY_SIZE / sizeof(__be32)] = {0};
 	u32 auth_cfg = 0, config;
 	unsigned int iv_words;
+	int ret = 0;
 
 	/* if not the last, the size has to be on the block boundary */
 	if (!rctx->last_blk && req->nbytes % blocksize)
 		return -EINVAL;
+
+	if (qce->qce_cmd_desc_enable)
+		qce_clear_bam_transaction(qce);
 
 	qce_setup_config(qce);
 
@@ -225,6 +240,13 @@ go_proc:
 
 	qce_crypto_go(qce, true);
 
+	if (qce->qce_cmd_desc_enable) {
+		ret = qce_submit_cmd_desc(qce, 0);
+		if (ret) {
+			dev_err(qce->dev, "Error in sha cmd descriptor ret = %d\n", ret);
+			return ret;
+		}
+	}
 	return 0;
 }
 #endif
@@ -325,6 +347,10 @@ static int qce_setup_regs_skcipher(struct crypto_async_request *async_req)
 	u32 encr_cfg = 0, auth_cfg = 0, config;
 	unsigned int ivsize = rctx->ivsize;
 	unsigned long flags = rctx->flags;
+	int ret = 0;
+
+	if (qce->qce_cmd_desc_enable)
+		qce_clear_bam_transaction(qce);
 
 	qce_setup_config(qce);
 
@@ -388,6 +414,14 @@ static int qce_setup_regs_skcipher(struct crypto_async_request *async_req)
 
 	qce_crypto_go(qce, true);
 
+	if (qce->qce_cmd_desc_enable) {
+		ret = qce_submit_cmd_desc(qce, 0);
+		if (ret) {
+			dev_err(qce->dev, "Error in skcipher cmd descriptor ret = %d\n", ret);
+			return ret;
+		}
+	}
+
 	return 0;
 }
 #endif
@@ -438,6 +472,10 @@ static int qce_setup_regs_aead(struct crypto_async_request *async_req)
 	unsigned long flags = rctx->flags;
 	u32 encr_cfg, auth_cfg, config, totallen;
 	u32 iv_last_word;
+	int ret = 0;
+
+	if (qce->qce_cmd_desc_enable)
+		qce_clear_bam_transaction(qce);
 
 	qce_setup_config(qce);
 
@@ -537,6 +575,14 @@ static int qce_setup_regs_aead(struct crypto_async_request *async_req)
 	/* Start the process */
 	qce_crypto_go(qce, !IS_CCM(flags));
 
+	if (qce->qce_cmd_desc_enable) {
+		ret = qce_submit_cmd_desc(qce, 0);
+		if (ret) {
+			dev_err(qce->dev, "Error in aead cmd descriptor ret = %d\n", ret);
+			return ret;
+		}
+	}
+
 	return 0;
 }
 #endif
@@ -592,4 +638,40 @@ void qce_get_version(struct qce_device *qce, u32 *major, u32 *minor, u32 *step)
 	*major = (val & CORE_MAJOR_REV_MASK) >> CORE_MAJOR_REV_SHIFT;
 	*minor = (val & CORE_MINOR_REV_MASK) >> CORE_MINOR_REV_SHIFT;
 	*step = (val & CORE_STEP_REV_MASK) >> CORE_STEP_REV_SHIFT;
+}
+
+int qce_bam_acquire_lock(struct qce_device *qce)
+{
+	int ret = 0;
+
+	qce_clear_bam_transaction(qce);
+
+	/* This is just a dummy write to acquire lock bam pipe */
+	qce_write_reg_dma(qce, REG_AUTH_SEG_CFG, 0, 1);
+
+	ret = qce_submit_cmd_desc(qce, QCE_DMA_DESC_FLAG_LOCK);
+	if (ret) {
+		dev_err(qce->dev, "Error in LOCK cmd descriptor ret = %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+int qce_bam_release_lock(struct qce_device *qce)
+{
+	int ret = 0;
+
+	qce_clear_bam_transaction(qce);
+
+	/* This is just q dummy write to release lock on bam pipe*/
+	qce_write_reg_dma(qce, REG_AUTH_SEG_CFG, 0, 1);
+
+	ret = qce_submit_cmd_desc(qce, QCE_DMA_DESC_FLAG_UNLOCK);
+	if (ret) {
+		dev_err(qce->dev, "Error in LOCK cmd descriptor ret = %d\n", ret);
+		return ret;
+	}
+
+	return 0;
 }

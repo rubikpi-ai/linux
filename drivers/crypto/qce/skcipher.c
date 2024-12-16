@@ -56,6 +56,9 @@ static void qce_skcipher_done(void *data)
 	if (error < 0)
 		dev_dbg(qce->dev, "skcipher operation error (%x)\n", status);
 
+	if (qce->qce_cmd_desc_enable)
+		qce_bam_release_lock(qce);
+
 	memcpy(rctx->iv, result_buf->encr_cntr_iv, rctx->ivsize);
 	qce->async_req_done(tmpl->qce, error);
 }
@@ -81,6 +84,9 @@ qce_skcipher_async_req_handle(struct crypto_async_request *async_req)
 	diff_dst = (req->src != req->dst) ? true : false;
 	dir_src = diff_dst ? DMA_TO_DEVICE : DMA_BIDIRECTIONAL;
 	dir_dst = diff_dst ? DMA_FROM_DEVICE : DMA_BIDIRECTIONAL;
+
+	if (qce->qce_cmd_desc_enable)
+		qce_bam_acquire_lock(qce);
 
 	rctx->src_nents = sg_nents_for_len(req->src, req->cryptlen);
 	if (diff_dst)

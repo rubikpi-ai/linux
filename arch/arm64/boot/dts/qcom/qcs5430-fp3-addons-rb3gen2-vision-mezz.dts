@@ -1,0 +1,160 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
+
+/dts-v1/;
+
+#include "qcs5430-fp3-addons-rb3gen2.dts"
+
+/ {
+	model = "Qualcomm Technologies, Inc. qcs5430 fp3 addons rb3gen2 vision mezz platform";
+	compatible = "qcom,qcs5430-fp3-addons-rb3gen2-vision-mezz","qcom,qcs5430";
+	qcom,msm-id = <0x3023F 0x10000>;
+	qcom,board-id = <32 0x2>, <32 0x602>;
+};
+
+&mi2s0_data0 {
+	drive-strength = <8>;
+	bias-disable;
+};
+
+&mi2s0_data1 {
+	drive-strength = <8>;
+	bias-disable;
+};
+
+&mi2s0_mclk {
+	drive-strength = <8>;
+	bias-disable;
+	output-high;
+};
+
+&mi2s0_sclk {
+	drive-strength = <8>;
+	bias-disable;
+	output-high;
+};
+
+&mi2s0_ws {
+	drive-strength = <8>;
+	bias-disable;
+	output-high;
+};
+
+&q6apmbedai {
+	qcom,prmcc_clk = <&q6prmcc>;
+};
+
+&sound {
+	compatible = "qcom,qcm6490-sndcard";
+	model = "qcm6490-rb3-vision-snd-card";
+
+	audio-routing =
+		"SpkrLeft IN", "WSA_SPK1 OUT",
+		"SpkrRight IN", "WSA_SPK2 OUT",
+		"VA DMIC0", "vdd-micb",
+		"VA DMIC1", "vdd-micb",
+		"VA DMIC2", "vdd-micb",
+		"VA DMIC3", "vdd-micb",
+		"VA DMIC4", "vdd-micb",
+		"VA DMIC5", "vdd-micb";
+
+	pinctrl-names = "default", "stub_aif1_active", "stub_aif1_sleep";
+	pinctrl-0 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+		    <&mi2s0_sclk_sleep>,<&mi2s0_ws_sleep>;
+	pinctrl-1 = <&mi2s0_data0>, <&mi2s0_data1>, <&mi2s0_mclk>, <&mi2s0_sclk>, <&mi2s0_ws>;
+	pinctrl-2 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
+		    <&mi2s0_sclk_sleep>,<&mi2s0_ws_sleep>;
+
+	mi2s-capture-dai-link {
+		link-name = "MI2S-LPAIF-TX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_MI2S_TX>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	mi2s-playback-dai-link {
+		link-name = "MI2S-LPAIF-RX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_MI2S_RX>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+
+	tdm-capture-dai-link {
+		link-name = "TDM-LPAIF-TX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_TDM_TX_0>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 1>;
+		};
+	};
+
+	tdm-playback-dai-link {
+		link-name = "TDM-LPAIF-RX-PRIMARY";
+
+		cpu {
+			sound-dai = <&q6apmbedai PRIMARY_TDM_RX_0>;
+		};
+
+		codec {
+			sound-dai = <&msm_stub_codec 0>;
+		};
+	};
+
+};
+
+&tlmm {
+	mi2s0_data0_sleep: mi2s0-data0-sleep {
+		pins = "gpio98";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_data1_sleep: mi2s0-data1-sleep {
+		pins = "gpio99";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_mclk_sleep: mi2s0-mclk-sleep {
+		pins = "gpio96";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_sclk_sleep: mi2s0-sclk-sleep {
+		pins = "gpio97";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	mi2s0_ws_sleep: mi2s0-ws-sleep {
+		pins = "gpio100";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+};

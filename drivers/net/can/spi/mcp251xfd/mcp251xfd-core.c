@@ -153,6 +153,21 @@ static inline int mcp251xfd_vdd_disable(const struct mcp251xfd_priv *priv)
 	return regulator_disable(priv->reg_vdd);
 }
 
+static int
+mcp251xfd_transceiver_mode(const struct mcp251xfd_priv *priv,
+			   const enum mcp251xfd_xceiver_mode mode)
+{
+	int val;
+
+	if (mode == MCP251XFD_XCVR_NORMAL_MODE)
+		val = MCP251XFD_REG_IOCON_PM0;
+	else if (mode == MCP251XFD_XCVR_STBY_MODE)
+		val = (MCP251XFD_REG_IOCON_TRIS0 | MCP251XFD_REG_IOCON_PM0 |
+		MCP251XFD_REG_IOCON_LAT0);
+
+	return regmap_write(priv->map_reg, MCP251XFD_REG_IOCON, val);
+}
+
 static inline int
 mcp251xfd_transceiver_enable(const struct mcp251xfd_priv *priv)
 {
@@ -1614,15 +1629,28 @@ static int mcp251xfd_open(struct net_device *ndev)
 	if (err)
 		goto out_transceiver_disable;
 
+	err = mcp251xfd_transceiver_mode(priv, MCP251XFD_XCVR_NORMAL_MODE);
+	if (err)
+		goto out_transceiver_disable;
+
 	mcp251xfd_timestamp_init(priv);
 	clear_bit(MCP251XFD_FLAGS_DOWN, priv->flags);
 	can_rx_offload_enable(&priv->offload);
+
+	priv->wq = alloc_ordered_workqueue("%s-mcp251xfd_wq",
+					   WQ_FREEZABLE | WQ_MEM_RECLAIM,
+					   dev_name(&spi->dev));
+	if (!priv->wq) {
+		err = -ENOMEM;
+		goto out_can_rx_offload_disable;
+	}
+	INIT_WORK(&priv->tx_work, mcp251xfd_tx_obj_write_sync);
 
 	err = request_threaded_irq(spi->irq, NULL, mcp251xfd_irq,
 				   IRQF_SHARED | IRQF_ONESHOT,
 				   dev_name(&spi->dev), priv);
 	if (err)
-		goto out_can_rx_offload_disable;
+		goto out_destroy_workqueue;
 
 	err = mcp251xfd_chip_interrupts_enable(priv);
 	if (err)
@@ -1634,6 +1662,8 @@ static int mcp251xfd_open(struct net_device *ndev)
 
  out_free_irq:
 	free_irq(spi->irq, priv);
+ out_destroy_workqueue:
+	destroy_workqueue(priv->wq);
  out_can_rx_offload_disable:
 	can_rx_offload_disable(&priv->offload);
 	set_bit(MCP251XFD_FLAGS_DOWN, priv->flags);
@@ -1653,6 +1683,7 @@ static int mcp251xfd_open(struct net_device *ndev)
 
 static int mcp251xfd_stop(struct net_device *ndev)
 {
+	int err;
 	struct mcp251xfd_priv *priv = netdev_priv(ndev);
 
 	netif_stop_queue(ndev);
@@ -1661,8 +1692,13 @@ static int mcp251xfd_stop(struct net_device *ndev)
 	hrtimer_cancel(&priv->tx_irq_timer);
 	mcp251xfd_chip_interrupts_disable(priv);
 	free_irq(ndev->irq, priv);
+	destroy_workqueue(priv->wq);
 	can_rx_offload_disable(&priv->offload);
 	mcp251xfd_timestamp_stop(priv);
+
+	err = mcp251xfd_transceiver_mode(priv, MCP251XFD_XCVR_STBY_MODE);
+	if (err)
+		return err;
 	mcp251xfd_chip_stop(priv, CAN_STATE_STOPPED);
 	mcp251xfd_transceiver_disable(priv);
 	mcp251xfd_ring_free(priv);

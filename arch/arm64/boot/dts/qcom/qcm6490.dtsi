@@ -12,12 +12,11 @@
  * required by qcm6490
  */
 /delete-node/ &rmtfs_mem;
-/delete-node/ &wlan_ce_mem;
 
 /{
 	firmware {
 		scm {
-			qcom,dload-mode = <&tcsr 0x13000>;
+			qcom,dload-mode = <&tcsr_2 0x13000>;
 		};
 	};
 
@@ -111,11 +110,6 @@
 			alignment = <0x0 0x400000>;
 			size = <0x0 0x2000000>;
 		};
-	};
-
-	tcsr: syscon@1fc0000 {
-		compatible = "syscon";
-		reg = <0x0 0x1fc0000 0x0 0x30000>;
 	};
 };
 
@@ -602,13 +596,6 @@
 
 &tlmm {
 	gpio-reserved-ranges = <32 2>, <48 4>;
-};
-
-&venus {
-	compatible = "qcom,qcm6490-iris";
-	iommus = <&apps_smmu 0x2180 0x20>;
-	status = "okay";
-	interconnect-names = "iris-cnoc", "iris-ddr";
 };
 
 &video_mem {

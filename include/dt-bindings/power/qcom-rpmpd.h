@@ -4,6 +4,25 @@
 #ifndef _DT_BINDINGS_POWER_QCOM_RPMPD_H
 #define _DT_BINDINGS_POWER_QCOM_RPMPD_H
 
+/* QCS8300 Power Domain Indexes */
+#define QCS8300_CX	0
+#define QCS8300_CX_AO	1
+#define QCS8300_DDR	2
+#define QCS8300_EBI	3
+#define QCS8300_GFX	4
+#define QCS8300_LCX	5
+#define QCS8300_LMX	6
+#define QCS8300_MMCX	7
+#define QCS8300_MMCX_AO	8
+#define QCS8300_MSS	9
+#define QCS8300_MX	10
+#define QCS8300_MX_AO	11
+#define QCS8300_MXC	12
+#define QCS8300_MXC_AO	13
+#define QCS8300_NSP0	14
+#define QCS8300_NSP1	15
+#define QCS8300_XO	16
+
 /* SA8775P Power Domain Indexes */
 #define SA8775P_CX	0
 #define SA8775P_CX_AO	1

@@ -1190,10 +1190,8 @@ static int add_components_mdp(struct device *master_dev,
  * as components.
  */
 static const struct of_device_id msm_gpu_match[] = {
-	{ .compatible = "qcom,adreno" },
 	{ .compatible = "qcom,adreno-3xx" },
 	{ .compatible = "amd,imageon" },
-	{ .compatible = "qcom,kgsl-3d0" },
 	{ },
 };
 

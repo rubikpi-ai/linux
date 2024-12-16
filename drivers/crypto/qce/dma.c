@@ -1,15 +1,242 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2014, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/dmaengine.h>
+#include <linux/dma-mapping.h>
 #include <crypto/scatterwalk.h>
 
 #include "dma.h"
+#include "core.h"
+
+#define QCE_REG_BUF_DMA_ADDR(qce, vaddr) \
+	((qce)->reg_buf_phys + \
+	 ((uint8_t *)(vaddr) - (uint8_t *)(qce)->reg_read_buf))
+
+void qce_clear_bam_transaction(struct qce_device *qce)
+{
+	struct qce_bam_transaction *qce_bam_txn = NULL;
+
+	if (qce != NULL)
+		qce_bam_txn = qce->dma.qce_bam_txn;
+	qce_bam_txn->qce_bam_ce_index = 0;
+	qce_bam_txn->qce_write_sgl_cnt = 0;
+	qce_bam_txn->qce_read_sgl_cnt = 0;
+	qce_bam_txn->qce_bam_ce_index = 0;
+	qce_bam_txn->qce_pre_bam_ce_index = 0;
+}
+
+static int qce_dma_prep_cmd_sg(struct qce_device *qce, struct dma_chan *chan,
+			       struct scatterlist *qce_bam_sgl,
+			       int qce_sgl_cnt, unsigned long flags,
+			       enum dma_transfer_direction dir,
+			       dma_async_tx_callback cb, void *cb_param)
+{
+	struct dma_async_tx_descriptor *dma_desc = NULL;
+	struct qce_desc_info *desc = NULL;
+	dma_cookie_t cookie = 0;
+
+	desc = qce->dma.qce_bam_txn->qce_desc;
+
+	if (!qce_bam_sgl || !qce_sgl_cnt)
+		return -EINVAL;
+
+	if (!dma_map_sg(qce->dev, qce_bam_sgl,
+			qce_sgl_cnt, dir)) {
+		dev_err(qce->dev, "failure in mapping sgl for cmd desc\n");
+		return -ENOMEM;
+	}
+
+	dma_desc = dmaengine_prep_slave_sg(chan, qce_bam_sgl, qce_sgl_cnt,
+					   dir, flags);
+	if (!dma_desc) {
+		pr_err("%s:failure in prep cmd desc\n", __func__);
+		dma_unmap_sg(qce->dev, qce_bam_sgl, qce_sgl_cnt, dir);
+		kfree(desc);
+		return -EINVAL;
+	}
+
+	desc->dma_desc = dma_desc;
+	desc->dma_desc->callback = cb;
+	desc->dma_desc->callback_param = cb_param;
+
+	cookie = dmaengine_submit(desc->dma_desc);
+
+	return dma_submit_error(cookie);
+}
+
+int qce_submit_cmd_desc(struct qce_device *qce, unsigned long flags)
+{
+	struct qce_bam_transaction *qce_bam_txn = NULL;
+	struct dma_chan *chan = NULL;
+	unsigned long desc_flags = 0;
+	int ret = 0;
+
+	if (qce == NULL)
+		return -EINVAL;
+
+	qce_bam_txn = qce->dma.qce_bam_txn;
+	chan = qce->dma.rxchan;
+
+	if (flags & QCE_DMA_DESC_FLAG_LOCK)
+		desc_flags = DMA_PREP_CMD | DMA_PREP_LOCK;
+	else if (flags & QCE_DMA_DESC_FLAG_UNLOCK)
+		desc_flags = DMA_PREP_CMD | DMA_PREP_UNLOCK;
+	else
+		desc_flags = DMA_PREP_CMD;
+
+	/* For command descriptor always use consumer pipe
+	 * it recomended as per HPG
+	 */
+
+	if (qce_bam_txn->qce_read_sgl_cnt) {
+		ret = qce_dma_prep_cmd_sg(qce, chan,
+					qce_bam_txn->qce_reg_read_sgl,
+					qce_bam_txn->qce_read_sgl_cnt,
+					desc_flags, DMA_DEV_TO_MEM,
+					NULL, NULL);
+		if (ret) {
+			pr_err("error while submiting cmd desc for rx ret = %d\n", ret);
+			return ret;
+		}
+	}
+
+	if (qce_bam_txn->qce_write_sgl_cnt) {
+		ret = qce_dma_prep_cmd_sg(qce, chan,
+					qce_bam_txn->qce_reg_write_sgl,
+					qce_bam_txn->qce_write_sgl_cnt,
+					desc_flags, DMA_MEM_TO_DEV,
+					NULL, NULL);
+	}
+
+	if (ret) {
+		pr_err("error while submiting cmd desc for tx ret = %d\n", ret);
+		return ret;
+	}
+
+	qce_dma_issue_pending(&qce->dma);
+	if (qce_bam_txn->qce_read_sgl_cnt)
+		dma_unmap_sg(qce->dev, qce_bam_txn->qce_reg_read_sgl,
+			     qce_bam_txn->qce_read_sgl_cnt, DMA_DEV_TO_MEM);
+	if (qce_bam_txn->qce_write_sgl_cnt)
+		dma_unmap_sg(qce->dev, qce_bam_txn->qce_reg_write_sgl,
+			     qce_bam_txn->qce_write_sgl_cnt, DMA_MEM_TO_DEV);
+	return ret;
+}
+
+static void qce_prep_dma_command_desc(struct qce_device *qce,
+				      struct qce_dma_data *dma, bool read, unsigned int addr,
+				      void *buff, int size)
+{
+	struct qce_bam_transaction *qce_bam_txn = dma->qce_bam_txn;
+	struct bam_cmd_element *qce_bam_ce_buffer = NULL;
+	int qce_bam_ce_size = 0, cnt = 0, index = 0;
+
+
+	index = qce_bam_txn->qce_bam_ce_index;
+	qce_bam_ce_buffer = &qce_bam_txn->qce_bam_ce[index];
+	if (read)
+		bam_prep_ce(qce_bam_ce_buffer, addr, BAM_READ_COMMAND,
+			    QCE_REG_BUF_DMA_ADDR(qce,
+						 (unsigned int *)buff));
+	else
+		bam_prep_ce_le32(qce_bam_ce_buffer, addr, BAM_WRITE_COMMAND,
+				 *((__le32 *)buff));
+
+	qce_bam_ce_buffer = &qce_bam_txn->qce_bam_ce
+		[qce_bam_txn->qce_pre_bam_ce_index];
+	qce_bam_txn->qce_bam_ce_index += size;
+	qce_bam_ce_size = (qce_bam_txn->qce_bam_ce_index -
+		qce_bam_txn->qce_pre_bam_ce_index) *
+		sizeof(struct bam_cmd_element);
+
+	if (read) {
+		cnt = qce_bam_txn->qce_read_sgl_cnt;
+		sg_set_buf(&qce_bam_txn->qce_reg_read_sgl[cnt],
+			  qce_bam_ce_buffer,
+			  qce_bam_ce_size);
+
+		++qce_bam_txn->qce_read_sgl_cnt;
+		qce_bam_txn->qce_pre_bam_ce_index =
+					qce_bam_txn->qce_bam_ce_index;
+	} else {
+		cnt = qce_bam_txn->qce_write_sgl_cnt;
+		sg_set_buf(&qce_bam_txn->qce_reg_write_sgl[cnt],
+			   qce_bam_ce_buffer,
+			   qce_bam_ce_size);
+
+		++qce_bam_txn->qce_write_sgl_cnt;
+		qce_bam_txn->qce_pre_bam_ce_index =
+					qce_bam_txn->qce_bam_ce_index;
+	}
+}
+
+int qce_write_reg_dma(struct qce_device *qce,
+		      unsigned int offset, u32 val, int cnt)
+{
+	void *buff =  NULL;
+	unsigned int reg_addr = 0;
+
+	buff = &val;
+
+	if (qce == NULL)
+		return -EINVAL;
+
+	reg_addr = ((unsigned int)(qce->base_dma) + offset);
+	qce_prep_dma_command_desc(qce, &qce->dma, false, reg_addr, buff, cnt);
+
+	return 0;
+}
+
+int qce_read_reg_dma(struct qce_device *qce,
+		     unsigned int offset, void *buff, int cnt)
+{
+	void *vaddr = NULL;
+	unsigned int reg_addr = 0;
+
+	if (qce == NULL)
+		return -EINVAL;
+
+	reg_addr = ((unsigned int)(qce->base_dma) + offset);
+	vaddr = qce->reg_read_buf;
+
+	qce_prep_dma_command_desc(qce, &qce->dma, true, reg_addr, vaddr, cnt);
+	memcpy(buff, vaddr, 4);
+
+	return 0;
+}
+
+static struct qce_bam_transaction *qce_alloc_bam_txn(struct qce_dma_data *dma)
+{
+	struct qce_bam_transaction *qce_bam_txn = NULL;
+
+	dma->qce_bam_txn = kmalloc(sizeof(*qce_bam_txn), GFP_KERNEL);
+	if (!dma->qce_bam_txn)
+		return NULL;
+
+	dma->qce_bam_txn->qce_desc = kzalloc(sizeof(struct qce_desc_info),
+					     GFP_KERNEL);
+	if (!dma->qce_bam_txn->qce_desc) {
+		kfree(dma->qce_bam_txn);
+		return NULL;
+	}
+
+	sg_init_table(dma->qce_bam_txn->qce_reg_write_sgl,
+		      QCE_BAM_CMD_SGL_SIZE);
+
+	sg_init_table(dma->qce_bam_txn->qce_reg_read_sgl,
+		      QCE_BAM_CMD_SGL_SIZE);
+
+	qce_bam_txn = dma->qce_bam_txn;
+
+	return qce_bam_txn;
+}
 
 int qce_dma_request(struct device *dev, struct qce_dma_data *dma)
 {
+	struct qce_device *qce = container_of(dma, struct qce_device, dma);
 	int ret;
 
 	dma->txchan = dma_request_chan(dev, "tx");
@@ -31,6 +258,24 @@ int qce_dma_request(struct device *dev, struct qce_dma_data *dma)
 
 	dma->ignore_buf = dma->result_buf + QCE_RESULT_BUF_SZ;
 
+	if (qce->qce_cmd_desc_enable) {
+		dma->qce_bam_txn = qce_alloc_bam_txn(dma);
+		if (!dma->qce_bam_txn) {
+			pr_err("Failed to allocate bam transaction\n");
+			ret = -ENOMEM;
+			goto error_nomem;
+		}
+
+		qce->reg_read_buf = dmam_alloc_coherent(qce->dev,
+				    QCE_MAX_REG_READ *
+				    sizeof(*qce->reg_read_buf),
+				    &qce->reg_buf_phys, GFP_KERNEL);
+		if (!qce->reg_read_buf) {
+			pr_err("Failed to allocate reg_read_buf\n");
+			ret = -ENOMEM;
+			goto error_nomem;
+		}
+	}
 	return 0;
 error_nomem:
 	dma_release_channel(dma->rxchan);
@@ -41,9 +286,21 @@ error_rx:
 
 void qce_dma_release(struct qce_dma_data *dma)
 {
+	struct qce_device *qce = container_of(dma,
+			struct qce_device, dma);
+
 	dma_release_channel(dma->txchan);
 	dma_release_channel(dma->rxchan);
 	kfree(dma->result_buf);
+	if (qce->qce_cmd_desc_enable) {
+		if (qce->reg_read_buf)
+			dmam_free_coherent(qce->dev, QCE_MAX_REG_READ *
+					   sizeof(*qce->reg_read_buf),
+					   qce->reg_read_buf,
+					   qce->reg_buf_phys);
+		kfree(dma->qce_bam_txn->qce_desc);
+		kfree(dma->qce_bam_txn);
+	}
 }
 
 struct scatterlist *

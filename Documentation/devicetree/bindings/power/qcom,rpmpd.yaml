@@ -15,7 +15,6 @@ description:
 
 properties:
   compatible:
-<<<<<<< HEAD
     enum:
       - qcom,mdm9607-rpmpd
       - qcom,msm8226-rpmpd
@@ -29,6 +28,7 @@ properties:
       - qcom,msm8998-rpmpd
       - qcom,qcm2290-rpmpd
       - qcom,qcs404-rpmpd
+      - qcom,qcs8300-rpmhpd
       - qcom,qdu1000-rpmhpd
       - qcom,sa8155p-rpmhpd
       - qcom,sa8540p-rpmhpd

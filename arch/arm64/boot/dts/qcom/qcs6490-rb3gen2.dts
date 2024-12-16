@@ -451,6 +451,73 @@
 	};
 };
 
+&camcc {
+	status = "okay";
+};
+
+&camss {
+	status = "disabled";
+	ports {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		/* The port index denotes CSIPHY id i.e. csiphy2 */
+		port@3 {
+			reg = <3>;
+			csiphy3_ep: endpoint {
+				clock-lanes = <7>;
+				data-lanes = <0 1 2 3>;
+				remote-endpoint = <&imx412_ep>;
+			};
+		};
+	};
+};
+
+&cci0 {
+	status = "okay";
+};
+
+&cci1 {
+	status = "okay";
+};
+
+&cci1_i2c1 {
+	camera@1a {
+		/*
+		 * rb3gen2 ships with an imx577. qcom treats imx412
+		 * and imx577 the same way. Absent better data do the same here.
+		 */
+		compatible = "sony,imx412";
+		reg = <0x1a>;
+
+		reset-gpios = <&tlmm 78 GPIO_ACTIVE_LOW>;
+		pinctrl-names = "default", "suspend";
+		pinctrl-0 = <&cam2_default>;
+		pinctrl-1 = <&cam2_suspend>;
+
+		clocks = <&camcc CAM_CC_MCLK3_CLK>,
+				 <&camcc CAM_CC_MCLK2_CLK>;
+		assigned-clocks = <&camcc CAM_CC_MCLK3_CLK>,
+				 <&camcc CAM_CC_MCLK2_CLK>;
+		assigned-clock-rates = <24000000>,
+							   <24000000>;
+
+		dovdd-supply  = <&vreg_l18b_1p8>;
+		/* avdd-supply = <&vdc_5v>;
+		 * dvdd-supply = <&vdc_5v>;
+		 */
+
+		port {
+			imx412_ep: endpoint {
+				clock-lanes = <7>;
+				link-frequencies = /bits/ 64 <600000000>;
+				data-lanes = <0 1 2 3>;
+				remote-endpoint = <&csiphy3_ep>;
+			};
+		};
+	};
+};
+
 &gcc {
 	protected-clocks = <GCC_QSPI_CNOC_PERIPH_AHB_CLK>, <GCC_QSPI_CORE_CLK>,
 			<GCC_QSPI_CORE_CLK_SRC>, <GCC_CFG_NOC_LPASS_CLK>,
@@ -540,6 +607,11 @@
 	};
 };
 
+&pm7325_temp_alarm {
+	io-channels = <&pmk8350_vadc PM7325_ADC7_DIE_TEMP>;
+	io-channel-names = "thermal";
+};
+
 &pm8350c_pwm {
 	#address-cells = <1>;
 	#size-cells = <0>;
@@ -604,6 +676,12 @@
 		qcom,hw-settle-time = <200>;
 		qcom,pre-scaling = <1 1>;
 		qcom,ratiometric;
+	};
+
+	channel@103 {
+		reg = <PM7325_ADC7_DIE_TEMP>;
+		label = "pm7325_die_temp";
+		qcom,pre-scaling = <1 1>;
 	};
 
 	channel@144 {
@@ -780,6 +858,22 @@
 &remoteproc_wpss {
 	firmware-name = "qcom/qcs6490/wpss.mdt";
 	status = "okay";
+};
+
+&spi3 {
+	status = "okay";
+
+	mcp2518fd: can@0 {
+		compatible = "microchip,mcp2518fd";
+		reg = <0>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		clock-frequency = <40000000>;
+		spi-max-frequency = <10000000>;
+		interrupt-names = "can_irq";
+		interrupts-extended = <&tlmm 7 IRQ_TYPE_LEVEL_LOW>;
+		status = "okay";
+	};
 };
 
 &swr2 {

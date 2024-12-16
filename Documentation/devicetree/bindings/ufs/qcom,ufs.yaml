@@ -26,6 +26,8 @@ properties:
           - qcom,msm8994-ufshc
           - qcom,msm8996-ufshc
           - qcom,msm8998-ufshc
+          - qcom,qcs8300-ufshc
+          - qcom,sa8255p-ufshc
           - qcom,sa8775p-ufshc
           - qcom,sc7280-ufshc
           - qcom,sc8280xp-ufshc
@@ -42,17 +44,14 @@ properties:
       - const: jedec,ufs-2.0
 
   clocks:
-    minItems: 8
-    maxItems: 11
+    description: phandles for clock providers
 
   clock-names:
-    minItems: 8
-    maxItems: 11
+    description: names of the clocks
 
   dma-coherent: true
 
   interconnects:
-    minItems: 2
     maxItems: 2
 
   interconnect-names:
@@ -118,6 +117,7 @@ allOf:
           contains:
             enum:
               - qcom,msm8998-ufshc
+              - qcom,qcs8300-ufshc
               - qcom,sa8775p-ufshc
               - qcom,sc7280-ufshc
               - qcom,sc8280xp-ufshc
@@ -238,6 +238,24 @@ allOf:
       required:
         - reg-names
 
+  - if:
+      properties:
+        compatible:
+          contains:
+            enum:
+              - qcom,sa8255p-ufshc
+    then:
+      required:
+        - power-domains
+    else:
+      properties:
+        clocks:
+          minItems: 8
+          maxItems: 11
+        clock-names:
+          minItems: 8
+          maxItems: 11
+
     # TODO: define clock bindings for qcom,msm8994-ufshc
 
   - if:
@@ -322,5 +340,26 @@ examples:
                             <0 0>,
                             <0 0>;
             qcom,ice = <&ice>;
+        };
+    };
+
+  - |
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+    #include <dt-bindings/gpio/gpio.h>
+
+    soc {
+        #address-cells = <2>;
+        #size-cells = <2>;
+
+        ufs@1d84000 {
+          compatible = "qcom,sa8255p-ufshc", "qcom,ufshc", "jedec,ufs-2.0";
+          reg = <0x0 0x01d84000 0x0 0x3000>;
+          interrupts = <GIC_SPI 265 IRQ_TYPE_LEVEL_HIGH>;
+          lanes-per-direction = <2>;
+          iommus = <&apps_smmu 0x100 0x0>;
+          dma-coherent;
+
+          reset-gpios = <&tlmm 149 GPIO_ACTIVE_LOW>;
+          power-domains = <&scmi3_pd 0>;
         };
     };

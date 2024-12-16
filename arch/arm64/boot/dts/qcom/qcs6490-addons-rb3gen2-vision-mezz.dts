@@ -15,6 +15,9 @@
 	qcom,msm-id = <497 0x10000>, <498 0x10000>, <475 0x10000>, <515 0x10000>;
 	qcom,board-id = <32 0x2>, <32 0x602>;
 
+	aliases {
+		serial2 = &uart4;
+	};
 };
 
 &q6apmbedai {
@@ -281,6 +284,10 @@
 		bias-pull-down;
 		input-enable;
 	};
+};
+
+&uart4 {
+	status = "okay";
 };
 
 &mi2s0_data0 {

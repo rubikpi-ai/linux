@@ -16,6 +16,7 @@
 #include <linux/platform_device.h>
 #include <linux/pm_wakeirq.h>
 #include <linux/regmap.h>
+#include <linux/seq_file.h>
 #include <linux/soc/qcom/smem.h>
 #include <linux/soc/qcom/smem_state.h>
 #include <linux/spinlock.h>
@@ -160,6 +161,9 @@ struct qcom_smp2p {
 	struct list_head outbound;
 };
 
+#define CREATE_TRACE_POINTS
+#include "trace-smp2p.h"
+
 static void qcom_smp2p_kick(struct qcom_smp2p *smp2p)
 {
 	/* Make sure any updated data is written before the kick */
@@ -191,6 +195,7 @@ static void qcom_smp2p_do_ssr_ack(struct qcom_smp2p *smp2p)
 	struct smp2p_smem_item *out = smp2p->out;
 	u32 val;
 
+	trace_smp2p_ssr_ack(smp2p->dev);
 	smp2p->ssr_ack = !smp2p->ssr_ack;
 
 	val = out->flags & ~BIT(SMP2P_FLAGS_RESTART_ACK_BIT);
@@ -213,6 +218,7 @@ static void qcom_smp2p_negotiate(struct qcom_smp2p *smp2p)
 			smp2p->ssr_ack_enabled = true;
 
 		smp2p->negotiation_done = true;
+		trace_smp2p_negotiate(smp2p->dev, out->features);
 	}
 }
 
@@ -250,6 +256,8 @@ static void qcom_smp2p_notify_in(struct qcom_smp2p *smp2p)
 
 		status = val ^ entry->last_value;
 		entry->last_value = val;
+
+		trace_smp2p_notify_in(entry, status, val);
 
 		/* No changes of this entry? */
 		if (!status)
@@ -351,11 +359,19 @@ static int smp2p_set_irq_type(struct irq_data *irqd, unsigned int type)
 	return 0;
 }
 
+static void smp2p_irq_print_chip(struct irq_data *irqd, struct seq_file *p)
+{
+	struct smp2p_entry *entry = irq_data_get_irq_chip_data(irqd);
+
+	seq_printf(p, " %8s", dev_name(entry->smp2p->dev));
+}
+
 static struct irq_chip smp2p_irq_chip = {
 	.name           = "smp2p",
 	.irq_mask       = smp2p_mask_irq,
 	.irq_unmask     = smp2p_unmask_irq,
 	.irq_set_type	= smp2p_set_irq_type,
+	.irq_print_chip = smp2p_irq_print_chip,
 };
 
 static int smp2p_irq_map(struct irq_domain *d,
@@ -403,6 +419,8 @@ static int smp2p_update_bits(void *data, u32 mask, u32 value)
 	val |= value;
 	writel(val, entry->value);
 	spin_unlock_irqrestore(&entry->lock, flags);
+
+	trace_smp2p_update_bits(entry, orig, val);
 
 	if (val != orig)
 		qcom_smp2p_kick(entry->smp2p);
@@ -615,7 +633,7 @@ static int qcom_smp2p_probe(struct platform_device *pdev)
 	ret = devm_request_threaded_irq(&pdev->dev, irq,
 					NULL, qcom_smp2p_intr,
 					IRQF_ONESHOT,
-					"smp2p", (void *)smp2p);
+					NULL, (void *)smp2p);
 	if (ret) {
 		dev_err(&pdev->dev, "failed to request interrupt\n");
 		goto unwind_interfaces;

@@ -50,6 +50,13 @@
 #define QCOM_SCM_BOOT_WDOG_DEBUG_PART	0x09
 #define QCOM_SCM_BOOT_SPIN_CPU		0x0d
 
+/* IDs for SHE */
+#define QCOM_SCM_SVC_SHE                        0x21
+#define QCOM_SCM_SHE_ID                         0x1
+
+/* IDs for QCOM_SCM_INFO_BW_PROF_ID */
+#define QCOM_SCM_INFO_BW_PROF_ID	0x07
+
 static int __qcom_scm_get_feat_version(struct device *dev, u64 feat_id, u64 *version)
 {
 	int ret;
@@ -563,3 +570,49 @@ int qcom_scm_spin_cpu(void)
 	return qcom_scm_call(__scm->dev, &desc, NULL);
 }
 EXPORT_SYMBOL_GPL(qcom_scm_spin_cpu);
+
+int qcom_scm_ddrbw_profiler(phys_addr_t in_buf, size_t in_buf_size,
+			    phys_addr_t out_buf, size_t out_buf_size)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_INFO,
+		.cmd = QCOM_SCM_INFO_BW_PROF_ID,
+		.owner = ARM_SMCCC_OWNER_SIP,
+	};
+
+	desc.args[0] = in_buf;
+	desc.args[1] = in_buf_size;
+	desc.args[2] = out_buf;
+	desc.args[3] = out_buf_size;
+	desc.arginfo = QCOM_SCM_ARGS(4, QCOM_SCM_RW, QCOM_SCM_VAL,
+				     QCOM_SCM_RW, QCOM_SCM_VAL);
+
+	return qcom_scm_call(__scm ? __scm->dev : NULL, &desc, NULL);
+}
+EXPORT_SYMBOL_GPL(qcom_scm_ddrbw_profiler);
+
+/**
+ * qcom_scm_she_op() - request TZ SHE (Secure Hardware Extension) service
+ *		       to perform crypto operations based on SHE tables.
+ */
+int qcom_scm_she_op(u64 _arg1, u64 _arg2, u64 _arg3, u64 _arg4)
+{
+	int ret;
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_SHE,
+		.cmd = QCOM_SCM_SHE_ID,
+		.owner = ARM_SMCCC_OWNER_SIP,
+		.arginfo = QCOM_SCM_ARGS(4),
+	};
+	struct qcom_scm_res res;
+
+	desc.args[0] = _arg1;
+	desc.args[1] = _arg2;
+	desc.args[2] = _arg3;
+	desc.args[3] = _arg4;
+
+	ret = qcom_scm_call(__scm ? __scm->dev : NULL, &desc, &res);
+
+	return ret ? : res.result[0];
+}
+EXPORT_SYMBOL_GPL(qcom_scm_she_op);

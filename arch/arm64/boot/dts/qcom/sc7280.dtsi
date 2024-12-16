@@ -936,7 +936,7 @@
 			reg = <0 0x00100000 0 0x1f0000>;
 			clocks = <&rpmhcc RPMH_CXO_CLK>,
 				 <&rpmhcc RPMH_CXO_CLK_A>, <&sleep_clk>,
-				 <0>, <&pcie1_lane>,
+				 <&pcie0_lane>, <&pcie1_lane>,
 				 <0>, <0>, <0>,
 				 <&usb_1_ssphy>;
 			clock-names = "bi_tcxo", "bi_tcxo_ao", "sleep_clk",
@@ -1003,6 +1003,7 @@
 			power-domains = <&rpmhpd SC7280_CX>;
 			operating-points-v2 = <&sdhc1_opp_table>;
 
+			qcom,ice = <&ice_mmc>;
 			bus-width = <8>;
 			supports-cqe;
 			dma-coherent;
@@ -1034,6 +1035,13 @@
 					opp-avg-kBps = <390000 0>;
 				};
 			};
+		};
+
+		ice_mmc: crypto@7c8000 {
+			compatible = "qcom,inline-crypto-engine";
+			reg = <0x0 0x7C8000 0x0 0x10000>;
+			qcom,ice-use-hwkm;
+			clocks = <&gcc GCC_SDCC1_ICE_CORE_CLK>;
 		};
 
 		gpi_dma0: dma-controller@900000 {
@@ -2166,6 +2174,120 @@
 			qcom,smem-state-names = "wlan-smp2p-out";
 		};
 
+		pcie0: pci@1c00000 {
+			compatible = "qcom,pcie-sc7280";
+			reg = <0x0 0x01c00000 0x0 0x3000>,
+				<0x0 0x60000000 0x0 0xf1d>,
+				<0x0 0x60000f20 0x0 0xa8>,
+				<0x0 0x60001000 0x0 0x1000>,
+				<0x0 0x60100000 0x0 0x100000>;
+
+			reg-names = "parf", "dbi", "elbi", "atu", "config";
+			device_type = "pci";
+			linux,pci-domain = <0>;
+			bus-range = <0x00 0xff>;
+			num-lanes = <1>;
+
+			#address-cells = <3>;
+			#size-cells = <2>;
+
+			ranges = <0x01000000 0x0 0x00000000 0x0 0x60200000 0x0 0x100000>,
+				 <0x02000000 0x0 0x60300000 0x0 0x60300000 0x0 0x3d00000>;
+
+			interrupts = <GIC_SPI 141 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "msi";
+			#interrupt-cells = <1>;
+			interrupt-map-mask = <0 0 0 0x7>;
+			interrupt-map = <0 0 0 1 &intc 0 0 0 149 IRQ_TYPE_LEVEL_HIGH>,
+					<0 0 0 2 &intc 0 0 0 150 IRQ_TYPE_LEVEL_HIGH>,
+					<0 0 0 3 &intc 0 0 0 151 IRQ_TYPE_LEVEL_HIGH>,
+					<0 0 0 4 &intc 0 0 0 152 IRQ_TYPE_LEVEL_HIGH>;
+
+			clocks = <&gcc GCC_PCIE_0_PIPE_CLK>,
+				 <&gcc GCC_PCIE_0_PIPE_CLK_SRC>,
+				 <&pcie0_lane>,
+				 <&rpmhcc RPMH_CXO_CLK>,
+				 <&gcc GCC_PCIE_0_AUX_CLK>,
+				 <&gcc GCC_PCIE_0_CFG_AHB_CLK>,
+				 <&gcc GCC_PCIE_0_MSTR_AXI_CLK>,
+				 <&gcc GCC_PCIE_0_SLV_AXI_CLK>,
+				 <&gcc GCC_PCIE_0_SLV_Q2A_AXI_CLK>,
+				 <&gcc GCC_AGGRE_NOC_PCIE_TBU_CLK>,
+				 <&gcc GCC_DDRSS_PCIE_SF_CLK>,
+				 <&gcc GCC_AGGRE_NOC_PCIE_CENTER_SF_AXI_CLK>,
+				 <&gcc GCC_AGGRE_NOC_PCIE_0_AXI_CLK>;
+
+			clock-names = "pipe",
+					"pipe_mux",
+					"phy_pipe",
+					"ref",
+					"aux",
+					"cfg",
+					"bus_master",
+					"bus_slave",
+					"slave_q2a",
+					"tbu",
+					"ddrss_sf_tbu",
+					"aggre0",
+					"aggre1";
+
+			assigned-clocks = <&gcc GCC_PCIE_0_AUX_CLK>;
+			assigned-clock-rates = <19200000>;
+
+			resets = <&gcc GCC_PCIE_0_BCR>;
+			reset-names = "pci";
+
+			power-domains = <&gcc GCC_PCIE_0_GDSC>;
+
+			phys = <&pcie0_lane>;
+			phy-names = "pciephy";
+
+			perst-gpios = <&tlmm 87 GPIO_ACTIVE_LOW>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&pcie0_clkreq_n>, <&pcie0_reset_n>, <&pcie0_wake_n>;
+
+			dma-coherent;
+
+			iommu-map = <0x0 &apps_smmu 0x1c00 0x1>,
+				   <0x100 &apps_smmu 0x1c01 0x1>;
+
+			status = "disabled";
+		};
+
+		pcie0_phy: phy@1c06000 {
+			compatible = "qcom,sm8250-qmp-gen3x1-pcie-phy";
+			reg = <0x0 0x01c06000 0x0 0x1c0>;
+			#address-cells = <2>;
+			#size-cells = <2>;
+			ranges;
+			clocks = <&gcc GCC_PCIE_0_AUX_CLK>,
+				<&gcc GCC_PCIE_0_CFG_AHB_CLK>,
+				<&gcc GCC_PCIE_CLKREF_EN>,
+				<&gcc GCC_PCIE0_PHY_RCHNG_CLK>;
+			clock-names = "aux", "cfg_ahb", "ref", "refgen";
+
+			resets = <&gcc GCC_PCIE_0_PHY_BCR>;
+			reset-names = "phy";
+
+			assigned-clocks = <&gcc GCC_PCIE0_PHY_RCHNG_CLK>;
+			assigned-clock-rates = <100000000>;
+
+			status = "disabled";
+
+			pcie0_lane: phy@1c0e200 {
+				reg = <0x0 0x01c06200 0x0 0x200>, /* tx */
+					<0x0 0x01c06400 0x0 0x200>, /* rx */
+					<0x0 0x01c06800 0x0 0x200>, /* pcs */
+					<0x0 0x01c06c00 0x0 0x200>; /* pcs_pcie */
+				clocks = <&gcc GCC_PCIE_0_PIPE_CLK>;
+				clock-names = "pipe0";
+
+				#phy-cells = <0>;
+				#clock-cells = <0>;
+				clock-output-names = "pcie_0_pipe_clk";
+			};
+		};
+
 		pcie1: pci@1c08000 {
 			compatible = "qcom,pcie-sc7280";
 			reg = <0 0x01c08000 0 0x3000>,
@@ -3176,6 +3298,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06010000 0x0 0x1000>;
 
+			device-name = "cti0";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3185,6 +3308,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06011000 0x0 0x1000>;
 
+			device-name = "cti1";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3194,6 +3318,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06012000 0x0 0x1000>;
 
+			device-name = "cti2";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -3202,6 +3327,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06013000 0x0 0x1000>;
 
+			device-name = "cti3";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3211,6 +3337,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06014000 0x0 0x1000>;
 
+			device-name = "cti4";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3220,6 +3347,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06015000 0x0 0x1000>;
 
+			device-name = "cti5";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3229,6 +3357,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06016000 0x0 0x1000>;
 
+			device-name = "cti6";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3238,6 +3367,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06017000 0x0 0x1000>;
 
+			device-name = "cti7";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3247,6 +3377,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06018000 0x0 0x1000>;
 
+			device-name = "cti8";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3256,6 +3387,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06019000 0x0 0x1000>;
 
+			device-name = "cti9";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3265,6 +3397,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x0601a000 0x0 0x1000>;
 
+			device-name = "cti10";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3274,6 +3407,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x0601b000 0x0 0x1000>;
 
+			device-name = "cti11";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3283,6 +3417,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x0601c000 0x0 0x1000>;
 
+			device-name = "cti12";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3292,6 +3427,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x0601d000 0x0 0x1000>;
 
+			device-name = "cti13";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3301,6 +3437,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x0601e000 0x0 0x1000>;
 
+			device-name = "cti14";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3310,6 +3447,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x0601f000 0x0 0x1000>;
 
+			device-name = "cti15";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -3480,6 +3618,7 @@
 			clock-names = "apb_pclk";
 			device-name = "tpdm_modem_0";
 			qcom,dsb-element-bits = <32>;
+			qcom,dsb-msrs-num = <16>;
 
 			out-ports {
 				port {
@@ -3584,6 +3723,7 @@
 
 			status = "disabled";
 
+			device-name = "cti_mss_q6";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -3594,6 +3734,7 @@
 
 			status = "disabled";
 
+			device-name = "cti_mss_vq6";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -3607,6 +3748,7 @@
 
 			qcom,dsb-element-bits = <32>;
 			device-name = "tpdm_gcc";
+			qcom,dsb-msrs-num = <32>;
 
 			out-ports {
 				port {
@@ -3664,6 +3806,7 @@
 			clock-names = "apb_pclk";
 			device-name = "tpdm_lpass";
 			qcom,dsb-element-bits = <32>;
+			qcom,dsb-msrs-num = <16>;
 
 			out-ports {
 				port {
@@ -3679,6 +3822,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06845000 0x0 0x1000>;
 
+			device-name = "cti_lpass_dl";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -3776,6 +3920,7 @@
 
 			status = "disabled";
 
+			device-name = "cti_gpu_isdb";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -3784,6 +3929,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06982000 0x0 0x1000>;
 
+			device-name = "cti_turing_dl";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -3794,6 +3940,7 @@
 
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
+			device-name = "cti_turing_q6";
 		};
 
 		tpdm@69d0000 {
@@ -3818,6 +3965,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06b00000 0x0 0x1000>;
 
+			device-name = "cti_swao_0";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -3826,6 +3974,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06b01000 0x0 0x1000>;
 
+			device-name = "cti_swao_1";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -3834,6 +3983,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06b03000 0x0 0x1000>;
 
+			device-name = "cti_swao_3";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4067,6 +4217,7 @@
 			reg = <0x0 0x6b0d000 0x0 0x1000>;
 
 			qcom,dsb-element-bits = <32>;
+			qcom,dsb-msrs-num = <32>;
 			device-name = "tpdm_swao_1";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
@@ -4110,6 +4261,7 @@
 
 			device-name = "tpdm_mdss";
 			qcom,cmb-element-bits = <32>;
+			qcom,dsb-msrs-num = <16>;
 
 			out-ports {
 				port {
@@ -4129,6 +4281,7 @@
 			clock-names = "apb_pclk";
 			device-name = "tpdm_dl_south";
 			qcom,dsb-element-bits = <32>;
+			qcom,dsb-msrs-num = <16>;
 
 			out-ports {
 				port {
@@ -4159,6 +4312,7 @@
 
 			device-name = "tpdm_dlct";
 			qcom,dsb-element-bits = <32>;
+			qcom,dsb-msrs-num = <16>;
 
 			out-ports {
 				port {
@@ -4179,6 +4333,7 @@
 
 			device-name = "tpdm_ipcc";
 			qcom,cmb-element-bits = <64>;
+			qcom,cmb-msrs-num = <1>;
 
 			out-ports {
 				port {
@@ -4288,6 +4443,7 @@
 
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
+			device-name = "cti_mdss_dl";
 		};
 
 		tpdm@6c70000 {
@@ -4299,6 +4455,7 @@
 			clock-names = "apb_pclk";
 			device-name = "tpdm_wpss";
 			qcom,dsb-element-bits = <32>;
+			qcom,dsb-msrs-num = <16>;
 
 			out-ports {
 				port {
@@ -4342,6 +4499,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06e02000 0x0 0x1000>;
 
+			device-name = "cti_ddr_dl_0_cti_0";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4350,6 +4508,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06e0c000 0x0 0x1000>;
 
+			device-name = "cti_ddr_dl_1_cti_0";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4358,6 +4517,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06e0d000 0x0 0x1000>;
 
+			device-name = "cti_ddr_dl_1_cti_1";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4366,6 +4526,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06e0e000 0x0 0x1000>;
 
+			device-name = "cti_ddr_dl_1_cti_2";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4374,6 +4535,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x06e11000 0x0 0x1000>;
 
+			device-name = "cti_ddr_ch01_dl_cti_0";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4384,6 +4546,7 @@
 			reg = <0x0 0x07020000 0x0 0x1000>;
 			cpu = <&CPU0>;
 
+			device-name = "cti_cpu0";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 
@@ -4415,6 +4578,7 @@
 			reg = <0x0 0x07120000 0x0 0x1000>;
 			cpu = <&CPU1>;
 
+			device-name = "cti_cpu1";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4445,6 +4609,7 @@
 			reg = <0x0 0x07220000 0x0 0x1000>;
 			cpu = <&CPU2>;
 
+			device-name = "cti_cpu2";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4475,6 +4640,7 @@
 			reg = <0x0 0x07320000 0x0 0x1000>;
 			cpu = <&CPU3>;
 
+			device-name = "cti_cpu3";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4505,6 +4671,7 @@
 			reg = <0x0 0x07420000 0x0 0x1000>;
 			cpu = <&CPU4>;
 
+			device-name = "cti_cpu4";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4535,6 +4702,7 @@
 			reg = <0x0 0x07520000 0x0 0x1000>;
 			cpu = <&CPU5>;
 
+			device-name = "cti_cpu5";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4565,6 +4733,7 @@
 			reg = <0x0 0x07620000 0x0 0x1000>;
 			cpu = <&CPU6>;
 
+			device-name = "cti_cpu6";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4595,6 +4764,7 @@
 			reg = <0x0 0x07720000 0x0 0x1000>;
 			cpu = <&CPU7>;
 
+			device-name = "cti_cpu7";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4741,6 +4911,7 @@
 
 			device-name = "tpdm_actpm";
 			qcom,cmb-element-bits = <64>;
+			qcom,cmb-msrs-num = <1>;
 
 			out-ports {
 				port {
@@ -4761,6 +4932,7 @@
 
 			device-name = "tpdm_apss";
 			qcom,dsb-element-bits = <32>;
+			qcom,dsb-msrs-num = <32>;
 
 			out-ports {
 				port {
@@ -4776,6 +4948,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x07862000 0x0 0x1000>;
 
+			device-name = "cti_apss_dl_cti0";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4842,6 +5015,7 @@
 
 			device-name = "tpdm_llm_silver";
 			qcom,cmb-element-bits = <32>;
+			qcom,cmb-msrs-num = <12>;
 
 			out-ports {
 				port {
@@ -4862,6 +5036,7 @@
 
 			device-name = "tpdm_llm_gold";
 			qcom,cmb-element-bits = <32>;
+			qcom,cmb-msrs-num = <12>;
 
 			out-ports {
 				port {
@@ -4877,6 +5052,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x078e0000 0x0 0x1000>;
 
+			device-name = "cti_apss_cti0";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4885,6 +5061,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x078f0000 0x0 0x1000>;
 
+			device-name = "cti_apss_cti1";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -4893,6 +5070,7 @@
 			compatible = "arm,coresight-cti", "arm,primecell";
 			reg = <0x0 0x07900000 0x0 0x1000>;
 
+			device-name = "cti_apss_cti2";
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
@@ -5526,6 +5704,271 @@
 			#power-domain-cells = <1>;
 		};
 
+		/*Added CCI entry for sensor probe*/
+		cci0: cci@ac4a000 {
+			compatible = "qcom,sc7280-cci";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			reg = <0x0 0x0ac4a000 0x0 0x1000>;
+			interrupts = <GIC_SPI 460 IRQ_TYPE_EDGE_RISING>;
+			power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
+
+			clocks = <&camcc CAM_CC_CAMNOC_AXI_CLK>,
+				 <&camcc CAM_CC_SLOW_AHB_CLK_SRC>,
+				 <&camcc CAM_CC_CPAS_AHB_CLK>,
+				 <&camcc CAM_CC_CCI_0_CLK>,
+				 <&camcc CAM_CC_CCI_0_CLK_SRC>;
+			clock-names = "camnoc_axi",
+				      "slow_ahb_src",
+				      "cpas_ahb",
+				      "cci",
+				      "cci_src";
+
+			pinctrl-0 = <&cci0_default>;
+			pinctrl-1 = <&cci0_sleep>;
+			pinctrl-names = "default", "sleep";
+
+			status = "disabled";
+
+			cci0_i2c0: i2c-bus@0 {
+				reg = <0>;
+				clock-frequency = <1000000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+			cci0_i2c1: i2c-bus@1 {
+				reg = <1>;
+				clock-frequency = <1000000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+		};
+
+		cci1: cci@ac4b000 {
+			compatible = "qcom,sc7280-cci";
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			reg = <0x0 0x0ac4b000 0x0 0x1000>;
+			interrupts = <GIC_SPI 271 IRQ_TYPE_EDGE_RISING>;
+			power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
+
+			clocks = <&camcc CAM_CC_CAMNOC_AXI_CLK>,
+				 <&camcc CAM_CC_SLOW_AHB_CLK_SRC>,
+				 <&camcc CAM_CC_CPAS_AHB_CLK>,
+				 <&camcc CAM_CC_CCI_1_CLK>,
+				 <&camcc CAM_CC_CCI_1_CLK_SRC>;
+			clock-names = "camnoc_axi",
+				      "slow_ahb_src",
+				      "cpas_ahb",
+				      "cci",
+				      "cci_src";
+
+			pinctrl-0 = <&cci1_default>;
+			pinctrl-1 = <&cci1_sleep>;
+			pinctrl-names = "default", "sleep";
+
+			status = "disabled";
+
+			cci1_i2c0: i2c-bus@0 {
+				reg = <0>;
+				clock-frequency = <1000000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+
+			cci1_i2c1: i2c-bus@1 {
+				reg = <1>;
+				clock-frequency = <1000000>;
+				#address-cells = <1>;
+				#size-cells = <0>;
+			};
+		};
+
+		camss: camss@acaf000 {
+			compatible = "qcom,sc7280-camss";
+
+			reg = <0x0 0x0acaf000 0x0 0x5200>,
+			      <0x0 0x0acb6000 0x0 0x5200>,
+			      <0x0 0x0acbd000 0x0 0x5200>,
+			      <0x0 0x0acc4000 0x0 0x5000>,
+			      <0x0 0x0accb000 0x0 0x5000>,
+			      <0x0 0x0ace0000 0x0 0x2000>,
+			      <0x0 0x0ace2000 0x0 0x2000>,
+			      <0x0 0x0ace4000 0x0 0x2000>,
+			      <0x0 0x0ace6000 0x0 0x2000>,
+			      <0x0 0x0ace8000 0x0 0x2000>;
+
+			reg-names = "vfe0",
+				    "vfe1",
+				    "vfe2",
+				    "vfe_lite0",
+				    "vfe_lite1",
+				    "csiphy0",
+				    "csiphy1",
+				    "csiphy2",
+				    "csiphy3",
+				    "csiphy4";
+
+			interrupts = <GIC_SPI 477 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 478 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 479 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 448 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 122 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 464 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 466 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 640 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 468 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 359 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 465 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 467 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 641 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 469 IRQ_TYPE_EDGE_RISING>,
+				     <GIC_SPI 360 IRQ_TYPE_EDGE_RISING>;
+
+			interrupt-names = "csiphy0",
+					  "csiphy1",
+					  "csiphy2",
+					  "csiphy3",
+					  "csiphy4",
+					  "csid0",
+					  "csid1",
+					  "csid2",
+					  "csid_lite0",
+					  "csid_lite1",
+					  "vfe0",
+					  "vfe1",
+					  "vfe2",
+					  "vfe_lite0",
+					  "vfe_lite1";
+
+			power-domains = <&camcc CAM_CC_IFE_0_GDSC>,
+					<&camcc CAM_CC_IFE_1_GDSC>,
+					<&camcc CAM_CC_IFE_2_GDSC>,
+					<&camcc CAM_CC_TITAN_TOP_GDSC>;
+
+			clocks = <&gcc GCC_CAMERA_HF_AXI_CLK>,
+				 <&camcc CAM_CC_SLOW_AHB_CLK_SRC>,
+				 <&camcc CAM_CC_CPAS_AHB_CLK>,
+				 <&camcc CAM_CC_CAMNOC_AXI_CLK_SRC>,
+				 <&camcc CAM_CC_CAMNOC_AXI_CLK>,
+				 <&camcc CAM_CC_CSIPHY0_CLK>,
+				 <&camcc CAM_CC_CSI0PHYTIMER_CLK>,
+				 <&camcc CAM_CC_CSI0PHYTIMER_CLK_SRC>,
+				 <&camcc CAM_CC_CSIPHY1_CLK>,
+				 <&camcc CAM_CC_CSI1PHYTIMER_CLK>,
+				 <&camcc CAM_CC_CSI1PHYTIMER_CLK_SRC>,
+				 <&camcc CAM_CC_CSIPHY2_CLK>,
+				 <&camcc CAM_CC_CSI2PHYTIMER_CLK>,
+				 <&camcc CAM_CC_CSI2PHYTIMER_CLK_SRC>,
+				 <&camcc CAM_CC_CSIPHY3_CLK>,
+				 <&camcc CAM_CC_CSI3PHYTIMER_CLK>,
+				 <&camcc CAM_CC_CSI3PHYTIMER_CLK_SRC>,
+				 <&camcc CAM_CC_CSIPHY4_CLK>,
+				 <&camcc CAM_CC_CSI4PHYTIMER_CLK>,
+				 <&camcc CAM_CC_CSI4PHYTIMER_CLK_SRC>,
+				 <&camcc CAM_CC_IFE_0_CSID_CLK>,
+				 <&camcc CAM_CC_IFE_0_CPHY_RX_CLK>,
+				 <&camcc CAM_CC_IFE_0_CLK>,
+				 <&camcc CAM_CC_IFE_0_AXI_CLK>,
+				 <&camcc CAM_CC_CPHY_RX_CLK_SRC>,
+				 <&camcc CAM_CC_IFE_1_CSID_CLK>,
+				 <&camcc CAM_CC_IFE_1_CPHY_RX_CLK>,
+				 <&camcc CAM_CC_IFE_1_CLK>,
+				 <&camcc CAM_CC_IFE_1_AXI_CLK>,
+				 <&camcc CAM_CC_IFE_2_CSID_CLK>,
+				 <&camcc CAM_CC_IFE_2_CPHY_RX_CLK>,
+				 <&camcc CAM_CC_IFE_2_CLK>,
+				 <&camcc CAM_CC_IFE_2_AXI_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_0_CSID_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_0_CPHY_RX_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_0_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_1_CSID_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_1_CPHY_RX_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_1_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_0_CLK>,
+				 <&camcc CAM_CC_IFE_LITE_1_CLK>;
+
+			clock-names = "cam_hf_axi",
+				      "slow_ahb_src",
+				      "cpas_ahb",
+				      "camnoc_axi_src",
+				      "camnoc_axi",
+				      "csiphy0",
+				      "csiphy0_timer",
+				      "csiphy0_timer_src",
+				      "csiphy1",
+				      "csiphy1_timer",
+				      "csiphy1_timer_src",
+				      "csiphy2",
+				      "csiphy2_timer",
+				      "csiphy2_timer_src",
+				      "csiphy3",
+				      "csiphy3_timer",
+				      "csiphy3_timer_src",
+				      "csiphy4",
+				      "csiphy4_timer",
+				      "csiphy4_timer_src",
+				      "vfe0_csid",
+				      "vfe0_cphy_rx",
+				      "vfe0",
+				      "vfe0_axi",
+				      "csiphy_rx_src",
+				      "vfe1_csid",
+				      "vfe1_cphy_rx",
+				      "vfe1",
+				      "vfe1_axi",
+				      "vfe2_csid",
+				      "vfe2_cphy_rx",
+				      "vfe2",
+				      "vfe2_axi",
+				      "vfe0_lite_csid",
+				      "vfe0_lite_cphy_rx",
+				      "vfe0_lite",
+				      "vfe1_lite_csid",
+				      "vfe1_lite_cphy_rx",
+				      "vfe1_lite",
+				      "vfe_lite0",
+				      "vfe_lite1";
+
+			iommus = <&apps_smmu 0x800 0x4e0>;
+
+			interconnect-names = "cam_ahb",
+					     "cam_hf_0";
+
+			interconnects = <&gem_noc  MASTER_APPSS_PROC 0 &cnoc2 SLAVE_CAMERA_CFG 0>,
+					<&mmss_noc MASTER_CAMNOC_HF  0 &mc_virt SLAVE_EBI1     0>;
+
+			status = "disabled";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+				};
+
+				port@1 {
+					reg = <1>;
+				};
+
+				port@2 {
+					reg = <2>;
+				};
+
+				port@3 {
+					reg = <3>;
+				};
+
+				port@4 {
+					reg = <4>;
+				};
+			};
+		};
+
 		camcc: clock-controller@ad00000 {
 			compatible = "qcom,sc7280-camcc";
 			reg = <0 0x0ad00000 0 0x10000>;
@@ -6030,6 +6473,119 @@
 			gpio-ranges = <&tlmm 0 0 175>;
 			wakeup-parent = <&pdc>;
 
+			cam2_default: cam2-default {
+				rst {
+					pins = "gpio78"; /*cam3*/
+					function = "gpio";
+					drive-strength = <2>;
+					bias-disable;
+				};
+
+				mclk {
+					pins = "gpio67"; /*cam3*/
+					function = "cam_mclk";
+					drive-strength = <2>; /*RB5 was 16 and i changed to 2 here*/
+					bias-disable;
+				};
+			};
+
+			cam2_suspend: cam2-suspend {
+				rst {
+					pins = "gpio78"; /*cam3*/
+					function = "gpio";
+					drive-strength = <2>;
+					bias-pull-down;
+					output-low;
+				};
+
+				mclk {
+					pins = "gpio67"; /*cam3*/
+					function = "cam_mclk";
+					drive-strength = <2>;
+					bias-disable;
+				};
+			};
+
+			cci0_default: cci0-default {
+				cci0_i2c0_default: cci0-i2c0-default {
+					/* SDA, SCL */
+					pins = "gpio69", "gpio70";
+					function = "cci_i2c";
+
+					bias-pull-up;
+					drive-strength = <2>; /* 2 mA */
+				};
+
+				cci0_i2c1_default: cci0-i2c1-default {
+					/* SDA, SCL */
+					pins = "gpio71", "gpio72";
+					function = "cci_i2c";
+
+					bias-pull-up;
+					drive-strength = <2>; /* 2 mA */
+				};
+			};
+
+			cci0_sleep: cci0-sleep {
+				cci0_i2c0_sleep: cci0-i2c0-sleep {
+					/* SDA, SCL */
+					pins = "gpio69", "gpio70";
+					function = "cci_i2c";
+
+					drive-strength = <2>; /* 2 mA */
+					bias-pull-down;
+				};
+
+				cci0_i2c1_sleep: cci0-i2c1-sleep {
+					/* SDA, SCL */
+					pins = "gpio71", "gpio72";
+					function = "cci_i2c";
+
+					drive-strength = <2>; /* 2 mA */
+					bias-pull-down;
+				};
+			};
+
+			cci1_default: cci1-default {
+				cci1_i2c0_default: cci1-i2c0-default {
+					/* SDA, SCL */
+					pins = "gpio73","gpio74";
+					function = "cci_i2c";
+
+					bias-pull-up;
+					drive-strength = <2>; /* 2 mA */
+				};
+
+				cci1_i2c1_default: cci1-i2c1-default {
+					/* SDA, SCL */
+					pins = "gpio75","gpio76";
+					function = "cci_i2c";
+
+					bias-pull-up;
+					drive-strength = <2>; /* 2 mA */
+				};
+			};
+
+			cci1_sleep: cci1-sleep {
+				cci1_i2c0_sleep: cci1-i2c0-sleep {
+					/* SDA, SCL */
+					pins = "gpio73","gpio74";
+					function = "cci_i2c";
+
+					bias-pull-down;
+					drive-strength = <2>; /* 2 mA */
+				};
+
+				cci1_i2c1_sleep: cci1-i2c1-sleep {
+					/* SDA, SCL */
+					pins = "gpio75","gpio76";
+					function = "cci_i2c";
+
+					bias-pull-down;
+					drive-strength = <2>; /* 2 mA */
+				};
+			};
+
 			dp_hot_plug_det: dp-hot-plug-det-state {
 				pins = "gpio47";
 				function = "dp_hot";
@@ -6083,6 +6639,31 @@
 			mi2s1_ws: mi2s1-ws-state {
 				pins = "gpio108";
 				function = "mi2s1_ws";
+			};
+
+			pcie0_reset_n: pcie0-reset-n-state {
+				pins = "gpio87";
+				function = "gpio";
+
+				drive-strength = <16>;
+				output-low;
+				bias-disable;
+			};
+
+			pcie0_wake_n: pcie0-wake-n-state {
+				pins = "gpio89";
+				function = "gpio";
+
+				drive-strength = <2>;
+				bias-pull-up;
+			};
+
+			pcie0_clkreq_n: pcie0-clkreq-n-state {
+				pins = "gpio88";
+				function = "pcie0_clkreqn";
+
+				bias-pull-up;
+				drive-strength = <2>;
 			};
 
 			pcie1_clkreq_n: pcie1-clkreq-n-state {

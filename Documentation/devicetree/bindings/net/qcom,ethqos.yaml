@@ -15,11 +15,49 @@ description:
 
 allOf:
   - $ref: snps,dwmac.yaml#
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: qcom,sa8255p-ethqos
+    then:
+      required:
+        - power-domains
+        - power-domain-names
+      properties:
+        power-domains:
+          minItems: 3
+          maxItems: 3
+        power-domain-names:
+          items:
+            - const: power_core
+            - const: power_mdio
+            - const: perf_serdes
+    else:
+      required:
+        - clocks
+        - clock-names
+      properties:
+        clocks:
+          maxItems: 4
+        clock-names:
+          items:
+            - const: stmmaceth
+            - const: pclk
+            - const: ptp_ref
+            - enum:
+                - rgmii
+                - phyaux
+        phys: true
+        phy-names:
+          const: serdes
 
 properties:
   compatible:
     enum:
       - qcom,qcs404-ethqos
+      - qcom,qcs8300-ethqos
+      - qcom,sa8255p-ethqos
       - qcom,sa8775p-ethqos
       - qcom,sc8280xp-ethqos
       - qcom,sm8150-ethqos
@@ -37,37 +75,40 @@ properties:
     items:
       - description: Combined signal for various interrupt events
       - description: The interrupt that occurs when Rx exits the LPI state
+      - description: The interrupt that occurs when HW safety error triggered
 
   interrupt-names:
     minItems: 1
     items:
       - const: macirq
-      - const: eth_lpi
+      - enum: [eth_lpi, sfty]
+      - const: sfty
 
   clocks:
-    maxItems: 4
+    description: phandles of clock providers
 
   clock-names:
-    items:
-      - const: stmmaceth
-      - const: pclk
-      - const: ptp_ref
-      - enum:
-          - rgmii
-          - phyaux
+    description: names of the clocks
+
+  power-domains:
+    description: phandle for the power domain provider
+
+  power-domain-names:
+    description: power domain names if multiple domains are used
 
   iommus:
     maxItems: 1
 
-  phys: true
+  dma-coherent: true
+
+  phys:
+    description: phandle of the phy
 
   phy-names:
-    const: serdes
+    description: phy name
 
 required:
   - compatible
-  - clocks
-  - clock-names
   - reg-names
 
 unevaluatedProperties: false
@@ -89,8 +130,9 @@ examples:
                <&gcc GCC_ETH_PTP_CLK>,
                <&gcc GCC_ETH_RGMII_CLK>;
       interrupts = <GIC_SPI 56 IRQ_TYPE_LEVEL_HIGH>,
-                   <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>;
-      interrupt-names = "macirq", "eth_lpi";
+                   <GIC_SPI 55 IRQ_TYPE_LEVEL_HIGH>,
+                   <GIC_SPI 782 IRQ_TYPE_LEVEL_HIGH>;
+      interrupt-names = "macirq", "eth_lpi", "sfty";
 
       rx-fifo-depth = <4096>;
       tx-fifo-depth = <4096>;
@@ -116,6 +158,112 @@ examples:
           reg = <0x4>;
 
           #phy-cells = <0>;
+        };
+      };
+    };
+
+  - |
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+    #include <dt-bindings/gpio/gpio.h>
+
+    ethernet@23000000 {
+      compatible = "qcom,sa8255p-ethqos";
+      reg = <0x23000000 0x10000>,
+            <0x23016000 0x100>;
+      reg-names = "stmmaceth", "rgmii";
+
+      interrupts = <GIC_SPI 929 IRQ_TYPE_LEVEL_HIGH>;
+      interrupt-names = "macirq";
+
+      iommus = <&apps_smmu 0x140 0xf>;
+
+      snps,tso;
+      snps,pbl = <32>;
+      rx-fifo-depth = <16384>;
+      tx-fifo-depth = <16384>;
+
+      phy-mode = "sgmii";
+      phy-handle = <&sgmii_phy1>;
+
+      snps,mtl-rx-config = <&mtl_rx_setup1>;
+      snps,mtl-tx-config = <&mtl_tx_setup1>;
+      snps,ps-speed = <1000>;
+
+      power-domains = <&scmi8_pd 0>, <&scmi8_pd 1>, <&scmi8_dvfs 0>;
+      power-domain-names = "power_core", "power_mdio","perf_serdes";
+
+      mdio {
+        compatible = "snps,dwmac-mdio";
+        #address-cells = <1>;
+        #size-cells = <0>;
+
+        sgmii_phy1: phy@a {
+          compatible = "ethernet-phy-id0141.0dd4";
+          reg = <0xa>;
+          device_type = "ethernet-phy";
+          resets = <&scmi8_rst 0>;
+          reset-names = "phy";
+          reset-assert-us = <11000>;
+          reset-deassert-us = <70000>;
+        };
+      };
+
+      mtl_rx_setup1: rx-queues-config {
+        snps,rx-queues-to-use = <4>;
+        snps,rx-sched-sp;
+
+        queue0 {
+          snps,dcb-algorithm;
+          snps,map-to-dma-channel = <0x0>;
+          snps,route-up;
+          snps,priority = <0x1>;
+        };
+
+        queue1 {
+          snps,dcb-algorithm;
+          snps,map-to-dma-channel = <0x1>;
+          snps,route-ptp;
+        };
+
+        queue2 {
+          snps,avb-algorithm;
+          snps,map-to-dma-channel = <0x2>;
+          snps,route-avcp;
+        };
+
+        queue3 {
+          snps,avb-algorithm;
+          snps,map-to-dma-channel = <0x3>;
+          snps,priority = <0xc>;
+        };
+      };
+
+      mtl_tx_setup1: tx-queues-config {
+        snps,tx-queues-to-use = <4>;
+        snps,tx-sched-sp;
+
+        queue0 {
+          snps,dcb-algorithm;
+        };
+
+        queue1 {
+          snps,dcb-algorithm;
+        };
+
+        queue2 {
+          snps,avb-algorithm;
+          snps,send_slope = <0x1000>;
+          snps,idle_slope = <0x1000>;
+          snps,high_credit = <0x3e800>;
+          snps,low_credit = <0xffc18000>;
+        };
+
+        queue3 {
+          snps,avb-algorithm;
+          snps,send_slope = <0x1000>;
+          snps,idle_slope = <0x1000>;
+          snps,high_credit = <0x3e800>;
+          snps,low_credit = <0xffc18000>;
         };
       };
     };

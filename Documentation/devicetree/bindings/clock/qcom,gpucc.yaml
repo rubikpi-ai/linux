@@ -27,6 +27,7 @@ description: |
 properties:
   compatible:
     enum:
+      - qcom,qcs8300-gpucc
       - qcom,sdm845-gpucc
       - qcom,sa8775p-gpucc
       - qcom,sc7180-gpucc

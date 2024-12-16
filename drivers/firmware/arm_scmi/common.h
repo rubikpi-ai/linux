@@ -291,6 +291,7 @@ extern const struct scmi_desc scmi_mailbox_desc;
 #endif
 #ifdef CONFIG_ARM_SCMI_TRANSPORT_SMC
 extern const struct scmi_desc scmi_smc_desc;
+extern const struct scmi_desc scmi_qcom_smc_desc;
 #endif
 #ifdef CONFIG_ARM_SCMI_TRANSPORT_VIRTIO
 extern const struct scmi_desc scmi_virtio_desc;

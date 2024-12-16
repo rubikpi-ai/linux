@@ -11,16 +11,58 @@
 #define DRV_NAME "msm-stub-codec"
 
 static const struct snd_soc_dapm_widget msm_stub_dapm_widgets[] = {
+	SND_SOC_DAPM_OUTPUT("STUB_AIF0_RX"),
+	SND_SOC_DAPM_INPUT("STUB_AIF0_TX"),
 	SND_SOC_DAPM_OUTPUT("STUB_AIF1_RX"),
 	SND_SOC_DAPM_INPUT("STUB_AIF1_TX"),
+	SND_SOC_DAPM_OUTPUT("STUB_AIF2_RX"),
+	SND_SOC_DAPM_INPUT("STUB_AIF2_TX"),
+	SND_SOC_DAPM_OUTPUT("STUB_AIF3_RX"),
+	SND_SOC_DAPM_INPUT("STUB_AIF3_TX"),
 };
 
 static const struct snd_soc_dapm_route msm_stub_dapm_routes[] = {
+	{"STUB_AIF0_RX", NULL, "STUB_AIF0_RX Playback"},
+	{"STUB_AIF0_TX Capture", NULL, "STUB_AIF0_TX"},
 	{"STUB_AIF1_RX", NULL, "STUB_AIF1_RX Playback"},
 	{"STUB_AIF1_TX Capture", NULL, "STUB_AIF1_TX"},
+	{"STUB_AIF2_RX", NULL, "STUB_AIF2_RX Playback"},
+	{"STUB_AIF2_TX Capture", NULL, "STUB_AIF2_TX"},
+	{"STUB_AIF3_RX", NULL, "STUB_AIF3_RX Playback"},
+	{"STUB_AIF3_TX Capture", NULL, "STUB_AIF3_TX"},
 };
 
 static struct snd_soc_dai_driver msm_stub_dais[] = {
+	{
+		.name = "msm-stub-aif0-rx",
+		.playback = {
+			.stream_name = "STUB_AIF0_RX Playback",
+			.channels_min = 1,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_8000_384000,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+				    SNDRV_PCM_FMTBIT_S24_LE |
+				    SNDRV_PCM_FMTBIT_S24_3LE |
+				    SNDRV_PCM_FMTBIT_S32_LE),
+			.rate_min = 8000,
+			.rate_max = 384000,
+		},
+	},
+	{
+		.name = "msm-stub-aif0-tx",
+		.capture = {
+			.stream_name = "STUB_AIF0_TX Capture",
+			.channels_min = 1,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_8000_384000,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+				    SNDRV_PCM_FMTBIT_S24_LE |
+				    SNDRV_PCM_FMTBIT_S24_3LE |
+				    SNDRV_PCM_FMTBIT_S32_LE),
+			.rate_min = 8000,
+			.rate_max = 384000,
+		},
+	},
 	{
 		.name = "msm-stub-aif1-rx",
 		.playback = {
@@ -47,6 +89,66 @@ static struct snd_soc_dai_driver msm_stub_dais[] = {
 				    SNDRV_PCM_FMTBIT_S24_LE |
 				    SNDRV_PCM_FMTBIT_S24_3LE |
 				    SNDRV_PCM_FMTBIT_S32_LE),
+			.rate_min = 8000,
+			.rate_max = 384000,
+		},
+	},
+	{
+		.name = "msm-stub-aif2-rx",
+		.playback = {
+			.stream_name = "STUB_AIF2_RX Playback",
+			.channels_min = 1,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_8000_384000,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+				    SNDRV_PCM_FMTBIT_S24_LE |
+				    SNDRV_PCM_FMTBIT_S24_3LE |
+				    SNDRV_PCM_FMTBIT_S32_LE),
+			.rate_min = 8000,
+			.rate_max = 384000,
+		},
+	},
+	{
+		.name = "msm-stub-aif2-tx",
+		.capture = {
+			.stream_name = "STUB_AIF2_TX Capture",
+			.channels_min = 1,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_8000_384000,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+					SNDRV_PCM_FMTBIT_S24_LE |
+					SNDRV_PCM_FMTBIT_S24_3LE |
+					SNDRV_PCM_FMTBIT_S32_LE),
+			.rate_min = 8000,
+			.rate_max = 384000,
+		},
+	},
+	{
+		.name = "msm-stub-aif3-rx",
+		.playback = {
+			.stream_name = "STUB_AIF3_RX Playback",
+			.channels_min = 1,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_8000_384000,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+				    SNDRV_PCM_FMTBIT_S24_LE |
+				    SNDRV_PCM_FMTBIT_S24_3LE |
+				    SNDRV_PCM_FMTBIT_S32_LE),
+			.rate_min = 8000,
+			.rate_max = 384000,
+		},
+	},
+	{
+		.name = "msm-stub-aif3-tx",
+		.capture = {
+			.stream_name = "STUB_AIF3_TX Capture",
+			.channels_min = 1,
+			.channels_max = 16,
+			.rates = SNDRV_PCM_RATE_8000_384000,
+			.formats = (SNDRV_PCM_FMTBIT_S16_LE |
+					SNDRV_PCM_FMTBIT_S24_LE |
+					SNDRV_PCM_FMTBIT_S24_3LE |
+					SNDRV_PCM_FMTBIT_S32_LE),
 			.rate_min = 8000,
 			.rate_max = 384000,
 		},

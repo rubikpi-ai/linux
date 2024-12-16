@@ -2,6 +2,8 @@
 /*
  * Copyright (c) 2015-2016, The Linux Foundation. All rights reserved.
  *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
  * Description: CoreSight System Trace Macrocell driver
  *
  * Initial implementation by Pratik Patel
@@ -32,6 +34,7 @@
 
 #include "coresight-priv.h"
 #include "coresight-trace-id.h"
+#include "coresight-common.h"
 
 #define STMDMASTARTR			0xc04
 #define STMDMASTOPR			0xc08
@@ -207,6 +210,8 @@ static int stm_enable(struct coresight_device *csdev, struct perf_event *event,
 	if (val)
 		return -EBUSY;
 
+	coresight_csr_set_etr_atid(csdev, drvdata->traceid, true);
+
 	pm_runtime_get_sync(csdev->dev.parent);
 
 	spin_lock(&drvdata->spinlock);
@@ -275,6 +280,8 @@ static void stm_disable(struct coresight_device *csdev,
 		coresight_timeout(csa, STMTCSR, STMTCSR_BUSY_BIT, 0);
 
 		pm_runtime_put(csdev->dev.parent);
+
+		coresight_csr_set_etr_atid(csdev, drvdata->traceid, false);
 
 		local_set(&drvdata->mode, CS_MODE_DISABLED);
 		dev_dbg(&csdev->dev, "STM tracing disabled\n");
@@ -890,7 +897,7 @@ static int stm_probe(struct amba_device *adev, const struct amba_id *id)
 		goto stm_unregister;
 	}
 
-	trace_id = coresight_trace_id_get_system_id();
+	trace_id = coresight_trace_id_get_system_id(TRACE_ID_ANY);
 	if (trace_id < 0) {
 		ret = trace_id;
 		goto cs_unregister;

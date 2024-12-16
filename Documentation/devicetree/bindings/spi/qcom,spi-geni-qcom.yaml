@@ -25,10 +25,41 @@ description:
 
 allOf:
   - $ref: /schemas/spi/spi-controller.yaml#
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: qcom,sa8255p-geni-spi
+    then:
+      required:
+        - power-domains
+        - power-domain-names
+      properties:
+        power-domains:
+          minItems: 2
+          maxItems: 2
+    else:
+      required:
+        - clocks
+        - clock-names
+      properties:
+        power-domains:
+          maxItems: 1
+        interconnects:
+          minItems: 2
+          maxItems: 3
+        interconnect-names:
+          minItems: 2
+          items:
+            - const: qup-core
+            - const: qup-config
+            - const: qup-memory
 
 properties:
   compatible:
-    const: qcom,geni-spi
+    enum:
+      - qcom,geni-spi
+      - qcom,sa8255p-geni-spi
 
   clocks:
     maxItems: 1
@@ -45,15 +76,10 @@ properties:
       - const: rx
 
   interconnects:
-    minItems: 2
-    maxItems: 3
+    description: phandles of interconnect bw provider
 
   interconnect-names:
-    minItems: 2
-    items:
-      - const: qup-core
-      - const: qup-config
-      - const: qup-memory
+    description: names of interconnects
 
   interrupts:
     maxItems: 1
@@ -61,15 +87,18 @@ properties:
   operating-points-v2: true
 
   power-domains:
-    maxItems: 1
+    $ref: "/schemas/power/power-domain.yaml#/properties/power-domains"
+
+  power-domain-names:
+    items:
+      - const: power
+      - const: perf
 
   reg:
     maxItems: 1
 
 required:
   - compatible
-  - clocks
-  - clock-names
   - interrupts
   - reg
 
@@ -115,4 +144,17 @@ examples:
         interrupts = <GIC_SPI 602 IRQ_TYPE_LEVEL_HIGH>;
         #address-cells = <1>;
         #size-cells = <0>;
+    };
+
+  - |
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+
+    spi@988000 {
+        compatible = "qcom,sa8255p-geni-spi";
+        reg = <0x988000 0x4000>;
+        interrupts = <GIC_SPI 529 IRQ_TYPE_LEVEL_HIGH>;
+        #address-cells = <1>;
+        #size-cells = <0>;
+        power-domains = <&scmi10_pd 16>, <&scmi10_dvfs 16>;
+        power-domain-names = "power", "perf";
     };

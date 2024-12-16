@@ -8,6 +8,9 @@
 
 #include <asm/byteorder.h>
 
+#define DMA_PREP_LOCK	BIT(0)
+#define DMA_PREP_UNLOCK	BIT(1)
+
 /*
  * This data type corresponds to the native Command Element
  * supported by BAM DMA Engine.

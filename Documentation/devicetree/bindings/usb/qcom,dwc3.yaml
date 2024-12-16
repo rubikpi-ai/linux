@@ -25,6 +25,8 @@ properties:
           - qcom,msm8998-dwc3
           - qcom,qcm2290-dwc3
           - qcom,qcs404-dwc3
+          - qcom,qcs8300-dwc3
+          - qcom,sa8255p-dwc3
           - qcom,sa8775p-dwc3
           - qcom,sc7180-dwc3
           - qcom,sc7280-dwc3
@@ -61,8 +63,12 @@ properties:
   ranges: true
 
   power-domains:
-    description: specifies a phandle to PM domain provider node
-    maxItems: 1
+    description: specifies phandles to PM domain provider nodes
+
+  power-domain-names:
+    items:
+      - const: usb_transfer
+      - const: usb_core
 
   required-opps:
     maxItems: 1
@@ -78,12 +84,9 @@ properties:
                  power mode (U3).
        - mock_utmi:: Mock utmi clock needed for ITP/SOF generation in host
                      mode. Its frequency should be 19.2MHz.
-    minItems: 1
-    maxItems: 9
 
   clock-names:
-    minItems: 1
-    maxItems: 9
+    description: names of the clocks used as mentioned above
 
   resets:
     maxItems: 1
@@ -129,8 +132,6 @@ required:
   - "#address-cells"
   - "#size-cells"
   - ranges
-  - clocks
-  - clock-names
   - interrupts
   - interrupt-names
 
@@ -177,6 +178,7 @@ allOf:
               - qcom,msm8996-dwc3
               - qcom,msm8998-dwc3
               - qcom,sa8775p-dwc3
+              - qcom,qcs8300-dwc3
               - qcom,sc7180-dwc3
               - qcom,sc7280-dwc3
               - qcom,sdm670-dwc3
@@ -473,6 +475,7 @@ allOf:
           contains:
             enum:
               - qcom,sa8775p-dwc3
+              - qcom,qcs8300-dwc3
     then:
       properties:
         interrupts:
@@ -485,6 +488,33 @@ allOf:
             - const: dp_hs_phy_irq
             - const: dm_hs_phy_irq
             - const: ss_phy_irq
+
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: qcom,sa8255p-dwc3
+    then:
+      required:
+        - power-domains
+        - power-domain-names
+      properties:
+        power-domains:
+          minItems: 2
+          maxItems: 2
+    else:
+      required:
+        - clocks
+        - clock-names
+      properties:
+        power-domains:
+          maxItems: 1
+        clocks:
+          minItems: 1
+          maxItems: 9
+        clock-names:
+          minItems: 1
+          maxItems: 9
 
 additionalProperties: false
 
@@ -540,5 +570,44 @@ examples:
                 phys = <&usb_1_hsphy>, <&usb_1_ssphy>;
                 phy-names = "usb2-phy", "usb3-phy";
             };
+        };
+    };
+
+  - |
+    #include <dt-bindings/interrupt-controller/arm-gic.h>
+    #include <dt-bindings/interrupt-controller/irq.h>
+    soc {
+        #address-cells = <2>;
+        #size-cells = <2>;
+
+        usb_0: usb@a6f8800 {
+          compatible = "qcom,sa8255p-dwc3", "qcom,dwc3";
+          reg = <0x0 0x0a6f8800 0x0 0x400>;
+          #address-cells = <2>;
+          #size-cells = <2>;
+          ranges;
+
+          interrupts-extended = <&intc GIC_SPI 287 IRQ_TYPE_LEVEL_HIGH>,
+                                <&pdc 14 IRQ_TYPE_EDGE_BOTH>,
+                                <&pdc 15 IRQ_TYPE_EDGE_BOTH>,
+                                <&pdc 12 IRQ_TYPE_LEVEL_HIGH>;
+          interrupt-names = "pwr_event",
+                            "dp_hs_phy_irq",
+                            "dm_hs_phy_irq",
+                            "ss_phy_irq";
+
+          wakeup-source;
+
+          power-domains = <&scmi0_pd 0>, <&scmi0_pd 1>;
+          power-domain-names = "usb_transfer", "usb_core";
+
+          usb_0_dwc3: usb@a600000 {
+            compatible = "snps,dwc3";
+            reg = <0x0 0x0a600000 0x0 0xe000>;
+            interrupts = <GIC_SPI 292 IRQ_TYPE_LEVEL_HIGH>;
+            iommus = <&apps_smmu 0x080 0x0>;
+            phys = <&usb_0_hsphy>, <&usb_0_qmpphy>;
+            phy-names = "usb2-phy", "usb3-phy";
+          };
         };
     };

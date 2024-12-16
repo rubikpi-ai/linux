@@ -49,7 +49,10 @@ description: |
         msm8996
         msm8998
         qcs404
+        qcs8275
+        qcs8300
         qcs8550
+        qcs9100
         qcm2290
         qcm6490
         qcm8550
@@ -59,6 +62,7 @@ description: |
         qru1000
         sa8155p
         sa8540p
+        sa8255p
         sa8775p
         sc7180
         sc7280
@@ -404,18 +408,33 @@ properties:
           - enum:
               - fairphone,fp5
               - qcom,qcm6490-addons-idp
+              - qcom,qcm6490-addons-idp-amoled
               - qcom,qcm6490-idp
               - qcom,qcs5430-fp1-addons-rb3gen2
+              - qcom,qcs5430-fp1-addons-rb3gen2-hsp
               - qcom,qcs5430-fp1-addons-rb3gen2-vision-mezz
+              - qcom,qcs5430-fp1-addons-rb3gen2-vision-mezz-hsp
               - qcom,qcs5430-fp1p5-addons-rb3gen2
               - qcom,qcs5430-fp1p5-addons-rb3gen2-vision-mezz
               - qcom,qcs5430-fp2-addons-rb3gen2
+              - qcom,qcs5430-fp2-addons-rb3gen2-hsp
               - qcom,qcs5430-fp2-addons-rb3gen2-vision-mezz
+              - qcom,qcs5430-fp2-addons-rb3gen2-vision-mezz-hsp
+              - qcom,qcs5430-fp2p5-addons-rb3gen2
+              - qcom,qcs5430-fp2p5-addons-rb3gen2-hsp
+              - qcom,qcs5430-fp2p5-addons-rb3gen2-vision-mezz
+              - qcom,qcs5430-fp2p5-addons-rb3gen2-vision-mezz-hsp
+              - qcom,qcs5430-fp3-addons-rb3gen2
+              - qcom,qcs5430-fp3-addons-rb3gen2-hsp
+              - qcom,qcs5430-fp3-addons-rb3gen2-vision-mezz
+              - qcom,qcs5430-fp3-addons-rb3gen2-vision-mezz-hsp
               - qcom,qcs6490-addons-rb3gen2
+              - qcom,qcs6490-addons-rb3gen2-hsp
               - qcom,qcs6490-addons-rb3gen2-ia-mezz
               - qcom,qcs6490-addons-rb3gen2-ptz-mezz
               - qcom,qcs6490-addons-rb3gen2-video-mezz
               - qcom,qcs6490-addons-rb3gen2-vision-mezz
+              - qcom,qcs6490-addons-rb3gen2-vision-mezz-hsp
               - qcom,qcs6490-rb3gen2
           - const: qcom,qcm6490
           - const: qcom,qcs5430
@@ -892,6 +911,13 @@ properties:
 
       - items:
           - enum:
+              - qcom,qcs8300-addons-ride
+              - qcom,qcs8300-ride
+          - const: qcom,qcs8275
+          - const: qcom,qcs8300
+
+      - items:
+          - enum:
               - qcom,qcs8550-addons-aim300-aiot
               - qcom,qcs8550-aim300-aiot
           - const: qcom,qcs8550-aim300
@@ -913,6 +939,11 @@ properties:
 
       - items:
           - enum:
+              - qcom,sa8255p-ride
+          - const: qcom,sa8255p
+
+      - items:
+          - enum:
               - qcom,sa8295p-adp
               - qcom,sa8540p-ride
           - const: qcom,sa8540p
@@ -921,6 +952,7 @@ properties:
           - enum:
               - qcom,sa8775p-ride
           - const: qcom,sa8775p
+          - const: qcom,qcs9100
 
       - items:
           - enum:

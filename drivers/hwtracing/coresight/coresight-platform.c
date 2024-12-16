@@ -183,6 +183,17 @@ static int of_coresight_get_cpu(struct device *dev)
 	return cpu;
 }
 
+/*
+ * of_coresight_get_trace_id: Get the atid of a source device.
+ *
+ * Returns 0 on success.
+ */
+static int of_coresight_get_trace_id(struct device *dev, u32 *id)
+{
+
+	return of_property_read_u32(dev->of_node, "arm,trace-id", id);
+}
+
 static const char *of_coresight_get_device_name(struct device *dev)
 {
 	const char *name = NULL;
@@ -328,6 +339,11 @@ of_get_coresight_platform_data(struct device *dev,
 }
 
 static inline int of_coresight_get_cpu(struct device *dev)
+{
+	return -ENODEV;
+}
+
+static inline int of_coresight_get_trace_id(struct device *dev, u32 *id)
 {
 	return -ENODEV;
 }
@@ -815,6 +831,15 @@ int coresight_get_cpu(struct device *dev)
 	return 0;
 }
 EXPORT_SYMBOL_GPL(coresight_get_cpu);
+
+int coresight_get_source_traceid(struct device *dev, u32 *id)
+{
+	if (!is_of_node(dev->fwnode))
+		return -EINVAL;
+
+	return of_coresight_get_trace_id(dev, id);
+}
+EXPORT_SYMBOL_GPL(coresight_get_source_traceid);
 
 const char *coresight_get_device_name(struct device *dev)
 {

@@ -22,17 +22,16 @@ properties:
     enum:
       - qcom,geni-se-qup
       - qcom,geni-se-i2c-master-hub
+      - qcom,sa8255p-geni-se-qup
 
   reg:
     description: QUP wrapper common register address and length.
     maxItems: 1
 
   clock-names:
-    minItems: 1
     maxItems: 2
 
   clocks:
-    minItems: 1
     maxItems: 2
 
   "#address-cells":
@@ -55,8 +54,6 @@ properties:
 required:
   - compatible
   - reg
-  - clock-names
-  - clocks
   - "#address-cells"
   - "#size-cells"
   - ranges
@@ -81,6 +78,17 @@ patternProperties:
     $ref: /schemas/serial/qcom,serial-geni-qcom.yaml#
 
 allOf:
+  - if:
+      not:
+        properties:
+          compatible:
+            contains:
+              const: qcom,sa8255p-geni-se-qup
+    then:
+      required:
+        - clocks
+        - clock-names
+
   - if:
       properties:
         compatible:
@@ -160,4 +168,35 @@ examples:
         };
     };
 
+  - |
+
+    soc {
+        #address-cells = <2>;
+        #size-cells = <2>;
+
+        geniqup@9c0000 {
+            compatible = "qcom,sa8255p-geni-se-qup";
+            reg = <0 0x008c0000 0 0x6000>;
+            #address-cells = <2>;
+            #size-cells = <2>;
+            ranges;
+
+            i2c1: i2c@984000 {
+                compatible = "qcom,sa8255p-geni-i2c";
+                reg = <0 0xa94000 0 0x4000>;
+                interrupts = <GIC_SPI 358 IRQ_TYPE_LEVEL_HIGH>;
+                #address-cells = <1>;
+                #size-cells = <0>;
+                power-domains = <&scmi9_pd 1>;
+            };
+
+            uart4: serial@990000 {
+                compatible = "qcom,sa8255p-geni-uart";
+                reg = <0 0xa88000 0 0x7000>;
+                interrupts = <GIC_SPI 355 IRQ_TYPE_LEVEL_HIGH>;
+                power-domains = <&scmi11_pd 4>, <&scmi11_dvfs 4>;
+                power-domain-names = "power", "perf";
+            };
+        };
+    };
 ...

@@ -1243,7 +1243,7 @@ static ssize_t config_write(struct file *filp,
 
 	if (count == 0)
 		return -EINVAL;
-	buf = kzalloc(count, GFP_KERNEL);
+	buf = kzalloc(count+1, GFP_KERNEL);
 	if (buf)
 		bufp = buf;
 	else
@@ -1272,7 +1272,8 @@ static ssize_t config_write(struct file *filp,
 				 */
 				if (strlen(line) + strlen(temp_buff) + 1 > LINE_BUFFER_MAX_SZ) {
 					dev_err(drvdata->dev, "Invalid input\n");
-					return -EINVAL;
+					ret = -EINVAL;
+					goto err;
 				}
 				strlcat(temp_buff, line, PAGE_SIZE);
 				line = temp_buff;
@@ -1292,7 +1293,7 @@ static ssize_t config_write(struct file *filp,
 				ret = dcc_config_add_loop(drvdata, line, curr_list);
 			} else {
 				dev_err(drvdata->dev, "%s is not a correct input\n", token);
-				return -EINVAL;
+				ret = -EINVAL;
 			}
 
 			if (ret)

@@ -69,6 +69,9 @@ static void qce_ahash_done(void *data)
 	rctx->last_blk = false;
 	rctx->first_blk = false;
 
+	if (qce->qce_cmd_desc_enable)
+		qce_bam_release_lock(qce);
+
 	qce->async_req_done(tmpl->qce, error);
 }
 
@@ -89,6 +92,9 @@ static int qce_ahash_async_req_handle(struct crypto_async_request *async_req)
 		rctx->authkey = ctx->authkey;
 		rctx->authklen = AES_KEYSIZE_128;
 	}
+
+	if (qce->qce_cmd_desc_enable)
+		qce_bam_acquire_lock(qce);
 
 	rctx->src_nents = sg_nents_for_len(req->src, req->nbytes);
 	if (rctx->src_nents < 0) {

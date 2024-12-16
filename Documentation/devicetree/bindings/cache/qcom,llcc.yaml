@@ -20,6 +20,7 @@ description: |
 properties:
   compatible:
     enum:
+      - qcom,qcs8300-llcc
       - qcom,qdu1000-llcc
       - qcom,sa8775p-llcc
       - qcom,sc7180-llcc
@@ -55,6 +56,11 @@ properties:
   nvmem-cell-names:
     items:
       - const: multi-chan-ddr
+
+  num-banks:
+    $ref: /schemas/types.yaml#/definitions/uint32
+    description:
+      The num of llcc banks
 
 required:
   - compatible

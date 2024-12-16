@@ -32,7 +32,9 @@ properties:
       - description: v2 of CPUFREQ HW (EPSS)
         items:
           - enum:
+              - qcom,qcs8300-cpufreq-epss
               - qcom,qdu1000-cpufreq-epss
+              - qcom,sa8255p-cpufreq-epss
               - qcom,sa8775p-cpufreq-epss
               - qcom,sc7280-cpufreq-epss
               - qcom,sc8280xp-cpufreq-epss

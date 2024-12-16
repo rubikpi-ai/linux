@@ -1,0 +1,63 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * qcs6490-addons RB3gen2 device tree source
+ *
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ */
+
+/dts-v1/;
+
+#include "qcs6490-addons-rb3gen2.dts"
+
+/ {
+	model = "Qualcomm Technologies, Inc. Robotics RB3gen2 addons hsp platform";
+	compatible = "qcom,qcs6490-addons-rb3gen2-hsp","qcom,qcm6490";
+
+	qcom,msm-id = <497 0x10000>, <498 0x10000>, <475 0x10000>, <515 0x10000>;
+	qcom,board-id = <32 0x6>, <32 0x606>;
+};
+
+&pcie0 {
+	perst-gpios = <&tlmm 87 GPIO_ACTIVE_LOW>;
+	pinctrl-0 = <&pcie0_reset_n>, <&pcie0_wake_n>, <&pcie0_clkreq_n>;
+	pinctrl-names = "default";
+	status = "okay";
+};
+
+&pcie0_phy {
+	status = "okay";
+	vdda-phy-supply = <&vreg_l10c_0p88>;
+	vdda-pll-supply = <&vreg_l6b_1p2>;
+};
+
+&remoteproc_mpss {
+	status = "disabled";
+};
+
+&remoteproc_wpss {
+	status = "disabled";
+};
+
+&uart7 {
+	/delete-node/ bluetooth;
+
+	bluetooth: bluetooth {
+		compatible = "qcom,wcn6855-bt";
+		pinctrl-names = "default";
+		pinctrl-0 = <&bt_en>, <&sw_ctrl>;
+		enable-gpios = <&tlmm 85 GPIO_ACTIVE_HIGH>;
+		swctrl-gpios = <&tlmm 86 GPIO_ACTIVE_HIGH>;
+		vddio-supply = <&vreg_s7b_0p972>;
+		vddbtcxmx-supply = <&vreg_s7b_0p972>;
+		vddrfacmn-supply = <&vreg_s7b_0p972>;
+		vddrfa0p8-supply = <&vreg_s7b_0p972>;
+		vddrfa1p7-supply = <&vreg_s1b_1p872>;
+		vddrfa1p2-supply = <&vreg_s8b_1p272>;
+		max-speed = <3200000>;
+	};
+};
+
+&wifi {
+	status = "disabled";
+};

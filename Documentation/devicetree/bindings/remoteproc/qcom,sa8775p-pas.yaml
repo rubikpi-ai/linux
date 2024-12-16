@@ -16,6 +16,9 @@ description:
 properties:
   compatible:
     enum:
+      - qcom,qcs8300-adsp-pas
+      - qcom,qcs8300-cdsp-pas
+      - qcom,qcs8300-gpdsp-pas
       - qcom,sa8775p-adsp-pas
       - qcom,sa8775p-cdsp-pas
       - qcom,sa8775p-cdsp1-pas
@@ -58,6 +61,9 @@ allOf:
       properties:
         compatible:
           enum:
+            - qcom,qcs8300-adsp-pas
+            - qcom,qcs8300-cdsp-pas
+            - qcom,qcs8300-gpdsp-pas
             - qcom,sa8775p-adsp-pas
             - qcom,sa8775p-cdsp-pas
             - qcom,sa8775p-cdsp1-pas
@@ -80,6 +86,7 @@ allOf:
       properties:
         compatible:
           enum:
+            - qcom,qcs8300-adsp-pas
             - qcom,sa8775p-adsp-pas
     then:
       properties:
@@ -96,6 +103,7 @@ allOf:
       properties:
         compatible:
           enum:
+            - qcom,qcs8300-cdsp-pas
             - qcom,sa8775p-cdsp-pas
     then:
       properties:
@@ -132,6 +140,7 @@ allOf:
       properties:
         compatible:
           enum:
+            - qcom,qcs8300-gpdsp-pas
             - qcom,sa8775p-gpdsp0-pas
     then:
       properties:

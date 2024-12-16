@@ -12,6 +12,7 @@
 
 #define GIC_SPI 0
 #define GIC_PPI 1
+#define GIC_ESPI 2
 
 /*
  * Interrupt specifier cell 2.

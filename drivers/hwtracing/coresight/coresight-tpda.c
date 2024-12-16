@@ -244,7 +244,7 @@ static int tpda_init_default_data(struct tpda_drvdata *drvdata)
 	 * same trace-id. When TPDA does packetization, different
 	 * port will have unique channel number for decoding.
 	 */
-	atid = coresight_trace_id_get_system_id();
+	atid = coresight_trace_id_get_system_id(TRACE_ID_ANY);
 	if (atid < 0)
 		return atid;
 
