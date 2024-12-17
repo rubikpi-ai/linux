@@ -3448,6 +3448,10 @@ static int qmp_combo_probe(struct platform_device *pdev)
 	if (ret)
 		return ret;
 
+	if (of_property_read_bool(dev->of_node,
+				  "default-typec-orientation-reverse"))
+		qmp->orientation = TYPEC_ORIENTATION_REVERSE;
+
 	ret = qmp_combo_typec_switch_register(qmp);
 	if (ret)
 		return ret;
