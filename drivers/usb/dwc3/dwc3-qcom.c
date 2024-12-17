@@ -19,6 +19,7 @@
 #include <linux/phy/phy.h>
 #include <linux/usb/of.h>
 #include <linux/reset.h>
+#include <linux/suspend.h>
 #include <linux/iopoll.h>
 #include <linux/usb/hcd.h>
 #include <linux/usb.h>
@@ -98,6 +99,8 @@ struct dwc3_qcom {
 	enum usb_role		current_role;
 	struct notifier_block	xhci_nb;
 	struct regulator *vdda;
+
+	struct notifier_block	pm_notifier;
 };
 
 static inline void dwc3_qcom_setbits(void __iomem *base, u32 offset, u32 val)
@@ -778,6 +781,37 @@ static int dwc3_qcom_handle_cable_disconnect(void *data)
 	return 0;
 }
 
+static int dwc3_qcom_pm_callback(struct notifier_block *nb, unsigned long action,
+			void *data)
+{
+	bool suspend_sts = FALSE;
+	struct dwc3_qcom *qcom = container_of(nb, struct dwc3_qcom, pm_notifier);
+	int ret = NOTIFY_DONE;
+
+	switch (action) {
+		case PM_HIBERNATION_PREPARE:
+		case PM_SUSPEND_PREPARE:
+			suspend_sts = TRUE;
+			break;
+
+		case PM_POST_HIBERNATION:
+		case PM_POST_SUSPEND:
+			suspend_sts = FALSE;
+			break;
+	}
+
+	if (suspend_sts) {
+		if (!strncmp(dev_name(qcom->dwc.dev), "a600000.usb", 11)) {
+			if (!qcom->dwc.cable_disconnected) {
+				dev_err(qcom->dev, "Abort PM suspend!! (USB is outside LPM)\n");
+				ret = NOTIFY_BAD;
+			}
+		}
+	}
+
+	return ret;
+}
+
 static void dwc3_qcom_handle_set_mode(void *data, u32 desired_dr_role)
 {
 	struct dwc3_qcom *qcom = (struct dwc3_qcom *)data;
@@ -1215,6 +1249,13 @@ static int dwc3_qcom_probe(struct platform_device *pdev)
 	if (!strncmp(dev_name(qcom->dwc.dev), "8c00000.usb", 11)) {
 		debugfs_create_file("qcom_usb2_0_mode", 0644, qcom->dwc.debug_root, qcom,
 					&dwc3_qcom_usb2_0_mode_fops);
+	}
+
+	// type c
+	if (!strncmp(dev_name(qcom->dwc.dev), "a600000.usb", 11)) {
+		qcom->pm_notifier.notifier_call = dwc3_qcom_pm_callback;
+		qcom->pm_notifier.priority = INT_MAX;
+		register_pm_notifier(&qcom->pm_notifier);
 	}
 
 	return 0;
