@@ -7,6 +7,7 @@
 #include <linux/platform_device.h>
 #include <linux/phy.h>
 #include <linux/phy/phy.h>
+#include <linux/pcs-xpcs-qcom.h>
 
 #include "stmmac.h"
 #include "stmmac_platform.h"
@@ -831,14 +832,20 @@ static int ethqos_configure(struct qcom_ethqos *ethqos)
 	return ethqos->configure_func(ethqos);
 }
 
-static void ethqos_fix_mac_speed(void *priv, unsigned int speed, unsigned int mode)
+static void ethqos_fix_mac_speed(void *priv_n, unsigned int speed, unsigned int mode)
 {
-	struct qcom_ethqos *ethqos = priv;
+	struct qcom_ethqos *ethqos = priv_n;
+	struct net_device *dev = platform_get_drvdata(ethqos->pdev);
+	struct stmmac_priv *priv = netdev_priv(dev);
 
 	qcom_ethqos_set_sgmii_loopback(ethqos, false);
 	ethqos->speed = speed;
 	ethqos_update_link_clk(ethqos, speed);
 	ethqos_configure(ethqos);
+	if (priv->plat->qcom_pcs)
+		qcom_xpcs_link_up(priv->plat->qcom_pcs, mode,
+				  priv->plat->phy_interface, speed,
+				  DUPLEX_FULL);
 }
 
 static int qcom_ethqos_serdes_powerup(struct net_device *ndev, void *priv)
@@ -953,6 +960,7 @@ static void qcom_ethqos_hdma_cfg(struct plat_stmmacenet_data *plat)
 static int qcom_ethqos_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node;
+	struct device_node *pcs_node;
 	const struct ethqos_emac_driver_data *data;
 	struct plat_stmmacenet_data *plat_dat;
 	struct stmmac_resources stmmac_res;
@@ -1067,6 +1075,15 @@ static int qcom_ethqos_probe(struct platform_device *pdev)
 	if (ethqos->serdes_phy) {
 		plat_dat->serdes_powerup = qcom_ethqos_serdes_powerup;
 		plat_dat->serdes_powerdown  = qcom_ethqos_serdes_powerdown;
+	}
+
+	if (of_property_present(dev->of_node, "qcom-xpcs-handle")) {
+		pcs_node = of_parse_phandle(dev->of_node, "qcom-xpcs-handle", 0);
+		plat_dat->qcom_pcs = qcom_xpcs_create(pcs_node, plat_dat->phy_interface);
+		if (IS_ERR_OR_NULL(plat_dat->qcom_pcs)) {
+			dev_warn(dev, "Qcom Xpcs not found\n");
+			return -ENODEV;
+		}
 	}
 
 	/* Enable TSO on queue0 and enable TBS on rest of the queues */
