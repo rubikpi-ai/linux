@@ -20,10 +20,9 @@
 		clock-names = "macro", "dcodec";
 
 		pinctrl-names = "default";
-		pinctrl-0 = <&lpass_i2s1_data>, <&lpass_i2s1_ws>,
-			    <&hs1_mi2s_data0>, <&mi2s_mclk>, <&hs1_mi2s_sclk>,
-			    <&hs1_mi2s_data1>, <&hs1_mi2s_ws>, <&hs2_mi2s_data0>,
-			    <&hs2_mi2s_data1>, <&hs2_mi2s_sck>,<&hs2_mi2s_ws>;
+		pinctrl-0 = <&hs1_mi2s_data0>, <&hs1_mi2s_sclk>, <&hs1_mi2s_data1>,
+			    <&hs1_mi2s_ws>, <&hs2_mi2s_data0>,<&hs2_mi2s_data1>,
+			    <&hs2_mi2s_sck>, <&hs2_mi2s_ws>;
 
 		hs1-mi2s-playback-dai-link {
 			link-name = "MI2S-LPAIF_SDR-RX-SECONDARY";
