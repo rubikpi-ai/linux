@@ -32,6 +32,7 @@ properties:
           - qcom,qcm2290-qfprom
           - qcom,qcs404-qfprom
           - qcom,qcs8300-qfprom
+          - qcom,sa8775p-qfprom
           - qcom,sc7180-qfprom
           - qcom,sc7280-qfprom
           - qcom,sdm630-qfprom
