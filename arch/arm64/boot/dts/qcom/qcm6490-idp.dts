@@ -26,7 +26,6 @@
 	aliases {
 		serial0 = &uart5;
 		bluetooth0 = &bluetooth;
-		serial1 = &uart7;
 	};
 
 	chosen {
