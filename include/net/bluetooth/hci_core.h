@@ -748,8 +748,6 @@ struct hci_conn {
 
 	struct bt_codec codec;
 
-	struct completion disc_ev_comp;
-
 	void (*connect_cfm_cb)	(struct hci_conn *conn, u8 status);
 	void (*security_cfm_cb)	(struct hci_conn *conn, u8 status);
 	void (*disconn_cfm_cb)	(struct hci_conn *conn, u8 reason);
