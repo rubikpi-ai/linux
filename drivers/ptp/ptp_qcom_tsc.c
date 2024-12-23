@@ -54,6 +54,7 @@
 
 #define TSC_PRELOAD_POLLING_DELAY_MS		100
 #define NSEC_SHFT				32
+#define NSEC_MASK				GENMASK_ULL(31, 0)
 #define NSEC					1000000000ULL
 #define XO_MHZ					19200000
 #define TSCSS_TSC_ETU_SLICE_BASE(reg_base, num, offset)	\
@@ -193,21 +194,21 @@ static int qcom_ptp_update_tsc_cntr(struct qcom_ptp_tsc *timer,
 				struct timespec64 offset)
 {
 	u64 timestamp = 0;
-	u32 regval, mask = 0xFFFFFFFF;
+	u32 regval;
 
 	/* Update to 1ns resolution */
 	if (timer->tsc_nsec_update) {
 		timestamp =  offset.tv_sec * NSEC + offset.tv_nsec;
 		writel_relaxed((timestamp >> NSEC_SHFT),
 				timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_HI);
-		writel_relaxed(timestamp & mask, timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_LO);
+		writel_relaxed(timestamp & NSEC_MASK, timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_LO);
+	} else {
+		writel_relaxed(offset.tv_sec, timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_HI);
+		writel_relaxed(offset.tv_nsec, timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_LO);
 	}
 
 	pr_debug("Timestamp %llu: sec: %lld, nsec: %ld\n", timestamp,
 							offset.tv_sec, offset.tv_nsec);
-
-	writel_relaxed(offset.tv_sec, timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_HI);
-	writel_relaxed(offset.tv_nsec, timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_LO);
 
 	pr_debug("CNTR_HI: 0x%x\n", readl_relaxed(timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_HI));
 	pr_debug("CNTR_LO: 0x%x\n", readl_relaxed(timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_LO));
@@ -224,12 +225,17 @@ static int qcom_ptp_update_tsc_cntr(struct qcom_ptp_tsc *timer,
 static void qcom_ptp_update_tsc_offset(struct qcom_ptp_tsc *timer,
 				struct timespec64 offset)
 {
+	u64 timestamp = 0;
 
-	if (timer->tsc_nsec_update)
-		return;
-
-	writel_relaxed(offset.tv_nsec, timer->baseaddr + TSCSS_TSC_OFFSET_LO);
-	writel_relaxed(offset.tv_sec, timer->baseaddr + TSCSS_TSC_OFFSET_HI);
+	if (timer->tsc_nsec_update) {
+		timestamp =  offset.tv_sec * NSEC + offset.tv_nsec;
+		writel_relaxed((timestamp >> NSEC_SHFT),
+				timer->baseaddr + TSCSS_TSC_OFFSET_HI);
+		writel_relaxed(timestamp & NSEC_MASK, timer->baseaddr + TSCSS_TSC_OFFSET_LO);
+	} else {
+		writel_relaxed(offset.tv_sec, timer->baseaddr + TSCSS_TSC_OFFSET_HI);
+		writel_relaxed(offset.tv_nsec, timer->baseaddr + TSCSS_TSC_OFFSET_LO);
+	}
 
 	pr_debug("CNTR_HI: 0x%x\n", readl_relaxed(timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_HI));
 	pr_debug("CNTR_LO: 0x%x\n", readl_relaxed(timer->baseaddr + TSCSS_TSC_CONTROL_CNTCV_LO));
@@ -699,7 +705,7 @@ static int qcom_ptp_tsc_probe(struct platform_device *pdev)
 		cntr_val = (timer->tsc_hw_preload ? 0x1D8 : 0x1CC);
 		writel_relaxed(0x3B9AC9FF, timer->baseaddr + TSCSS_TSC_ROLLOVER_VAL);
 	} else {
-		cntr_val = 0x18C;
+		cntr_val = 0x1CC;
 	}
 
 	writel_relaxed(cntr_val, timer->baseaddr + TSCSS_TSC_CONTROL_CNTCR);
