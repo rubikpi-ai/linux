@@ -57,21 +57,17 @@ allOf:
 
 properties:
   compatible:
-    oneOf:
-      - items:
-          - enum:
-              - qcom,qcs615-ethqos
-          - const: qcom,sm8150-ethqos
-      - enum:
-          - qcom,qcs404-ethqos
-          - qcom,qcs8300-ethqos
-          - qcom,sa8620p-ethqos
-          - qcom,sa7255p-ethqos
-          - qcom,sa8255p-ethqos
-          - qcom,sa8775p-ethqos
-          - qcom,sc8280xp-ethqos
-          - qcom,sm8150-ethqos
-          - qcom,sa8797p-ethqos
+    enum:
+      - qcom,qcs404-ethqos
+      - qcom,qcs615-ethqos
+      - qcom,qcs8300-ethqos
+      - qcom,sa8620p-ethqos
+      - qcom,sa7255p-ethqos
+      - qcom,sa8255p-ethqos
+      - qcom,sa8775p-ethqos
+      - qcom,sc8280xp-ethqos
+      - qcom,sm8150-ethqos
+      - qcom,sa8797p-ethqos
 
   reg:
     maxItems: 2
