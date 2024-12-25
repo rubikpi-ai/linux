@@ -222,6 +222,7 @@
 	phy-handle = <&rgmii_phy>;
 	phy-mode = "rgmii";
 	max-speed = <1000>;
+	qcom,rx-prog-swap;
 
 	snps,mtl-rx-config = <&mtl_rx_setup>;
 	snps,mtl-tx-config = <&mtl_tx_setup>;
