@@ -263,9 +263,7 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 	int err;
 	sdioh_info_t *sdioh;
 	struct sdio_func *func = dev_to_sdio_func(pdev);
-#if defined(RUBIKPI_MMC_PM_KEEP_POWER)
 	mmc_pm_flag_t sdio_flags;
-#endif
 
 	printf("%s Enter func->num=%d\n", __FUNCTION__, func->num);
 	if (func->num != 2)
@@ -280,7 +278,6 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 		return err;
 	}
 
-#if defined(RUBIKPI_MMC_PM_KEEP_POWER)
 	sdio_flags = sdio_get_host_pm_caps(func);
 	if (!(sdio_flags & MMC_PM_KEEP_POWER)) {
 		sd_err(("%s: can't keep power while host is suspended\n", __FUNCTION__));
@@ -295,7 +292,7 @@ static int bcmsdh_sdmmc_suspend(struct device *pdev)
 		dhd_mmc_suspend = FALSE;
 		return err;
 	}
-#endif
+
 	smp_mb();
 
 	printf("%s Exit\n", __FUNCTION__);

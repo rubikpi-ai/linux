@@ -62,6 +62,7 @@
 		regulator-name = "sdio_wifi_1p8_vreg";
 		enable-active-high;
 		gpio = <&tlmm 125 GPIO_ACTIVE_HIGH>;
+		regulator-always-on;
 		regulator-enable-ramp-delay = <50000>;
 	};
 
@@ -859,6 +860,7 @@
 	gpio_bt_reg_on = <&tlmm 17 0>;
 
 	non-removable;
+	keep-power-in-suspend;
 
 	/delete-property/ cd-gpios;
 };
