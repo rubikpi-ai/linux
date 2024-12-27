@@ -2824,7 +2824,8 @@
 				 <&rpmhcc RPMH_CXO_CLK>,
 				 <&rpmhcc RPMH_CXO_CLK_A>,
 				 <&sleep_clk>;
-			power-domains = <&rpmhpd QCS8300_MMCX>;
+			power-domains = <&rpmhpd QCS8300_MMCX>,
+					<&rpmhpd QCS8300_MXC>;
 			required-opps = <&rpmhpd_opp_low_svs>;
 			#clock-cells = <1>;
 			#reset-cells = <1>;
