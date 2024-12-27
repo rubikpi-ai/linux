@@ -1135,41 +1135,45 @@ static bool is_remote_obj(int32_t uhandle, struct smcinvoke_file_data **tzobj,
 static int smcinvoke_create_bridge(struct smcinvoke_mem_obj *mem_obj)
 {
 	int ret = 0;
-	int tz_perm = QCOM_SCM_PERM_RW;
-	uint32_t *vmid_list;
-	uint32_t *perms_list;
+	uint32_t *vmid_list = NULL;
+	uint32_t *perms_list = NULL;
 	uint32_t nelems = 0;
 	uint32_t ns_vm_ids_hyp[] = {};
+	uint32_t ns_vm_ids_hlos[] = {QCOM_SCM_VMID_HLOS};
 	uint32_t ns_vm_perms[] = {QCOM_SCM_PERM_RW};
 	struct dma_buf *dmabuf = mem_obj->dma_buf;
 	phys_addr_t phys = mem_obj->p_addr;
 	size_t size = mem_obj->p_addr_len;
+	bool allocation_from_mem_buf = false;
 
 	if (!qtee_shmbridge_is_enabled())
 		return 0;
 
 	/*
-	 * smcinvoke register shmbridge with the vmdi of hypervisor must make sure qtee_shmbridge
-	 * support hypervisor as well.
+	 * 1. Check mem-buf is available or not.
+	 * 2. If mem-buf API fails, then read the DT property.
+	 *	2.1 If property is defined, pick HYP(0x0) VM for automotive targets.
+	 *	2.2 If undefined, pick HLOS(0x3) VM and then pass value to QTEE.
 	 */
-	if (smci_support_hyp) {
-		ret = qtee_shmbridge_register(phys, size, ns_vm_ids_hyp, ns_vm_perms, 0,
-			tz_perm, &mem_obj->shmbridge_handle);
-	} else {
-		ret = mem_buf_dma_buf_copy_vmperm(dmabuf, (int **)&vmid_list,
-				(int **)&perms_list, (int *)&nelems);
-		if (ret) {
-			pr_err("mem_buf_dma_buf_copy_vmperm failure, err=%d\n", ret);
-			return ret;
+	ret = mem_buf_dma_buf_copy_vmperm(dmabuf, (int **)&vmid_list,
+					 (int **)&perms_list, (int *)&nelems);
+	if (ret) {
+		pr_debug("mem_buf copy_vmperm failure, ret=%d, registering with single VM\n", ret);
+		if (smci_support_hyp) {
+			vmid_list = ns_vm_ids_hyp;
+		} else {
+			nelems = 1;
+			vmid_list = ns_vm_ids_hlos;
 		}
-
+		perms_list = ns_vm_perms;
+	} else {
+		allocation_from_mem_buf = true;
 		if (mem_buf_dma_buf_exclusive_owner(dmabuf))
 			perms_list[0] = QCOM_SCM_PERM_RW;
-
-		ret = qtee_shmbridge_register(phys, size, vmid_list, perms_list, nelems,
-			tz_perm, &mem_obj->shmbridge_handle);
 	}
 
+	ret = qtee_shmbridge_register(phys, size, vmid_list, perms_list, nelems,
+				      QCOM_SCM_PERM_RW, &mem_obj->shmbridge_handle);
 	if (ret) {
 		pr_err("creation of shm bridge for mem_region_id %d failed ret %d\n",
 				mem_obj->mem_region_id, ret);
@@ -1178,11 +1182,10 @@ static int smcinvoke_create_bridge(struct smcinvoke_mem_obj *mem_obj)
 
 	trace_smcinvoke_create_bridge(mem_obj->shmbridge_handle, mem_obj->mem_region_id);
 exit:
-	if (!smci_support_hyp) {
+	if (allocation_from_mem_buf) {
 		kfree(perms_list);
 		kfree(vmid_list);
 	}
-
 	return ret;
 }
 
