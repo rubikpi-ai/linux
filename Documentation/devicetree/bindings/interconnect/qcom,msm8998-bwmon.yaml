@@ -25,6 +25,7 @@ properties:
       - const: qcom,msm8998-bwmon       # BWMON v4
       - items:
           - enum:
+              - qcom,qcs615-cpu-bwmon
               - qcom,qcs8300-cpu-bwmon
               - qcom,sa8775p-cpu-bwmon
               - qcom,sc7180-cpu-bwmon
@@ -38,6 +39,7 @@ properties:
           - const: qcom,sdm845-bwmon    # BWMON v4, unified register space
       - items:
           - enum:
+              - qcom,qcs615-llcc-bwmon
               - qcom,qcs8300-llcc-bwmon
               - qcom,sa8775p-llcc-bwmon
               - qcom,sc7180-llcc-bwmon
