@@ -1548,6 +1548,23 @@ int msm_dp_modeset_init(struct msm_dp *msm_dp_display, struct drm_device *dev,
 	return 0;
 }
 
+void msm_dp_display_atomic_prepare(struct msm_dp *dp)
+{
+	int rc = 0;
+	struct msm_dp_display_private *msm_dp_display;
+
+	msm_dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+
+	mutex_lock(&msm_dp_display->event_mutex);
+
+	rc = msm_dp_display_prepare(msm_dp_display);
+	if (rc) {
+		DRM_ERROR("DP display prepare failed, rc=%d\n", rc);
+	}
+
+	mutex_unlock(&msm_dp_display->event_mutex);
+}
+
 void msm_dp_display_atomic_enable(struct msm_dp *dp)
 {
 	int rc = 0;
@@ -1559,13 +1576,6 @@ void msm_dp_display_atomic_enable(struct msm_dp *dp)
 		msm_dp_hpd_plug_handle(msm_dp_display, 0);
 
 	mutex_lock(&msm_dp_display->event_mutex);
-
-	rc = msm_dp_display_prepare(msm_dp_display);
-	if (rc) {
-		DRM_ERROR("DP display prepare failed, rc=%d\n", rc);
-		mutex_unlock(&msm_dp_display->event_mutex);
-		return;
-	}
 
 	rc = msm_dp_display_enable(msm_dp_display);
 	if (rc)
