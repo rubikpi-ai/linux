@@ -73,6 +73,7 @@ struct dss_io_data {
 	struct dss_io_region aux;
 	struct dss_io_region link;
 	struct dss_io_region p0;
+	struct dss_io_region p1;
 };
 
 struct msm_dp_catalog_private {
@@ -93,6 +94,7 @@ void msm_dp_catalog_snapshot(struct msm_dp_catalog *msm_dp_catalog, struct msm_d
 	msm_disp_snapshot_add_block(disp_state, dss->aux.len, dss->aux.base, "dp_aux");
 	msm_disp_snapshot_add_block(disp_state, dss->link.len, dss->link.base, "dp_link");
 	msm_disp_snapshot_add_block(disp_state, dss->p0.len, dss->p0.base, "dp_p0");
+	msm_disp_snapshot_add_block(disp_state, dss->p1.len, dss->p0.base, "dp_p1");
 }
 
 static inline u32 msm_dp_read_aux(struct msm_dp_catalog_private *catalog, u32 offset)
@@ -143,6 +145,26 @@ static inline u32 msm_dp_read_p0(struct msm_dp_catalog_private *catalog,
 	 * this function uses writel() instread of writel_relaxed()
 	 */
 	return readl_relaxed(catalog->io.p0.base + offset);
+}
+
+static inline void msm_dp_write_p1(struct msm_dp_catalog_private *catalog,
+				   u32 offset, u32 data)
+{
+	/*
+	 * To make sure interface reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	writel(data, catalog->io.p1.base + offset);
+}
+
+static inline u32 msm_dp_read_p1(struct msm_dp_catalog_private *catalog,
+				 u32 offset)
+{
+	/*
+	 * To make sure interface reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	return readl_relaxed(catalog->io.p1.base + offset);
 }
 
 static inline u32 msm_dp_read_link(struct msm_dp_catalog_private *catalog, u32 offset)
@@ -1136,6 +1158,12 @@ static int msm_dp_catalog_get_io(struct msm_dp_catalog_private *catalog)
 		if (IS_ERR(dss->p0.base)) {
 			DRM_ERROR("unable to remap p0 region: %pe\n", dss->p0.base);
 			return PTR_ERR(dss->p0.base);
+		}
+
+		dss->p1.base = msm_dp_ioremap(pdev, 4, &dss->p1.len);
+		if (IS_ERR(dss->p1.base)) {
+			DRM_ERROR("unable to remap p1 region: %pe\n", dss->p1.base);
+			return PTR_ERR(dss->p1.base);
 		}
 	}
 
