@@ -26,6 +26,7 @@
 #include "dp_drm.h"
 #include "dp_audio.h"
 #include "dp_debug.h"
+#include "dp_mst_drm.h"
 
 static bool psr_enabled = false;
 module_param(psr_enabled, bool, 0);
@@ -68,6 +69,8 @@ enum {
 #define DP_TIMEOUT_NONE		0
 
 #define WAIT_FOR_RESUME_TIMEOUT_JIFFIES (HZ / 2)
+
+#define MAX_DPCD_TRANSACTION_BYTES 16
 
 struct msm_dp_event {
 	u32 event_id;
@@ -114,6 +117,8 @@ struct msm_dp_display_private {
 
 	u32 active_stream_cnt;
 
+	const unsigned int *intf_map;
+
 	struct msm_dp_audio *audio;
 };
 
@@ -122,6 +127,28 @@ struct msm_dp_desc {
 	unsigned int id;
 	unsigned int connector_type;
 	bool wide_bus_supported;
+	const unsigned int *intf_map;
+	unsigned int max_streams;
+};
+
+/* to be kept in sync with enum dpu_intf of dpu_hw_mdss.h */
+enum dp_mst_intf {
+	INTF_0 = 1,
+	INTF_1,
+	INTF_2,
+	INTF_3,
+	INTF_4,
+	INTF_5,
+	INTF_6,
+	INTF_7,
+	INTF_8,
+	INTF_MAX
+};
+
+static const unsigned int stream_intf_map_sa_8775p[][DP_STREAM_MAX] = {
+	{INTF_0, INTF_3},
+	{INTF_4, INTF_8},
+	{}
 };
 
 static const struct msm_dp_desc msm_dp_desc_qcs8300[] = {
@@ -131,8 +158,12 @@ static const struct msm_dp_desc msm_dp_desc_qcs8300[] = {
 };
 
 static const struct msm_dp_desc msm_dp_desc_sa8775p[] = {
-	{ .io_start = 0xaf54000, .id = MSM_DP_CONTROLLER_0, .wide_bus_supported = true },
-	{ .io_start = 0xaf5c000, .id = MSM_DP_CONTROLLER_1, .wide_bus_supported = true },
+	{ .io_start = 0x0af54000, .id = MSM_DP_CONTROLLER_0, .wide_bus_supported = true,
+	  .max_streams = 2, .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_0],
+	},
+	{ .io_start = 0x0af5c000, .id = MSM_DP_CONTROLLER_1, .wide_bus_supported = true,
+	  .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_1],
+	},
 	{}
 };
 
@@ -420,6 +451,17 @@ static void msm_dp_display_mst_init(struct msm_dp_display_private *dp)
 	msm_dp->mst_active = true;
 }
 
+static void msm_dp_display_set_mst_mgr_state(struct msm_dp_display_private *dp,
+					     bool state)
+{
+	if (!dp->msm_dp_display.mst_active)
+		return;
+
+	msm_dp_mst_display_set_mgr_state(&dp->msm_dp_display, state);
+
+	drm_dbg_dp(dp->drm_dev, "mst_mgr_state: %d\n", state);
+}
+
 static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
 {
 	struct drm_connector *connector = dp->msm_dp_display.connector;
@@ -465,6 +507,8 @@ static int msm_dp_display_process_hpd_high(struct msm_dp_display_private *dp)
 		DRM_ERROR("failed to complete DP link training\n");
 		goto end;
 	}
+
+	msm_dp_display_set_mst_mgr_state(dp, true);
 
 	msm_dp_add_event(dp, EV_USER_NOTIFICATION, true, 0);
 
@@ -532,6 +576,12 @@ static int msm_dp_display_usbpd_configure_cb(struct device *dev)
 static int msm_dp_display_notify_disconnect(struct device *dev)
 {
 	struct msm_dp_display_private *dp = dev_get_dp_display_private(dev);
+	struct msm_dp *dp_display = &dp->msm_dp_display;
+
+	if (dp_display->mst_active) {
+		msm_dp_mst_display_set_mgr_state(&dp->msm_dp_display, false);
+		dp_display->mst_active = false;
+	}
 
 	msm_dp_add_event(dp, EV_USER_NOTIFICATION, false, 0);
 
@@ -687,7 +737,6 @@ static int msm_dp_hpd_unplug_handle(struct msm_dp_display_private *dp, u32 data)
 {
 	u32 state;
 	struct platform_device *pdev = dp->msm_dp_display.pdev;
-	struct msm_dp *msm_dp = &dp->msm_dp_display;
 
 	msm_dp_aux_enable_xfers(dp->aux, false);
 
@@ -700,8 +749,6 @@ static int msm_dp_hpd_unplug_handle(struct msm_dp_display_private *dp, u32 data)
 
 	/* unplugged, no more irq_hpd handle */
 	msm_dp_del_event(dp, EV_IRQ_HPD_INT);
-
-	msm_dp->mst_active = false;
 
 	if (state == ST_DISCONNECTED) {
 		/* triggered by irq_hdp with sink_count = 0 */
@@ -1450,6 +1497,20 @@ static int msm_dp_auxbus_done_probe(struct drm_dp_aux *aux)
 	return msm_dp_display_probe_tail(aux->dev);
 }
 
+int msm_dp_get_mst_max_stream(const struct msm_dp *dp_display)
+{
+	struct msm_dp_display_private *dp_priv;
+
+	dp_priv = container_of(dp_display, struct msm_dp_display_private, msm_dp_display);
+
+	return dp_priv->max_stream;
+}
+
+int msm_dp_mst_bridge_init(struct msm_dp *dp_display, struct drm_encoder *encoder)
+{
+	return msm_dp_mst_drm_bridge_init(dp_display, encoder);
+}
+
 static int msm_dp_display_probe(struct platform_device *pdev)
 {
 	int rc = 0;
@@ -1476,7 +1537,11 @@ static int msm_dp_display_probe(struct platform_device *pdev)
 	dp->msm_dp_display.is_edp =
 		(dp->msm_dp_display.connector_type == DRM_MODE_CONNECTOR_eDP);
 
-	dp->max_stream = DEFAULT_STREAM_COUNT;
+	dp->max_stream = (desc->max_streams > DEFAULT_STREAM_COUNT) ?
+			  desc->max_streams : DEFAULT_STREAM_COUNT;
+
+	dp->intf_map = desc->intf_map;
+
 	rc = msm_dp_init_sub_modules(dp);
 	if (rc) {
 		DRM_ERROR("init sub module failed\n");
@@ -1631,6 +1696,18 @@ bool msm_dp_wide_bus_available(const struct msm_dp *msm_dp_display)
 	return dp->wide_bus_supported;
 }
 
+int msm_dp_get_mst_intf_id(struct msm_dp *dp_display, int stream_id)
+{
+	struct msm_dp_display_private *dp;
+
+	dp = container_of(dp_display, struct msm_dp_display_private, msm_dp_display);
+
+	if (dp->intf_map)
+		return dp->intf_map[stream_id];
+
+	return 0;
+}
+
 void msm_dp_display_debugfs_init(struct msm_dp *msm_dp_display, struct dentry *root, bool is_edp)
 {
 	struct msm_dp_display_private *dp;
@@ -1674,6 +1751,16 @@ int msm_dp_modeset_init(struct msm_dp *msm_dp_display, struct drm_device *dev,
 	msm_dp_priv->panel->connector = msm_dp_display->connector;
 
 	return 0;
+}
+
+int msm_dp_mst_register(struct msm_dp *dp)
+{
+	struct msm_dp_display_private *dp_display;
+
+	dp_display = container_of(dp, struct msm_dp_display_private, msm_dp_display);
+
+	return msm_dp_mst_init(dp, dp_display->max_stream,
+			   MAX_DPCD_TRANSACTION_BYTES, dp_display->aux);
 }
 
 void msm_dp_display_atomic_prepare(struct msm_dp *dp)
@@ -1821,6 +1908,9 @@ void msm_dp_display_atomic_post_disable_helper(struct msm_dp *dp, struct msm_dp_
 	} else {
 		msm_dp_display->hpd_state = ST_DISPLAY_OFF;
 	}
+
+	//To-do: Need to check if we can manage this with active_Stream_cnt
+	msm_dp_display->hpd_state = ST_DISCONNECTED;
 
 	drm_dbg_dp(dp->drm_dev, "type=%d Done\n", dp->connector_type);
 

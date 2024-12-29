@@ -30,6 +30,7 @@
 #include <drm/drm_atomic_helper.h>
 #include <drm/drm_probe_helper.h>
 #include <drm/display/drm_dsc.h>
+#include <drm/display/drm_dp_mst_helper.h>
 #include <drm/msm_drm.h>
 #include <drm/drm_gem.h>
 
@@ -386,6 +387,14 @@ bool msm_dp_needs_periph_flush(const struct msm_dp *dp_display,
 			       const struct drm_display_mode *mode);
 bool msm_dp_wide_bus_available(const struct msm_dp *dp_display);
 
+int msm_dp_get_mst_max_stream(const struct msm_dp *dp_display);
+
+int msm_dp_mst_bridge_init(struct msm_dp *dp_display, struct drm_encoder *encoder);
+
+int msm_dp_mst_register(struct msm_dp *dp_display);
+
+int msm_dp_get_mst_intf_id(struct msm_dp *dp_display, int stream_id);
+
 #else
 static inline int __init msm_dp_register(void)
 {
@@ -398,6 +407,21 @@ static inline int msm_dp_modeset_init(struct msm_dp *dp_display,
 				       struct drm_device *dev,
 				       struct drm_encoder *encoder,
 				       bool yuv_supported)
+{
+	return -EINVAL;
+}
+
+static inline int msm_dp_get_mst_max_stream(struct msm_dp *dp_display)
+{
+	return -EINVAL;
+}
+
+static inline int msm_dp_mst_register(struct msm_dp *dp_display)
+{
+	return -EINVAL;
+}
+
+static inline int msm_dp_mst_bridge_init(struct msm_dp *dp_display, struct drm_encoder *encoder)
 {
 	return -EINVAL;
 }
@@ -421,6 +445,11 @@ static inline bool msm_dp_needs_periph_flush(const struct msm_dp *dp_display,
 static inline bool msm_dp_wide_bus_available(const struct msm_dp *dp_display)
 {
 	return false;
+}
+
+static inline int msm_dp_get_mst_intf_id(struct msm_dp *dp_display, int stream_id)
+{
+	return -EINVAL;
 }
 
 #endif

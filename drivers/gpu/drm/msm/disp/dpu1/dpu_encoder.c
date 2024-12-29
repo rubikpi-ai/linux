@@ -2432,17 +2432,23 @@ static int dpu_encoder_virt_add_phys_encs(
 
 static int dpu_encoder_setup_display(struct dpu_encoder_virt *dpu_enc,
 				 struct dpu_kms *dpu_kms,
-				 struct msm_display_info *disp_info)
+				 struct msm_display_info *disp_info,
+				 int drm_enc_mode)
 {
 	int ret = 0;
 	int i = 0;
 	struct dpu_enc_phys_init_params phys_params;
+	unsigned int intf_id;
+	struct msm_drm_private *priv;
+	struct drm_encoder *drm_enc;
 
 	if (!dpu_enc) {
 		DPU_ERROR("invalid arg(s), enc %d\n", dpu_enc != NULL);
 		return -EINVAL;
 	}
 
+	drm_enc = &dpu_enc->base;
+	priv = drm_enc->dev->dev_private;
 	dpu_enc->cur_master = NULL;
 
 	memset(&phys_params, 0, sizeof(phys_params));
@@ -2479,9 +2485,18 @@ static int dpu_encoder_setup_display(struct dpu_encoder_virt *dpu_enc,
 		DPU_DEBUG("h_tile_instance %d = %d, split_role %d\n",
 				i, controller_id, phys_params.split_role);
 
-		phys_params.hw_intf = dpu_encoder_get_intf(dpu_kms->catalog, &dpu_kms->rm,
-							   disp_info->intf_type,
-							   controller_id);
+		if (drm_enc_mode == DRM_MODE_ENCODER_DPMST) {
+			intf_id = msm_dp_get_mst_intf_id(priv->dp[controller_id],
+							 disp_info->stream_id);
+			DPU_DEBUG("intf_id %d for disp_info->stream_id = %d\n", intf_id,
+				  disp_info->stream_id);
+			phys_params.hw_intf = dpu_rm_get_intf(&dpu_kms->rm, intf_id);
+
+		} else {
+			phys_params.hw_intf = dpu_encoder_get_intf(dpu_kms->catalog, &dpu_kms->rm,
+								   disp_info->intf_type,
+								   controller_id);
+		}
 
 		if (disp_info->intf_type == INTF_WB && controller_id < WB_MAX)
 			phys_params.hw_wb = dpu_rm_get_wb(&dpu_kms->rm, controller_id);
@@ -2581,7 +2596,7 @@ struct drm_encoder *dpu_encoder_init(struct drm_device *dev,
 	mutex_init(&dpu_enc->enc_lock);
 	mutex_init(&dpu_enc->rc_lock);
 
-	ret = dpu_encoder_setup_display(dpu_enc, dpu_kms, disp_info);
+	ret = dpu_encoder_setup_display(dpu_enc, dpu_kms, disp_info, drm_enc_mode);
 	if (ret)
 		goto fail;
 

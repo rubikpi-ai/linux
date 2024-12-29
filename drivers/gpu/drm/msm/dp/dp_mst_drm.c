@@ -314,6 +314,7 @@ static void msm_dp_mst_bridge_atomic_pre_enable(struct drm_bridge *drm_bridge,
 	struct msm_dp_mst_bridge *bridge;
 	struct msm_dp *dp;
 	struct msm_dp_mst_bridge_state *msm_dp_bridge_state;
+	struct msm_dp_mst *dp_mst;
 
 	if (!drm_bridge) {
 		DRM_ERROR("Invalid params\n");
@@ -323,6 +324,7 @@ static void msm_dp_mst_bridge_atomic_pre_enable(struct drm_bridge *drm_bridge,
 	bridge = to_msm_dp_mst_bridge(drm_bridge);
 	msm_dp_bridge_state = to_msm_dp_mst_bridge_state(bridge);
 	dp = bridge->display;
+	dp_mst = dp->msm_dp_mst;
 
 	/* to cover cases of bridge_disable/bridge_enable without modeset */
 	bridge->connector = msm_dp_bridge_state->connector;
@@ -333,12 +335,14 @@ static void msm_dp_mst_bridge_atomic_pre_enable(struct drm_bridge *drm_bridge,
 		return;
 	}
 
+	mutex_lock(&dp_mst->mst_lock);
 	msm_dp_display_atomic_prepare(dp);
 
 	rc = _msm_dp_mst_bridge_pre_enable_part1(bridge);
 	if (rc) {
 		DRM_ERROR("[%d] DP display pre-enable failed, rc=%d\n", bridge->id, rc);
 		msm_dp_display_unprepare(dp);
+		mutex_unlock(&dp_mst->mst_lock);
 		return;
 	}
 
@@ -351,6 +355,8 @@ static void msm_dp_mst_bridge_atomic_pre_enable(struct drm_bridge *drm_bridge,
 		   drm_mode_vrefresh(&bridge->drm_mode),
 		   bridge->vcpi, bridge->start_slot,
 		   bridge->start_slot + bridge->num_slots);
+
+	mutex_unlock(&dp_mst->mst_lock);
 }
 
 static void msm_dp_mst_bridge_atomic_disable(struct drm_bridge *drm_bridge,
@@ -358,6 +364,7 @@ static void msm_dp_mst_bridge_atomic_disable(struct drm_bridge *drm_bridge,
 {
 	struct msm_dp_mst_bridge *bridge;
 	struct msm_dp *dp;
+	struct msm_dp_mst *mst;
 
 	if (!drm_bridge) {
 		DRM_ERROR("Invalid params\n");
@@ -371,6 +378,9 @@ static void msm_dp_mst_bridge_atomic_disable(struct drm_bridge *drm_bridge,
 	}
 
 	dp = bridge->display;
+	mst = dp->msm_dp_mst;
+
+	mutex_lock(&mst->mst_lock);
 
 	_msm_dp_mst_bridge_pre_disable_part1(bridge);
 
@@ -380,6 +390,8 @@ static void msm_dp_mst_bridge_atomic_disable(struct drm_bridge *drm_bridge,
 
 	drm_dbg_dp(dp->drm_dev, "mst bridge:%d conn:%d disable complete\n", bridge->id,
 		   DP_MST_CONN_ID(bridge));
+
+	mutex_unlock(&mst->mst_lock);
 }
 
 static void msm_dp_mst_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
@@ -388,6 +400,7 @@ static void msm_dp_mst_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
 	int conn = 0;
 	struct msm_dp_mst_bridge *bridge;
 	struct msm_dp *dp;
+	struct msm_dp_mst *mst;
 
 	if (!drm_bridge) {
 		DRM_ERROR("Invalid params\n");
@@ -403,6 +416,9 @@ static void msm_dp_mst_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
 	conn = DP_MST_CONN_ID(bridge);
 
 	dp = bridge->display;
+	mst = dp->msm_dp_mst;
+
+	mutex_lock(&mst->mst_lock);
 
 	msm_dp_display_atomic_post_disable_helper(dp, bridge->msm_dp_panel);
 
@@ -414,6 +430,8 @@ static void msm_dp_mst_bridge_atomic_post_disable(struct drm_bridge *drm_bridge,
 
 	drm_dbg_dp(dp->drm_dev, "mst bridge:%d conn:%d post disable complete\n",
 		   bridge->id, conn);
+
+	mutex_unlock(&mst->mst_lock);
 }
 
 static void msm_dp_mst_bridge_mode_set(struct drm_bridge *drm_bridge,
@@ -532,6 +550,34 @@ static struct msm_dp_mst_bridge_state *msm_dp_mst_br_priv_state(struct drm_atomi
 										&bridge->obj));
 }
 
+static void msm_dp_mst_clear_panel_edid(struct msm_dp *dp_display)
+{
+	struct msm_dp_mst *mst = dp_display->msm_dp_mst;
+	struct msm_dp_mst_connector *mst_conn;
+	struct msm_dp_panel *dp_panel;
+	struct msm_dp_mst_bridge *dp_bridge;
+	int i;
+
+	if (!dp_display) {
+		DRM_ERROR("invalid input\n");
+		return;
+	}
+
+	for (i = 0; i < mst->max_streams; i++) {
+		dp_bridge = &mst->mst_bridge[i];
+		mst_conn = to_msm_dp_mst_connector(dp_bridge->connector);
+		dp_panel = dp_bridge->msm_dp_panel;
+
+		if (!dp_panel || !mst_conn || !mst_conn->mst_port)
+			continue;
+
+		if (dp_panel->drm_edid) {
+			drm_edid_free(dp_panel->drm_edid);
+			dp_panel->drm_edid = NULL;
+		}
+	}
+}
+
 /* DP MST HPD IRQ callback */
 void msm_dp_mst_display_hpd_irq(struct msm_dp *dp_display)
 {
@@ -556,6 +602,9 @@ void msm_dp_mst_display_hpd_irq(struct msm_dp *dp_display)
 	/* ack the request */
 	if (handled) {
 		rc = drm_dp_dpcd_writeb(mst->dp_aux, esi_res, ack[1]);
+
+		if (ack[1] & DP_UP_REQ_MSG_RDY)
+			msm_dp_mst_clear_panel_edid(dp_display);
 
 		if (rc != 1)
 			DRM_ERROR("dpcd esi_res failed. rc=%d\n", rc);
@@ -592,6 +641,9 @@ static int msm_dp_mst_connector_get_modes(struct drm_connector *connector)
 	struct msm_dp_mst *mst = dp_display->msm_dp_mst;
 	struct msm_dp_panel *dp_panel = mst_conn->dp_panel;
 
+	if (dp_panel->drm_edid)
+		goto duplicate_edid;
+
 	drm_edid_free(dp_panel->drm_edid);
 
 	dp_panel->drm_edid = drm_dp_mst_edid_read(connector, &mst->mst_mgr, mst_conn->mst_port);
@@ -600,6 +652,7 @@ static int msm_dp_mst_connector_get_modes(struct drm_connector *connector)
 		return -EINVAL;
 	}
 
+duplicate_edid:
 	drm_edid_connector_update(connector, dp_panel->drm_edid);
 
 	return drm_edid_connector_add_modes(connector);
@@ -867,8 +920,11 @@ end:
 static void dp_mst_connector_destroy(struct drm_connector *connector)
 {
 	struct msm_dp_mst_connector *mst_conn = to_msm_dp_mst_connector(connector);
+	struct msm_dp_panel *dp_panel = mst_conn->dp_panel;
 
 	drm_connector_cleanup(connector);
+	drm_edid_free(dp_panel->drm_edid);
+	dp_panel->drm_edid = NULL;
 	drm_dp_mst_put_port_malloc(mst_conn->mst_port);
 	msm_dp_panel_put(mst_conn->dp_panel);
 }
@@ -963,6 +1019,30 @@ msm_dp_mst_add_connector(struct drm_dp_mst_topology_mgr *mgr,
 	return &mst_connector->connector;
 }
 
+int msm_dp_mst_display_set_mgr_state(struct msm_dp *dp_display, bool state)
+{
+	int rc;
+	struct msm_dp_mst *mst = dp_display->msm_dp_mst;
+
+	/*
+	 * on hpd high, set_mgr_state is called before hotplug event is sent
+	 * to usermode and mst_session_state should be updated here.
+	 * on hpd_low, set_mgr_state is called after hotplug event is sent and
+	 * the session_state was already updated prior to that.
+	 */
+	if (state)
+		mst->mst_session_hpd_state = state;
+
+	rc = drm_dp_mst_topology_mgr_set_mst(&mst->mst_mgr, state);
+	if (rc < 0) {
+		DRM_ERROR("failed to set topology mgr state to %d. rc %d\n",
+			  state, rc);
+	}
+
+	drm_dbg_dp(dp_display->drm_dev, "dp_mst_display_set_mgr_state state:%d\n", state);
+	return rc;
+}
+
 static const struct drm_dp_mst_topology_cbs msm_dp_mst_drm_cbs = {
 	.add_connector = msm_dp_mst_add_connector,
 };
@@ -1006,6 +1086,8 @@ int msm_dp_mst_init(struct msm_dp *dp_display, u32 max_streams, u32 max_dpcd_tra
 	}
 
 	dp_display->msm_dp_mst = msm_dp_mst;
+
+	mutex_init(&msm_dp_mst->mst_lock);
 
 	msm_dp_mst->mst_initialized = true;
 

@@ -64,6 +64,7 @@ struct msm_dp_mst {
 	struct drm_dp_aux *dp_aux;
 	bool mst_session_hpd_state;
 	u32 max_streams;
+	struct mutex mst_lock;
 };
 
 struct msm_dp_mst_connector {
@@ -88,5 +89,6 @@ int msm_dp_mst_init(struct msm_dp *dp_display, u32 max_streams,
 		    u32 max_dpcd_transaction_bytes, struct drm_dp_aux *drm_aux);
 
 void msm_dp_mst_display_hpd_irq(struct msm_dp *dp_display);
+int msm_dp_mst_display_set_mgr_state(struct msm_dp *dp_display, bool state);
 
 #endif /* _DP_MST_DRM_H_ */
