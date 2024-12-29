@@ -7,6 +7,7 @@
 #define _DP_DISPLAY_H_
 
 #include "dp_panel.h"
+#include "dp_mst_drm.h"
 #include <sound/hdmi-codec.h>
 #include "disp/msm_disp_snapshot.h"
 
@@ -20,13 +21,13 @@ struct msm_dp {
 	struct drm_bridge *next_bridge;
 	bool link_ready;
 	bool audio_enabled;
-	bool power_on;
 	bool prepared;
 	bool mst_active;
 	unsigned int connector_type;
 	bool is_edp;
 	bool internal_hpd;
 
+	struct msm_dp_mst *msm_dp_mst;
 	hdmi_codec_plugged_cb plugged_cb;
 
 	struct msm_dp_audio *msm_dp_audio;
@@ -65,5 +66,9 @@ void msm_dp_display_atomic_post_disable_helper(struct msm_dp *msm_dp,
 					       struct msm_dp_panel *msm_dp_panel);
 
 void msm_dp_display_unprepare(struct msm_dp *dp);
+
+int msm_dp_display_get_active_stream_cnt(struct msm_dp *msm_dp);
+
+struct msm_dp_panel *msm_dp_display_get_panel(struct msm_dp *dp_display);
 
 #endif /* _DP_DISPLAY_H_ */
