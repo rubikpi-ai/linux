@@ -12,6 +12,8 @@
 	model = "Qualcomm Technologies, Inc. QCS615 Ride";
 	compatible = "qcom,qcs615-ride", "qcom,qcs615";
 	chassis-type = "embedded";
+	qcom,msm-id = <377 0x0>, <380 0>, <384 0x0>, <680 0x0>;
+	qcom,board-id = <0x03010019 0>, <0x03020019 0>, <0x10019 0>, <0x20019 0>;
 
 	aliases {
 		serial0 = &uart0;
