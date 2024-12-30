@@ -41,6 +41,7 @@
 	(to_camss_index(ptr_module, index)->dev)
 
 #define CAMSS_RES_MAX 17
+#define RPMP_PERF_STATE_NOM 256
 
 struct camss_subdev_resources {
 	char *regulators[CAMSS_RES_MAX];
@@ -80,6 +81,7 @@ enum camss_version {
 	CAMSS_845,
 	CAMSS_8250,
 	CAMSS_8280XP,
+	CAMSS_8775P,
 };
 
 enum icc_count {
@@ -117,6 +119,7 @@ struct camss {
 	struct device_link *genpd_link;
 	struct icc_path *icc_path[ICC_SM8250_COUNT];
 	const struct camss_resources *res;
+	void __iomem *csid_top_base;
 };
 
 struct camss_camera_interface {
@@ -155,5 +158,7 @@ void camss_pm_domain_off(struct camss *camss, int id);
 int camss_vfe_get(struct camss *camss, int id);
 void camss_vfe_put(struct camss *camss, int id);
 void camss_delete(struct camss *camss);
-
+void camss_buf_done(struct camss *camss, int hw_id, int port_id);
+void camss_reg_update(struct camss *camss, int hw_id,
+			int port_id, bool is_clear);
 #endif /* QC_MSM_CAMSS_H */
