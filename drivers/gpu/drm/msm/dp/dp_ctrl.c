@@ -1780,7 +1780,7 @@ static int msm_dp_ctrl_stream_clk_on(struct msm_dp_ctrl_private *ctrl, unsigned 
 		return ret;
 	}
 
-	if (ctrl->stream_clks_on) {
+	if (ctrl->stream_clks_on[stream_id]) {
 		drm_dbg_dp(ctrl->drm_dev, "stream clks already enabled\n");
 	} else {
 		ret = clk_prepare_enable(ctrl->pixel_clk[stream_id]);

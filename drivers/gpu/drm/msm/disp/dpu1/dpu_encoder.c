@@ -643,7 +643,8 @@ static struct msm_display_topology dpu_encoder_get_topology(
 	else if (!dpu_kms->catalog->caps->has_3d_merge)
 		topology.num_lm = 1;
 	else
-		topology.num_lm = (mode->hdisplay > MAX_HDISPLAY_SPLIT) ? 2 : 1;
+		topology.num_lm = (mode->hdisplay > dpu_kms->catalog->caps->max_mixer_width) ?
+				   2 : 1;
 
 	if (crtc_state->ctm)
 		topology.num_dspp = topology.num_lm;

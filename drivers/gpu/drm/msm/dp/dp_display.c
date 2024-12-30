@@ -152,8 +152,9 @@ static const unsigned int stream_intf_map_sa_8775p[][DP_STREAM_MAX] = {
 };
 
 static const struct msm_dp_desc msm_dp_desc_qcs8300[] = {
-	{ .io_start = 0xaf54000, .id = MSM_DP_CONTROLLER_0, .wide_bus_supported = true },
-	{ .io_start = 0xaf5c000, .id = MSM_DP_CONTROLLER_1, .wide_bus_supported = true },
+	{ .io_start = 0x0af54000, .id = MSM_DP_CONTROLLER_0, .wide_bus_supported = true,
+	  .max_streams = 2, .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_0],
+	},
 	{}
 };
 
@@ -162,7 +163,7 @@ static const struct msm_dp_desc msm_dp_desc_sa8775p[] = {
 	  .max_streams = 2, .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_0],
 	},
 	{ .io_start = 0x0af5c000, .id = MSM_DP_CONTROLLER_1, .wide_bus_supported = true,
-	  .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_1],
+	  .max_streams = 2, .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_1],
 	},
 	{}
 };
@@ -806,7 +807,10 @@ static int msm_dp_irq_hpd_handle(struct msm_dp_display_private *dp, u32 data)
 	drm_dbg_dp(dp->drm_dev, "Before, type=%d hpd_state=%d\n",
 			dp->msm_dp_display.connector_type, state);
 
-	if (state == ST_DISPLAY_OFF) {
+	/* irq hpd to indicate monitor disconnect/connect can happen even
+	 * after stream is disabled not necessarily due to hotplug disconnect
+	 */
+	if (state == ST_DISPLAY_OFF && !dp->msm_dp_display.mst_active) {
 		mutex_unlock(&dp->event_mutex);
 		return 0;
 	}
@@ -1902,15 +1906,13 @@ void msm_dp_display_atomic_post_disable_helper(struct msm_dp *dp, struct msm_dp_
 	msm_dp_display_disable(msm_dp_display, msm_dp_panel);
 
 	state =  msm_dp_display->hpd_state;
-	if (state == ST_DISCONNECT_PENDING) {
+	if (state == ST_DISCONNECT_PENDING && !msm_dp_display->active_stream_cnt) {
 		/* completed disconnection */
 		msm_dp_display->hpd_state = ST_DISCONNECTED;
-	} else {
+	} else if (state != ST_DISCONNECT_PENDING && state != ST_DISCONNECTED) {
+		/* stay at pending till both streams are disabled, otherwise OFF */
 		msm_dp_display->hpd_state = ST_DISPLAY_OFF;
 	}
-
-	//To-do: Need to check if we can manage this with active_Stream_cnt
-	msm_dp_display->hpd_state = ST_DISCONNECTED;
 
 	drm_dbg_dp(dp->drm_dev, "type=%d Done\n", dp->connector_type);
 
