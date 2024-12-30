@@ -7331,7 +7331,8 @@
 				reg = <0x0 0xaf54000 0x0 0x104>,
 					<0x0 0xaf54200 0x0 0x0c0>,
 					<0x0 0xaf55000 0x0 0x770>,
-					<0x0 0xaf56000 0x0 0x09c>;
+					<0x0 0xaf56000 0x0 0x09c>,
+					<0x0 0xaf57000 0x0 0x09c>;
 
 				interrupt-parent = <&mdss0>;
 				interrupts = <12>;
@@ -7340,15 +7341,20 @@
 					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_AUX_CLK>,
 					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_LINK_CLK>,
 					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_LINK_INTF_CLK>,
-					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL0_CLK>;
+					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL0_CLK>,
+					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL1_CLK>;
 				clock-names = "core_iface",
 						"core_aux",
 						"ctrl_link",
 						"ctrl_link_iface",
-						"stream_pixel";
+						"stream_pixel",
+						"stream_1_pixel";
 				assigned-clocks = <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_LINK_CLK_SRC>,
-						  <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL0_CLK_SRC>;
-				assigned-clock-parents = <&mdss0_edp_phy 0>, <&mdss0_edp_phy 1>;
+						  <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL0_CLK_SRC>,
+						  <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL1_CLK_SRC>;
+				assigned-clock-parents = <&mdss0_edp_phy 0>,
+							 <&mdss0_edp_phy 1>,
+							 <&mdss0_edp_phy 1>;
 				phys = <&mdss0_edp_phy>;
 				phy-names = "dp";
 
