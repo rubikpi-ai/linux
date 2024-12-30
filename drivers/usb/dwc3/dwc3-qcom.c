@@ -103,6 +103,8 @@ struct dwc3_qcom {
 	struct notifier_block	pm_notifier;
 };
 
+static bool enable_usb_sleep = false;
+
 static inline void dwc3_qcom_setbits(void __iomem *base, u32 offset, u32 val)
 {
 	u32 reg;
@@ -802,7 +804,7 @@ static int dwc3_qcom_pm_callback(struct notifier_block *nb, unsigned long action
 
 	if (suspend_sts) {
 		if (!strncmp(dev_name(qcom->dwc.dev), "a600000.usb", 11)) {
-			if (!qcom->dwc.cable_disconnected) {
+			if ((!qcom->dwc.cable_disconnected) && (!enable_usb_sleep)) {
 				dev_err(qcom->dev, "Abort PM suspend!! (USB is outside LPM)\n");
 				ret = NOTIFY_BAD;
 			}
@@ -1075,6 +1077,61 @@ static const struct file_operations dwc3_qcom_usb2_0_mode_fops = {
 	.read			= seq_read,
 	.llseek			= seq_lseek,
 	.release		= single_release,
+};
+
+static ssize_t dwc3_usb_sleep_enbale_show(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+	struct dwc3_qcom *qcom = dev_get_drvdata(dev);
+
+	return scnprintf(buf, 2, "%d\n", (enable_usb_sleep)? 1 : 0);
+};
+
+static ssize_t dwc3_usb_sleep_enbale_store(struct device *dev,
+		struct device_attribute *attr, const char *buf,
+		size_t count)
+{
+	struct dwc3_qcom *qcom = dev_get_drvdata(dev);
+	int ret;
+	bool val;
+
+	if (!qcom) {
+		pr_err("qcom is NULL\n");
+		return -EINVAL;
+	}
+
+	ret = kstrtobool(buf, &val);
+	if (ret) {
+		pr_err("Parse buf failed keep previous val\n");
+		return count;
+	}
+
+	if (val) {
+		pr_err("Enable Type-C connection to enter sleep mode\n");
+		enable_usb_sleep = true;
+	} else {
+		pr_err("Disable Type-C connection to enter sleep mode\n");
+		enable_usb_sleep = false;
+	}
+
+	return count;
+
+}
+
+static DEVICE_ATTR_RW(dwc3_usb_sleep_enbale);
+
+static struct attribute *dwc3_attrs[] = {
+	&dev_attr_dwc3_usb_sleep_enbale.attr,
+	NULL,
+};
+
+static const struct attribute_group dwc3_attr_group = {
+	.attrs = dwc3_attrs,
+};
+
+static const struct attribute_group *dwc3_attr_groups[] = {
+	&dwc3_attr_group,
+	NULL,
 };
 
 static int dwc3_qcom_probe(struct platform_device *pdev)
@@ -1466,6 +1523,7 @@ static struct platform_driver dwc3_qcom_driver = {
 		.pm	= &dwc3_qcom_dev_pm_ops,
 		.of_match_table	= dwc3_qcom_of_match,
 		.acpi_match_table = ACPI_PTR(dwc3_qcom_acpi_match),
+		.dev_groups = dwc3_attr_groups,
 	},
 };
 
