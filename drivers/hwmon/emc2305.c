@@ -3,6 +3,7 @@
  * Hardware monitoring driver for EMC2305 fan controller
  *
  * Copyright (C) 2022 Nvidia Technologies Ltd.
+ * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/err.h>
@@ -530,6 +531,18 @@ static int emc2305_identify(struct device *dev)
 	return 0;
 }
 
+
+static int emc2305_detect(struct i2c_client *client, struct i2c_board_info *info)
+{
+	struct i2c_adapter *adapter = client->adapter;
+
+	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE_DATA))
+		return -ENODEV;
+
+	strscpy(info->type, "emc2303", I2C_NAME_SIZE);
+	return 0;
+}
+
 static int emc2305_probe(struct i2c_client *client)
 {
 	struct i2c_adapter *adapter = client->adapter;
@@ -618,10 +631,27 @@ static struct i2c_driver emc2305_driver = {
 	.probe = emc2305_probe,
 	.remove	  = emc2305_remove,
 	.id_table = emc2305_ids,
+	.detect = emc2305_detect,
 	.address_list = emc2305_normal_i2c,
 };
 
-module_i2c_driver(emc2305_driver);
+static struct i2c_board_info emc2305_i2c_info = {
+	I2C_BOARD_INFO("emc2303", 0x2c),
+};
+
+static int __init emc2305_init(void)
+{
+	i2c_register_board_info(1, &emc2305_i2c_info, 1);
+	return i2c_add_driver(&emc2305_driver);
+}
+
+static void __exit emc2305_exit(void)
+{
+	i2c_del_driver(&emc2305_driver);
+}
+
+module_init(emc2305_init);
+module_exit(emc2305_exit);
 
 MODULE_AUTHOR("Nvidia");
 MODULE_DESCRIPTION("Microchip EMC2305 fan controller driver");

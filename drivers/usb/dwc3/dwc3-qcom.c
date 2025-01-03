@@ -53,7 +53,7 @@
 #define USB_MEMORY_AVG_HS_BW MBps_to_icc(240)
 #define USB_MEMORY_PEAK_HS_BW MBps_to_icc(700)
 #define USB_MEMORY_AVG_SS_BW  MBps_to_icc(1000)
-#define USB_MEMORY_PEAK_SS_BW MBps_to_icc(2500)
+#define USB_MEMORY_PEAK_SS_BW MBps_to_icc(3500)
 #define APPS_USB_AVG_BW 0
 #define APPS_USB_PEAK_BW MBps_to_icc(40)
 
@@ -1372,6 +1372,39 @@ static void dwc3_qcom_remove(struct platform_device *pdev)
 	}
 }
 
+static void dwc3_qcom_shutdown(struct platform_device *pdev)
+{
+	struct device_node *np = pdev->dev.of_node;
+	struct device *dev = &pdev->dev;
+	struct dwc3_qcom *qcom;
+	bool legacy_binding;
+	int i;
+
+	legacy_binding = dwc3_qcom_has_separate_dwc3_of_node(dev);
+	qcom = get_dwc3_qcom(dev);
+
+	if (legacy_binding)
+		return;
+
+	pm_runtime_get_sync(qcom->dev);
+	dwc3_core_exit_mode(&qcom->dwc);
+	dwc3_free_event_buffers(&qcom->dwc);
+
+	for (i = qcom->num_clocks - 1; i >= 0; i--) {
+		clk_disable_unprepare(qcom->clks[i]);
+		clk_put(qcom->clks[i]);
+	}
+	qcom->num_clocks = 0;
+
+	dwc3_qcom_interconnect_exit(qcom);
+	reset_control_assert(qcom->resets);
+
+	pm_runtime_allow(qcom->dev);
+	pm_runtime_disable(qcom->dev);
+	pm_runtime_dont_use_autosuspend(qcom->dev);
+	pm_runtime_put_noidle(qcom->dev);
+}
+
 static int __maybe_unused dwc3_qcom_pm_suspend(struct device *dev)
 {
 	bool wakeup = device_may_wakeup(dev);
@@ -1518,6 +1551,7 @@ MODULE_DEVICE_TABLE(acpi, dwc3_qcom_acpi_match);
 static struct platform_driver dwc3_qcom_driver = {
 	.probe		= dwc3_qcom_probe,
 	.remove_new	= dwc3_qcom_remove,
+	.shutdown	= dwc3_qcom_shutdown,
 	.driver		= {
 		.name	= "dwc3-qcom",
 		.pm	= &dwc3_qcom_dev_pm_ops,

@@ -348,7 +348,11 @@ static int dcc_sw_trigger(struct dcc_drvdata *drvdata)
 		if (!test_bit(i, drvdata->enable_bitmap))
 			continue;
 		ll_cfg = dcc_list_readl(drvdata, i, DCC_LL_CFG);
-		tmp_ll_cfg = ll_cfg & ~DCC_TRIGGER_MASK;
+		if (drvdata->mem_map_ver == MEM_MAP_VER3)
+			tmp_ll_cfg = ll_cfg & ~BIT(8);
+		else
+			tmp_ll_cfg = ll_cfg & ~DCC_TRIGGER_MASK;
+
 		dcc_list_writel(drvdata, tmp_ll_cfg, i, DCC_LL_CFG);
 		dcc_list_writel(drvdata, 1, i, DCC_LL_SW_TRIGGER);
 		dcc_list_writel(drvdata, ll_cfg, i, DCC_LL_CFG);
@@ -373,7 +377,11 @@ static int dcc_sw_trigger(struct dcc_drvdata *drvdata)
 		dev_err(drvdata->dev, "Read access error for list %d err: 0x%x\n",
 			i, status);
 		ll_cfg = dcc_list_readl(drvdata, i, DCC_LL_CFG);
-		tmp_ll_cfg = ll_cfg & ~DCC_TRIGGER_MASK;
+		if (drvdata->mem_map_ver == MEM_MAP_VER3)
+			tmp_ll_cfg = ll_cfg & ~BIT(8);
+		else
+			tmp_ll_cfg = ll_cfg & ~DCC_TRIGGER_MASK;
+
 		dcc_list_writel(drvdata, tmp_ll_cfg, i, DCC_LL_CFG);
 		dcc_list_writel(drvdata, DCC_STATUS_MASK, i, DCC_LL_BUS_ACCESS_STATUS);
 		dcc_list_writel(drvdata, ll_cfg, i, DCC_LL_CFG);
@@ -721,8 +729,12 @@ static int dcc_enable(struct dcc_drvdata *drvdata, unsigned int curr_list)
 	set_bit(curr_list, drvdata->enable_bitmap);
 
 	/* 5. Configure trigger */
-	dcc_list_writel(drvdata, DCC_TRIGGER_MASK,
-			curr_list, DCC_LL_CFG);
+	if (drvdata->mem_map_ver == MEM_MAP_VER3)
+		dcc_list_writel(drvdata, BIT(8),
+				curr_list, DCC_LL_CFG);
+	else
+		dcc_list_writel(drvdata, DCC_TRIGGER_MASK,
+				curr_list, DCC_LL_CFG);
 
 out_unlock:
 	mutex_unlock(&drvdata->mutex);

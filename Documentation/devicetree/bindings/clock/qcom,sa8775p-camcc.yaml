@@ -30,9 +30,9 @@ properties:
       - description: Sleep clock source
 
   power-domains:
-    maxItems: 1
+    maxItems: 2
     description:
-      A phandle and PM domain specifier for the MMCX power domain.
+      A phandle and PM domain specifier for the MMCX and MXC power domains.
 
   required-opps:
     maxItems: 1
@@ -75,7 +75,8 @@ examples:
                <&rpmhcc RPMH_CXO_CLK>,
                <&rpmhcc RPMH_CXO_CLK_A>,
                <&sleep_clk>;
-      power-domains = <&rpmhpd SA8775P_MMCX>;
+      power-domains = <&rpmhpd SA8775P_MMCX>,
+                      <&rpmhpd SA8775P_MXC>;
       required-opps = <&rpmhpd_opp_low_svs>;
       #clock-cells = <1>;
       #reset-cells = <1>;

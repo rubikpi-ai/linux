@@ -23,6 +23,7 @@
 #define TDM_SLOT_WIDTH		16
 #define WCN_CDC_SLIM_RX_CH_MAX	2
 #define WCN_CDC_SLIM_TX_CH_MAX	2
+#define NAME_SIZE	32
 
 #define DEFAULT_MCLK_RATE		24576000
 #define TDM_BCLK_RATE			6144000
@@ -43,6 +44,7 @@ struct qcm6490_snd_data {
 	bool jack_setup;
 	struct clk *macro;
 	struct clk *dcodec;
+	struct snd_soc_jack hdmi_jack[8];
 };
 
 static int qcm6490_slim_dai_init(struct snd_soc_pcm_runtime *rtd)
@@ -88,6 +90,12 @@ static int qcm6490_snd_init(struct snd_soc_pcm_runtime *rtd)
 	struct qcm6490_snd_data *data = snd_soc_card_get_drvdata(rtd->card);
 	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(rtd, 0);
 	int ret = 0;
+	char jack_name[NAME_SIZE];
+	struct snd_soc_jack *hdmi_jack  = NULL;
+	int hdmi_pcm_id = 0;
+	struct snd_soc_dai *codec_dai;
+	int rval, i;
+
 
 	switch (cpu_dai->id) {
 	case TX_CODEC_DMA_TX_3:
@@ -115,8 +123,34 @@ static int qcm6490_snd_init(struct snd_soc_pcm_runtime *rtd)
 	case SLIMBUS_0_RX:
 	case SLIMBUS_0_TX:
 		ret = qcm6490_slim_dai_init(rtd);
+		break;
+	case DISPLAY_PORT_RX_0:
+		hdmi_pcm_id = 0;
+		hdmi_jack = &data->hdmi_jack[0];
+		break;
+	case DISPLAY_PORT_RX_1:
+		hdmi_pcm_id = 1;
+		hdmi_jack = &data->hdmi_jack[1];
+		break;
+
 	default:
 		break;
+	}
+	if (hdmi_jack) {
+		snprintf(jack_name, sizeof(jack_name), "HDMI/DP%d Jack", hdmi_pcm_id);
+		rval = snd_soc_card_jack_new(rtd->card, jack_name, SND_JACK_AVOUT, hdmi_jack);
+
+		if (rval)
+			return rval;
+
+		for_each_rtd_codec_dais(rtd, i, codec_dai) {
+			rval = snd_soc_component_set_jack(codec_dai->component, hdmi_jack, NULL);
+			if (rval != 0 && rval != -EOPNOTSUPP) {
+				dev_warn(rtd->card->dev, "Failed to set HDMI jack: %d\n", rval);
+				return rval;
+			}
+		}
+		return qcom_snd_wcd_jack_setup(rtd, &data->jack, &data->jack_setup);
 	}
 
 	return ret;
@@ -458,6 +492,24 @@ static const struct snd_soc_dapm_route qcs6490_rb3gen2_vision_dapm_routes[] = {
 	{"STUB_AIF1_TX", NULL, "STUB_AIF1_PINCTRL"},
 };
 
+static const struct snd_soc_dapm_widget qcs8300_dapm_widgets[] = {
+	SND_SOC_DAPM_PINCTRL("STUB_AIF1_PINCTRL", "stub_aif1_active", "stub_aif1_sleep"),
+	SND_SOC_DAPM_PINCTRL("STUB_AIF2_PINCTRL", "stub_aif2_active", "stub_aif2_sleep"),
+	SND_SOC_DAPM_PINCTRL("STUB_AIF3_PINCTRL", "stub_aif3_active", "stub_aif3_sleep"),
+	SND_SOC_DAPM_PINCTRL("STUB_AIF4_PINCTRL", "stub_aif4_active", "stub_aif4_sleep"),
+};
+
+static const struct snd_soc_dapm_route qcs8300_dapm_routes[] = {
+	{"STUB_AIF1_RX", NULL, "STUB_AIF1_PINCTRL"},
+	{"STUB_AIF1_TX", NULL, "STUB_AIF1_PINCTRL"},
+	{"STUB_AIF2_RX", NULL, "STUB_AIF2_PINCTRL"},
+	{"STUB_AIF2_TX", NULL, "STUB_AIF2_PINCTRL"},
+	{"STUB_AIF1_RX", NULL, "STUB_AIF3_PINCTRL"},
+	{"STUB_AIF1_TX", NULL, "STUB_AIF3_PINCTRL"},
+	{"STUB_AIF1_RX", NULL, "STUB_AIF4_PINCTRL"},
+	{"STUB_AIF1_TX", NULL, "STUB_AIF4_PINCTRL"},
+};
+
 static const struct snd_soc_dapm_widget qcs9100_dapm_widgets[] = {
 	SND_SOC_DAPM_PINCTRL("STUB_AIF0_PINCTRL", "stub_aif0_active", "stub_aif0_sleep"),
 	SND_SOC_DAPM_PINCTRL("STUB_AIF1_PINCTRL", "stub_aif1_active", "stub_aif1_sleep"),
@@ -530,12 +582,24 @@ static struct snd_soc_card qcs6490_rb3gen2_vision_data = {
 	.num_dapm_routes = ARRAY_SIZE(qcs6490_rb3gen2_vision_dapm_routes),
 };
 
+static struct snd_soc_card snd_soc_qcs8300_data = {
+	.name = "qcs8300",
+	.dapm_widgets = qcs8300_dapm_widgets,
+	.num_dapm_widgets = ARRAY_SIZE(qcs8300_dapm_widgets),
+	.dapm_routes = qcs8300_dapm_routes,
+	.num_dapm_routes = ARRAY_SIZE(qcs8300_dapm_routes),
+};
+
 static struct snd_soc_card snd_soc_qcs9100_data = {
 	.name = "qcs9100",
 	.dapm_widgets = qcs9100_dapm_widgets,
 	.num_dapm_widgets = ARRAY_SIZE(qcs9100_dapm_widgets),
 	.dapm_routes = qcs9100_dapm_routes,
 	.num_dapm_routes = ARRAY_SIZE(qcs9100_dapm_routes),
+};
+
+static struct snd_soc_card snd_soc_qcs9075_rb8_data = {
+	.name = "qcs9075-rb8",
 };
 
 static void qcm6490_add_be_ops(struct snd_soc_card *card)
@@ -601,7 +665,9 @@ static const struct of_device_id snd_qcm6490_dt_match[] = {
 	{.compatible = "qcom,qcs6490-rb3gen2-ptz-sndcard", .data = &qcs6490_rb3gen2_ptz_data},
 	{.compatible = "qcom,qcs6490-rb3gen2-video-sndcard", .data = &qcs6490_rb3gen2_video_data},
 	{.compatible = "qcom,qcs6490-rb3gen2-vision-sndcard", .data = &qcs6490_rb3gen2_vision_data},
+	{.compatible = "qcom,qcs8300-sndcard", .data = &snd_soc_qcs8300_data},
 	{.compatible = "qcom,qcs9100-sndcard", .data = &snd_soc_qcs9100_data},
+	{.compatible = "qcom,qcs9075-rb8-sndcard", .data = &snd_soc_qcs9075_rb8_data},
 	{}
 };
 

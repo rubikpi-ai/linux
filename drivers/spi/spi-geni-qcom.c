@@ -495,11 +495,20 @@ static int setup_gsi_xfer(struct spi_transfer *xfer, struct spi_geni_master *mas
 		mas->cur_speed_hz = xfer->speed_hz;
 	}
 
+	/*
+	 * Setting QCOM_GPI_IMMEDIATE_DMA flag for SPI transfer with data
+	 * up to 8 bytes in length and so GPI DMA will make sure to
+	 * directly copy SPI transfers data into DMA TRE buffers.
+	 */
 	if (xfer->tx_buf && xfer->rx_buf) {
 		peripheral.cmd = SPI_DUPLEX;
+		if (xfer->len <= QCOM_GPI_IMMEDIATE_DMA_LEN)
+			peripheral.flags |= QCOM_GPI_IMMEDIATE_DMA;
 	} else if (xfer->tx_buf) {
 		peripheral.cmd = SPI_TX;
 		peripheral.rx_len = 0;
+		if (xfer->len <= QCOM_GPI_IMMEDIATE_DMA_LEN)
+			peripheral.flags |= QCOM_GPI_IMMEDIATE_DMA;
 	} else if (xfer->rx_buf) {
 		peripheral.cmd = SPI_RX;
 		if (!(mas->cur_bits_per_word % MIN_WORD_LEN)) {
@@ -687,8 +696,11 @@ static int spi_geni_init(struct spi_geni_master *mas)
 		}
 		spi_slv_setup(mas);
 	} else if (proto != GENI_SE_SPI) {
-		dev_err(mas->dev, "Invalid proto %d\n", proto);
-		goto out_pm;
+		ret = geni_load_se_firmware(se, GENI_SE_SPI);
+		if (ret) {
+			dev_err(mas->dev, "Cannot load firmware from linux error: %d\n", ret);
+			goto out_pm;
+		}
 	}
 	mas->tx_fifo_depth = geni_se_get_tx_fifo_depth(se);
 
@@ -1133,25 +1145,27 @@ static int spi_geni_probe(struct platform_device *pdev)
 	spin_lock_init(&mas->lock);
 	pm_runtime_use_autosuspend(&pdev->dev);
 	pm_runtime_set_autosuspend_delay(&pdev->dev, 250);
-	pm_runtime_enable(dev);
+	ret = devm_pm_runtime_enable(dev);
+	if (ret)
+		return ret;
 
 	if (device_property_read_bool(&pdev->dev, "spi-slave"))
 		spi->target = true;
 
 	ret = geni_icc_get(&mas->se, NULL);
 	if (ret)
-		goto spi_geni_probe_runtime_disable;
+		return ret;
 	/* Set the bus quota to a reasonable value for register access */
 	mas->se.icc_paths[GENI_TO_CORE].avg_bw = Bps_to_icc(CORE_2X_50_MHZ);
 	mas->se.icc_paths[CPU_TO_GENI].avg_bw = GENI_DEFAULT_BW;
 
 	ret = geni_icc_set_bw(&mas->se);
 	if (ret)
-		goto spi_geni_probe_runtime_disable;
+		return ret;
 
 	ret = spi_geni_init(mas);
 	if (ret)
-		goto spi_geni_probe_runtime_disable;
+		return ret;
 
 	/*
 	 * check the mode supported and set_cs for fifo mode only
@@ -1180,8 +1194,6 @@ spi_geni_probe_free_irq:
 	free_irq(mas->irq, spi);
 spi_geni_release_dma:
 	spi_geni_release_dma_chan(mas);
-spi_geni_probe_runtime_disable:
-	pm_runtime_disable(dev);
 	return ret;
 }
 
@@ -1193,10 +1205,9 @@ static void spi_geni_remove(struct platform_device *pdev)
 	/* Unregister _before_ disabling pm_runtime() so we stop transfers */
 	spi_unregister_controller(spi);
 
-	spi_geni_release_dma_chan(mas);
-
 	free_irq(mas->irq, spi);
-	pm_runtime_disable(&pdev->dev);
+
+	spi_geni_release_dma_chan(mas);
 }
 
 static int __maybe_unused spi_geni_runtime_suspend(struct device *dev)

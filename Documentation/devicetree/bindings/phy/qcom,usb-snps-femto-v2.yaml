@@ -17,6 +17,7 @@ properties:
     oneOf:
       - items:
           - enum:
+              - qcom,sa7255p-usb-hs-phy
               - qcom,sa8255p-usb-hs-phy
               - qcom,sa8775p-usb-hs-phy
               - qcom,sc8280xp-usb-hs-phy
@@ -170,6 +171,7 @@ allOf:
         compatible:
           contains:
             enum:
+              - qcom,sa7255p-usb-hs-phy
               - qcom,sa8255p-usb-hs-phy
     then:
       required:

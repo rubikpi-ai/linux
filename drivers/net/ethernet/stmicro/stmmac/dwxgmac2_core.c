@@ -11,6 +11,7 @@
 #include "stmmac_ptp.h"
 #include "dwxlgmac2.h"
 #include "dwxgmac2.h"
+#include "dw25gmac.h"
 
 static void dwxgmac2_core_init(struct mac_device_info *hw,
 			       struct net_device *dev)
@@ -203,7 +204,7 @@ static void dwxgmac2_prog_mtl_rx_algorithms(struct mac_device_info *hw,
 	writel(value, ioaddr + XGMAC_MTL_OPMODE);
 }
 
-static void dwxgmac2_prog_mtl_tx_algorithms(struct mac_device_info *hw,
+static void dwxgmac2_prog_mtl_tx_algorithms(struct stmmac_priv *priv, struct mac_device_info *hw,
 					    u32 tx_alg)
 {
 	void __iomem *ioaddr = hw->pcsr;
@@ -286,7 +287,7 @@ static void dwxgmac2_config_cbs(struct stmmac_priv *priv,
 	writel(value, ioaddr + XGMAC_MTL_TCx_ETS_CONTROL(queue));
 }
 
-static void dwxgmac2_dump_regs(struct mac_device_info *hw, u32 *reg_space)
+static void dwxgmac2_dump_regs(struct stmmac_priv *priv, struct mac_device_info *hw, u32 *reg_space)
 {
 	void __iomem *ioaddr = hw->pcsr;
 	int i;
@@ -615,7 +616,7 @@ static int dwxgmac2_rss_configure(struct mac_device_info *hw,
 }
 
 static void dwxgmac2_update_vlan_hash(struct mac_device_info *hw, u32 hash,
-				      __le16 perfect_match, bool is_double)
+				      u16 perfect_match, bool is_double)
 {
 	void __iomem *ioaddr = hw->pcsr;
 
@@ -1211,7 +1212,8 @@ re_enable:
 	return ret;
 }
 
-static int dwxgmac2_get_mac_tx_timestamp(struct mac_device_info *hw, u64 *ts)
+static int dwxgmac2_get_mac_tx_timestamp(struct stmmac_priv *priv, struct mac_device_info *hw,
+					 u64 *ts)
 {
 	void __iomem *ioaddr = hw->pcsr;
 	u32 value;
@@ -1225,7 +1227,7 @@ static int dwxgmac2_get_mac_tx_timestamp(struct mac_device_info *hw, u64 *ts)
 	return 0;
 }
 
-static int dwxgmac2_flex_pps_config(void __iomem *ioaddr, int index,
+static int dwxgmac2_flex_pps_config(struct stmmac_priv *priv, void __iomem *ioaddr, int index,
 				    struct stmmac_pps_cfg *cfg, bool enable,
 				    u32 sub_second_inc, u32 systime_flags)
 {
@@ -1715,6 +1717,47 @@ int dwxgmac2_setup(struct stmmac_priv *priv)
 	mac->link.xgmii.speed2500 = XGMAC_CONFIG_SS_2500;
 	mac->link.xgmii.speed5000 = XGMAC_CONFIG_SS_5000;
 	mac->link.xgmii.speed10000 = XGMAC_CONFIG_SS_10000;
+	mac->link.speed_mask = XGMAC_CONFIG_SS_MASK;
+
+	mac->mii.addr = XGMAC_MDIO_ADDR;
+	mac->mii.data = XGMAC_MDIO_DATA;
+	mac->mii.addr_shift = 16;
+	mac->mii.addr_mask = GENMASK(20, 16);
+	mac->mii.reg_shift = 0;
+	mac->mii.reg_mask = GENMASK(15, 0);
+	mac->mii.clk_csr_shift = 19;
+	mac->mii.clk_csr_mask = GENMASK(21, 19);
+
+	return 0;
+}
+
+int dw25gmac_setup(struct stmmac_priv *priv)
+{
+	struct mac_device_info *mac = priv->hw;
+
+	dev_info(priv->device, "\tDW25GMAC\n");
+
+	priv->dev->priv_flags |= IFF_UNICAST_FLT;
+	mac->pcsr = priv->ioaddr;
+	mac->multicast_filter_bins = priv->plat->multicast_filter_bins;
+	mac->unicast_filter_entries = priv->plat->unicast_filter_entries;
+	mac->mcast_bits_log2 = 0;
+
+	if (mac->multicast_filter_bins)
+		mac->mcast_bits_log2 = ilog2(mac->multicast_filter_bins);
+
+	mac->link.caps = MAC_ASYM_PAUSE | MAC_SYM_PAUSE |
+			 MAC_1000FD | MAC_2500FD | MAC_5000FD |
+			 MAC_10000FD | MAC_25000FD;
+	mac->link.duplex = 0;
+	mac->link.speed10 = XGMAC_CONFIG_SS_10_MII;
+	mac->link.speed100 = XGMAC_CONFIG_SS_100_MII;
+	mac->link.speed1000 = XGMAC_CONFIG_SS_1000_GMII;
+	mac->link.speed2500 = XGMAC_CONFIG_SS_2500_GMII;
+	mac->link.xgmii.speed2500 = XGMAC_CONFIG_SS_2500;
+	mac->link.xgmii.speed5000 = XGMAC_CONFIG_SS_5000;
+	mac->link.xgmii.speed10000 = XGMAC_CONFIG_SS_10000;
+	mac->link.xgmii.speed25000 = XGMAC_CONFIG_SS_25000;
 	mac->link.speed_mask = XGMAC_CONFIG_SS_MASK;
 
 	mac->mii.addr = XGMAC_MDIO_ADDR;

@@ -52,6 +52,7 @@ description: |
         qcs8275
         qcs8300
         qcs8550
+        qcs9075
         qcs9100
         qcm2290
         qcm6490
@@ -60,6 +61,7 @@ description: |
         qrb2210
         qrb4210
         qru1000
+        sa7255p
         sa8155p
         sa8540p
         sa8255p
@@ -934,6 +936,11 @@ properties:
 
       - items:
           - enum:
+              - qcom,sa7255p-ride
+          - const: qcom,sa7255p
+
+      - items:
+          - enum:
               - qcom,sa8155p-adp
           - const: qcom,sa8155p
 
@@ -950,9 +957,31 @@ properties:
 
       - items:
           - enum:
+              - qcom,sa8775p-addons-ride
+              - qcom,sa8775p-addons-ride-r3
               - qcom,sa8775p-ride
+              - qcom,sa8775p-ride-r3
           - const: qcom,sa8775p
+
+      - items:
+          - enum:
+              - qcom,qcs9075-addons-rb8
+              - qcom,qcs9075-addons-ride
+              - qcom,qcs9075-addons-ride-r3
+              - qcom,qcs9075-rb8
+              - qcom,qcs9075-ride
+              - qcom,qcs9075-ride-r3
+          - const: qcom,qcs9075
+          - const: qcom,sa8775p
+
+      - items:
+          - enum:
+              - qcom,qcs9100-addons-ride
+              - qcom,qcs9100-addons-ride-r3
+              - qcom,qcs9100-ride
+              - qcom,qcs9100-ride-r3
           - const: qcom,qcs9100
+          - const: qcom,sa8775p
 
       - items:
           - enum:

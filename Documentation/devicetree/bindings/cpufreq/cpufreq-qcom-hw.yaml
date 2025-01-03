@@ -129,6 +129,8 @@ allOf:
           contains:
             enum:
               - qcom,qdu1000-cpufreq-epss
+              - qcom,sa8255p-cpufreq-epss
+              - qcom,sa8775p-cpufreq-epss
               - qcom,sc7180-cpufreq-hw
               - qcom,sc8280xp-cpufreq-epss
               - qcom,sdm845-cpufreq-hw

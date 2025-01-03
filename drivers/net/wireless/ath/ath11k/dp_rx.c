@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause-Clear
 /*
  * Copyright (c) 2018-2019 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/ieee80211.h>
@@ -1099,7 +1100,7 @@ int ath11k_dp_rx_ampdu_start(struct ath11k *ar,
 			     struct ieee80211_ampdu_params *params)
 {
 	struct ath11k_base *ab = ar->ab;
-	struct ath11k_sta *arsta = (void *)params->sta->drv_priv;
+	struct ath11k_sta *arsta = ath11k_sta_to_arsta(params->sta);
 	int vdev_id = arsta->arvif->vdev_id;
 	int ret;
 
@@ -1117,7 +1118,7 @@ int ath11k_dp_rx_ampdu_stop(struct ath11k *ar,
 {
 	struct ath11k_base *ab = ar->ab;
 	struct ath11k_peer *peer;
-	struct ath11k_sta *arsta = (void *)params->sta->drv_priv;
+	struct ath11k_sta *arsta = ath11k_sta_to_arsta(params->sta);
 	int vdev_id = arsta->arvif->vdev_id;
 	dma_addr_t paddr;
 	bool active;
@@ -1459,7 +1460,7 @@ ath11k_update_per_peer_tx_stats(struct ath11k *ar,
 	}
 
 	sta = peer->sta;
-	arsta = (struct ath11k_sta *)sta->drv_priv;
+	arsta = ath11k_sta_to_arsta(sta);
 
 	memset(&arsta->txrate, 0, sizeof(arsta->txrate));
 
@@ -1879,8 +1880,7 @@ static void ath11k_dp_rx_h_csum_offload(struct ath11k *ar, struct sk_buff *msdu)
 			  CHECKSUM_NONE : CHECKSUM_UNNECESSARY;
 }
 
-static int ath11k_dp_rx_crypto_mic_len(struct ath11k *ar,
-				       enum hal_encrypt_type enctype)
+int ath11k_dp_rx_crypto_mic_len(struct ath11k *ar, enum hal_encrypt_type enctype)
 {
 	switch (enctype) {
 	case HAL_ENCRYPT_TYPE_OPEN:
@@ -3811,6 +3811,7 @@ int ath11k_dp_process_rx_err(struct ath11k_base *ab, struct napi_struct *napi,
 		ath11k_hal_rx_msdu_link_info_get(link_desc_va, &num_msdus, msdu_cookies,
 						 &rbm);
 		if (rbm != HAL_RX_BUF_RBM_WBM_IDLE_DESC_LIST &&
+		    rbm != HAL_RX_BUF_RBM_SW1_BM &&
 		    rbm != HAL_RX_BUF_RBM_SW3_BM) {
 			ab->soc_stats.invalid_rbm++;
 			ath11k_warn(ab, "invalid return buffer manager %d\n", rbm);
@@ -5261,7 +5262,7 @@ int ath11k_dp_rx_process_mon_status(struct ath11k_base *ab, int mac_id,
 			goto next_skb;
 		}
 
-		arsta = (struct ath11k_sta *)peer->sta->drv_priv;
+		arsta = ath11k_sta_to_arsta(peer->sta);
 		ath11k_dp_rx_update_peer_stats(arsta, ppdu_info);
 
 		if (ath11k_debugfs_is_pktlog_peer_valid(ar, peer->addr))

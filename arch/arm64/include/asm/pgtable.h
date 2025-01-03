@@ -275,6 +275,11 @@ static inline void set_pte(pte_t *ptep, pte_t pte)
 	}
 }
 
+static inline void set_pte_nosync(pte_t *ptep, pte_t pte)
+{
+	WRITE_ONCE(*ptep, pte);
+}
+
 extern void __sync_icache_dcache(pte_t pteval);
 bool pgattr_change_is_safe(u64 old, u64 new);
 

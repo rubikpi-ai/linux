@@ -17,8 +17,8 @@ properties:
   compatible:
     items:
       - enum:
-          - qcom,sc7280-eud
-      - const: qcom,eud
+          - qcom,secure-eud
+          - qcom,eud
 
   reg:
     items:
@@ -55,7 +55,7 @@ additionalProperties: false
 examples:
   - |
     eud@88e0000 {
-           compatible = "qcom,sc7280-eud", "qcom,eud";
+           compatible = "qcom,eud";
            reg = <0x88e0000 0x2000>,
                  <0x88e2000 0x1000>;
 

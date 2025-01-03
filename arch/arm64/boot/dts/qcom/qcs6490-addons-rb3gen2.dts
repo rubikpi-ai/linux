@@ -14,7 +14,4 @@
 / {
 	model = "Qualcomm Technologies, Inc. Robotics RB3gen2 addons platform";
 	compatible = "qcom,qcs6490-addons-rb3gen2","qcom,qcm6490";
-
-	qcom,msm-id = <497 0x10000>, <498 0x10000>, <475 0x10000>, <515 0x10000>;
-	qcom,board-id = <32 0x5>, <32 0x605>;
 };
