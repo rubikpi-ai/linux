@@ -525,6 +525,26 @@
 	status = "okay";
 };
 
+&mdss0_dsi0 {
+	vdda-supply = <&vreg_l1c>;
+	status = "okay";
+};
+
+&mdss0_dsi1 {
+	vdda-supply = <&vreg_l1c>;
+	status = "okay";
+};
+
+&mdss0_dsi0_phy {
+	vdds-supply = <&vreg_l4a>;
+	status = "okay";
+};
+
+&mdss0_dsi1_phy {
+	vdds-supply = <&vreg_l4a>;
+	status = "okay";
+};
+
 &mdss0_dp0 {
 	status = "okay";
 };
