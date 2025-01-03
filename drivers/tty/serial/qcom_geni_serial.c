@@ -95,7 +95,7 @@ void serial_trace_log(struct device *dev, const char *fmt, ...)
 #define STALE_TIMEOUT			16
 #define DEFAULT_BITS_PER_CHAR		10
 #define GENI_UART_CONS_PORTS		1
-#define GENI_UART_PORTS			3
+#define GENI_UART_PORTS			5
 #define DEF_FIFO_DEPTH_WORDS		16
 #define DEF_TX_WM			2
 #define DEF_FIFO_WIDTH_BITS		32
@@ -162,6 +162,7 @@ static const struct uart_ops qcom_geni_console_pops;
 static const struct uart_ops qcom_geni_uart_pops;
 static struct uart_driver qcom_geni_console_driver;
 static struct uart_driver qcom_geni_uart_driver;
+static struct qcom_geni_serial_port qcom_geni_uart_ports[GENI_UART_PORTS];
 
 static int qcom_geni_serial_port_setup(struct uart_port *uport);
 
@@ -170,32 +171,15 @@ static inline struct qcom_geni_serial_port *to_dev_port(struct uart_port *uport)
 	return container_of(uport, struct qcom_geni_serial_port, uport);
 }
 
-static struct qcom_geni_serial_port qcom_geni_uart_ports[GENI_UART_PORTS] = {
-	[0] = {
-		.uport = {
-			.iotype = UPIO_MEM,
-			.ops = &qcom_geni_uart_pops,
-			.flags = UPF_BOOT_AUTOCONF,
-			.line = 0,
-		},
-	},
-	[1] = {
-		.uport = {
-			.iotype = UPIO_MEM,
-			.ops = &qcom_geni_uart_pops,
-			.flags = UPF_BOOT_AUTOCONF,
-			.line = 1,
-		},
-	},
-	[2] = {
-		.uport = {
-			.iotype = UPIO_MEM,
-			.ops = &qcom_geni_uart_pops,
-			.flags = UPF_BOOT_AUTOCONF,
-			.line = 2,
-		},
-	},
-};
+static void qcom_geni_serial_port_init(void)
+{
+	for (int i = 0; i < GENI_UART_PORTS; i++) {
+		qcom_geni_uart_ports[i].uport.iotype = UPIO_MEM;
+		qcom_geni_uart_ports[i].uport.ops = &qcom_geni_uart_pops;
+		qcom_geni_uart_ports[i].uport.flags = UPF_BOOT_AUTOCONF;
+		qcom_geni_uart_ports[i].uport.line = i;
+	}
+}
 
 static struct qcom_geni_serial_port qcom_geni_console_port = {
 	.uport = {
@@ -1871,6 +1855,8 @@ static struct platform_driver qcom_geni_serial_platform_driver = {
 static int __init qcom_geni_serial_init(void)
 {
 	int ret;
+
+	qcom_geni_serial_port_init();
 
 	ret = console_register(&qcom_geni_console_driver);
 	if (ret)
