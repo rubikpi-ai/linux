@@ -246,12 +246,16 @@
 				pcie0_qps615_eth0,pcie0_qps615_eth0@pcie0_rp {
 					reg = <0x0 0x0 0x0 0x0 0x0>;
 					pinctrl-names = "default";
-					pinctrl-0 = <&aqr_rc0_intn_wol_sig>;
+					pinctrl-0 = <&rtl_rc0_intn_wol_sig>;
 					phy-rst-som-gpios = <&tlmm 90 GPIO_ACTIVE_HIGH>;
 					interrupts-extended = <&tlmm 136 IRQ_TYPE_EDGE_FALLING>;
+					qcom,phy-port-interface = <4>;
+					qcom,mdc-clk = <0x8>;
+					qcom,c45-state = <0>;
+					qcom,link-down-macrst = <0>;
 					interrupt-names = "wol_irq";
 					qcom,always-on-supply;
-					qcom,phy-rst-delay-us = <221000>;
+					qcom,phy-rst-delay-us = <75000>;
 					#address-cells = <1>;
 					#size-cells = <1>;
 				};
@@ -592,7 +596,7 @@
 
 &tlmm {
 	qps615_rc0_intn_wol {
-		aqr_rc0_intn_wol_sig: aqr-rc0-intn-wol-sig {
+		rtl_rc0_intn_wol_sig: rtl-rc0-intn-wol-sig {
 			pins = "gpio136";
 			function = "gpio";
 			input-enable;
