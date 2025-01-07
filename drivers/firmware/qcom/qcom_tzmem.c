@@ -397,7 +397,8 @@ static int32_t __qcom_tzmem_register(
 			handle);
 
 	if (ret) {
-		pr_err("create shmbridge failed, ret = %d\n", ret);
+		pr_err("Shm creation failed, ret: %d, NS PA|Perm: 0x%llx, size|flags: 0x%llx, ns_vmids: 0x%llx\n",
+			ret, pfn_and_ns_perm_flags, size_and_flags, ns_vmids);
 
 		/*
 		 * If bridge is already existing and we are not real owner also paddr
