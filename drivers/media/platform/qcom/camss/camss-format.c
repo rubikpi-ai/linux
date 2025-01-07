@@ -50,7 +50,7 @@ u8 camss_format_get_bpp(const struct camss_format_info *formats, unsigned int nf
  */
 u32 camss_format_find_code(u32 *code, unsigned int n_code, unsigned int index, u32 req_code)
 {
-	int i;
+	unsigned int i;
 
 	if (!req_code && index >= n_code)
 		return 0;
@@ -80,7 +80,7 @@ u32 camss_format_find_code(u32 *code, unsigned int n_code, unsigned int index, u
 int camss_format_find_format(u32 code, u32 pixelformat, const struct camss_format_info *formats,
 			     unsigned int nformats)
 {
-	int i;
+	unsigned int i;
 
 	for (i = 0; i < nformats; i++) {
 		if (formats[i].code == code &&
@@ -92,8 +92,6 @@ int camss_format_find_format(u32 code, u32 pixelformat, const struct camss_forma
 		if (formats[i].code == code)
 			return i;
 	}
-
-	WARN_ON(1);
 
 	return -EINVAL;
 }

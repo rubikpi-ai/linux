@@ -17,6 +17,7 @@
 #include <linux/pm.h>
 #include <linux/regmap.h>
 #include <linux/slab.h>
+#include <linux/suspend.h>
 #include <linux/thermal.h>
 #include "../thermal_hwmon.h"
 #include "tsens.h"
@@ -1069,6 +1070,13 @@ err_put_device:
 	return ret;
 }
 
+/* WA to add writable trip_temp_*_hyst sysfs node till core has proper fix */
+static int tsens_set_trip_hyst(
+		struct thermal_zone_device *tz, int trip, int hysteresis)
+{
+	return 0;
+};
+
 static int tsens_get_temp(struct thermal_zone_device *tz, int *temp)
 {
 	struct tsens_sensor *s = thermal_zone_device_priv(tz);
@@ -1150,6 +1158,7 @@ MODULE_DEVICE_TABLE(of, tsens_table);
 static const struct thermal_zone_device_ops tsens_of_ops = {
 	.get_temp = tsens_get_temp,
 	.set_trips = tsens_set_trips,
+	.set_trip_hyst = tsens_set_trip_hyst,
 };
 
 static int tsens_register_irq(struct tsens_priv *priv, char *irqname,
@@ -1192,6 +1201,36 @@ static int tsens_register_irq(struct tsens_priv *priv, char *irqname,
 	put_device(&pdev->dev);
 	return ret;
 }
+
+#ifdef CONFIG_SUSPEND
+static int tsens_reinit(struct tsens_priv *priv)
+{
+	if (tsens_version(priv) >= VER_2_X) {
+		/*
+		 * Re-enable the watchdog, unmask the bark.
+		 * Disable cycle completion monitoring
+		 */
+		if (priv->feat->has_watchdog) {
+			regmap_field_write(priv->rf[WDOG_BARK_MASK], 0);
+			regmap_field_write(priv->rf[CC_MON_MASK], 1);
+		}
+
+		/* Re-enable interrupts */
+		tsens_enable_irq(priv);
+	}
+
+	return 0;
+}
+
+int tsens_resume_common(struct tsens_priv *priv)
+{
+	if (pm_suspend_target_state == PM_SUSPEND_MEM)
+		tsens_reinit(priv);
+
+	return 0;
+}
+
+#endif /* !CONFIG_SUSPEND */
 
 static void tsens_thermal_zone_trip_update(struct thermal_zone_device *tz,
 					  unsigned long trip_id)

@@ -41,7 +41,7 @@ static int pci_pwrctl_notify(struct notifier_block *nb, unsigned long action,
 		break;
 	case BUS_NOTIFY_UNBOUND_DRIVER:
 		if (pwrctl->link)
-			device_link_del(pwrctl->link);
+			device_link_remove(dev, pwrctl->dev);
 		break;
 	}
 
@@ -104,7 +104,7 @@ static void devm_pci_pwrctl_device_unset_ready(void *data)
 {
 	struct pci_pwrctl *pwrctl = data;
 
-	pci_pwrctl_device_set_ready(pwrctl);
+	pci_pwrctl_device_unset_ready(pwrctl);
 }
 
 /**

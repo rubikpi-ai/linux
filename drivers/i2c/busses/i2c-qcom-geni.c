@@ -17,6 +17,7 @@
 #include <linux/pm_runtime.h>
 #include <linux/soc/qcom/geni-se.h>
 #include <linux/spinlock.h>
+#include <soc/qcom/qup_fw_load.h>
 
 #define CREATE_TRACE_POINTS
 #include <trace/events/qup_buses_trace.h>
@@ -815,10 +816,39 @@ err_tx:
 	return ret;
 }
 
+/**
+ * geni_check_fw_validity: Function to checks firmware validity.
+ * @gi2c: geni i2c device.
+ *
+ * This function checks firmware validity by reading se protocol
+ * register. In case protocol value is not correct, it will try
+ * to load se firmware. if firmware load is failed, it will return
+ * failure. if firmware load is success, it will recheck firmware
+ * validity by checking proto value.
+ *
+ * return: Return 0 if no error, else return error value.
+ */
+static int geni_check_fw_validity(struct geni_i2c_dev *gi2c)
+{
+	struct device *dev = gi2c->se.dev;
+	u32 proto;
+	int ret;
+
+	proto = geni_se_read_proto(&gi2c->se);
+	if (proto != GENI_SE_I2C) {
+		ret = geni_load_se_firmware(&gi2c->se, GENI_SE_I2C);
+		if (ret) {
+			dev_err(dev, "Cannot load firmware from linux for i2c error: %d\n", ret);
+			return -ENXIO;
+		}
+	}
+	return 0;
+}
+
 static int geni_i2c_probe(struct platform_device *pdev)
 {
 	struct geni_i2c_dev *gi2c;
-	u32 proto, tx_depth, fifo_disable;
+	u32 tx_depth, fifo_disable;
 	int ret;
 	struct device *dev = &pdev->dev;
 	const struct geni_i2c_desc *desc = NULL;
@@ -911,12 +941,12 @@ static int geni_i2c_probe(struct platform_device *pdev)
 		clk_disable_unprepare(gi2c->core_clk);
 		return ret;
 	}
-	proto = geni_se_read_proto(&gi2c->se);
-	if (proto != GENI_SE_I2C) {
-		dev_err(dev, "Invalid proto %d\n", proto);
+
+	ret = geni_check_fw_validity(gi2c);
+	if (ret) {
 		geni_se_resources_off(&gi2c->se);
 		clk_disable_unprepare(gi2c->core_clk);
-		return -ENXIO;
+		return ret;
 	}
 
 	if (desc && desc->no_dma_support)
@@ -1046,12 +1076,17 @@ static int __maybe_unused geni_i2c_runtime_resume(struct device *dev)
 		return ret;
 
 	ret = clk_prepare_enable(gi2c->core_clk);
-	if (ret)
+	if (ret) {
+		geni_icc_disable(&gi2c->se);
 		return ret;
+	}
 
 	ret = geni_se_resources_on(&gi2c->se);
-	if (ret)
+	if (ret) {
+		clk_disable_unprepare(gi2c->core_clk);
+		geni_icc_disable(&gi2c->se);
 		return ret;
+	}
 
 	enable_irq(gi2c->irq);
 	gi2c->suspended = 0;

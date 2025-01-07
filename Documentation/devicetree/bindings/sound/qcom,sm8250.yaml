@@ -34,6 +34,7 @@ properties:
           - qcom,qcs6490-rb3gen2-ptz-sndcard
           - qcom,qcs6490-rb3gen2-video-sndcard
           - qcom,qcs6490-rb3gen2-vision-sndcard
+          - qcom,qcs8300-sndcard
           - qcom,qcs9100-sndcard
           - qcom,qrb5165-rb5-sndcard
           - qcom,sc8280xp-sndcard

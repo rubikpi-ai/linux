@@ -497,6 +497,12 @@ static int qcom_adreno_smmu_init_context(struct arm_smmu_domain *smmu_domain,
 		pgtbl_cfg->free = qcom_free_pages;
 	}
 
+	if (qsmmu->data->actlrcfg_gfx) {
+		actlrcfg = qsmmu->data->actlrcfg_gfx;
+		actlrcfg_size = qsmmu->data->actlrcfg_gfx_size;
+		arm_smmu_set_actlr(dev, smmu, cbndx, actlrcfg, actlrcfg_size);
+	}
+
 	/* Only enable split pagetables for the GPU device (SID 0) */
 	if (!qcom_adreno_smmu_is_gpu_device(dev))
 		return 0;
@@ -525,12 +531,6 @@ static int qcom_adreno_smmu_init_context(struct arm_smmu_domain *smmu_domain,
 	priv->set_stall = qcom_adreno_smmu_set_stall;
 	priv->resume_translation = qcom_adreno_smmu_resume_translation;
 
-	if (qsmmu->data->actlrcfg_gfx) {
-		actlrcfg = qsmmu->data->actlrcfg_gfx;
-		actlrcfg_size = qsmmu->data->actlrcfg_gfx_size;
-		arm_smmu_set_actlr(dev, smmu, cbndx, actlrcfg, actlrcfg_size);
-	}
-
 	return 0;
 }
 
@@ -545,6 +545,7 @@ static const struct of_device_id qcom_smmu_client_of_match[] __maybe_unused = {
 	{ .compatible = "qcom,sc7280-mss-pil" },
 	{ .compatible = "qcom,sc8180x-mdss" },
 	{ .compatible = "qcom,sc8280xp-mdss" },
+	{ .compatible = "qcom,sdm670-mdss" },
 	{ .compatible = "qcom,sdm845-mdss" },
 	{ .compatible = "qcom,sdm845-mss-pil" },
 	{ .compatible = "qcom,sm6350-mdss" },
@@ -904,6 +905,7 @@ static const struct of_device_id __maybe_unused qcom_smmu_impl_of_match[] = {
 	{ .compatible = "qcom,sc7180-smmu-500", .data = &qcom_smmu_500_impl0_data },
 	{ .compatible = "qcom,sc7180-smmu-v2", .data = &qcom_smmu_v2_data },
 	{ .compatible = "qcom,sc7280-smmu-500", .data = &sc7280_smmu_500_impl0_data },
+	{ .compatible = "qcom,sa8255p-smmu-500", .data = &sa8775p_smmu_500_impl0_data },
 	{ .compatible = "qcom,sa8775p-smmu-500", .data = &sa8775p_smmu_500_impl0_data },
 	{ .compatible = "qcom,sc8180x-smmu-500", .data = &qcom_smmu_500_impl0_data },
 	{ .compatible = "qcom,sc8280xp-smmu-500", .data = &qcom_smmu_500_impl0_data },

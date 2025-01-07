@@ -231,6 +231,18 @@
 	status = "okay";
 };
 
+&pcie0 {
+	power-domains = <&scmi5_pd 0>;
+	power-domain-names = "power";
+	status = "disabled";
+};
+
+&pcie1 {
+	power-domains = <&scmi6_pd 0>;
+	power-domain-names = "power";
+	status = "okay";
+};
+
 &pmm8654au_0_thermal {
 	thermal-sensors = <&scmi23_sensor 0>;
 };
@@ -377,6 +389,8 @@
 	power-domains = <&scmi0_pd 0>, <&scmi0_pd 1>;
 	power-domain-names = "usb_transfer", "usb_core";
 
+	/delete-property/ wakeup-source;
+
 	status = "okay";
 };
 
@@ -402,6 +416,8 @@
 	power-domains = <&scmi1_pd 0>, <&scmi1_pd 1>;
 	power-domain-names = "usb_transfer", "usb_core";
 
+	/delete-property/ wakeup-source;
+
 	status = "okay";
 };
 
@@ -426,6 +442,8 @@
 &usb_2 {
 	power-domains = <&scmi2_pd 0>, <&scmi2_pd 1>;
 	power-domain-names = "usb_transfer", "usb_core";
+
+	/delete-property/ wakeup-source;
 
 	status = "okay";
 };

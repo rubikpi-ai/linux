@@ -19,6 +19,7 @@ properties:
       - qcom,ipq9574-qmp-usb3-phy
       - qcom,qcm2290-qmp-usb3-phy
       - qcom,qcs8300-qmp-usb3-uni-phy
+      - qcom,sa7255p-qmp-usb3-uni-phy
       - qcom,sa8255p-qmp-usb3-uni-phy
       - qcom,sa8775p-qmp-usb3-uni-phy
       - qcom,sc8280xp-qmp-usb3-uni-phy
@@ -130,7 +131,9 @@ allOf:
       properties:
         compatible:
           contains:
-            const: qcom,sa8255p-qmp-usb3-uni-phy
+            enum:
+              - qcom,sa7255p-qmp-usb3-uni-phy
+              - qcom,sa8255p-qmp-usb3-uni-phy
     then:
       required:
         - power-domains

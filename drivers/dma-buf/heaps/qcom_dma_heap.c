@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2020-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/module.h>
@@ -13,6 +13,7 @@
 #include "qcom_cma_heap.h"
 #include "qcom_dt_parser.h"
 #include "qcom_system_heap.h"
+#include "qcom_carveout_heap.h"
 #include "qcom_secure_system_heap.h"
 #include "qcom_dma_heap_priv.h"
 
@@ -46,6 +47,11 @@ static int qcom_dma_heap_probe(struct platform_device *pdev)
 		struct platform_heap *heap_data = &heaps->heaps[i];
 
 		switch (heap_data->type) {
+#ifdef CONFIG_QCOM_DMABUF_HEAPS_CARVEOUT
+		case HEAP_TYPE_CARVEOUT:
+			ret = qcom_carveout_heap_create(heap_data);
+			break;
+#endif
 		case HEAP_TYPE_CMA:
 			ret = qcom_add_cma_heap(heap_data);
 			break;

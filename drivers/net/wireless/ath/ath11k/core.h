@@ -329,6 +329,7 @@ struct ath11k_vif {
 
 	u16 tx_seq_no;
 	struct wmi_wmm_params_all_arg wmm_params;
+	struct wmi_wmm_params_all_arg muedca_params;
 	struct list_head list;
 	union {
 		struct {
@@ -1229,6 +1230,11 @@ static inline struct ath11k_skb_rxcb *ATH11K_SKB_RXCB(struct sk_buff *skb)
 static inline struct ath11k_vif *ath11k_vif_to_arvif(struct ieee80211_vif *vif)
 {
 	return (struct ath11k_vif *)vif->drv_priv;
+}
+
+static inline struct ath11k_sta *ath11k_sta_to_arsta(struct ieee80211_sta *sta)
+{
+	return (struct ath11k_sta *)sta->drv_priv;
 }
 
 static inline struct ath11k *ath11k_ab_to_ar(struct ath11k_base *ab,

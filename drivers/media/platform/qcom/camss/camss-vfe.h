@@ -127,8 +127,10 @@ struct vfe_isr_ops {
 };
 
 struct vfe_subdev_resources {
-	u8 line_num;
 	bool is_lite;
+	u8 line_num;
+	bool has_pd;
+	char *pd_name;
 	const struct vfe_hw_ops *hw_ops;
 	const struct camss_formats *formats_rdi;
 	const struct camss_formats *formats_pix;
@@ -157,12 +159,16 @@ struct vfe_device {
 	const struct vfe_hw_ops_gen1 *ops_gen1;
 	struct vfe_isr_ops isr_ops;
 	struct camss_video_ops video_ops;
+	struct device *genpd;
+	struct device_link *genpd_link;
 };
 
 struct camss_subdev_resources;
 
 int msm_vfe_subdev_init(struct camss *camss, struct vfe_device *vfe,
 			const struct camss_subdev_resources *res, u8 id);
+
+void msm_vfe_genpd_cleanup(struct vfe_device *vfe);
 
 int msm_vfe_register_entities(struct vfe_device *vfe,
 			      struct v4l2_device *v4l2_dev);
@@ -208,6 +214,18 @@ int vfe_reset(struct vfe_device *vfe);
  */
 int vfe_disable(struct vfe_line *line);
 
+/*
+ * vfe_pm_domain_off - Disable power domains specific to this VFE.
+ * @vfe: VFE Device
+ */
+void vfe_pm_domain_off(struct vfe_device *vfe);
+
+/*
+ * vfe_pm_domain_on - Enable power domains specific to this VFE.
+ * @vfe: VFE Device
+ */
+int vfe_pm_domain_on(struct vfe_device *vfe);
+
 extern const struct camss_formats vfe_formats_rdi_8x16;
 extern const struct camss_formats vfe_formats_pix_8x16;
 extern const struct camss_formats vfe_formats_rdi_8x96;
@@ -223,5 +241,15 @@ extern const struct vfe_hw_ops vfe_ops_480;
 
 int vfe_get(struct vfe_device *vfe);
 void vfe_put(struct vfe_device *vfe);
+
+/*
+ * vfe_is_lite - Return if VFE is VFE lite.
+ * @vfe: VFE Device
+ *
+ * Some VFE lites have a different register layout.
+ *
+ * Return whether VFE is VFE lite
+ */
+bool vfe_is_lite(struct vfe_device *vfe);
 
 #endif /* QC_MSM_CAMSS_VFE_H */

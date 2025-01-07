@@ -17,6 +17,7 @@ description:
 properties:
   compatible:
     enum:
+      - qcom,qcs8300-edp-phy
       - qcom,sa8775p-edp-phy
       - qcom,sc7280-edp-phy
       - qcom,sc8180x-edp-phy

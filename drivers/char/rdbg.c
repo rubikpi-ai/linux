@@ -29,6 +29,8 @@
 
 #define SMEM_LC_DEBUGGER 470
 
+static DECLARE_COMPLETION(rdbg_driver_probe_done);
+
 enum SMQ_STATUS {
 	SMQ_SUCCESS    =  0,
 	SMQ_ENOMEMORY  = -1,
@@ -1066,6 +1068,7 @@ static int rdbg_probe(struct platform_device *pdev)
 				__func__, proc_info[minor].name);
 				goto bail;
 			}
+			rdbgdevice->rdbg_data[minor].device_initialized = true;
 		}
 		if (snprintf(node_name, max_len, "%s%d-in",
 			rdbg_compatible_string, minor) <= 0) {
@@ -1084,6 +1087,7 @@ static int rdbg_probe(struct platform_device *pdev)
 	}
 bail:
 	kfree(node_name);
+	complete(&rdbg_driver_probe_done);
 	return err;
 }
 
@@ -1125,9 +1129,6 @@ static int __init rdbg_init(void)
 		err = -ENOMEM;
 		goto bail;
 	}
-	err = platform_driver_register(&rdbg_driver);
-	if (err)
-		goto bail;
 	err = alloc_chrdev_region(&rdbgdevice->dev_no, 0,
 		rdbgdevice->num_devices, "rdbgctl");
 	if (err) {
@@ -1150,8 +1151,12 @@ static int __init rdbg_init(void)
 		pr_err("Error in class_create\n");
 		goto cdev_bail;
 	}
+	err = platform_driver_register(&rdbg_driver);
+	if (err)
+		goto bail;
+	wait_for_completion(&rdbg_driver_probe_done);
 	for (minor = 0; minor < rdbgdevice->num_devices; minor++) {
-		if (!proc_info[minor].name)
+		if (!proc_info[minor].name || !rdbgdevice->rdbg_data[minor].device_initialized)
 			continue;
 		rdbgdevice->rdbg_data[minor].device = device_create(
 			rdbgdevice->class, NULL, MKDEV(major, minor),
@@ -1161,7 +1166,6 @@ static int __init rdbg_init(void)
 			pr_err("Error in device_create\n");
 			goto device_bail;
 		}
-		rdbgdevice->rdbg_data[minor].device_initialized = true;
 		minor_nodes_created++;
 		dev_dbg(rdbgdevice->rdbg_data[minor].device,
 			"%s: created /dev/%s c %d %d'\n", __func__,
