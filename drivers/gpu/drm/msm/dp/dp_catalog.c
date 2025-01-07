@@ -79,6 +79,8 @@ struct dss_io_data {
 	struct dss_io_region link;
 	struct dss_io_region p0;
 	struct dss_io_region p1;
+	struct dss_io_region p2;
+	struct dss_io_region p3;
 };
 
 struct msm_dp_catalog_private {
@@ -99,7 +101,9 @@ void msm_dp_catalog_snapshot(struct msm_dp_catalog *msm_dp_catalog, struct msm_d
 	msm_disp_snapshot_add_block(disp_state, dss->aux.len, dss->aux.base, "dp_aux");
 	msm_disp_snapshot_add_block(disp_state, dss->link.len, dss->link.base, "dp_link");
 	msm_disp_snapshot_add_block(disp_state, dss->p0.len, dss->p0.base, "dp_p0");
-	msm_disp_snapshot_add_block(disp_state, dss->p1.len, dss->p0.base, "dp_p1");
+	msm_disp_snapshot_add_block(disp_state, dss->p1.len, dss->p1.base, "dp_p1");
+	msm_disp_snapshot_add_block(disp_state, dss->p2.len, dss->p2.base, "dp_p2");
+	msm_disp_snapshot_add_block(disp_state, dss->p3.len, dss->p3.base, "dp_p3");
 }
 
 static inline u32 msm_dp_read_aux(struct msm_dp_catalog_private *catalog, u32 offset)
@@ -170,6 +174,46 @@ static inline u32 msm_dp_read_p1(struct msm_dp_catalog_private *catalog,
 	 * this function uses writel() instread of writel_relaxed()
 	 */
 	return readl_relaxed(catalog->io.p1.base + offset);
+}
+
+static inline void msm_dp_write_p2(struct msm_dp_catalog_private *catalog,
+				   u32 offset, u32 data)
+{
+	/*
+	 * To make sure interface reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	writel(data, catalog->io.p2.base + offset);
+}
+
+static inline u32 msm_dp_read_p2(struct msm_dp_catalog_private *catalog,
+				 u32 offset)
+{
+	/*
+	 * To make sure interface reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	return readl_relaxed(catalog->io.p2.base + offset);
+}
+
+static inline void msm_dp_write_p3(struct msm_dp_catalog_private *catalog,
+				   u32 offset, u32 data)
+{
+	/*
+	 * To make sure interface reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	writel(data, catalog->io.p3.base + offset);
+}
+
+static inline u32 msm_dp_read_p3(struct msm_dp_catalog_private *catalog,
+				 u32 offset)
+{
+	/*
+	 * To make sure interface reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	return readl_relaxed(catalog->io.p3.base + offset);
 }
 
 static inline u32 msm_dp_read_link(struct msm_dp_catalog_private *catalog, u32 offset)
@@ -1384,10 +1428,16 @@ static int msm_dp_catalog_get_io(struct msm_dp_catalog_private *catalog)
 		}
 
 		dss->p1.base = msm_dp_ioremap(pdev, 4, &dss->p1.len);
-		if (IS_ERR(dss->p1.base)) {
-			DRM_ERROR("unable to remap p1 region: %pe\n", dss->p1.base);
-			return PTR_ERR(dss->p1.base);
-		}
+		if (IS_ERR(dss->p1.base))
+			DRM_DEBUG("unable to remap p1 region: %pe\n", dss->p1.base);
+
+		dss->p2.base = msm_dp_ioremap(pdev, 5, &dss->p2.len);
+		if (IS_ERR(dss->p2.base))
+			DRM_DEBUG("unable to remap p2 region: %pe\n", dss->p2.base);
+
+		dss->p3.base = msm_dp_ioremap(pdev, 6, &dss->p3.len);
+		if (IS_ERR(dss->p3.base))
+			DRM_DEBUG("unable to remap p3 region: %pe\n", dss->p3.base);
 	}
 
 	return 0;
