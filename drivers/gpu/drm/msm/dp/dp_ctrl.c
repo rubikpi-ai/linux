@@ -2426,7 +2426,15 @@ static int msm_dp_ctrl_clk_init(struct msm_dp_ctrl *msm_dp_ctrl)
 
 	ctrl->pixel_clk[DP_STREAM_1] = devm_clk_get(dev, "stream_1_pixel");
 	if (IS_ERR(ctrl->pixel_clk[DP_STREAM_1]))
-		DRM_ERROR("failed to get stream_pixel_2");
+		DRM_DEBUG("failed to get stream_pixel_1 clock");
+
+	ctrl->pixel_clk[DP_STREAM_2] = devm_clk_get(dev, "stream_2_pixel");
+	if (IS_ERR(ctrl->pixel_clk[DP_STREAM_2]))
+		DRM_DEBUG("failed to get stream_2_pixel clock");
+
+	ctrl->pixel_clk[DP_STREAM_3] = devm_clk_get(dev, "stream_3_pixel");
+	if (IS_ERR(ctrl->pixel_clk[DP_STREAM_3]))
+		DRM_DEBUG("failed to get stream_3_clock clock");
 
 	return 0;
 }
