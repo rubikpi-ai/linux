@@ -410,11 +410,15 @@ static int qcm6490_platform_probe(struct platform_device *pdev)
 	 * speed i2s interface
 	 */
 	data->macro = devm_clk_get_optional(dev, "macro");
-	if (IS_ERR(data->macro))
-		dev_info(dev, "getting macro clock info FAILED\n");
+	if (IS_ERR(data->macro)) {
+		dev_info(dev, "getting macro clock info FAILED, ret %d\n", PTR_ERR(data->macro));
+		return PTR_ERR(data->macro);
+	}
 	data->dcodec = devm_clk_get_optional(dev, "dcodec");
-	if (IS_ERR(data->dcodec))
-		dev_info(dev, "getting decode clock info FAILED\n");
+	if (IS_ERR(data->dcodec)) {
+		dev_info(dev, "getting decode clock info FAILED, ret %d\n", PTR_ERR(data->dcodec));
+		return PTR_ERR(data->dcodec);
+	}
 
 	return devm_snd_soc_register_card(dev, card);
 }
