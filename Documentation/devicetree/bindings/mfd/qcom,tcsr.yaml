@@ -20,6 +20,7 @@ properties:
           - qcom,msm8976-tcsr
           - qcom,msm8998-tcsr
           - qcom,qcs404-tcsr
+          - qcom,qcs615-tcsr
           - qcom,qcs8300-tcsr
           - qcom,sa7255p-tcsr
           - qcom,sa8255p-tcsr
