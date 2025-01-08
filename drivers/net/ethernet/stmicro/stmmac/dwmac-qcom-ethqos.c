@@ -127,6 +127,7 @@ struct ethqos_emac_driver_data {
 	struct dwmac4_addrs dwmac4_addrs;
 	bool needs_sgmii_loopback;
 	bool has_hdma;
+	bool has_io_macro_ge_4;
 };
 
 struct qcom_ethqos {
@@ -144,6 +145,7 @@ struct qcom_ethqos {
 
 	const struct ethqos_emac_por *por;
 	unsigned int num_por;
+	bool has_io_macro_ge_4;
 	bool rgmii_config_loopback_en;
 	bool has_emac_ge_3;
 	bool needs_sgmii_loopback;
@@ -227,14 +229,15 @@ ethqos_update_link_clk(struct qcom_ethqos *ethqos, unsigned int speed)
 static void
 qcom_ethqos_set_sgmii_loopback(struct qcom_ethqos *ethqos, bool enable)
 {
-	if (!ethqos->needs_sgmii_loopback ||
-	    ethqos->phy_mode != PHY_INTERFACE_MODE_2500BASEX)
-		return;
-
-	rgmii_updatel(ethqos,
-		      SGMII_PHY_CNTRL1_SGMII_TX_TO_RX_LOOPBACK_EN,
-		      enable ? SGMII_PHY_CNTRL1_SGMII_TX_TO_RX_LOOPBACK_EN : 0,
-		      EMAC_WRAPPER_SGMII_PHY_CNTRL1);
+	if (ethqos->needs_sgmii_loopback &&
+	    (ethqos->phy_mode == PHY_INTERFACE_MODE_2500BASEX ||
+	     ethqos->phy_mode == PHY_INTERFACE_MODE_USXGMII))
+		rgmii_updatel(ethqos,
+			      SGMII_PHY_CNTRL1_SGMII_TX_TO_RX_LOOPBACK_EN,
+			      enable ? SGMII_PHY_CNTRL1_SGMII_TX_TO_RX_LOOPBACK_EN : 0,
+			      ethqos->has_io_macro_ge_4 ?
+			      EMAC_WRAPPER_SGMII_PHY_CNTRL1_V4 :
+			      EMAC_WRAPPER_SGMII_PHY_CNTRL1);
 }
 
 static void ethqos_set_func_clk_en(struct qcom_ethqos *ethqos)
@@ -361,6 +364,8 @@ static const struct ethqos_emac_driver_data emac_v6_6_0_data = {
 	.dma_addr_width = 32,
 	.link_clk_name = "phyaux",
 	.has_hdma = true,
+	.needs_sgmii_loopback = true,
+	.has_io_macro_ge_4 = true,
 	.dwxgmac_addrs = {
 		.dma_even_chan_base  = 0x00008500,
 		.dma_odd_chan_base = 0x00008580,
@@ -1021,6 +1026,7 @@ static int qcom_ethqos_probe(struct platform_device *pdev)
 	data = of_device_get_match_data(dev);
 	ethqos->por = data->por;
 	ethqos->num_por = data->num_por;
+	ethqos->has_io_macro_ge_4 = data->has_io_macro_ge_4;
 	ethqos->rgmii_config_loopback_en = data->rgmii_config_loopback_en;
 	ethqos->has_emac_ge_3 = data->has_emac_ge_3;
 	ethqos->needs_sgmii_loopback = data->needs_sgmii_loopback;
