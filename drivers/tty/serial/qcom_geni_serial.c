@@ -206,6 +206,19 @@ static struct qcom_geni_serial_port qcom_geni_console_port = {
 	},
 };
 
+static const struct serial_rs485 qcom_geni_rs485_supported = {
+	.flags = SER_RS485_ENABLED | SER_RS485_RTS_AFTER_SEND | SER_RS485_RTS_ON_SEND,
+};
+
+static void qcom_geni_set_rts_pin(struct uart_port *uport, bool pin_state)
+{
+	u32 rfr = UART_MANUAL_RFR_EN;
+
+	/* Set the logical level of RTS GPIO pin based on the bool variable. */
+	rfr |= pin_state ? UART_RFR_NOT_READY : UART_RFR_READY;
+	writel(rfr, uport->membase + SE_UART_MANUAL_RFR);
+}
+
 static int qcom_geni_serial_request_port(struct uart_port *uport)
 {
 	struct platform_device *pdev = to_platform_device(uport->dev);
@@ -659,6 +672,7 @@ static void qcom_geni_serial_start_tx_dma(struct uart_port *uport)
 	struct circ_buf *xmit = &uport->state->xmit;
 	size_t pending = uart_circ_chars_pending(xmit);
 	unsigned int xmit_size;
+	bool pin_state;
 	int ret;
 
 	trace_serial_info(uport->dev, __func__, "Start");
@@ -670,6 +684,11 @@ static void qcom_geni_serial_start_tx_dma(struct uart_port *uport)
 
 	xmit_size = CIRC_CNT_TO_END(xmit->head, xmit->tail, UART_XMIT_SIZE);
 
+	if (uport->rs485.flags & SER_RS485_ENABLED) {
+		/* For RS485 mode, the RTS can be set/cleared before transmission */
+		pin_state = !!(uport->rs485.flags & SER_RS485_RTS_ON_SEND);
+		qcom_geni_set_rts_pin(uport, pin_state);
+	}
 	qcom_geni_serial_setup_tx(uport, xmit_size);
 
 	ret = geni_se_tx_dma_prep(&port->se, &xmit->buf[xmit->tail],
@@ -1020,6 +1039,7 @@ static irqreturn_t qcom_geni_serial_isr(int isr, void *dev)
 	u32 dma_rx_status;
 	struct uart_port *uport = dev;
 	bool drop_rx = false;
+	bool pin_state;
 	struct tty_port *tport = &uport->state->port;
 	struct qcom_geni_serial_port *port = to_dev_port(uport);
 
@@ -1072,8 +1092,14 @@ static irqreturn_t qcom_geni_serial_isr(int isr, void *dev)
 	if (dma) {
 		serial_trace_log(uport->dev, "%s: dma_tx_status: 0x%x, dma_rx_status: 0x%x",
 				 __func__, dma_tx_status, dma_rx_status);
-		if (dma_tx_status & TX_DMA_DONE)
+		if (dma_tx_status & TX_DMA_DONE) {
 			qcom_geni_serial_handle_tx_dma(uport);
+			if (uport->rs485.flags & SER_RS485_ENABLED) {
+				/* For RS485 mode, the RTS can be set/cleared after transmission */
+				pin_state = !!(uport->rs485.flags & SER_RS485_RTS_AFTER_SEND);
+				qcom_geni_set_rts_pin(uport, pin_state);
+			}
+		}
 
 		if (dma_rx_status) {
 			if (dma_rx_status & RX_RESET_DONE)
@@ -1610,6 +1636,21 @@ static void qcom_geni_serial_pm(struct uart_port *uport,
 	}
 }
 
+static int qcom_geni_rs485_config(struct uart_port *uport,
+				  struct ktermios *termios, struct serial_rs485 *rs485)
+{
+	/* When RS485 is enabled, keep the RTS pin in ACTIVE state
+	 * and revert back to auto flow control mode, i.e. flow control
+	 * managed by the QUP HW once RS485 is disabled.
+	 */
+	if (rs485->flags & SER_RS485_ENABLED)
+		qcom_geni_set_rts_pin(uport, true);
+	else
+		writel(0, uport->membase + SE_UART_MANUAL_RFR);
+
+	return 0;
+}
+
 static const struct uart_ops qcom_geni_console_pops = {
 	.tx_empty = qcom_geni_serial_tx_empty,
 	.stop_tx = qcom_geni_serial_stop_tx_fifo,
@@ -1701,6 +1742,8 @@ static int qcom_geni_serial_probe(struct platform_device *pdev)
 		return -EINVAL;
 	uport->mapbase = res->start;
 
+	uport->rs485_config = qcom_geni_rs485_config;
+	uport->rs485_supported = qcom_geni_rs485_supported;
 	port->tx_fifo_depth = DEF_FIFO_DEPTH_WORDS;
 	port->rx_fifo_depth = DEF_FIFO_DEPTH_WORDS;
 	port->tx_fifo_width = DEF_FIFO_WIDTH_BITS;
@@ -1763,6 +1806,12 @@ static int qcom_geni_serial_probe(struct platform_device *pdev)
 			IRQF_TRIGGER_HIGH, port->name, uport);
 	if (ret) {
 		dev_err(uport->dev, "Failed to get IRQ ret %d\n", ret);
+		return ret;
+	}
+
+	ret = uart_get_rs485_mode(uport);
+	if (ret) {
+		dev_err(uport->dev, "Failed to get rs485 mode %d\n", ret);
 		return ret;
 	}
 
