@@ -914,6 +914,7 @@ properties:
 
       - items:
           - enum:
+              - qcom,qcs615-addons-ride
               - qcom,qcs615-ride
           - const: qcom,qcs615
 
