@@ -911,13 +911,35 @@
 	status = "okay";
 };
 
-&usb_0 {
-	status = "okay";
-};
+/delete-node/ &usb_0_dwc3;
 
-&usb_0_dwc3 {
-	usb-role-switch;
+&usb_0 {
+	reg = <0x0 0x0a600000 0x0 0x200000>;
+
+	interrupts-extended = <&intc GIC_SPI 292 IRQ_TYPE_LEVEL_HIGH>,
+			      <&intc GIC_SPI 287 IRQ_TYPE_LEVEL_HIGH>,
+			      <&pdc 14 IRQ_TYPE_EDGE_BOTH>,
+			      <&pdc 15 IRQ_TYPE_EDGE_BOTH>,
+			      <&pdc 12 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-names = "dwc_usb3",
+			  "pwr_event",
+			  "dp_hs_phy_irq",
+			  "dm_hs_phy_irq",
+			  "ss_phy_irq";
+
+	iommus = <&apps_smmu 0x080 0x0>;
+	phys = <&usb_0_hsphy>, <&usb_0_qmpphy>;
+	phy-names = "usb2-phy", "usb3-phy";
+
 	dr_mode = "otg";
+	wakeup-source;
+	role-switch;
+	status = "okay";
+	port {
+		usb0_role_switch: endpoint {
+			remote-endpoint = <&eud_ep>;
+		};
+	};
 };
 
 &usb_0_hsphy {
