@@ -2490,7 +2490,6 @@
 				port@0 {
 					reg = <0>;
 					eud_ep: endpoint {
-						remote-endpoint = <&usb0_role_switch>;
 					};
 				};
 			};

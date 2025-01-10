@@ -367,6 +367,36 @@
 &i2c11 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
+
+	pinctrl-0 = <&qup_i2c11_default>, <&usb0_intr_state>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	hd3ss3220@67 {
+		compatible = "ti,hd3ss3220";
+		reg = <0x67>;
+		interrupt-parent = <&pmm8654au_2_gpios>;
+		interrupts = < 5 IRQ_TYPE_EDGE_FALLING>;
+
+		connector@0 {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			data-role = "dual";
+			power-role = "dual";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					hd3ss3220_ep: endpoint {
+						remote-endpoint = <&usb_role_switch>;
+					};
+				};
+			};
+		};
+	};
 };
 
 &i2c12 {
@@ -418,6 +448,14 @@
 		#gpio-cells = <2>;
 		gpio-controller;
 		reg = <0x39>;
+
+		io-exp-hog2 {
+			gpio-hog;
+			gpios = <2 GPIO_ACTIVE_HIGH>;
+			output-low;
+			line-name = "io_exp_gpio2";
+		};
+
 	};
 
 	expander2: pca953x@3a {
@@ -500,6 +538,14 @@
 		pins = "gpio8";
 		function = "normal";
 		output-high;
+		power-source = <0>;
+	};
+
+	usb0_intr_state: usb0-intr-state {
+		pins = "gpio5";
+		function = "normal";
+		input-enable;
+		bias-pull-up;
 		power-source = <0>;
 	};
 };
@@ -733,6 +779,13 @@
 		drive-strength = <2>;
 		bias-pull-up;
 	};
+
+	qup_i2c11_default: qup-i2c11-state {
+		pins = "gpio48", "gpio49";
+		function = "qup1_se4";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
 };
 
 &pcie0 {
@@ -911,6 +964,18 @@
 	status = "okay";
 };
 
+&soc {
+	vbus_supply_regulator_0: vbus_supply_regulator_0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus_supply_0";
+		gpio = <&expander1 2 GPIO_ACTIVE_HIGH>;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-boot-on;
+		enable-active-high;
+	};
+};
+
 /delete-node/ &usb_0_dwc3;
 
 &usb_0 {
@@ -932,13 +997,27 @@
 	phy-names = "usb2-phy", "usb3-phy";
 
 	dr_mode = "otg";
+	usb-role-switch;
+	snps,dis_u2_susphy_quirk;
+	snps,dis_enblslpm_quirk;
+	maximum-speed = "super-speed";
+	qcom,enable-rt;
 	wakeup-source;
-	role-switch;
+	vbus_dwc3-supply = <&vbus_supply_regulator_0>;
 	status = "okay";
-	port {
-		usb0_role_switch: endpoint {
-			remote-endpoint = <&eud_ep>;
+
+	ports {
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			usb_role_switch: endpoint {
+				remote-endpoint = <&hd3ss3220_ep>;
+			};
 		};
+
 	};
 };
 
