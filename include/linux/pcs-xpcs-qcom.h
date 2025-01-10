@@ -2,7 +2,7 @@
 /*
  * Synopsys DesignWare XPCS platform device driver
  *
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef __LINUX_PCS_XPCS_QCOM_H
@@ -13,6 +13,7 @@
 
 /* AN mode */
 #define DW_AN_C37_USXGMII		1
+#define DW_10GBASER			5
 
 struct xpcs_id;
 
