@@ -14,6 +14,10 @@
 / {
 	model = "Thundercomm, Inc. Rubik Pi C6490P";
 	compatible = "qcom,qcm6490-addons-idp","qcom,sc7280";
+
+	/* This will be deprecated soon */
+	qcom,msm-id = <497 0x10000>, <498 0x10000>, <475 0x10000>, <515 0x10000>;
+	qcom,board-id = <32 0xb>, <32 0x60b>;
 };
 
 &uart2 {
