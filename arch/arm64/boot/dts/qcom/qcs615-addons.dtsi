@@ -281,6 +281,14 @@
 		qcom,usb-bam-support;
 	};
 
+	dma@10a2000 {
+		compatible = "qcom,dcc-v1", "qcom,dcc";
+		reg = <0x0 0x010a2000 0x0 0x1000>,
+		      <0x0 0x010ae000 0x0 0x2000>;
+
+		qcom,dcc-offset = <0x6000>;
+	};
+
 	tmc_etr: tmc@6048000 {
 		interrupts = <GIC_SPI 270 IRQ_TYPE_EDGE_RISING>;
 		interrupt-names = "byte-cntr-irq";
