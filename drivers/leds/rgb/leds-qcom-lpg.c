@@ -1144,6 +1144,7 @@ static int lpg_add_led(struct lpg *lpg, struct device_node *np)
 	struct lpg_led *led;
 	const char *state;
 	int num_channels;
+	int brightness;
 	u32 color = 0;
 	int ret;
 	int i;
@@ -1215,10 +1216,19 @@ static int lpg_add_led(struct lpg *lpg, struct device_node *np)
 	cdev->max_brightness = LPG_RESOLUTION_9BIT - 1;
 
 	if (!of_property_read_string(np, "default-state", &state) &&
-	    !strcmp(state, "on"))
-		cdev->brightness = cdev->max_brightness;
-	else
+	    !strcmp(state, "on")) {
+		if (of_property_read_u32(np, "linux,default-brightness", &brightness)) {
+			dev_dbg(lpg->dev, "Failed to obtain "
+				"linux,default-brightness default value\n");
+			cdev->brightness = cdev->blink_brightness = cdev->max_brightness;
+		} else {
+			dev_info(lpg->dev, "The default brightness "
+				"is %d\n", brightness);
+			cdev->brightness = cdev->blink_brightness = brightness;
+		}
+	} else {
 		cdev->brightness = LED_OFF;
+	}
 
 	cdev->brightness_set_blocking(cdev, cdev->brightness);
 

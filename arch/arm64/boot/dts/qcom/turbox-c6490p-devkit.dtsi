@@ -1165,6 +1165,17 @@
 	};
 };
 
+&pm8350c_pwm {
+	led@2 {
+		reg = <2>;
+		color = <LED_COLOR_ID_GREEN>;
+		label = "green";
+		linux,default-trigger = "heartbeat";
+		linux,default-brightness = <5>;
+		default-state = "on";
+	};
+};
+
 &pmk8350_rtc {
 	status = "okay";
 	allow-set-time;
