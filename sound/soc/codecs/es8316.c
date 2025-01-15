@@ -125,28 +125,29 @@ static int es8316_reset(struct snd_soc_component *component)
 
 static void pcm_pop_work_events(struct work_struct *work)
 {
-//	struct es8336_priv *es8316 =
-		//	container_of(work, struct es8316_priv, pcm_pop_work);
-			struct snd_soc_component *component = es8316_component;
-			/*oepn dac output here*/	
-			snd_soc_component_write(component, ES8316_CLKMGR_CLKSW_REG01, 0x7F);
-			snd_soc_component_write(component, ES8316_SYS_PDN_REG0D, 0x00);			
-			snd_soc_component_write(component, ES8316_SYS_LP1_REG0E, 0x00);
-			snd_soc_component_write(component, ES8316_SYS_LP2_REG0F, 0x00);
-			snd_soc_component_write(component, ES8316_DAC_PDN_REG2F, 0x00);
-			snd_soc_component_write(component, ES8316_HPMIX_SWITCH_REG14, 0x88);
-			snd_soc_component_write(component, ES8316_HPMIX_PDN_REG15, 0x00);		
-			snd_soc_component_write(component, ES8316_HPMIX_VOL_REG16, 0xBB);
-			snd_soc_component_write(component, ES8316_CPHP_PDN2_REG1A, 0x10);		
-			snd_soc_component_write(component, ES8316_CPHP_LDOCTL_REG1B, 0x30);
-			snd_soc_component_write(component, ES8316_CPHP_PDN1_REG19, 0x03);
-			snd_soc_component_write(component, ES8316_CPHP_ICAL_VOL_REG18, 0x11);
-			snd_soc_component_write(component, ES8316_ADC_PDN_LINSEL_REG22, 0x30);
-			msleep(5);
-			snd_soc_component_write(component, ES8316_RESET_REG00, 0xC0);	
-			snd_soc_component_write(component, ES8316_CPHP_OUTEN_REG17, 0x66);
-			es8316_init_reg=1;
-	
+	struct snd_soc_component *component = es8316_component;
+
+	pr_info("%s: enter\n", __func__);
+	/*oepn dac output here*/
+	snd_soc_component_write(component, ES8316_CLKMGR_CLKSW_REG01, 0x7F);
+	snd_soc_component_write(component, ES8316_SYS_PDN_REG0D, 0x00);
+	snd_soc_component_write(component, ES8316_SYS_LP1_REG0E, 0x00);
+	snd_soc_component_write(component, ES8316_SYS_LP2_REG0F, 0x00);
+	snd_soc_component_write(component, ES8316_DAC_PDN_REG2F, 0x00);
+	snd_soc_component_write(component, ES8316_HPMIX_SWITCH_REG14, 0x88);
+	snd_soc_component_write(component, ES8316_HPMIX_PDN_REG15, 0x00);
+	snd_soc_component_write(component, ES8316_HPMIX_VOL_REG16, 0xBB);
+	snd_soc_component_write(component, ES8316_CPHP_PDN2_REG1A, 0x10);
+	snd_soc_component_write(component, ES8316_CPHP_LDOCTL_REG1B, 0x30);
+	snd_soc_component_write(component, ES8316_CPHP_PDN1_REG19, 0x03);
+	snd_soc_component_write(component, ES8316_CPHP_ICAL_VOL_REG18, 0x11);
+	snd_soc_component_write(component, ES8316_ADC_PDN_LINSEL_REG22, 0x30);
+	msleep(5);
+	snd_soc_component_write(component, ES8316_RESET_REG00, 0xC0);
+	snd_soc_component_write(component, ES8316_CPHP_OUTEN_REG17, 0x66);
+	es8316_init_reg=1;
+	pr_info("%s: exit\n", __func__);
+
 }
 
 static void es8316_enable_spk(struct es8316_priv *es8316, bool enable)
@@ -707,7 +708,7 @@ static int es8316_pcm_startup(struct snd_pcm_substream *substream,
 //	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
 //	bool playback = (substream->stream == SNDRV_PCM_STREAM_PLAYBACK);
 
-	
+	pr_info("%s: enter\n", __func__);
 
 	return 0;
 }
@@ -720,6 +721,7 @@ static void es8316_pcm_shutdown(struct snd_pcm_substream *substream,
 //	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
 //	bool playback = (substream->stream == SNDRV_PCM_STREAM_PLAYBACK);
 
+	pr_info("%s: enter\n", __func__);
 }
 
 
@@ -730,6 +732,8 @@ static int es8316_pcm_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_component*component = dai->component;
 	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
 	int val = 0;
+
+	pr_info("%s: enter\n", __func__);
 	switch (params_format(params)) {
 	case SNDRV_PCM_FORMAT_S16_LE:
 		val = ES8316_DACWL_16;
@@ -754,9 +758,13 @@ static int es8316_pcm_hw_params(struct snd_pcm_substream *substream,
 	else
 		snd_soc_component_update_bits(component, ES8316_SDP_ADCFMT_REG0A,
 				    ES8316_ADCWL_MASK, val);
-	if(es8316_init_reg==0)
+
+	if (es8316_init_reg == 0) {
+		pr_info("%s: enable delayed work\n", __func__);
 		queue_delayed_work(system_wq, &es8316->pcm_pop_work,
 								msecs_to_jiffies(20));
+	}
+
 	return 0;
 }
 
@@ -783,6 +791,8 @@ static int es8316_set_bias_level(struct snd_soc_component *component,
 				 enum snd_soc_bias_level level)
 {
 	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
+
+	pr_info("%s: level(%d)\n", __func__, level);
 
 	switch (level) {
 	case SND_SOC_BIAS_ON:
@@ -851,6 +861,7 @@ static struct snd_soc_dai_driver es8316_dai = {
 
 static int es8316_init_regs(struct snd_soc_component *component)
 {
+	pr_info("%s: enter\n", __func__);
 	snd_soc_component_write(component, ES8316_RESET_REG00, 0x3f);
 	usleep_range(5000, 5500);
 	snd_soc_component_write(component, ES8316_RESET_REG00, 0x00);
@@ -931,20 +942,27 @@ static int es8316_init_regs(struct snd_soc_component *component)
 
 static int es8316_suspend(struct snd_soc_component *component)
 {
-		es8316_set_bias_level(component, SND_SOC_BIAS_OFF);
-		es8316_init_reg=0;
-		return 0;
+	pr_info("%s: enter\n", __func__);
+	es8316_set_bias_level(component, SND_SOC_BIAS_OFF);
+	es8316_init_reg=0;
+	pr_info("%s: exit\n", __func__);
+
+	return 0;
 }
 
 static int es8316_resume(struct snd_soc_component *component)
 {
 //	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
 	int ret;
+
+	pr_info("%s: enter\n", __func__);
 	es8316_reset(component); /* UPDATED BY DAVID,15-3-5 */
 	ret = snd_soc_component_read(component, ES8316_CLKMGR_ADCDIV2_REG05);
 	if (!ret) {
 		es8316_init_regs(component);	
 	}
+	pr_info("%s: exit\n", __func__);
+
 	return 0;
 }
 /*
@@ -1020,6 +1038,8 @@ static int es8316_probe(struct snd_soc_component *component)
 	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
 	int ret = 0;
 	es8316_component = component;
+
+	pr_info("%s: enter\n", __func__);
 #if MCLK
 	es8316->mclk = devm_clk_get(component->dev, "mclk");
 	if (PTR_ERR(es8316->mclk) == -EPROBE_DEFER)
@@ -1064,6 +1084,7 @@ static int es8316_probe(struct snd_soc_component *component)
 
 	snd_soc_component_set_jack(component, &es8316_jack, NULL);
 
+	pr_info("%s: exit\n", __func__);
 	return ret;
 }
 
@@ -1419,12 +1440,15 @@ static int es8316_i2c_probe(struct i2c_client *i2c)
 
 static void es8316_i2c_remove(struct i2c_client *client)
 {
+	pr_info("%s: enter\n", __func__);
 	kfree(i2c_get_clientdata(client));
 }
 
 static void es8316_i2c_shutdown(struct i2c_client *client)
 {
 	struct es8316_priv *es8316 = i2c_get_clientdata(client);
+
+	pr_info("%s: enter\n", __func__);
 	if (es8316_component != NULL) {
 		es8316_enable_spk(es8316, false);
 		msleep(20);
