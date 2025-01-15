@@ -22,7 +22,7 @@ Please read the Documentation/process/changes.rst file, as it contains the requi
 
 ## Compilation
 
-- Before compilation
+- **Before compilation**
 
 1.Run the following commands to download and install the cross-compilation tool.
 
@@ -37,7 +37,7 @@ git lfs pull
 source environment-setup-armv8-2a-qcom-linux
 ```
 
-- Compilation
+- **Compilation**
 
 ```shell
 ./rubikpi_build.sh -a
