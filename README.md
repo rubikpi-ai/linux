@@ -282,7 +282,7 @@ On-board PCB antenna</td>
 <td valign="top">Android 13<br>
 Qualcomm® Linux®<br>
 Debian 12*<br>
-*Canonical Ubuntu for Qualcomm platforms</td>
+Canonical Ubuntu for Qualcomm platforms*</td>
 </tr>
 </tbody>
 </table>
@@ -343,3 +343,4 @@ Debian 12*<br>
 Support: [support@rubikpi.ai](mailto:support@rubikpi.ai)
 
 Report Bugs: [https://github.com/rubikpi-ai/documentation/issues/new](https://github.com/rubikpi-ai/documentation/issues/new)
+
