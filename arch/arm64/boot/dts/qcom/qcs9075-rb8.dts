@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024, 2025, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 /dts-v1/;
 
@@ -841,7 +841,6 @@
 		compatible = "qcom,wcn6855-bt";
 		pinctrl-names = "default";
 		pinctrl-0 = <&bt_en_state>, <&bt_bootstrap_default>;
-		enable-gpios = <&pmm8654au_1_gpios 8 GPIO_ACTIVE_HIGH>; /* BT_EN */
 		max-speed = <3200000>;
 	};
 };
