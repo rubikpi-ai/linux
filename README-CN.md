@@ -58,6 +58,7 @@ reboot bootloader
 ./rubikpi_flash.sh -d -i -r
 ```
 
+
 ---
 
 ## 🚀关于魔方派3（RUBIK Pi 3）
@@ -88,7 +89,7 @@ RUBIK Pi 3 具有丰富的接口和功能设计， 支持 USB Type-A (1x 2.0, 2x
 </table>
 </div>
 
---- 
+---
 
 ### 😍魔方派3的优势
 
@@ -199,7 +200,7 @@ RUBIK Pi 3 具有丰富的接口和功能设计， 支持 USB Type-A (1x 2.0, 2x
 
 > 注册商标 Linux® 的使用会依据 Linux 基金会授予的再许可，Linux 基金会是该商标在全球范围内的所有者 Linus Torvalds 的独家受许可人。
 
---- 
+---
 
 ### 📒魔方派3产品规格书
 
@@ -275,12 +276,13 @@ On-board PCB antenna</td>
 <tr>
 <td valign="top">OS support</td>
 <td valign="top">Android 13<br>
-Debian 12*<br>
 Qualcomm® Linux®<br>
-*Canonical Ubuntu for Qualcomm platforms</td>
+Debian 12*<br>
+Canonical Ubuntu for Qualcomm platforms*</td>
 </tr>
 </tbody>
 </table>
+
 </div>
 
 *:Planning
@@ -337,3 +339,4 @@ Qualcomm® Linux®<br>
 获取支持：[support@rubikpi.ai](mailto:support@rubikpi.ai)
 
 Bug反馈： [https://github.com/rubikpi-ai/documentation/issues/new](https://github.com/rubikpi-ai/documentation/issues/new)
+
