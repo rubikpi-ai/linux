@@ -113,13 +113,13 @@ RUBIK Pi 3 boasts a rich array of interfaces and functions, including USB Type-A
     </tr>
     <tr>
         <td><img src="https://www.thundercomm.com/wp-content/uploads/2024/09/Expand-2.png" alt=""></td>
-        <td><strong>Easy to Expand</strong><br><p>• C5430P/6490P/C8550 SOM are P2P compatible | • Easy to build customized EVK</p></td>
+        <td><strong>Easy to Expand</strong><br><p>• C5430P/6490P/C8550 SOM are P2P compatible<br>• Easy to build customized EVK</p></td>
         <td><img src="https://www.thundercomm.com/wp-content/uploads/2024/09/Community-1.png" alt=""></td>
         <td><strong>Open-source Community</strong><br><p>A vibrant and collaborative group of enthusiasts, developers, and educators</p></td>
     </tr>
     <tr>
         <td><img src="https://www.thundercomm.com/wp-content/uploads/2024/09/Multiple-OS-support-1.png" alt=""></td>
-        <td><strong>Multiple OS support</strong><br><p>Qualcomm open-source Linux, Android, Ubuntu on Qualcomm IoT Platform</p></td>
+        <td><strong>Multiple OS support</strong><br><p>Qualcomm open-source Linux, Android, Ubuntu on Qualcomm IoT Platform, Debian 12</p></td>
         <td><img src="https://www.thundercomm.com/wp-content/uploads/2024/09/folder-1.png" alt=""></td>
         <td><strong>Comprehensive Documentation</strong><br><p>Accessible documentations, including official guides, tutorials, datasheets, and FAQs</p></td>
     </tr>
@@ -281,6 +281,7 @@ On-board PCB antenna</td>
 <td valign="top">OS support</td>
 <td valign="top">Android 13<br>
 Qualcomm® Linux®<br>
+Debian 12*<br>
 *Canonical Ubuntu for Qualcomm platforms</td>
 </tr>
 </tbody>
@@ -288,7 +289,7 @@ Qualcomm® Linux®<br>
 
 </div>
 
-*Planning
+*:Planning
 
 ---
 
