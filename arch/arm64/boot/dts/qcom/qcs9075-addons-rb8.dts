@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 /dts-v1/;
 
@@ -20,9 +20,13 @@
 		clock-names = "macro", "dcodec";
 
 		pinctrl-names = "default";
-		pinctrl-0 = <&hs1_mi2s_data0>, <&hs1_mi2s_sclk>, <&hs1_mi2s_data1>,
-			    <&hs1_mi2s_ws>, <&hs2_mi2s_data0>,<&hs2_mi2s_data1>,
-			    <&hs2_mi2s_sck>, <&hs2_mi2s_ws>;
+		pinctrl-0 = <&lpass_i2s1_data>, <&lpass_i2s1_ws>,
+			    <&hs1_mi2s_data0>, <&mi2s_mclk>,
+			    <&hs1_mi2s_sclk>, <&hs1_mi2s_data1>,
+			    <&hs1_mi2s_ws>, <&hs2_mi2s_data0>,
+			    <&hs2_mi2s_data1>, <&hs2_mi2s_sck>,
+			    <&hs2_mi2s_ws>, <&lpass_quad_clk>,
+			    <&lpass_quad_data>, <&lpass_quad_ws>;
 
 		hs1-mi2s-playback-dai-link {
 			link-name = "MI2S-LPAIF_SDR-RX-SECONDARY";
@@ -45,6 +49,54 @@
 
 			codec {
 				sound-dai = <&dmic_codec>;
+			};
+		};
+
+		lpi-quad-capture-dai-link {
+			link-name = "MI2S-LPAIF_RXTX-TX-PRIMARY";
+
+			cpu {
+				sound-dai = <&q6apmbedai PRIMARY_MI2S_TX>;
+			};
+
+			codec {
+				sound-dai = <&msm_stub_codec 1>;
+			};
+		};
+
+		lpi-quad-playback-dai-link {
+			link-name = "MI2S-LPAIF_RXTX-RX-PRIMARY";
+
+			cpu {
+				sound-dai = <&q6apmbedai PRIMARY_MI2S_RX>;
+			};
+
+			codec {
+				sound-dai = <&msm_stub_codec 0>;
+			};
+		};
+
+		lpi-tdm-quad-capture-dai-link {
+			link-name = "TDM-LPAIF_RXTX-TX-PRIMARY";
+
+			cpu {
+				sound-dai = <&q6apmbedai PRIMARY_TDM_TX_0>;
+			};
+
+			codec {
+				sound-dai = <&msm_stub_codec 1>;
+			};
+		};
+
+		lpi-tdm-quad-playback-dai-link {
+			link-name = "TDM-LPAIF_RXTX-RX-PRIMARY";
+
+			cpu {
+				sound-dai = <&q6apmbedai PRIMARY_TDM_RX_0>;
+			};
+
+			codec {
+				sound-dai = <&msm_stub_codec 0>;
 			};
 		};
 
@@ -80,6 +132,52 @@
 			drive-strength = <2>;
 			bias-pull-down;
 			input-enable;
+	};
+
+	lpass_quad_clk_sleep: quad-clk-sleep-state {
+			pins = "gpio0";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+	};
+
+	lpass_quad_clk: quad-clk-state {
+			pins = "gpio0";
+			function = "qua_mi2s_sclk";
+			drive-strength = <8>;
+			bias-disable;
+			output-high;
+	};
+
+	lpass_quad_data_sleep: quad-data-sleep-state {
+			pins = "gpio2", "gpio3", "gpio4", "gpio5";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+	};
+
+	lpass_quad_data: quad-data-state {
+			pins = "gpio2", "gpio3", "gpio4", "gpio5";
+			function = "qua_mi2s_data";
+			drive-strength = <8>;
+			bias-disable;
+	};
+
+	lpass_quad_ws_sleep: quad-ws-sleep-state {
+			pins = "gpio1";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+	};
+
+	lpass_quad_ws: quad-ws-state {
+			pins = "gpio1";
+			function = "qua_mi2s_ws";
+			drive-strength = <8>;
+			output-high;
 	};
 };
 
