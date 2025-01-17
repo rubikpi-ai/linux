@@ -26,6 +26,9 @@
 #include <linux/pci.h>
 #include <linux/pci-ats.h>
 #include <linux/platform_device.h>
+#include <linux/virtio.h>
+#include <linux/virtio_config.h>
+#include <linux/virtio_ids.h>
 
 #include "arm-smmu-v3.h"
 #include "../../dma-iommu.h"
@@ -3739,8 +3742,8 @@ static inline int arm_smmu_device_acpi_probe(struct platform_device *pdev,
 }
 #endif
 
-static int arm_smmu_device_dt_probe(struct platform_device *pdev,
-				    struct arm_smmu_device *smmu)
+int arm_smmu_device_dt_probe(struct platform_device *pdev,
+			     struct arm_smmu_device *smmu)
 {
 	struct device *dev = &pdev->dev;
 	u32 cells;
@@ -3990,8 +3993,32 @@ static struct platform_driver arm_smmu_driver = {
 	.remove_new = arm_smmu_device_remove,
 	.shutdown = arm_smmu_device_shutdown,
 };
-module_driver(arm_smmu_driver, platform_driver_register,
-	      arm_smmu_driver_unregister);
+
+static int __init arm_smmu_driver_init(void)
+{
+	int ret;
+
+	ret = platform_driver_register(&arm_smmu_driver);
+	if (ret)
+		return ret;
+
+	ret = arm_smmu_qcom_virtio_init();
+	if (ret) {
+		arm_smmu_driver_unregister(&arm_smmu_driver);
+		return ret;
+	}
+
+	return 0;
+}
+module_init(arm_smmu_driver_init);
+
+static void __exit arm_smmu_driver_exit(void)
+{
+	arm_smmu_qcom_virtio_exit();
+	arm_smmu_driver_unregister(&arm_smmu_driver);
+}
+module_exit(arm_smmu_driver_exit);
+
 
 MODULE_DESCRIPTION("IOMMU API for ARM architected SMMUv3 implementations");
 MODULE_AUTHOR("Will Deacon <will@kernel.org>");
