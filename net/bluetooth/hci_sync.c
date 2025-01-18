@@ -5397,7 +5397,10 @@ int hci_stop_discovery_sync(struct hci_dev *hdev)
 		if (!e)
 			return 0;
 
-		return hci_remote_name_cancel_sync(hdev, &e->data.bdaddr);
+		/* Ignore cancel errors since it should interfere with stopping
+		 * of the discovery.
+		 */
+		hci_remote_name_cancel_sync(hdev, &e->data.bdaddr);
 	}
 
 	return 0;
@@ -5576,24 +5579,6 @@ int hci_abort_conn_sync(struct hci_dev *hdev, struct hci_conn *conn, u8 reason)
 	default:
 		disconnect = true;
 		break;
-	}
-
-	/* Check whether the connection is successfully disconnected.
-	 * Sometimes the remote device doesn't acknowledge the
-	 * LL_TERMINATE_IND in time, requiring the controller to wait
-	 * for the supervision timeout, which may exceed 2 seconds. In
-	 * this case, we need to wait for the HCI_EV_DISCONN_COMPLETE
-	 * event before cleaning up the connection.
-	 */
-	if (err == -ETIMEDOUT) {
-		u32 idle_delay = msecs_to_jiffies(10 * conn->le_supv_timeout);
-
-		reinit_completion(&conn->disc_ev_comp);
-		if (!wait_for_completion_timeout(&conn->disc_ev_comp, idle_delay)) {
-			bt_dev_warn(hdev, "Failed to get complete");
-			mgmt_disconnect_failed(hdev, &conn->dst, conn->type,
-					       conn->dst_type, conn->abort_reason);
-		}
 	}
 
 	hci_dev_lock(hdev);

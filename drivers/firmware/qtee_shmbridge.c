@@ -122,15 +122,6 @@ static int32_t qtee_shmbridge_enable(bool enable)
 		return ret;
 	}
 
-	ret = qcom_scm_enable_shm_bridge();
-
-	if (ret) {
-		pr_err("Failed to enable shmbridge, ret = %d\n", ret);
-
-		if (ret == -EIO || ret == SHMBRIDGE_E_NOT_SUPPORTED)
-			pr_warn("shmbridge is not supported by this target\n");
-		return ret;
-	}
 	qtee_shmbridge_enabled = true;
 	pr_warn("shmbridge is enabled\n");
 	return ret;
@@ -333,7 +324,8 @@ int32_t qtee_shmbridge_register(
 			handle);
 
 	if (ret) {
-		pr_err("create shmbridge failed, ret = %d\n", ret);
+		pr_err("Shm creation failed, ret: %d, NS PA|Perm: 0x%llx, size|flags: 0x%llx, ns_vmids: 0x%llx\n",
+			ret, pfn_and_ns_perm_flags, size_and_flags, ns_vmids);
 
 		/*
 		 * If bridge is already existing and we are not real owner also paddr

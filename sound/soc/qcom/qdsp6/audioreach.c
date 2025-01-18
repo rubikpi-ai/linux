@@ -541,11 +541,13 @@ int audioreach_send_cmd_sync(struct device *dev, gpr_device_t *gdev,
 {
 
 	struct gpr_hdr *hdr = &pkt->hdr;
-	int rc;
+	int rc, wait_time = 2;
 
 	mutex_lock(cmd_lock);
 	result->opcode = 0;
 	result->status = 0;
+	if (hdr->opcode == APM_CMD_CLOSE_ALL)
+		wait_time = 5;
 
 	if (port)
 		rc = gpr_send_port_pkt(port, pkt);
@@ -559,9 +561,9 @@ int audioreach_send_cmd_sync(struct device *dev, gpr_device_t *gdev,
 
 	if (rsp_opcode)
 		rc = wait_event_timeout(*cmd_wait, (result->opcode == hdr->opcode) ||
-					(result->opcode == rsp_opcode),	2 * HZ);
+					(result->opcode == rsp_opcode), wait_time * HZ);
 	else
-		rc = wait_event_timeout(*cmd_wait, (result->opcode == hdr->opcode), 2 * HZ);
+		rc = wait_event_timeout(*cmd_wait, (result->opcode == hdr->opcode), wait_time * HZ);
 
 	if (!rc) {
 		dev_err(dev, "CMD timeout for [%x] opcode\n", hdr->opcode);

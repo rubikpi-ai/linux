@@ -1004,6 +1004,7 @@
 			power-domains = <&rpmhpd SC7280_CX>;
 			operating-points-v2 = <&sdhc1_opp_table>;
 
+			qcom,ice = <&ice_mmc>;
 			bus-width = <8>;
 			supports-cqe;
 			dma-coherent;
@@ -1035,6 +1036,13 @@
 					opp-avg-kBps = <390000 0>;
 				};
 			};
+		};
+
+		ice_mmc: crypto@7c8000 {
+			compatible = "qcom,inline-crypto-engine";
+			reg = <0x0 0x7C8000 0x0 0x10000>;
+			qcom,ice-use-hwkm;
+			clocks = <&gcc GCC_SDCC1_ICE_CORE_CLK>;
 		};
 
 		gpi_dma0: dma-controller@900000 {

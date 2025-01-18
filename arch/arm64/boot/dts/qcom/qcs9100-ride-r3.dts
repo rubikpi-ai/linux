@@ -17,6 +17,7 @@
 /delete-node/ &pil_video_mem;
 /delete-node/ &audio_mdf_mem;
 /delete-node/ &trusted_apps_mem;
+/delete-node/ &tz_ffi_mem;
 
 
 / {
@@ -103,6 +104,12 @@
 		trusted_apps_mem: trusted-apps@d1900000 {
 			reg = <0x0 0xd1900000 0x0 0x1c00000>;
 			no-map;
+		};
+	};
+
+	firmware {
+		scm {
+			/delete-property/ memory-region;
 		};
 	};
 };

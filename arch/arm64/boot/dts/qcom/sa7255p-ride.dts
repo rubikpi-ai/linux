@@ -36,6 +36,10 @@
 	status = "okay";
 };
 
+&gpll0_board_clk {
+	clock-frequency = <300000000>;
+};
+
 &i2c8 {
 	clock-frequency = <400000>;
 	power-domains = <&scmi9_pd 8>;
@@ -47,6 +51,18 @@
 	clock-frequency = <400000>;
 	power-domains = <&scmi9_pd 15>;
 
+	status = "okay";
+};
+
+&pcie0 {
+	power-domains = <&scmi5_pd 0>;
+	power-domain-names = "power";
+	status = "okay";
+};
+
+&pcie1 {
+	power-domains = <&scmi6_pd 0>;
+	power-domain-names = "power";
 	status = "okay";
 };
 
@@ -71,6 +87,14 @@
 };
 
 &scmi3 {
+	status = "okay";
+};
+
+&scmi5 {
+	status = "okay";
+};
+
+&scmi6 {
 	status = "okay";
 };
 

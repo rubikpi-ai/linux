@@ -13,12 +13,25 @@
 	#size-cells = <2>;
 
 	clocks {
-		xo_board_clk: xo-board-clk {
+		bi_tcxo_div2: bi-tcxo-div2-clk {
+			compatible = "fixed-factor-clock";
+			clocks = <&xo_board_clk>;
+			clock-mult = <1>;
+			clock-div = <2>;
+			#clock-cells = <0>;
+		};
+
+		gpll0_board_clk: gpll0-board-clk {
 			compatible = "fixed-clock";
 			#clock-cells = <0>;
 		};
 
 		sleep_clk: sleep-clk {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+		};
+
+		xo_board_clk: xo-board-clk {
 			compatible = "fixed-clock";
 			#clock-cells = <0>;
 		};
@@ -33,6 +46,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x0>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 0>;
 			next-level-cache = <&L2_0>;
 			L2_0: l2-cache {
 			      compatible = "cache";
@@ -51,6 +65,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x100>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 0>;
 			next-level-cache = <&L2_1>;
 			L2_1: l2-cache {
 			      compatible = "cache";
@@ -64,6 +79,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x200>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 1>;
 			next-level-cache = <&L2_2>;
 			L2_2: l2-cache {
 			      compatible = "cache";
@@ -77,6 +93,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x300>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 1>;
 			next-level-cache = <&L2_3>;
 			L2_3: l2-cache {
 			      compatible = "cache";
@@ -90,6 +107,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x10000>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 2>;
 			next-level-cache = <&L2_4>;
 			L2_4: l2-cache {
 			      compatible = "cache";
@@ -107,6 +125,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x10100>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 2>;
 			next-level-cache = <&L2_5>;
 			L2_5: l2-cache {
 			      compatible = "cache";
@@ -120,6 +139,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x10200>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 2>;
 			next-level-cache = <&L2_6>;
 			L2_6: l2-cache {
 			      compatible = "cache";
@@ -133,6 +153,7 @@
 			compatible = "qcom,kryo";
 			reg = <0x0 0x10300>;
 			enable-method = "psci";
+			qcom,freq-domain = <&cpufreq_hw 2>;
 			next-level-cache = <&L2_7>;
 			L2_7: l2-cache {
 			      compatible = "cache";
@@ -221,6 +242,17 @@
 			no-map;
 		};
 
+		aop_image_mem: aop-image-region@90800000 {
+			no-map;
+			reg = <0x0 0x90800000 0x0 0x60000>;
+		};
+
+		aop_cmd_db_mem: aop-cmd-db-region@90860000 {
+			compatible = "qcom,cmd-db";
+			no-map;
+			reg = <0x0 0x90860000 0x0 0x20000>;
+		};
+
 		uefi_log: uefi-log@908b0000 {
 			reg = <0x0 0x908b0000 0x0 0x10000>;
 			no-map;
@@ -263,6 +295,11 @@
 			no-map;
 		};
 
+		aoss_backup_mem: aoss-backup-region@91b00000 {
+			no-map;
+			reg = <0x0 0x91b00000 0x0 0x40000>;
+		};
+
 		cpucp_backup_mem: cpucp-backup@91b40000 {
 			reg = <0x0 0x91b40000 0x0 0x40000>;
 			no-map;
@@ -292,6 +329,51 @@
 		lpass_machine_learning_mem: lpass-machine-learning@93b00000 {
 			reg = <0x0 0x93b00000 0x0 0xf00000>;
 			no-map;
+		};
+
+		adsp_rpc_remote_heap_mem: adsp-rpc-remote-heap-region@94a00000 {
+			no-map;
+			reg = <0x0 0x94a00000 0x0 0x800000>;
+		};
+
+		camera_mem: camera-region@95200000 {
+			no-map;
+			reg = <0x0 0x95200000 0x0 0x500000>;
+		};
+
+		mproc_umdpil_mem: mproc-umdpil-region@95700000 {
+			no-map;
+			reg = <0x0 0x95700000 0x0 0x500000>;
+		};
+
+		adsp_mem: adsp-region@95c00000 {
+			no-map;
+			reg = <0x0 0x95c00000 0x0 0x1e00000>;
+		};
+
+		gpdsp_mem: gpdsp-region@97b00000 {
+			no-map;
+			reg = <0x0 0x97b00000 0x0 0x1e00000>;
+		};
+
+		cdsp_mem: cdsp-region@99980000 {
+			no-map;
+			reg = <0x0 0x99980000 0x0 0x1e00000>;
+		};
+
+		gpu_microcode_mem: gpu-microcode-region@9b780000 {
+			no-map;
+			reg = <0x0 0x9b780000 0x0 0x2000>;
+		};
+
+		cvp_mem: cvp-region@9b782000 {
+			no-map;
+			reg = <0x0 0x9b782000 0x0 0x700000>;
+		};
+
+		video_mem: video-region@9be82000 {
+			no-map;
+			reg = <0x0 0x9be82000 0x0 0x700000>;
 		};
 
 		firmware_mem: firmware-region@b0000000 {
@@ -334,6 +416,11 @@
 			no-map;
 		};
 
+		deep_sleep_back_up_mem: deep-sleep-back-up-region@d1800000 {
+			no-map;
+			reg = <0x0 0xd1800000 0x0 0x100000>;
+		};
+
 		trusted_apps_mem: trusted-apps@d1900000 {
 			reg = <0x0 0xd1900000 0x0 0x3800000>;
 			no-map;
@@ -364,6 +451,13 @@
 		#address-cells = <2>;
 		#size-cells = <2>;
 		ranges = <0 0 0 0 0x10 0>;
+
+		dcc: dma@40ff000 {
+			compatible = "qcom,dcc-v3", "qcom,dcc";
+			reg = <0x0 0x040ff000 0x0 0x1000>,
+			      <0x0 0x040b8800 0x0 0x6000>;
+			qcom,dcc-offset = <0x38800>;
+		};
 
 		ipcc0: mailbox@408000 {
 			compatible = "qcom,sa7255p-ipcc", "qcom,ipcc";
@@ -776,7 +870,16 @@
 			lanes-per-direction = <2>;
 			iommus = <&apps_smmu 0x100 0x0>;
 			dma-coherent;
+			qcom,ice = <&ice>;
 			status = "disabled";
+		};
+
+		ice: crypto@1d88000 {
+			compatible = "qcom,sa7255p-inline-crypto-engine",
+				     "qcom,inline-crypto-engine";
+			reg = <0x0 0x01d88000 0x0 0x10000>;
+			qcom,ice-use-hwkm;
+			qcom,ice-skip-clk;
 		};
 
 		tcsr_mutex: hwlock@1f40000 {
@@ -1283,6 +1386,101 @@
 			reg = <0x0 0x17c10000 0x0 0x1000>;
 			clocks = <&sleep_clk>;
 			interrupts = <GIC_SPI 0 IRQ_TYPE_EDGE_RISING>;
+		};
+
+		cpufreq_hw: cpufreq-hw@18591000 {
+			compatible = "qcom,cpufreq-epss",
+				     "qcom,qcs8300-cpufreq-epss";
+			reg = <0x0 0x18591000 0x0 0x1000>,
+			      <0x0 0x18594000 0x0 0x1000>,
+			      <0x0 0x18593000 0x0 0x1000>;
+			reg-names = "freq-domain0", "freq-domain1", "freq-domain2";
+			interrupts = <GIC_SPI 31 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 86 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 32 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "dcvsh-irq-0", "dcvsh-irq-1", "dcvsh-irq-2";
+
+			clocks = <&bi_tcxo_div2>, <&gpll0_board_clk>;
+			clock-names = "xo", "alternate";
+
+			#freq-domain-cells = <1>;
+		};
+
+		pcie0: pci@400000000 {
+			compatible = "qcom,pcie-ecam-rc";
+			reg = <0x4 0x00000000 0x0 0x10000000>;
+
+			device_type = "pci";
+
+			#address-cells = <3>;
+			#size-cells = <2>;
+
+			ranges = <0x01000000 0x0 0x40000000 0x0 0x40000000 0x0 0x100000>,
+				 <0x02000000 0x0 0x40100000 0x0 0x40100000 0x0 0x1ff00000>,
+				 <0x43000000 0x4 0x10100000 0x4 0x10100000 0x0 0x100000>;
+			bus-range = <0x00 0xff>;
+
+			dma-coherent;
+
+			linux,pci-domain = <0>;
+
+			interrupts = <GIC_SPI 307 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 308 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 309 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 312 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 313 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 314 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 374 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-parent = <&intc>;
+
+			iommus = <&pcie_smmu 0x00 0x7f>;
+			iommu-map = <0x0 &pcie_smmu 0x0000 0x1>,
+				    <0x100 &pcie_smmu 0x0001 0x1>,
+				    <0x200 &pcie_smmu 0x0002 0x1>,
+				    <0x300 &pcie_smmu 0x0003 0x1>;
+
+			status = "disabled";
+		};
+
+		pcie1: pci@600000000 {
+			compatible = "qcom,pcie-ecam-rc";
+			reg = <0x6 0x00000000 0x0 0x10000000>;
+
+			device_type = "pci";
+
+			#address-cells = <3>;
+			#size-cells = <2>;
+
+			ranges = <0x01000000 0x0 0x60000000 0x0 0x60000000 0x0 0x100000>,
+				 <0x02000000 0x0 0x60100000 0x0 0x60100000 0x0 0x1ff00000>,
+				 <0x43000000 0x6 0x10100000 0x6 0x10100000 0x0 0x100000>;
+			bus-range = <0x00 0xff>;
+
+			dma-coherent;
+
+			linux,pci-domain = <1>;
+
+			interrupts = <GIC_SPI 519 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 140 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 141 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 142 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 143 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 144 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-parent = <&intc>;
+
+			iommus = <&pcie_smmu 0x80 0x7f>;
+			iommu-map = <0x0 &pcie_smmu 0x0080 0x1>,
+				    <0x100 &pcie_smmu 0x0081 0x1>,
+				    <0x200 &pcie_smmu 0x0082 0x1>,
+				    <0x208 &pcie_smmu 0x0083 0x1>,
+				    <0x210 &pcie_smmu 0x0084 0x1>,
+				    <0x300 &pcie_smmu 0x0085 0x1>,
+				    <0xab00 &pcie_smmu 0x0086 0x1>;
+
+			status = "disabled";
 		};
 	};
 

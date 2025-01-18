@@ -309,6 +309,10 @@
 	};
 };
 
+&eud {
+	status = "okay";
+};
+
 &i2c0 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
@@ -741,6 +745,11 @@
 		vddpcie0p9-supply = <&vreg_pmu_pcie_0p9>;
 		vddpcie1p8-supply = <&vreg_pmu_pcie_1p8>;
 	};
+};
+
+&pmm8654au_0_pon_resin {
+	linux,code = <KEY_VOLUMEDOWN>;
+	status = "okay";
 };
 
 &uart0 {
