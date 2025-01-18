@@ -1447,6 +1447,67 @@ static void es8316_i2c_shutdown(struct i2c_client *client)
 	}
 }
 
+static int es8316_pm_resume(struct device *dev)
+{
+	struct es8316_priv *es8316;
+
+	if (!dev)
+		return -ENODEV;
+
+	es8316 = dev_get_drvdata(dev);
+
+	pr_info("%s: enter\n", __func__);
+
+	const char *ptr = "Restart Adsp";
+	int len = strlen(ptr) + 1;
+	struct sk_buff *nl_skb;
+	struct nlmsghdr *nlh;
+	int ret;
+
+	if (!nlsk) {
+		pr_err("%s: nlsk is NULL\n", __func__);
+		return -EINVAL;
+	}
+
+	nl_skb = nlmsg_new(len, GFP_ATOMIC);
+	if (!nl_skb) {
+		pr_err("%s: netlink alloc failure\n", __func__);
+		return -EINVAL;
+	}
+
+	nlh = nlmsg_put(nl_skb, 0, 0, NETLINK_TEST_ES8316, len, 0);
+	if (!nlh) {
+		pr_err("%s: nlmsg_put failaure\n", __func__);
+		nlmsg_free(nl_skb);
+		return -EINVAL;
+	}
+
+	memcpy(nlmsg_data(nlh), ptr, len);
+	ret = netlink_unicast(nlsk, nl_skb, 200, MSG_DONTWAIT);
+	pr_info("%s: send msg[%s] ret[%d]\n", __func__, ptr, ret);
+
+	return 0;
+}
+
+static int es8316_pm_suspend(struct device *dev)
+{
+	struct es8316_priv *es8316;
+
+	if (!dev)
+		return -ENODEV;
+
+	es8316 = dev_get_drvdata(dev);
+
+	pr_info("%s: enter\n", __func__);
+
+	return 0;
+}
+
+static const struct dev_pm_ops es8316_pm_ops = {
+	.suspend = es8316_pm_suspend,
+	.resume = es8316_pm_resume,
+};
+
 static const struct i2c_device_id es8316_i2c_id[] = {
 	{"es8316", 0},
 	{"10ES8316:00", 0},
@@ -1465,6 +1526,7 @@ static struct i2c_driver es8316_i2c_driver = {
 	.driver = {
 		.name		= "es8316",
 		.of_match_table = es8316_of_match,
+		.pm = &es8316_pm_ops,
 	},
 	.probe    = es8316_i2c_probe,
 	.remove	= es8316_i2c_remove,
