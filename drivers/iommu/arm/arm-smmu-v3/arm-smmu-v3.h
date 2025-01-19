@@ -829,6 +829,7 @@ static inline void arm_smmu_sva_remove_dev_pasid(struct iommu_domain *domain,
 #endif /* CONFIG_ARM_SMMU_V3_SVA */
 
 #ifdef CONFIG_ARM_SMMU_V3_QCOM_VIRTIO
+extern struct platform_driver arm_vsmmu_driver;
 int arm_smmu_qcom_virtio_init(void);
 void arm_smmu_qcom_virtio_exit(void);
 #else /* CONFIG_ARM_SMMU_V3_QCOM_VIRTIO */
