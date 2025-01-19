@@ -1000,6 +1000,11 @@ static void arm_smmu_sync_cd(struct arm_smmu_domain *smmu_domain,
 
 	cmds.num = 0;
 
+	if (smmu->impl_ops && smmu->impl_ops->sync_cd) {
+		smmu->impl_ops->sync_cd(smmu_domain, ssid, leaf);
+		return;
+	}
+
 	spin_lock_irqsave(&smmu_domain->devices_lock, flags);
 	list_for_each_entry(master, &smmu_domain->devices, domain_head) {
 		for (i = 0; i < master->num_streams; i++) {

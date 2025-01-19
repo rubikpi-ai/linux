@@ -637,6 +637,7 @@ struct arm_smmu_impl_ops {
 	int (*install_ste)(struct arm_smmu_master *master, struct arm_smmu_domain *new,
 			struct arm_smmu_domain *old);
 	int (*cmdq_issue_cmdlist)(struct arm_smmu_device *smmu, u64 *cmds, int nr, bool sync);
+	void (*sync_cd)(struct arm_smmu_domain *domain, int ssid, bool leaf);
 };
 
 /* An SMMUv3 instance */

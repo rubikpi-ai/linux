@@ -358,6 +358,7 @@ static int arm_vsmmu_impl_cmdq_issue_cmdlist(struct arm_smmu_device *smmu,
 		/* arm_smmu_write_strtab_ent; */
 		case CMDQ_OP_PREFETCH_CFG:
 			continue;
+		/* CMDQ_OP_CFGI_CD handled by impl_ops->sync_cd */
 		/*
 		 * arm_smmu_write_strtab_ent
 		 * arm_smmu_sync_ste_for_sid
@@ -377,12 +378,65 @@ static int arm_vsmmu_impl_cmdq_issue_cmdlist(struct arm_smmu_device *smmu,
 	return 0;
 }
 
+static int arm_vsmmu_impl_invalidate(struct arm_smmu_domain *smmu_domain,
+		struct virtio_iommu_req_invalidate *req)
+{
+	int ret;
+	unsigned long flags;
+	struct arm_smmu_device *smmu = smmu_domain->smmu;
+	struct arm_vsmmu_device *vsmmu = container_of(smmu, struct arm_vsmmu_device, smmu);
+
+	spin_lock_irqsave(&smmu_domain->virtio.lock, flags);
+	if (!smmu_domain->virtio.id) {
+		spin_unlock_irqrestore(&smmu_domain->virtio.lock, flags);
+		return 0;
+	}
+	ret = viommu_send_req_sync(vsmmu->viommu, req, sizeof(*req));
+	spin_unlock_irqrestore(&smmu_domain->virtio.lock, flags);
+
+	WARN(ret, "Invalidate: Scope: %#x Caches: %#x Flags: %#x Domain: %#x Pasid: %#x Id: %#llx Address: %#llx nr_pages: %#llx, page_size:%#x\n",
+		req->scope, req->caches,
+		le16_to_cpu(req->flags),
+		le32_to_cpu(req->domain),
+		le32_to_cpu(req->pasid),
+		le64_to_cpu(req->id),
+		le64_to_cpu(req->address),
+		le64_to_cpu(req->nr_pages),
+		req->page_size);
+	return ret;
+}
+
+/*
+ * arm-smmu-v3 normally calls CFGI_CD for each sid in a domain.
+ * VIRTIO_IOMMU_T_INVALIDATE does the entire domain in a single operation.
+ *
+ * When ssid is zero, we intend to invalidate all sids.
+ */
+static void arm_vsmmu_impl_sync_cd(struct arm_smmu_domain *smmu_domain,
+				int ssid, bool leaf)
+{
+	struct virtio_iommu_req_invalidate req = {0};
+	u32 flags;
+
+	req.head.type = VIRTIO_IOMMU_T_INVALIDATE;
+	req.scope = VIRTIO_IOMMU_INVAL_S_DOMAIN;
+	req.caches = VIRTIO_IOMMU_INVAL_C_PASID;
+	flags = (leaf ? VIRTIO_IOMMU_INVAL_F_LEAF : 0) |
+		(ssid != IOMMU_NO_PASID ? VIRTIO_IOMMU_INVAL_F_PASID : 0);
+
+	req.flags = cpu_to_le16(flags);
+	req.domain = cpu_to_le32(smmu_domain->virtio.id);
+	req.pasid = cpu_to_le32(ssid);
+
+	arm_vsmmu_impl_invalidate(smmu_domain, &req);
+}
 
 static const struct arm_smmu_impl_ops vsmmu_impl_ops = {
 	.read_idr = arm_vsmmu_impl_read_idr,
 	.probe_device = arm_vsmmu_impl_probe_device,
 	.install_ste = arm_vsmmu_impl_install_ste,
 	.cmdq_issue_cmdlist = arm_vsmmu_impl_cmdq_issue_cmdlist,
+	.sync_cd = arm_vsmmu_impl_sync_cd,
 };
 
 static int arm_smmu_virtio_device_probe(struct virtio_device *vdev)
