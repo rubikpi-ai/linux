@@ -625,12 +625,17 @@ struct arm_smmu_strtab_cfg {
 	u32				strtab_base_cfg;
 };
 
+struct arm_smmu_domain;
+struct arm_smmu_master;
+
 struct arm_smmu_impl_ops {
 	int (*device_reset)(struct arm_smmu_device *smmu);
 	void (*device_remove)(struct arm_smmu_device *smmu);
 	struct arm_smmu_cmdq *(*get_secondary_cmdq)(struct arm_smmu_device *smmu);
 	int (*probe_device)(struct arm_smmu_device *smmu, struct device *dev);
 	u32 (*read_idr)(struct arm_smmu_device *smmu, u32 offset);
+	int (*install_ste)(struct arm_smmu_master *master, struct arm_smmu_domain *new,
+			struct arm_smmu_domain *old);
 };
 
 /* An SMMUv3 instance */
@@ -730,6 +735,23 @@ enum arm_smmu_domain_stage {
 	ARM_SMMU_DOMAIN_BYPASS,
 };
 
+/*
+ * VIRTIO_IOMMU_ATTACH_TABLE associates @id with a set of sids. @refs is the
+ * number of stream-ids in this set.
+ * These fields are protected by @lock, which must be held when issueing virtio_iommu
+ * commands using @id.
+ * @id
+ * IDs less than ARM_SMMU_MIN_VIRTIO_ID are not valid.
+ * The arm-smmu-qcom-virtio cbs will no-op any calls made with an invalid id.
+ * This can occur during arm_smmu_attach_dev(), as the CD is setup/invalidated
+ * before to the STE is setup.
+ */
+struct arm_smmu_domain_virtio {
+	spinlock_t	lock;
+	u32		id;
+	refcount_t	refs;
+};
+
 struct arm_smmu_domain {
 	struct arm_smmu_device		*smmu;
 	struct mutex			init_mutex; /* Protects smmu pointer */
@@ -750,6 +772,8 @@ struct arm_smmu_domain {
 	spinlock_t			devices_lock;
 
 	struct list_head		mmu_notifiers;
+
+	struct arm_smmu_domain_virtio	virtio;
 };
 
 static inline struct arm_smmu_domain *to_smmu_domain(struct iommu_domain *dom)
@@ -776,6 +800,7 @@ int arm_smmu_device_dt_probe(struct platform_device *pdev,
 			     struct arm_smmu_device *smmu);
 int arm_smmu_device_hw_probe(struct arm_smmu_device *smmu);
 int arm_smmu_init_structures(struct arm_smmu_device *smmu);
+__le64 *arm_smmu_get_step_for_sid(struct arm_smmu_device *smmu, u32 sid);
 
 #ifdef CONFIG_ARM_SMMU_V3_SVA
 bool arm_smmu_sva_supported(struct arm_smmu_device *smmu);

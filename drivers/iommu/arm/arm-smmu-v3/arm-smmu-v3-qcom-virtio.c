@@ -23,6 +23,7 @@ struct arm_vsmmu_device {
 };
 
 #define ARM_VSMMU_DRIVER_NAME "arm-smmu-v3-virtio-pdev"
+#define ARM_SMMU_MIN_VIRTIO_ID         1
 
 static const char * const probe_t_field_names[] = {
 	"IDR0",
@@ -192,9 +193,148 @@ static u32 arm_vsmmu_impl_read_idr(struct arm_smmu_device *smmu, u32 offset)
 	return val;
 }
 
+static int arm_vsmmu_impl_detach_table(struct arm_smmu_device *smmu,
+			struct arm_smmu_domain *old_domain,
+			__le64 *step, u32 sid)
+{
+	struct arm_vsmmu_device *vsmmu = container_of(smmu, struct arm_vsmmu_device, smmu);
+	struct viommu_dev *viommu = vsmmu->viommu;
+	int ret;
+	unsigned long flags;
+	struct virtio_iommu_req_detach req = {0};
+
+	if (!old_domain)
+		return 0;
+
+	req.head.type = VIRTIO_IOMMU_T_DETACH;
+	req.domain = cpu_to_le32(old_domain->virtio.id);
+	req.endpoint = cpu_to_le32(sid);
+
+	spin_lock_irqsave(&old_domain->virtio.lock, flags);
+	ret = viommu_send_req_sync(viommu, &req, sizeof(req));
+
+	if (refcount_dec_and_test(&old_domain->virtio.refs)) {
+		ida_free(&viommu->domain_ids, old_domain->virtio.id);
+		old_domain->virtio.id = 0;
+	}
+	spin_unlock_irqrestore(&old_domain->virtio.lock, flags);
+
+	WARN(ret, "%s: VIRTIO_IOMMU_T_DETACH: Domain: %#x Sid: %#x\n",
+			__func__,  le32_to_cpu(req.domain), sid);
+	return ret;
+}
+
+static int arm_vsmmu_impl_attach_table(struct arm_smmu_device *smmu,
+			struct arm_smmu_domain *new_domain,
+			struct arm_smmu_domain *old_domain,
+			__le64 *step, u32 sid)
+{
+	struct arm_vsmmu_device *vsmmu = container_of(smmu, struct arm_vsmmu_device, smmu);
+	struct viommu_dev *viommu = vsmmu->viommu;
+	int ret;
+	unsigned long flags;
+	struct virtio_iommu_req_attach_table_arm_smmu3 req = {0};
+
+	/*
+	 * Detach first if already attached. Virtio-Iommu devices may or
+	 * may not support attaching to an endpoint which is already attached
+	 * to a domain.
+	 */
+	ret = arm_vsmmu_impl_detach_table(smmu, old_domain, step, sid);
+	if (ret)
+		return ret;
+
+	if (!new_domain)
+		return 0;
+
+	spin_lock_irqsave(&new_domain->virtio.lock, flags);
+	if (!new_domain->virtio.id) {
+		ret = ida_alloc_range(&viommu->domain_ids,
+				max(ARM_SMMU_MIN_VIRTIO_ID, viommu->first_domain),
+				viommu->last_domain, GFP_KERNEL);
+		if (ret < 0) {
+			spin_unlock_irqrestore(&new_domain->virtio.lock, flags);
+			return ret;
+		}
+
+		new_domain->virtio.id = ret;
+		refcount_set(&new_domain->virtio.refs, 1);
+	} else {
+		refcount_inc(&new_domain->virtio.refs);
+	}
+
+	req.head.type = VIRTIO_IOMMU_T_ATTACH_TABLE;
+	req.domain = cpu_to_le32(new_domain->virtio.id);
+	req.endpoint = cpu_to_le32(sid);
+	req.format = VIRTIO_IOMMU_ATTACH_TABLE_ARM_SMMU3;
+	req.ste0 = step[0];
+	req.ste1 = step[1];
+
+	ret = viommu_send_req_sync(viommu, &req, sizeof(req));
+	if (WARN(ret, "%s: VIRTIO_IOMMU_T_ATTACH: Domain: %#x Sid: %#x ste0: %#llx ste1:%#llx\n",
+				__func__, new_domain->virtio.id, sid,
+				 le64_to_cpu(step[0]), le64_to_cpu(step[1])))
+		goto out_free_ida;
+
+	spin_unlock_irqrestore(&new_domain->virtio.lock, flags);
+	return 0;
+
+out_free_ida:
+	if (refcount_dec_and_test(&new_domain->virtio.refs)) {
+		ida_free(&viommu->domain_ids, new_domain->virtio.id);
+		new_domain->virtio.id = 0;
+	}
+	spin_unlock_irqrestore(&new_domain->virtio.lock, flags);
+	return ret;
+}
+
+/* Based on arm_smmu_install_ste_for_dev */
+static int arm_vsmmu_impl_install_ste(struct arm_smmu_master *master,
+				struct arm_smmu_domain *new_domain,
+				struct arm_smmu_domain *old_domain)
+{
+	int i, j, ret;
+	struct arm_smmu_device *smmu = master->smmu;
+
+	for (i = 0; i < master->num_streams; ++i) {
+		u32 sid = master->streams[i].id;
+		__le64 *step = arm_smmu_get_step_for_sid(smmu, sid);
+
+		/* Bridged PCI devices may end up with duplicated IDs */
+		for (j = 0; j < i; j++)
+			if (master->streams[j].id == sid)
+				break;
+		if (j < i)
+			continue;
+
+		ret = arm_vsmmu_impl_attach_table(smmu, new_domain, old_domain, step, sid);
+		if (ret)
+			break;
+	}
+
+	if (ret) {
+		for (i--; i >= 0; i--) {
+			u32 sid = master->streams[i].id;
+			__le64 *step = arm_smmu_get_step_for_sid(smmu, sid);
+
+			/* Bridged PCI devices may end up with duplicated IDs */
+			for (j = 0; j < i; j++)
+				if (master->streams[j].id == sid)
+					break;
+			if (j < i)
+				continue;
+
+			arm_vsmmu_impl_attach_table(smmu, NULL, new_domain, step, sid);
+		}
+	}
+
+	return ret;
+}
+
 static const struct arm_smmu_impl_ops vsmmu_impl_ops = {
 	.read_idr = arm_vsmmu_impl_read_idr,
 	.probe_device = arm_vsmmu_impl_probe_device,
+	.install_ste = arm_vsmmu_impl_install_ste,
 };
 
 static int arm_smmu_virtio_device_probe(struct virtio_device *vdev)
