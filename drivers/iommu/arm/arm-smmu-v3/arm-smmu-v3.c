@@ -760,6 +760,9 @@ static int arm_smmu_cmdq_issue_cmdlist(struct arm_smmu_device *smmu,
 	struct arm_smmu_ll_queue llq, head;
 	int ret = 0;
 
+	if (smmu->impl_ops && smmu->impl_ops->cmdq_issue_cmdlist)
+		return smmu->impl_ops->cmdq_issue_cmdlist(smmu, cmds, n, sync);
+
 	llq.max_n_shift = cmdq->q.llq.max_n_shift;
 
 	/* 1. Allocate some space in the queue */

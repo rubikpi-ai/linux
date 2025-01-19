@@ -331,10 +331,58 @@ static int arm_vsmmu_impl_install_ste(struct arm_smmu_master *master,
 	return ret;
 }
 
+/*
+ * Extract commands just before they are written to cmdq, and
+ * perform the virtio-iommu equivalents.
+ *
+ * Most commands have a more-optimized equivalent than direct conversion
+ * from cmdlist.
+ *
+ * STE invalidate commands are ignored; virtio-device side maintains
+ * STE consistency.
+ *
+ * Keep same order as arm_smmu_cmdq_build_cmd.
+ */
+static int arm_vsmmu_impl_cmdq_issue_cmdlist(struct arm_smmu_device *smmu,
+				       u64 *cmds, int n, bool sync)
+{
+	int i;
+	u8 op;
+
+	for (i = 0; i < n; i++) {
+		u64 cmd0 = cmds[i * CMDQ_ENT_DWORDS];
+
+		op = FIELD_GET(CMDQ_0_OP, cmd0);
+		switch (op) {
+
+		/* arm_smmu_write_strtab_ent; */
+		case CMDQ_OP_PREFETCH_CFG:
+			continue;
+		/*
+		 * arm_smmu_write_strtab_ent
+		 * arm_smmu_sync_ste_for_sid
+		 */
+		case CMDQ_OP_CFGI_STE:
+			continue;
+		/* arm_smmu_device_reset */
+		case CMDQ_OP_CFGI_ALL:
+			continue;
+		default:
+			WARN(1, "%s: unrecognized cmdq opcode: %x\n",
+				__func__, op);
+			continue;
+		}
+	}
+
+	return 0;
+}
+
+
 static const struct arm_smmu_impl_ops vsmmu_impl_ops = {
 	.read_idr = arm_vsmmu_impl_read_idr,
 	.probe_device = arm_vsmmu_impl_probe_device,
 	.install_ste = arm_vsmmu_impl_install_ste,
+	.cmdq_issue_cmdlist = arm_vsmmu_impl_cmdq_issue_cmdlist,
 };
 
 static int arm_smmu_virtio_device_probe(struct virtio_device *vdev)

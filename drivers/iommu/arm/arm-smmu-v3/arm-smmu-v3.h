@@ -636,6 +636,7 @@ struct arm_smmu_impl_ops {
 	u32 (*read_idr)(struct arm_smmu_device *smmu, u32 offset);
 	int (*install_ste)(struct arm_smmu_master *master, struct arm_smmu_domain *new,
 			struct arm_smmu_domain *old);
+	int (*cmdq_issue_cmdlist)(struct arm_smmu_device *smmu, u64 *cmds, int nr, bool sync);
 };
 
 /* An SMMUv3 instance */
