@@ -638,6 +638,10 @@ struct arm_smmu_impl_ops {
 			struct arm_smmu_domain *old);
 	int (*cmdq_issue_cmdlist)(struct arm_smmu_device *smmu, u64 *cmds, int nr, bool sync);
 	void (*sync_cd)(struct arm_smmu_domain *domain, int ssid, bool leaf);
+	void (*tlb_inv_context)(struct arm_smmu_device *smmu, struct arm_smmu_domain *smmu_domain);
+	void (*tlb_inv_range)(struct arm_smmu_device *smmu, struct arm_smmu_domain *smmu_domain,
+				unsigned long iova, size_t size, size_t granule,
+				bool leaf, u16 asid);
 };
 
 /* An SMMUv3 instance */

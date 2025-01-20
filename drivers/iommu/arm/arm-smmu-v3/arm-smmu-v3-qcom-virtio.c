@@ -431,12 +431,57 @@ static void arm_vsmmu_impl_sync_cd(struct arm_smmu_domain *smmu_domain,
 	arm_vsmmu_impl_invalidate(smmu_domain, &req);
 }
 
+static void arm_vsmmu_impl_tlb_inv_context(struct arm_smmu_device *smmu,
+					struct arm_smmu_domain *smmu_domain)
+{
+	struct virtio_iommu_req_invalidate req = {0};
+	u64 asid = smmu_domain->s1_cfg.cd.asid;
+
+	req.head.type = VIRTIO_IOMMU_T_INVALIDATE;
+	req.scope = VIRTIO_IOMMU_INVAL_S_DOMAIN;
+	req.caches = VIRTIO_IOMMU_INVAL_C_TLB;
+	req.flags = cpu_to_le16(VIRTIO_IOMMU_INVAL_F_ID);
+	req.domain = cpu_to_le32(smmu_domain->virtio.id);
+	req.id = cpu_to_le64(asid);
+
+	arm_vsmmu_impl_invalidate(smmu_domain, &req);
+}
+
+static void arm_vsmmu_impl_tlb_inv_range(struct arm_smmu_device *smmu,
+		struct arm_smmu_domain *smmu_domain, unsigned long iova,
+		size_t size, size_t granule, bool leaf, u16 asid)
+{
+	struct virtio_iommu_req_invalidate req = {0};
+	u32 flags;
+	u64 nr_pages;
+
+	req.head.type = VIRTIO_IOMMU_T_INVALIDATE;
+	req.scope = VIRTIO_IOMMU_INVAL_S_ADDRESS;
+	req.caches = VIRTIO_IOMMU_INVAL_C_TLB;
+	flags = (leaf ? VIRTIO_IOMMU_INVAL_F_LEAF : 0) |
+			VIRTIO_IOMMU_INVAL_F_ID;
+	req.flags = cpu_to_le16(flags);
+	req.domain = cpu_to_le32(smmu_domain->virtio.id);
+	req.id = cpu_to_le64(asid);
+	req.address = cpu_to_le64(iova);
+	req.page_size = ilog2(granule);
+	nr_pages = size >> req.page_size;
+	req.nr_pages = cpu_to_le64(nr_pages);
+
+	WARN(size != nr_pages * granule, "%s: size: %#zx nr_pages: %#llx granule:%#zx\n",
+		__func__, size, nr_pages, granule);
+
+	arm_vsmmu_impl_invalidate(smmu_domain, &req);
+}
+
 static const struct arm_smmu_impl_ops vsmmu_impl_ops = {
 	.read_idr = arm_vsmmu_impl_read_idr,
 	.probe_device = arm_vsmmu_impl_probe_device,
 	.install_ste = arm_vsmmu_impl_install_ste,
 	.cmdq_issue_cmdlist = arm_vsmmu_impl_cmdq_issue_cmdlist,
 	.sync_cd = arm_vsmmu_impl_sync_cd,
+	.tlb_inv_context = arm_vsmmu_impl_tlb_inv_context,
+	.tlb_inv_range = arm_vsmmu_impl_tlb_inv_range,
 };
 
 static int arm_smmu_virtio_device_probe(struct virtio_device *vdev)

@@ -1888,6 +1888,11 @@ static void arm_smmu_tlb_inv_context(void *cookie)
 	struct arm_smmu_device *smmu = smmu_domain->smmu;
 	struct arm_smmu_cmdq_ent cmd;
 
+	if (smmu->impl_ops && smmu->impl_ops->tlb_inv_context) {
+		smmu->impl_ops->tlb_inv_context(smmu, smmu_domain);
+		return;
+	}
+
 	/*
 	 * NOTE: when io-pgtable is in non-strict mode, we may get here with
 	 * PTEs previously cleared by unmaps on the current CPU not yet visible
@@ -1980,11 +1985,18 @@ static void arm_smmu_tlb_inv_range_domain(unsigned long iova, size_t size,
 					  size_t granule, bool leaf,
 					  struct arm_smmu_domain *smmu_domain)
 {
+	struct arm_smmu_device *smmu = smmu_domain->smmu;
 	struct arm_smmu_cmdq_ent cmd = {
 		.tlbi = {
 			.leaf	= leaf,
 		},
 	};
+
+	if (smmu->impl_ops && smmu->impl_ops->tlb_inv_range) {
+		smmu->impl_ops->tlb_inv_range(smmu, smmu_domain, iova, size, granule, leaf,
+					smmu_domain->s1_cfg.cd.asid);
+		return;
+	}
 
 	if (smmu_domain->stage == ARM_SMMU_DOMAIN_S1) {
 		cmd.opcode	= smmu_domain->smmu->features & ARM_SMMU_FEAT_E2H ?
@@ -2007,6 +2019,7 @@ void arm_smmu_tlb_inv_range_asid(unsigned long iova, size_t size, int asid,
 				 size_t granule, bool leaf,
 				 struct arm_smmu_domain *smmu_domain)
 {
+	struct arm_smmu_device *smmu = smmu_domain->smmu;
 	struct arm_smmu_cmdq_ent cmd = {
 		.opcode	= smmu_domain->smmu->features & ARM_SMMU_FEAT_E2H ?
 			  CMDQ_OP_TLBI_EL2_VA : CMDQ_OP_TLBI_NH_VA,
@@ -2015,6 +2028,11 @@ void arm_smmu_tlb_inv_range_asid(unsigned long iova, size_t size, int asid,
 			.leaf	= leaf,
 		},
 	};
+
+	if (smmu->impl_ops && smmu->impl_ops->tlb_inv_range) {
+		smmu->impl_ops->tlb_inv_range(smmu, smmu_domain, iova, size, granule, leaf, asid);
+		return;
+	}
 
 	__arm_smmu_tlb_inv_range(&cmd, iova, size, granule, smmu_domain);
 }
