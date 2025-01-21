@@ -77,6 +77,8 @@ struct dss_io_data {
 	struct dss_io_region ahb;
 	struct dss_io_region aux;
 	struct dss_io_region link;
+	struct dss_io_region mst2_link;
+	struct dss_io_region mst3_link;
 	struct dss_io_region p0;
 	struct dss_io_region p1;
 	struct dss_io_region p2;
@@ -100,6 +102,10 @@ void msm_dp_catalog_snapshot(struct msm_dp_catalog *msm_dp_catalog, struct msm_d
 	msm_disp_snapshot_add_block(disp_state, dss->ahb.len, dss->ahb.base, "dp_ahb");
 	msm_disp_snapshot_add_block(disp_state, dss->aux.len, dss->aux.base, "dp_aux");
 	msm_disp_snapshot_add_block(disp_state, dss->link.len, dss->link.base, "dp_link");
+	msm_disp_snapshot_add_block(disp_state, dss->mst2_link.len, dss->mst2_link.base,
+				    "dp_mst2_link");
+	msm_disp_snapshot_add_block(disp_state, dss->mst3_link.len, dss->mst3_link.base,
+				    "dp_mst3_link");
 	msm_disp_snapshot_add_block(disp_state, dss->p0.len, dss->p0.base, "dp_p0");
 	msm_disp_snapshot_add_block(disp_state, dss->p1.len, dss->p1.base, "dp_p1");
 	msm_disp_snapshot_add_block(disp_state, dss->p2.len, dss->p2.base, "dp_p2");
@@ -229,6 +235,36 @@ static inline void msm_dp_write_link(struct msm_dp_catalog_private *catalog,
 	 * this function uses writel() instread of writel_relaxed()
 	 */
 	writel(data, catalog->io.link.base + offset);
+}
+
+static inline u32 msm_dp_read_mst2_link(struct msm_dp_catalog_private *catalog, u32 offset)
+{
+	return readl_relaxed(catalog->io.mst2_link.base + offset);
+}
+
+static inline void msm_dp_write_mst2_link(struct msm_dp_catalog_private *catalog,
+					  u32 offset, u32 data)
+{
+	/*
+	 * To make sure link reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	writel(data, catalog->io.mst2_link.base + offset);
+}
+
+static inline u32 msm_dp_read_mst3_link(struct msm_dp_catalog_private *catalog, u32 offset)
+{
+	return readl_relaxed(catalog->io.mst3_link.base + offset);
+}
+
+static inline void msm_dp_write_mst3_link(struct msm_dp_catalog_private *catalog,
+					  u32 offset, u32 data)
+{
+	/*
+	 * To make sure link reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	writel(data, catalog->io.mst3_link.base + offset);
 }
 
 /* aux related catalog functions */
@@ -1438,6 +1474,15 @@ static int msm_dp_catalog_get_io(struct msm_dp_catalog_private *catalog)
 		dss->p3.base = msm_dp_ioremap(pdev, 6, &dss->p3.len);
 		if (IS_ERR(dss->p3.base))
 			DRM_DEBUG("unable to remap p3 region: %pe\n", dss->p3.base);
+
+		dss->mst2_link.base = msm_dp_ioremap(pdev, 7, &dss->mst2_link.len);
+		if (IS_ERR(dss->mst2_link.base))
+			DRM_DEBUG("unable to remap mst2_link region: %pe\n", dss->mst2_link.base);
+
+		dss->mst3_link.base = msm_dp_ioremap(pdev, 8, &dss->mst3_link.len);
+		if (IS_ERR(dss->mst3_link.base))
+			DRM_DEBUG("unable to remap mst3_link region: %pe\n", dss->mst3_link.base);
+
 	}
 
 	return 0;
