@@ -32,6 +32,7 @@
 
 #define MST_DP0_PUSH_VCPF		BIT(12)
 #define MST_DP1_PUSH_VCPF		BIT(14)
+#define MST_MST2_MST3_PUSH_VCPF		BIT(12)
 
 #define MR_LINK_TRAINING1  0x8
 #define MR_LINK_SYMBOL_ERM 0x80
@@ -161,12 +162,19 @@ void msm_dp_ctrl_push_vcpf(struct msm_dp_ctrl *msm_dp_ctrl, struct msm_dp_panel 
 
 	if (msm_dp_panel->stream_id == DP_STREAM_0)
 		state |= MST_DP0_PUSH_VCPF;
-	else
+	else if (msm_dp_panel->stream_id == DP_STREAM_1)
 		state |= MST_DP1_PUSH_VCPF;
+	else
+		state |= MST_MST2_MST3_PUSH_VCPF;
 
 	reinit_completion(&ctrl->idle_comp);
 
-	msm_dp_catalog_ctrl_state_ctrl(ctrl->catalog, state);
+	if (msm_dp_panel->stream_id == DP_STREAM_3)
+		msm_dp_catalog_ctrl_mst3_state_ctrl(ctrl->catalog, state);
+	else if (msm_dp_panel->stream_id == DP_STREAM_2)
+		msm_dp_catalog_ctrl_mst2_state_ctrl(ctrl->catalog, state);
+	else
+		msm_dp_catalog_ctrl_state_ctrl(ctrl->catalog, state);
 
 	if (!wait_for_completion_timeout(&ctrl->idle_comp,
 					 IDLE_PATTERN_COMPLETION_TIMEOUT_JIFFIES))
