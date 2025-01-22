@@ -456,6 +456,12 @@
 			line-name = "io_exp_gpio2";
 		};
 
+		io-exp-hog3 {
+			gpio-hog;
+			gpios = <3 GPIO_ACTIVE_HIGH>;
+			output-low;
+			line-name = "io_exp_gpio3";
+		};
 	};
 
 	expander2: pca953x@3a {
@@ -534,13 +540,6 @@
 };
 
 &pmm8654au_2_gpios {
-	usb1_en_state: usb1-en-state {
-		pins = "gpio8";
-		function = "normal";
-		output-high;
-		power-source = <0>;
-	};
-
 	usb0_intr_state: usb0-intr-state {
 		pins = "gpio5";
 		function = "normal";
@@ -974,6 +973,17 @@
 		regulator-boot-on;
 		enable-active-high;
 	};
+
+	vbus_supply_regulator_1: vbus_supply_regulator_1 {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus_supply_1";
+		gpio = <&expander1 3 GPIO_ACTIVE_HIGH>;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-boot-on;
+		enable-active-high;
+		regulator-always-on;
+	};
 };
 
 /delete-node/ &usb_0_dwc3;
@@ -1054,11 +1064,15 @@
 	iommus = <&apps_smmu 0x0a0 0x0>;
 	phys = <&usb_1_hsphy>, <&usb_1_qmpphy>;
 	phy-names = "usb2-phy", "usb3-phy";
-
-	pinctrl-names = "default";
-	pinctrl-0 = <&usb1_en_state>;
-
-	dr_mode = "host";
+	snps,dis_u2_susphy_quirk;
+	snps,dis_enblslpm_quirk;
+	qcom,enable-rt;
+	wakeup-source;
+	maximum-speed = "super-speed";
+	dr_mode = "otg";
+	usb-role-switch;
+	role-switch-default-mode = "host";
+	vbus_dwc3-supply = <&vbus_supply_regulator_1>;
 	status = "okay";
 };
 
