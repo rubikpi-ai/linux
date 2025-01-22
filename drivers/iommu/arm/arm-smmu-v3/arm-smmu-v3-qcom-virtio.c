@@ -615,6 +615,7 @@ static int arm_vsmmu_device_probe(struct platform_device *pdev)
 	struct arm_vsmmu_device *vsmmu;
 	struct arm_smmu_device *smmu;
 	struct device *dev = &pdev->dev;
+	struct virtio_device *vdev;
 
 	vsmmu = devm_kzalloc(dev, sizeof(*vsmmu), GFP_KERNEL);
 	if (!vsmmu)
@@ -636,6 +637,20 @@ static int arm_vsmmu_device_probe(struct platform_device *pdev)
 	/* Record our private device structure */
 	platform_set_drvdata(pdev, smmu);
 
+	/* And we're up. */
+	vdev = dev_to_virtio(dev->parent);
+	ret = iommu_device_sysfs_add(&smmu->iommu, dev, NULL,
+				     "smmu3.%s", virtio_bus_name(vdev));
+	if (ret)
+		return ret;
+
+	ret = iommu_device_register(&smmu->iommu, &arm_smmu_ops, dev);
+	if (ret) {
+		dev_err(dev, "Failed to register iommu\n");
+		iommu_device_sysfs_remove(&smmu->iommu);
+		return ret;
+	}
+
 	return 0;
 }
 
@@ -643,6 +658,8 @@ static void arm_vsmmu_device_remove(struct platform_device *pdev)
 {
 	struct arm_smmu_device *smmu = platform_get_drvdata(pdev);
 
+	iommu_device_unregister(&smmu->iommu);
+	iommu_device_sysfs_remove(&smmu->iommu);
 	iopf_queue_free(smmu->evtq.iopf);
 	ida_destroy(&smmu->vmid_map);
 }
