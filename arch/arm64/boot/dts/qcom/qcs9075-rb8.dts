@@ -1036,15 +1036,30 @@
 	status = "okay";
 };
 
+/delete-node/ &usb_1_dwc3;
+
 &usb_1 {
+	reg = <0x0 0x0a800000 0x0 0x200000>;
+	interrupts-extended = <&intc GIC_SPI 349 IRQ_TYPE_LEVEL_HIGH>,
+				<&intc GIC_SPI 352 IRQ_TYPE_LEVEL_HIGH>,
+				<&pdc 8 IRQ_TYPE_EDGE_BOTH>,
+				<&pdc 7 IRQ_TYPE_EDGE_BOTH>,
+				<&pdc 13 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-names = "dwc_usb3",
+			"pwr_event",
+			"dp_hs_phy_irq",
+			"dm_hs_phy_irq",
+			"ss_phy_irq";
+
+	iommus = <&apps_smmu 0x0a0 0x0>;
+	phys = <&usb_1_hsphy>, <&usb_1_qmpphy>;
+	phy-names = "usb2-phy", "usb3-phy";
+
 	pinctrl-names = "default";
 	pinctrl-0 = <&usb1_en_state>;
 
-	status = "okay";
-};
-
-&usb_1_dwc3 {
 	dr_mode = "host";
+	status = "okay";
 };
 
 &usb_1_hsphy {
