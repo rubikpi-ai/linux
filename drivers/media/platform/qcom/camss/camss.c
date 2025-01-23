@@ -1850,6 +1850,53 @@ static const struct camss_subdev_resources csiphy_res_8300[] = {
 	},
 };
 
+static const struct camss_subdev_resources tpg_res_8300[] = {
+	/* TPG0 */
+	{
+		.regulators = {  },
+		.clock = { "cphy_rx_clk" },
+		.clock_rate = { { 400000000 } },
+		.reg = { "tpg0" },
+		.interrupt = { "tpg0" },
+		.tpg = {
+			.lane_cnt = 4,
+			.vc_cnt = 1,
+			.formats = &tpg_formats_gen1,
+			.hw_ops = &tpg_ops_gen1
+		}
+	},
+
+	/* TPG1 */
+	{
+		.regulators = {  },
+		.clock = { "cphy_rx_clk" },
+		.clock_rate = { { 400000000 } },
+		.reg = { "tpg1" },
+		.interrupt = { "tpg1" },
+		.tpg = {
+			.lane_cnt = 4,
+			.vc_cnt = 1,
+			.formats = &tpg_formats_gen1,
+			.hw_ops = &tpg_ops_gen1
+		}
+	},
+
+	/* TPG2 */
+	{
+		.regulators = {  },
+		.clock = { "cphy_rx_clk" },
+		.clock_rate = { { 400000000 } },
+		.reg = { "tpg2" },
+		.interrupt = { "tpg2" },
+		.tpg = {
+			.lane_cnt = 4,
+			.vc_cnt = 1,
+			.formats = &tpg_formats_gen1,
+			.hw_ops = &tpg_ops_gen1
+		}
+	},
+};
+
 static const struct camss_subdev_resources csid_res_8300[] = {
 	/* CSID0 */
 	{
@@ -3563,7 +3610,8 @@ static int camss_probe(struct platform_device *pdev)
 	if (!camss->csiphy)
 		return -ENOMEM;
 
-	if (camss->res->version == CAMSS_8775P) {
+	if (camss->res->version == CAMSS_8775P ||
+	    camss->res->version == CAMSS_8300) {
 		camss->tpg = devm_kcalloc(dev, camss->res->tpg_num,
 					  sizeof(*camss->tpg), GFP_KERNEL);
 		if (!camss->tpg)
@@ -3815,11 +3863,13 @@ static const struct camss_resources qcs8300_resources = {
 	.version = CAMSS_8300,
 	.pd_name = "top",
 	.csiphy_res = csiphy_res_8300,
+	.tpg_res = tpg_res_8300,
 	.csid_res = csid_res_8300,
 	.vfe_res = vfe_res_8300,
 	.icc_res = icc_res_qcs8300,
 	.icc_path_num = ARRAY_SIZE(icc_res_qcs8300),
 	.csiphy_num = ARRAY_SIZE(csiphy_res_8300),
+	.tpg_num = ARRAY_SIZE(tpg_res_8300),
 	.csid_num = ARRAY_SIZE(csid_res_8300),
 	.vfe_num = ARRAY_SIZE(vfe_res_8300),
 	.link_entities = camss_link_entities
