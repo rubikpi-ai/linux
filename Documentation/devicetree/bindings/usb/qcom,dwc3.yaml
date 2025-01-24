@@ -90,6 +90,12 @@ properties:
   clock-names:
     description: names of the clocks used as mentioned above
 
+  vbus-supply:
+    description: A phandle to the regulator for USB VBUS if needed when host
+      mode or dual role mode is supported.
+      Particularly, if use an output GPIO to control a VBUS regulator, should
+      model it as a regulator. See bindings/regulator/fixed-regulator.yaml
+
   resets:
     maxItems: 1
 
@@ -574,6 +580,7 @@ examples:
           #size-cells = <2>;
           ranges;
 
+          vbus_dwc3-supply = <&usb0_vbus_regulator>;
           interrupts-extended = <&intc GIC_SPI 287 IRQ_TYPE_LEVEL_HIGH>,
                                 <&pdc 14 IRQ_TYPE_EDGE_BOTH>,
                                 <&pdc 15 IRQ_TYPE_EDGE_BOTH>,
