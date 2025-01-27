@@ -2,7 +2,7 @@
 /*
  * qcm6490-addons device tree source
  *
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  */
 
@@ -42,12 +42,16 @@
 
 	/* Add overlay for firmware node containing qcom_scm in sc7280.dtsi */
 	firmware {
-		qtee_shmbridge {
-			compatible = "qcom,tee-shared-memory-bridge";
+		qcom_mem_object {
+			compatible = "qcom,mem-object";
 		};
 
 		qcom_smcinvoke {
 			compatible = "qcom,smcinvoke";
+		};
+
+		qtee_shmbridge {
+			compatible = "qcom,tee-shared-memory-bridge";
 		};
 	};
 
