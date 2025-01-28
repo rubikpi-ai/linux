@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2017-2018, The Linux foundation. All rights reserved.
-// Copyright (c) 2023-2024, Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 /* Disable MMIO tracing to prevent excessive logging of unwanted MMIO traces */
 #define __DISABLE_TRACE_MMIO__
@@ -115,7 +115,7 @@ void serial_trace_log(struct device *dev, const char *fmt, ...)
 /* We always configure 4 bytes per FIFO word */
 #define BYTES_PER_FIFO_WORD		4U
 
-#define DMA_RX_BUF_SIZE		4096
+#define DMA_RX_BUF_SIZE		2048
 
 struct qcom_geni_device_data {
 	bool console;
