@@ -10,6 +10,7 @@
 #include "sa8775p.dtsi"
 #include "sa8775p-pmics.dtsi"
 #include "qcs9075-thermal.dtsi"
+#include "qcs9xxx-reserved-memory.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. QCS9075 RB8";
