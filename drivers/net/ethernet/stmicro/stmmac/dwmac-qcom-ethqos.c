@@ -110,6 +110,8 @@
 
 #define SGMII_10M_RX_CLK_DVDR			0x31
 
+static u32 bus_id;
+
 struct ethqos_emac_por {
 	unsigned int offset;
 	unsigned int value;
@@ -1087,6 +1089,7 @@ static int qcom_ethqos_probe(struct platform_device *pdev)
 		plat_dat->has_gmac4 = 0;
 		plat_dat->dwxgmac_addrs = &data->dwxgmac_addrs;
 		plat_dat->has_hdma = data->has_hdma;
+		plat_dat->bus_id = bus_id++;
 		if (plat_dat->has_hdma)
 			qcom_ethqos_hdma_cfg(plat_dat);
 	}
