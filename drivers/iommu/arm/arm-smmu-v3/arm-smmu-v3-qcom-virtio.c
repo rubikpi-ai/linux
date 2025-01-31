@@ -83,6 +83,15 @@ static int arm_vsmmu_impl_probe_t_hw_arm_smmu3(struct arm_smmu_device *smmu, str
 	if (ret)
 		goto out_unlock;
 
+	/*
+	 * Reduce the size of queues to prevent memory waste. Min cmdq size is derived from
+	 * check in arm_smmu_device_hw_probe.
+	 */
+	smmu->cmdq.q.llq.max_n_shift = ilog2(CMDQ_BATCH_ENTRIES) + 1;
+	smmu->evtq.q.llq.max_n_shift = 1;
+	if (smmu->features & ARM_SMMU_FEAT_PRI)
+		smmu->priq.q.llq.max_n_shift = 1;
+
 	/* Initialise in-memory data structures */
 	ret = arm_smmu_init_structures(smmu);
 	if (ret)
