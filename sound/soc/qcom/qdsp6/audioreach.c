@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2020, Linaro Limited
-// Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -547,7 +547,7 @@ int audioreach_send_cmd_sync(struct device *dev, gpr_device_t *gdev,
 	result->opcode = 0;
 	result->status = 0;
 	if (hdr->opcode == APM_CMD_CLOSE_ALL)
-		wait_time = 5;
+		wait_time = 20;
 
 	if (port)
 		rc = gpr_send_port_pkt(port, pkt);

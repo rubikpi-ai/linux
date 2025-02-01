@@ -617,7 +617,7 @@ int qcom_scm_she_op(u64 _arg1, u64 _arg2, u64 _arg3, u64 _arg4, u64 *res1)
 	desc.args[2] = _arg3;
 	desc.args[3] = _arg4;
 
-	ret = qcom_scm_call(__scm ? __scm->dev : NULL, &desc, &res);
+	ret = qcom_scm_call_atomic(__scm ? __scm->dev : NULL, &desc, &res);
 
 	/* The result from SHE service must be handled by the SHE client */
 	if (res1)

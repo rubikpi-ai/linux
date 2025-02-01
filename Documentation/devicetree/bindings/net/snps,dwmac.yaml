@@ -67,6 +67,7 @@ properties:
         - loongson,ls2k-dwmac
         - loongson,ls7a-dwmac
         - qcom,qcs404-ethqos
+        - qcom,qcs615-ethqos
         - qcom,qcs8300-ethqos
         - qcom,sa7255p-ethqos
         - qcom,sa8255p-ethqos
@@ -654,6 +655,7 @@ allOf:
               - ingenic,x1830-mac
               - ingenic,x2000-mac
               - qcom,qcs404-ethqos
+              - qcom,qcs615-ethqos
               - qcom,sa7255p-ethqos
               - qcom,sa8255p-ethqos
               - qcom,sa8775p-ethqos
