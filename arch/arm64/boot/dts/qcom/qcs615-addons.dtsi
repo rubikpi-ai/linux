@@ -5,3 +5,42 @@
  * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  */
+
+&soc {
+	csr: csr@6001000 {
+		compatible = "qcom,coresight-csr";
+		reg = <0x0 0x6001000 0x0 0x1000>;
+		reg-names = "csr-base";
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+
+		qcom,blk-size = <1>;
+		qcom,hwctrl-set-support;
+		qcom,set-byte-cntr-support;
+		qcom,usb-bam-support;
+	};
+
+	tmc_etr: tmc@6048000 {
+		interrupts = <GIC_SPI 270 IRQ_TYPE_EDGE_RISING>;
+		interrupt-names = "byte-cntr-irq";
+		qcom,sw-usb;
+		qcom,mem_support;
+		coresight-csr = <&csr>;
+		csr-irqctrl-offset = <0x6c>;
+		byte-cntr-name = "byte-cntr";
+		byte-cntr-class-name = "coresight-tmc-etr-stream";
+	};
+
+	swao_csr: csr@6b0e000 {
+		compatible = "qcom,coresight-csr";
+		reg = <0x0 0x6b0e000 0x0 0x1000>;
+		reg-names = "csr-base";
+
+		clocks = <&aoss_qmp>;
+		clock-names = "apb_pclk";
+
+		qcom,blk-size = <1>;
+		qcom,timestamp-support;
+	};
+};
