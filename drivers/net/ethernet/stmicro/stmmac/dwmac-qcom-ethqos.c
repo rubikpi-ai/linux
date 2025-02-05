@@ -1131,6 +1131,7 @@ static int qcom_ethqos_probe(struct platform_device *pdev)
 		plat_dat->has_gmac4 = 0;
 		plat_dat->dwxgmac_addrs = &data->dwxgmac_addrs;
 		plat_dat->has_hdma = data->has_hdma;
+		plat_dat->insert_ts_pktid = true;
 		plat_dat->bus_id = bus_id++;
 		if (plat_dat->has_hdma)
 			qcom_ethqos_hdma_cfg(plat_dat);
