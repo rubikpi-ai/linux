@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -1396,6 +1396,11 @@
 					       IRQ_TYPE_EDGE_RISING>;
 			mboxes = <&ipcc0 IPCC_CLIENT_AOP IPCC_MPROC_SIGNAL_GLINK_QMP>;
 			#clock-cells = <0>;
+		};
+
+		sram@c3f0000 {
+			compatible = "qcom,rpmh-stats";
+			reg = <0x0 0x0c3f0000 0x0 0x400>;
 		};
 
 		tlmm: pinctrl@f000000 {
