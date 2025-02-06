@@ -34,6 +34,7 @@
 #define ADSP_DECRYPT_SHUTDOWN_DELAY_MS	100
 
 #define MAX_ASSIGN_COUNT 3
+#define DEVMEM_ENTRY_SIZE 4
 
 struct adsp_data {
 	int crash_reason_smem;
@@ -112,6 +113,8 @@ struct qcom_adsp {
 
 	struct qcom_scm_pas_metadata pas_metadata;
 	struct qcom_scm_pas_metadata dtb_pas_metadata;
+
+	struct qcom_devmem_table *devmem;
 };
 
 static void adsp_segment_dump(struct rproc *rproc, struct rproc_dump_segment *segment,
@@ -670,6 +673,58 @@ static void adsp_unassign_memory_region(struct qcom_adsp *adsp)
 		if (ret < 0)
 			dev_err(adsp->dev, "unassign memory %d failed\n", offset);
 	}
+}
+
+static int adsp_devmem_init(struct qcom_adsp *adsp)
+{
+	unsigned int entry_size = DEVMEM_ENTRY_SIZE;
+	struct qcom_devmem_table *devmem_table;
+	struct rproc *rproc = adsp->rproc;
+	struct device *dev = adsp->dev;
+	struct qcom_devmem_info *info;
+	char *pname = "qcom,devmem";
+	size_t table_size;
+	int num_entries;
+	u32 i;
+
+	if (!rproc->has_iommu)
+		return 0;
+
+	/* devmem property is a set of n-tuple */
+	num_entries = of_property_count_u32_elems(dev->of_node, pname);
+	if (num_entries < 0) {
+		dev_err(adsp->dev, "No '%s' property present\n", pname);
+		return num_entries;
+	}
+
+	if (!num_entries || (num_entries % entry_size)) {
+		dev_err(adsp->dev, "All '%s' list entries need %d vals\n", pname,
+			entry_size);
+		return -EINVAL;
+	}
+
+	num_entries /= entry_size;
+	table_size = sizeof(*devmem_table) + sizeof(*info) * num_entries;
+	devmem_table = devm_kzalloc(dev, table_size, GFP_KERNEL);
+	if (!devmem_table)
+		return -ENOMEM;
+
+	devmem_table->num_entries = num_entries;
+	info = &devmem_table->entries[0];
+	for (i = 0; i < num_entries; i++, info++) {
+		of_property_read_u32_index(dev->of_node, pname,
+					   i * entry_size, (u32 *)&info->da);
+		of_property_read_u32_index(dev->of_node, pname,
+					   i * entry_size + 1, (u32 *)&info->pa);
+		of_property_read_u32_index(dev->of_node, pname,
+					   i * entry_size + 2, &info->len);
+		of_property_read_u32_index(dev->of_node, pname,
+					   i * entry_size + 3, &info->flags);
+	}
+
+	adsp->devmem = devmem_table;
+
+	return 0;
 }
 
 static int adsp_probe(struct platform_device *pdev)
