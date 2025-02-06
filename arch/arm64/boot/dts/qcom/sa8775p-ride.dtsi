@@ -1191,6 +1191,7 @@
 /* HS UART Instance */
 	bluetooth: bluetooth {
 		compatible = "qcom,wcn6855-bt";
+		firmware-name = "QCA6698/hpnv21", "QCA6698/hpbtfw21.tlv";
 		pinctrl-names = "default";
 		pinctrl-0 = <&bt_en_state>;
 		enable-gpios = <&pmm8654au_1_gpios 8 GPIO_ACTIVE_HIGH>; /* BT_EN */
