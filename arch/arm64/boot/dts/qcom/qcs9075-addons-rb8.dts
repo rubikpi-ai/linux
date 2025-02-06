@@ -19,20 +19,27 @@
 			    <&q6prmcc LPASS_HW_DCODEC_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
 		clock-names = "macro", "dcodec";
 
-		pinctrl-names = "default";
-		pinctrl-0 = <&lpass_i2s1_data>, <&lpass_i2s1_ws>,
-			    <&hs1_mi2s_data0>, <&mi2s_mclk>,
-			    <&hs1_mi2s_sclk>, <&hs1_mi2s_data1>,
-			    <&hs1_mi2s_ws>, <&hs2_mi2s_data0>,
-			    <&hs2_mi2s_data1>, <&hs2_mi2s_sck>,
-			    <&hs2_mi2s_ws>, <&lpass_quad_clk>,
-			    <&lpass_quad_data>, <&lpass_quad_ws>;
+		pinctrl-names = "default", "mi2s_aud_out_active", "mi2s_aud_out_sleep";
+		pinctrl-0 = <&hs1_mi2s_data0_sleep>, <&mi2s_mclk_sleep>, <&hs1_mi2s_sclk_sleep>,
+			    <&hs1_mi2s_data1_sleep>, <&hs1_mi2s_ws_sleep>,<&hs2_mi2s_data0_sleep>,
+			    <&hs2_mi2s_data1_sleep>, <&hs2_mi2s_sck_sleep>, <&hs2_mi2s_ws_sleep>,
+			    <&lpass_quad_clk_sleep>, <&lpass_quad_data_sleep>,
+			    <&lpass_quad_ws_sleep>;
+		pinctrl-1 = <&hs1_mi2s_data0>, <&mi2s_mclk>, <&hs1_mi2s_sclk>,
+			    <&hs1_mi2s_data1>, <&hs1_mi2s_ws>, <&hs2_mi2s_data0>,
+			    <&hs2_mi2s_data1>, <&hs2_mi2s_sck>,<&hs2_mi2s_ws>,
+			    <&lpass_quad_clk>, <&lpass_quad_data>, <&lpass_quad_ws>;
+		pinctrl-2 = <&hs1_mi2s_data0_sleep>, <&mi2s_mclk_sleep>, <&hs1_mi2s_sclk_sleep>,
+			    <&hs1_mi2s_data1_sleep>, <&hs1_mi2s_ws_sleep>,<&hs2_mi2s_data0_sleep>,
+			    <&hs2_mi2s_data1_sleep>, <&hs2_mi2s_sck_sleep>, <&hs2_mi2s_ws_sleep>,
+			    <&lpass_quad_clk_sleep>, <&lpass_quad_data_sleep>,
+			    <&lpass_quad_ws_sleep>;
 
 		hs1-mi2s-playback-dai-link {
 			link-name = "MI2S-LPAIF_SDR-RX-SECONDARY";
 
 			cpu {
-				sound-dai = <&q6apmbedai TERTIARY_MI2S_RX>;
+				sound-dai = <&q6apmbedai SECONDARY_SDR_MI2S_RX>;
 			};
 
 			codec {
@@ -44,7 +51,7 @@
 			link-name = "MI2S-LPAIF_SDR-TX-TERTIARY";
 
 			cpu {
-				sound-dai = <&q6apmbedai TERTIARY_MI2S_TX>;
+				sound-dai = <&q6apmbedai TERTIARY_SDR_MI2S_TX>;
 			};
 
 			codec {
