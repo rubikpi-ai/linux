@@ -1847,13 +1847,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -1867,13 +1867,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -1887,13 +1887,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -1907,13 +1907,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -1927,13 +1927,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -1947,13 +1947,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -1967,13 +1967,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -1987,13 +1987,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2005,13 +2005,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2023,13 +2023,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2041,13 +2041,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2059,13 +2059,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2077,13 +2077,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2097,13 +2097,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2117,13 +2117,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2137,13 +2137,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2157,13 +2157,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2177,13 +2177,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2197,13 +2197,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2217,13 +2217,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2235,13 +2235,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2253,13 +2253,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2271,13 +2271,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2289,13 +2289,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2307,13 +2307,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2327,13 +2327,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2347,13 +2347,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2367,13 +2367,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2387,13 +2387,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2407,13 +2407,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2427,13 +2427,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2447,13 +2447,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2467,13 +2467,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2487,13 +2487,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2507,13 +2507,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2525,13 +2525,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2543,13 +2543,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2561,13 +2561,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2581,13 +2581,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2601,13 +2601,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2621,13 +2621,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2641,13 +2641,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2661,13 +2661,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2681,13 +2681,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2701,13 +2701,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2721,13 +2721,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2741,13 +2741,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2761,13 +2761,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2779,13 +2779,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
@@ -2797,13 +2797,13 @@
 			trips {
 				trip-point0 {
 					temperature = <105000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 
 				trip-point1 {
 					temperature = <115000>;
-					hysteresis = <5000>;
+					hysteresis = <10000>;
 					type = "passive";
 				};
 			};
