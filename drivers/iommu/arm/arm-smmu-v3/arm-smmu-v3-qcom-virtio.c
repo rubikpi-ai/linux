@@ -484,12 +484,70 @@ static const struct arm_smmu_impl_ops vsmmu_impl_ops = {
 	.tlb_inv_range = arm_vsmmu_impl_tlb_inv_range,
 };
 
+/*
+ * Virtio-iommu core will print out SID, reason, address, & flags
+ * We print out:
+ * Client device matching SID.
+ * result of iommu_iova_to_phys.
+ */
+static int arm_smmu_virtio_fault_handler(struct device *dev, void *data)
+{
+	struct virtio_iommu_fault *fault = data;
+	struct arm_smmu_device *smmu = dev_get_drvdata(dev);
+	struct arm_smmu_master *master;
+	struct iommu_domain *domain;
+	struct device *client;
+	u32 sid = __le32_to_cpu(fault->endpoint);
+	u64 iova = __le64_to_cpu(fault->address);
+	u32 flags = __le32_to_cpu(fault->flags);
+	u32 report_flags = 0;
+	phys_addr_t phys;
+	int ret;
+
+	mutex_lock(&smmu->streams_mutex);
+	master = arm_smmu_find_master(smmu, sid);
+	if (!master) {
+		dev_err(dev, "No registered device for SID: %d\n", sid);
+		mutex_unlock(&smmu->streams_mutex);
+		return 0;
+	}
+	client = master->dev;
+	mutex_unlock(&smmu->streams_mutex);
+
+	if (fault->reason != VIRTIO_IOMMU_FAULT_R_MAPPING ||
+		!(fault->flags & VIRTIO_IOMMU_FAULT_F_ADDRESS))
+		return 0;
+
+	if (flags & VIRTIO_IOMMU_FAULT_F_READ)
+		report_flags |= IOMMU_FAULT_READ;
+	if (flags & VIRTIO_IOMMU_FAULT_F_WRITE)
+		report_flags |= IOMMU_FAULT_WRITE;
+
+	domain = iommu_get_domain_for_dev(client);
+
+	/* If no handler registered, ENOSYS is returned. */
+	ret = report_iommu_fault(domain, client, iova, report_flags);
+	if (ret != -ENOSYS)
+		return 0;
+
+	phys = iommu_iova_to_phys(domain, iova);
+	dev_err(client, "SW PGTABLE WALK: %#llx -> %pa\n", iova, &phys);
+	return 0;
+}
+
+static void __arm_smmu_virtio_fault_handler(struct viommu_dev *viommu,
+		struct virtio_iommu_fault *fault)
+{
+	device_for_each_child(viommu->dev, fault, arm_smmu_virtio_fault_handler);
+}
+
 static int arm_smmu_virtio_device_probe(struct virtio_device *vdev)
 {
 	struct device *parent_dev = vdev->dev.parent;
 	struct device *dev = &vdev->dev;
 	int ret;
 	struct platform_device *child;
+	struct viommu_dev *viommu;
 
 	if (!virtio_has_feature(vdev, VIRTIO_F_VERSION_1) ||
 	     virtio_has_feature(vdev, VIRTIO_IOMMU_F_MAP_UNMAP))
@@ -498,6 +556,9 @@ static int arm_smmu_virtio_device_probe(struct virtio_device *vdev)
 	ret = viommu_probe_common(vdev);
 	if (ret)
 		return ret;
+
+	viommu = (struct viommu_dev *)vdev->priv;
+	viommu->fault_handler = __arm_smmu_virtio_fault_handler;
 
 	child = platform_device_alloc(ARM_VSMMU_DRIVER_NAME, vdev->index);
 	if (!child)
