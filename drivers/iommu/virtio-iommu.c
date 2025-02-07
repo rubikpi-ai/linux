@@ -582,6 +582,9 @@ static int viommu_fault_handler(struct viommu_dev *viommu,
 	else
 		dev_err_ratelimited(viommu->dev, "%s fault from EP %u\n",
 				    reason_str, endpoint);
+
+	if (viommu->fault_handler)
+		viommu->fault_handler(viommu, fault);
 	return 0;
 }
 
