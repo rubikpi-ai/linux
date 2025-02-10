@@ -20,6 +20,7 @@
 #include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
 #include <linux/firmware/qcom/qcom_scm.h>
+#include <linux/firmware/qcom/qcom_tzmem.h>
 #include <linux/regulator/consumer.h>
 #include <linux/remoteproc.h>
 #include <linux/soc/qcom/mdt_loader.h>
@@ -115,6 +116,8 @@ struct qcom_adsp {
 	struct qcom_scm_pas_metadata dtb_pas_metadata;
 
 	struct qcom_devmem_table *devmem;
+	struct qcom_tzmem_area *tzmem;
+	unsigned long sid;
 };
 
 static void adsp_segment_dump(struct rproc *rproc, struct rproc_dump_segment *segment,
@@ -254,6 +257,43 @@ release_dtb_firmware:
 	return ret;
 }
 
+static int adsp_create_shmbridge(struct qcom_adsp *adsp)
+{
+	struct qcom_tzmem_area *rproc_tzmem;
+	struct rproc *rproc = adsp->rproc;
+	int ret;
+
+	if (!rproc->has_iommu)
+		return 0;
+
+	rproc_tzmem = devm_kzalloc(adsp->dev, sizeof(*rproc_tzmem), GFP_KERNEL);
+	if (!rproc_tzmem)
+		return -ENOMEM;
+
+	rproc_tzmem->size = PAGE_ALIGN(adsp->mem_size);
+	rproc_tzmem->paddr = adsp->mem_phys;
+	ret = qcom_tzmem_init_area(rproc_tzmem);
+	if (ret) {
+		dev_err(adsp->dev,
+			"failed to create shmbridge for carveout: %d\n", ret);
+		return ret;
+	}
+
+	adsp->tzmem = rproc_tzmem;
+
+	return ret;
+}
+
+static void adsp_delete_shmbridge(struct qcom_adsp *adsp)
+{
+	struct rproc *rproc = adsp->rproc;
+
+	if (!rproc->has_iommu)
+		return;
+
+	qcom_tzmem_cleanup_area(adsp->tzmem);
+}
+
 static int adsp_start(struct rproc *rproc)
 {
 	struct qcom_adsp *adsp = rproc->priv;
@@ -263,9 +303,21 @@ static int adsp_start(struct rproc *rproc)
 	if (ret)
 		return ret;
 
+	ret = qcom_map_unmap_carveout(rproc, adsp->mem_phys, adsp->mem_size, true, true, adsp->sid);
+	if (ret) {
+		dev_err(adsp->dev, "iommu mapping failed, ret: %d\n", ret);
+		goto disable_irqs;
+	}
+
+	ret = qcom_map_devmem(rproc, adsp->devmem, true, adsp->sid);
+	if (ret) {
+		dev_err(adsp->dev, "devmem iommu mapping failed, ret: %d\n", ret);
+		goto unmap_carveout;
+	}
+
 	ret = adsp_pds_enable(adsp, adsp->proxy_pds, adsp->proxy_pd_count);
 	if (ret < 0)
-		goto disable_irqs;
+		goto unmap_devmem;
 
 	ret = clk_prepare_enable(adsp->xo);
 	if (ret)
@@ -309,6 +361,10 @@ static int adsp_start(struct rproc *rproc)
 
 	qcom_pil_info_store(adsp->info_name, adsp->mem_phys, adsp->mem_size);
 
+	ret = adsp_create_shmbridge(adsp);
+	if (ret)
+		goto release_pas_metadata;
+
 	ret = qcom_scm_pas_auth_and_reset(adsp->pas_id);
 	if (ret) {
 		dev_err(adsp->dev,
@@ -316,6 +372,7 @@ static int adsp_start(struct rproc *rproc)
 		goto release_pas_metadata;
 	}
 
+	adsp_delete_shmbridge(adsp);
 	ret = qcom_q6v5_wait_for_start(&adsp->q6v5, msecs_to_jiffies(5000));
 	if (ret == -ETIMEDOUT) {
 		dev_err(adsp->dev, "start timed out\n");
@@ -348,6 +405,10 @@ disable_xo_clk:
 	clk_disable_unprepare(adsp->xo);
 disable_proxy_pds:
 	adsp_pds_disable(adsp, adsp->proxy_pds, adsp->proxy_pd_count);
+unmap_devmem:
+	qcom_unmap_devmem(rproc, adsp->devmem, adsp->sid);
+unmap_carveout:
+	qcom_map_unmap_carveout(rproc, adsp->mem_phys, adsp->mem_size, false, true, adsp->sid);
 disable_irqs:
 	qcom_q6v5_unprepare(&adsp->q6v5);
 
@@ -392,6 +453,9 @@ static int adsp_stop(struct rproc *rproc)
 		if (ret)
 			dev_err(adsp->dev, "failed to shutdown dtb: %d\n", ret);
 	}
+
+	qcom_unmap_devmem(rproc, adsp->devmem, adsp->sid);
+	qcom_map_unmap_carveout(rproc, adsp->mem_phys, adsp->mem_size, false, true, adsp->sid);
 
 	handover = qcom_q6v5_unprepare(&adsp->q6v5);
 	if (handover)
@@ -786,6 +850,26 @@ static int adsp_probe(struct platform_device *pdev)
 		adsp->dtb_pas_id = desc->dtb_pas_id;
 	}
 	platform_set_drvdata(pdev, adsp);
+
+	if (of_property_present(pdev->dev.of_node, "iommus")) {
+		struct of_phandle_args args;
+
+		ret = of_parse_phandle_with_args(pdev->dev.of_node, "iommus", "#iommu-cells",
+						 0, &args);
+		if (ret < 0)
+			return ret;
+
+		rproc->has_iommu = true;
+		adsp->sid = args.args[0];
+		of_node_put(args.np);
+		ret = adsp_devmem_init(adsp);
+		if (ret)
+			return ret;
+
+		adsp->pas_metadata.shm_bridge_needed = true;
+	} else {
+		rproc->has_iommu = false;
+	}
 
 	ret = device_init_wakeup(adsp->dev, true);
 	if (ret)

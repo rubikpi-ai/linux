@@ -39,6 +39,14 @@ struct qcom_tzmem_pool_config {
 	size_t max_size;
 };
 
+struct qcom_tzmem_area {
+	struct list_head list;
+	void *vaddr;
+	dma_addr_t paddr;
+	size_t size;
+	void *priv;
+};
+
 struct qcom_tzmem_pool *
 qcom_tzmem_pool_new(const struct qcom_tzmem_pool_config *config);
 void qcom_tzmem_pool_free(struct qcom_tzmem_pool *pool);
@@ -49,6 +57,20 @@ devm_qcom_tzmem_pool_new(struct device *dev,
 void *qcom_tzmem_alloc(struct qcom_tzmem_pool *pool, size_t size, gfp_t gfp);
 void qcom_tzmem_free(void *ptr);
 
+#if IS_ENABLED(CONFIG_QCOM_TZMEM_MODE_SHMBRIDGE)
+int qcom_tzmem_init_area(struct qcom_tzmem_area *area);
+void qcom_tzmem_cleanup_area(struct qcom_tzmem_area *area);
+#else
+static int qcom_tzmem_init_area(struct qcom_tzmem_area *area)
+{
+	return 0;
+}
+
+static void qcom_tzmem_cleanup_area(struct qcom_tzmem_area *area)
+{
+
+}
+#endif
 DEFINE_FREE(qcom_tzmem, void *, if (_T) qcom_tzmem_free(_T))
 
 phys_addr_t qcom_tzmem_to_phys(void *ptr);
