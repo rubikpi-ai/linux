@@ -966,6 +966,13 @@ static void a6xx_set_ubwc_config(struct msm_gpu *gpu)
 	u32 hbb_lo = 2;
 	/* Unknown, introduced with A640/680 */
 	u32 amsbc = 0;
+	/* Whether to disable level2 swizzling */
+	u32 level2_swizzling_dis = 0;
+	/*
+	 * Whether to use 4-channel or 8-channel macrotiling
+	 * 0 is 4-channel and 1 is 8-channel
+	 */
+	u32 macrotile_mode = 0;
 
 	if (adreno_is_a610(adreno_gpu)) {
 		/* HBB = 14 */
@@ -992,6 +999,15 @@ static void a6xx_set_ubwc_config(struct msm_gpu *gpu)
 		uavflagprd_inv = 2;
 	}
 
+	if (adreno_is_a663(adreno_gpu)) {
+		hbb_lo = 0;
+		level2_swizzling_dis = 1;
+		rgb565_predicator = 1;
+		uavflagprd_inv = 2;
+		amsbc = 1;
+		macrotile_mode = 1;
+	}
+
 	if (adreno_is_a690(adreno_gpu)) {
 		hbb_lo = 2;
 		amsbc = 1;
@@ -1007,17 +1023,22 @@ static void a6xx_set_ubwc_config(struct msm_gpu *gpu)
 	}
 
 	gpu_write(gpu, REG_A6XX_RB_NC_MODE_CNTL,
+		  level2_swizzling_dis << 12 |
 		  rgb565_predicator << 11 | hbb_hi << 10 | amsbc << 4 |
 		  min_acc_len << 3 | hbb_lo << 1 | ubwc_mode);
 
-	gpu_write(gpu, REG_A6XX_TPL1_NC_MODE_CNTL, hbb_hi << 4 |
+	gpu_write(gpu, REG_A6XX_TPL1_NC_MODE_CNTL,
+		  level2_swizzling_dis << 6 | hbb_hi << 4 |
 		  min_acc_len << 3 | hbb_lo << 1 | ubwc_mode);
 
-	gpu_write(gpu, REG_A6XX_SP_NC_MODE_CNTL, hbb_hi << 10 |
+	gpu_write(gpu, REG_A6XX_SP_NC_MODE_CNTL,
+		  level2_swizzling_dis << 12 | hbb_hi << 10 |
 		  uavflagprd_inv << 4 | min_acc_len << 3 |
 		  hbb_lo << 1 | ubwc_mode);
 
 	gpu_write(gpu, REG_A6XX_UCHE_MODE_CNTL, min_acc_len << 23 | hbb_lo << 21);
+
+	gpu_write(gpu, REG_A6XX_RBBM_NC_MODE_CNTL, macrotile_mode);
 }
 
 static int a6xx_cp_init(struct msm_gpu *gpu)
@@ -1308,7 +1329,8 @@ static int hw_init(struct msm_gpu *gpu)
 	/* Setting the primFifo thresholds default values,
 	 * and vccCacheSkipDis=1 bit (0x200) for A640 and newer
 	*/
-	if (adreno_is_a650(adreno_gpu) || adreno_is_a660(adreno_gpu) || adreno_is_a690(adreno_gpu))
+	if (adreno_is_a650(adreno_gpu) || adreno_is_a660(adreno_gpu) ||
+			adreno_is_a663(adreno_gpu) || adreno_is_a690(adreno_gpu))
 		gpu_write(gpu, REG_A6XX_PC_DBG_ECO_CNTL, 0x00300200);
 	else if (adreno_is_a640_family(adreno_gpu) || adreno_is_7c3(adreno_gpu))
 		gpu_write(gpu, REG_A6XX_PC_DBG_ECO_CNTL, 0x00200200);
@@ -1371,7 +1393,7 @@ static int hw_init(struct msm_gpu *gpu)
 	}
 
 	/* Set dualQ + disable afull for A660 GPU */
-	if (adreno_is_a660(adreno_gpu))
+	if (adreno_is_a660(adreno_gpu) || adreno_is_a663(adreno_gpu))
 		gpu_write(gpu, REG_A6XX_UCHE_CMDQ_CONFIG, 0x66906);
 
 	/* Enable expanded apriv for targets that support it */
