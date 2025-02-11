@@ -20,20 +20,36 @@
 		clock-names = "macro", "dcodec";
 
 		pinctrl-names = "default", "mi2s_aud_out_active", "mi2s_aud_out_sleep";
-		pinctrl-0 = <&hs1_mi2s_data0_sleep>, <&mi2s_mclk_sleep>, <&hs1_mi2s_sclk_sleep>,
-			    <&hs1_mi2s_data1_sleep>, <&hs1_mi2s_ws_sleep>,<&hs2_mi2s_data0_sleep>,
-			    <&hs2_mi2s_data1_sleep>, <&hs2_mi2s_sck_sleep>, <&hs2_mi2s_ws_sleep>,
-			    <&lpass_quad_clk_sleep>, <&lpass_quad_data_sleep>,
+		pinctrl-0 = <&hs1_mi2s_data0_sleep>, <&mi2s_mclk_sleep>, <&hs0_mi2s_data0_sleep>,
+			    <&hs0_mi2s_sclk_sleep>, <&hs0_mi2s_data1_sleep>, <&hs0_mi2s_ws_sleep>,
+			    <&hs1_mi2s_sclk_sleep>, <&hs1_mi2s_data1_sleep>, <&hs1_mi2s_ws_sleep>,
+			    <&hs2_mi2s_data0_sleep>, <&hs2_mi2s_data1_sleep>, <&hs2_mi2s_sck_sleep>,
+			    <&hs2_mi2s_ws_sleep>, <&lpass_quad_clk_sleep>, <&lpass_quad_data_sleep>,
 			    <&lpass_quad_ws_sleep>;
-		pinctrl-1 = <&hs1_mi2s_data0>, <&mi2s_mclk>, <&hs1_mi2s_sclk>,
-			    <&hs1_mi2s_data1>, <&hs1_mi2s_ws>, <&hs2_mi2s_data0>,
-			    <&hs2_mi2s_data1>, <&hs2_mi2s_sck>,<&hs2_mi2s_ws>,
-			    <&lpass_quad_clk>, <&lpass_quad_data>, <&lpass_quad_ws>;
-		pinctrl-2 = <&hs1_mi2s_data0_sleep>, <&mi2s_mclk_sleep>, <&hs1_mi2s_sclk_sleep>,
-			    <&hs1_mi2s_data1_sleep>, <&hs1_mi2s_ws_sleep>,<&hs2_mi2s_data0_sleep>,
-			    <&hs2_mi2s_data1_sleep>, <&hs2_mi2s_sck_sleep>, <&hs2_mi2s_ws_sleep>,
-			    <&lpass_quad_clk_sleep>, <&lpass_quad_data_sleep>,
+		pinctrl-1 = <&hs1_mi2s_data0>, <&mi2s_mclk>, <&hs0_mi2s_data0>,
+			    <&hs0_mi2s_sclk>, <&hs0_mi2s_data1>, <&hs0_mi2s_ws>,
+			    <&hs1_mi2s_sclk>, <&hs1_mi2s_data1>, <&hs1_mi2s_ws>,
+			    <&hs2_mi2s_data0>, <&hs2_mi2s_data1>, <&hs2_mi2s_sck>,
+			    <&hs2_mi2s_ws>, <&lpass_quad_clk>, <&lpass_quad_data>,
+			    <&lpass_quad_ws>;
+		pinctrl-2 = <&hs1_mi2s_data0_sleep>, <&mi2s_mclk_sleep>, <&hs0_mi2s_data0_sleep>,
+			    <&hs0_mi2s_sclk_sleep>, <&hs0_mi2s_data1_sleep>, <&hs0_mi2s_ws_sleep>,
+			    <&hs1_mi2s_sclk_sleep>, <&hs1_mi2s_data1_sleep>, <&hs1_mi2s_ws_sleep>,
+			    <&hs2_mi2s_data0_sleep>, <&hs2_mi2s_data1_sleep>, <&hs2_mi2s_sck_sleep>,
+			    <&hs2_mi2s_ws_sleep>, <&lpass_quad_clk_sleep>, <&lpass_quad_data_sleep>,
 			    <&lpass_quad_ws_sleep>;
+
+		hs0-mi2s-playback-dai-link {
+			link-name = "MI2S-LPAIF_SDR-RX-PRIMARY";
+
+			cpu {
+				sound-dai = <&q6apmbedai PRIMARY_SDR_MI2S_RX>;
+			};
+
+			codec {
+				sound-dai = <&max98357a>;
+			};
+		};
 
 		hs1-mi2s-playback-dai-link {
 			link-name = "MI2S-LPAIF_SDR-RX-SECONDARY";
@@ -225,9 +241,65 @@
 };
 
 &tlmm {
-	hs0_mi2s: hs0-mi2s-state {
-		pins = "gpio114", "gpio115", "gpio116", "gpio117";
+	hs0_mi2s_data0_sleep: hs0-mi2s-data0-sleep-state {
+		pins = "gpio116";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	hs0_mi2s_data0: hs0-mi2s-data0-state {
+		pins = "gpio116";
 		function = "hs0_mi2s";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	hs0_mi2s_data1_sleep: hs0-mi2s-data1-sleep-state {
+		pins = "gpio117";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	hs0_mi2s_data1: hs0-mi2s-data1-state {
+		pins = "gpio117";
+		function = "hs0_mi2s";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	hs0_mi2s_sclk_sleep: hs0-mi2s-sclk-sleep-state {
+		pins = "gpio114";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	hs0_mi2s_sclk: hs0-mi2s-sclk-state {
+		pins = "gpio114";
+		function = "hs0_mi2s";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	hs0_mi2s_ws_sleep: hs0-mi2s-ws-sleep-state {
+		pins = "gpio115";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	hs0_mi2s_ws: hs0-mi2s-ws-state {
+		pins = "gpio115";
+		function = "hs0_mi2s";
+		drive-strength = <8>;
+		bias-disable;
+		output-high;
 	};
 
 	hs1_mi2s_data0: hs1-mi2s-data0-state {
