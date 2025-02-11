@@ -997,6 +997,7 @@ static void a6xx_set_ubwc_config(struct msm_gpu *gpu)
 		amsbc = 1;
 		rgb565_predicator = 1;
 		uavflagprd_inv = 2;
+		macrotile_mode = 1;
 	}
 
 	if (adreno_is_a663(adreno_gpu)) {
@@ -1020,6 +1021,7 @@ static void a6xx_set_ubwc_config(struct msm_gpu *gpu)
 		amsbc = 1;
 		rgb565_predicator = 1;
 		uavflagprd_inv = 2;
+		macrotile_mode = 1;
 	}
 
 	gpu_write(gpu, REG_A6XX_RB_NC_MODE_CNTL,
