@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2012-2013, 2015-2017, 2019-2021 The Linux Foundation. All rights reserved.
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/kernel.h>
@@ -20,6 +20,7 @@
 
 #include "coresight-priv.h"
 #include "coresight-common.h"
+#include "coresight-tmc.h"
 
 #define csr_writel(drvdata, val, off)	__raw_writel((val), drvdata->base + off)
 #define csr_readl(drvdata, off)		__raw_readl(drvdata->base + off)
@@ -428,7 +429,8 @@ int coresight_csr_set_etr_atid(struct coresight_device *csdev, int atid, bool en
 	int atid_offset;
 	struct coresight_csr *csr;
 	const char *csr_name;
-
+	struct tmc_drvdata *drvdata;
+	unsigned long flags;
 
 	path = coresight_get_path(csdev);
 
@@ -448,7 +450,18 @@ int coresight_csr_set_etr_atid(struct coresight_device *csdev, int atid, bool en
 	if (of_coresight_get_csr_atid_offset(sink_csdev, &atid_offset))
 		return -EINVAL;
 
-	return __coresight_csr_set_etr_atid(csr, atid_offset, atid, enable);
+	drvdata = dev_get_drvdata(sink_csdev->dev.parent);
+	spin_lock_irqsave(&drvdata->spinlock, flags);
+	if (enable && (++drvdata->atid_refcnt[atid] == 1)) {
+		spin_unlock_irqrestore(&drvdata->spinlock, flags);
+		return __coresight_csr_set_etr_atid(csr, atid_offset, atid, enable);
+	} else if (!enable && (--drvdata->atid_refcnt[atid] == 0)) {
+		spin_unlock_irqrestore(&drvdata->spinlock, flags);
+		return __coresight_csr_set_etr_atid(csr, atid_offset, atid, enable);
+	}
+	spin_unlock_irqrestore(&drvdata->spinlock, flags);
+
+	return 0;
 }
 EXPORT_SYMBOL_GPL(coresight_csr_set_etr_atid);
 
