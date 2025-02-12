@@ -226,13 +226,14 @@ static void qcom_geni_serial_config_port(struct uart_port *uport, int cfg_flags)
 static unsigned int qcom_geni_serial_get_mctrl(struct uart_port *uport)
 {
 	unsigned int mctrl = TIOCM_DSR | TIOCM_CAR;
+	struct qcom_geni_serial_port *port = to_dev_port(uport);
 	u32 geni_ios;
 
 	if (uart_console(uport)) {
 		mctrl |= TIOCM_CTS;
 	} else {
 		geni_ios = readl(uport->membase + SE_GENI_IOS);
-		if (!(geni_ios & IO2_DATA_IN))
+		if (!(geni_ios & IO2_DATA_IN) || port->loopback)
 			mctrl |= TIOCM_CTS;
 	}
 
