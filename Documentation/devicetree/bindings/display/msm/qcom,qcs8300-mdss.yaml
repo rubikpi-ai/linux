@@ -48,6 +48,21 @@ patternProperties:
         items:
           - const: qcom,qcs8300-dp
 
+  "^dsi@[0-9a-f]+$":
+    type: object
+    properties:
+      compatible:
+        items:
+          - const: qcom,mdss-dsi-ctrl
+
+  "^phy@[0-9a-f]+$":
+    type: object
+    properties:
+      compatible:
+        enum:
+          - qcom,sa8775p-dsi-phy-5nm
+
+
 required:
   - compatible
 
@@ -125,6 +140,13 @@ examples:
                     reg = <0>;
                     dpu_intf0_out: endpoint {
                          remote-endpoint = <&mdss_dp0_in>;
+                    };
+                };
+
+                port@1 {
+                    reg = <1>;
+                    dpu_intf1_out: endpoint {
+                          remote-endpoint = <&mdss_dsi0_in>;
                     };
                 };
             };
@@ -220,6 +242,86 @@ examples:
                     required-opps = <&rpmhpd_opp_nom>;
                 };
             };
+        };
 
+        mdss_dsi0: dsi@ae94000 {
+            compatible = "qcom,mdss-dsi-ctrl";
+            reg = <0x0 0x0ae94000 0x0 0x400>;
+            reg-names = "dsi_ctrl";
+
+            interrupt-parent = <&mdss>;
+            interrupts = <4>;
+
+            clocks = <&dispcc0 MDSS_DISP_CC_MDSS_BYTE0_CLK>,
+                     <&dispcc0 MDSS_DISP_CC_MDSS_BYTE0_INTF_CLK>,
+                     <&dispcc0 MDSS_DISP_CC_MDSS_PCLK0_CLK>,
+                     <&dispcc0 MDSS_DISP_CC_MDSS_ESC0_CLK>,
+                     <&dispcc0 MDSS_DISP_CC_MDSS_AHB_CLK>,
+                     <&gcc GCC_DISP_HF_AXI_CLK>;
+            clock-names = "byte",
+                          "byte_intf",
+                          "pixel",
+                          "core",
+                          "iface",
+                          "bus";
+
+            assigned-clocks = <&dispcc0 MDSS_DISP_CC_MDSS_BYTE0_CLK_SRC>,
+                              <&dispcc0 MDSS_DISP_CC_MDSS_PCLK0_CLK_SRC>;
+            assigned-clock-parents = <&mdss_dsi0_phy 0>,
+                                     <&mdss_dsi0_phy 1>;
+
+            phys = <&mdss_dsi0_phy>;
+
+            #address-cells = <1>;
+            #size-cells = <0>;
+
+            status = "disabled";
+
+            ports {
+                #address-cells = <1>;
+                #size-cells = <0>;
+
+                port@0 {
+                    reg = <0>;
+                    mdss_dsi0_in: endpoint {
+                        remote-endpoint = <&dpu_intf1_out>;
+                    };
+                };
+
+                port@1 {
+                    reg = <1>;
+                    mdss_dsi0_out: endpoint {
+                    };
+                };
+            };
+
+            dsi0_opp_table: opp-table {
+                compatible = "operating-points-v2";
+
+                opp-358000000 {
+                    opp-hz = /bits/ 64 <358000000>;
+                    required-opps = <&rpmhpd_opp_svs_l1>;
+                };
+            };
+        };
+
+        mdss_dsi0_phy: phy@ae94400 {
+            compatible = "qcom,sa8775p-dsi-phy-5nm";
+            reg = <0x0 0x0ae94400 0x0 0x200>,
+                  <0x0 0x0ae94600 0x0 0x280>,
+                  <0x0 0x0ae94900 0x0 0x27c>;
+            reg-names = "dsi_phy",
+                        "dsi_phy_lane",
+                        "dsi_pll";
+
+            #clock-cells = <1>;
+            #phy-cells = <0>;
+
+            clocks = <&dispcc0 MDSS_DISP_CC_MDSS_AHB_CLK>,
+                     <&rpmhcc RPMH_CXO_CLK>;
+            clock-names = "iface", "ref";
+
+            vdds-supply = <&vreg_dsi_supply>;
+        };
     };
 ...
