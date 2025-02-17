@@ -46,9 +46,9 @@
 static int es8316_init_reg = 0;
 static struct snd_soc_component *es8316_component;
 
-struct sock *nlsk = NULL;
+static struct sock *nlsk = NULL;
 extern struct net init_net;
-#define NETLINK_TEST 31
+#define NETLINK_TEST_ES8316 29
 
 static const struct reg_default es8316_reg_defaults[] = {
 	{0x00, 0x03}, {0x01, 0x03}, {0x02, 0x00}, {0x03, 0x20},
@@ -1126,7 +1126,7 @@ static void es8316_device_connect_status_notify(es8316_connection_status status)
 		return;
 	}
 
-	nlh = nlmsg_put(nl_skb, 0, 0, NETLINK_TEST, len, 0);
+	nlh = nlmsg_put(nl_skb, 0, 0, NETLINK_TEST_ES8316, len, 0);
 	if (!nlh) {
 		pr_err("%s: nlmsg_put failaure\n", __func__);
 		nlmsg_free(nl_skb);
@@ -1419,10 +1419,9 @@ static int es8316_i2c_probe(struct i2c_client *i2c)
 	if (ret)
 		pr_err("%s: sysfs group creation failed %d\n", __func__, ret);
 
-	nlsk = netlink_kernel_create(&init_net, NETLINK_TEST, NULL);
+	nlsk = netlink_kernel_create(&init_net, NETLINK_TEST_ES8316, NULL);
 	if (!nlsk) {
 		pr_err("%s: netlink_kernel_create error !\n", __func__);
-		return -EINVAL;
 	}
 
 	ret = snd_soc_register_component(&i2c->dev,
