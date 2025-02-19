@@ -72,6 +72,10 @@ struct dwc3_qcom {
 	int			num_clocks;
 	struct reset_control	*resets;
 
+	/* VBUS regulator for host mode */
+	struct regulator	*vbus_reg;
+	bool			is_vbus_enabled;
+
 	int			hs_phy_irq;
 	int			dp_hs_phy_irq;
 	int			dm_hs_phy_irq;
@@ -447,6 +451,20 @@ static void dwc3_qcom_enable_interrupts(struct dwc3_qcom *qcom)
 	dwc3_qcom_enable_wakeup_irq(qcom->ss_phy_irq, 0);
 }
 
+static void dwc3_qcom_vbus_regulator_enable(struct dwc3_qcom *qcom, bool on)
+{
+	if (!qcom->vbus_reg)
+		return;
+
+	if (!qcom->is_vbus_enabled && on) {
+		regulator_enable(qcom->vbus_reg);
+		qcom->is_vbus_enabled = true;
+	} else if (qcom->is_vbus_enabled && !on) {
+		regulator_disable(qcom->vbus_reg);
+		qcom->is_vbus_enabled = false;
+	}
+}
+
 static int dwc3_qcom_suspend(struct dwc3_qcom *qcom, bool wakeup)
 {
 	u32 val;
@@ -765,6 +783,7 @@ static int dwc3_qcom_handle_cable_disconnect(void *data)
 		dwc3_qcom_vbus_override_enable(qcom, false);
 		pm_runtime_put_autosuspend(qcom->dev);
 	} else if (qcom->current_role == USB_ROLE_HOST) {
+		dwc3_qcom_vbus_regulator_enable(qcom, false);
 		usb_unregister_notify(&qcom->xhci_nb);
 	}
 
@@ -794,6 +813,7 @@ static void dwc3_qcom_handle_set_mode(void *data, u32 desired_dr_role)
 		qcom->xhci_nb.notifier_call = dwc3_xhci_event_notifier;
 		usb_register_notify(&qcom->xhci_nb);
 		qcom->current_role = USB_ROLE_HOST;
+		dwc3_qcom_vbus_regulator_enable(qcom, true);
 	}
 
 	pm_runtime_mark_last_busy(qcom->dev);
@@ -955,6 +975,24 @@ static int dwc3_qcom_acpi_merge_urs_resources(struct platform_device *pdev)
 	return ret;
 }
 
+static void dwc3_qcom_vbus_regulator_get(struct dwc3_qcom *qcom)
+{
+	/*
+	 * The vbus_reg pointer could have multiple values
+	 * NULL: regulator_get() hasn't been called, or was previously deferred
+	 * IS_ERR: regulator could not be obtained, so skip using it
+	 * Valid pointer otherwise
+	 */
+	qcom->vbus_reg = devm_regulator_get_optional(qcom->dev,
+						"vbus_dwc3");
+	if (IS_ERR(qcom->vbus_reg)) {
+		dev_err(qcom->dev, "Unable to get vbus regulator err: %ld\n",
+							PTR_ERR(qcom->vbus_reg));
+		qcom->vbus_reg = NULL;
+		return;
+	}
+}
+
 static int dwc3_qcom_probe(struct platform_device *pdev)
 {
 	struct device_node	*np = pdev->dev.of_node;
@@ -1104,6 +1142,13 @@ static int dwc3_qcom_probe(struct platform_device *pdev)
 		ret = dwc3_qcom_register_extcon(qcom);
 		if (ret)
 			goto interconnect_exit;
+	}
+
+	dwc3_qcom_vbus_regulator_get(qcom);
+
+	if (qcom->mode == USB_DR_MODE_HOST) {
+		dwc3_qcom_vbus_regulator_enable(qcom, true);
+		qcom->is_vbus_enabled = true;
 	}
 
 	wakeup_source = of_property_read_bool(dev->of_node, "wakeup-source");

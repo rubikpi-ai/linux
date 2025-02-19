@@ -456,6 +456,36 @@
 &i2c11 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
+
+	pinctrl-0 = <&qup_i2c11_default>, <&usb0_intr_state>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	hd3ss3220@67 {
+		compatible = "ti,hd3ss3220";
+		reg = <0x67>;
+		interrupt-parent = <&pmm8654au_2_gpios>;
+		interrupts = < 5 IRQ_TYPE_EDGE_FALLING>;
+
+		connector@0 {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			data-role = "dual";
+			power-role = "dual";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					hd3ss3220_ep: endpoint {
+						remote-endpoint = <&usb_role_switch>;
+					};
+				};
+			};
+		};
+	};
 };
 
 &i2c12 {
@@ -507,6 +537,20 @@
 		#gpio-cells = <2>;
 		gpio-controller;
 		reg = <0x39>;
+
+		io-exp-hog2 {
+			gpio-hog;
+			gpios = <2 GPIO_ACTIVE_HIGH>;
+			output-low;
+			line-name = "io_exp_gpio2";
+		};
+
+		io-exp-hog3 {
+			gpio-hog;
+			gpios = <3 GPIO_ACTIVE_HIGH>;
+			output-low;
+			line-name = "io_exp_gpio3";
+		};
 	};
 
 	expander2: pca953x@3a {
@@ -585,10 +629,11 @@
 };
 
 &pmm8654au_2_gpios {
-	usb1_en_state: usb1-en-state {
-		pins = "gpio8";
+	usb0_intr_state: usb0-intr-state {
+		pins = "gpio5";
 		function = "normal";
-		output-high;
+		input-enable;
+		bias-pull-up;
 		power-source = <0>;
 	};
 };
@@ -843,6 +888,13 @@
 		drive-strength = <2>;
 		bias-pull-up;
 	};
+
+	qup_i2c11_default: qup-i2c11-state {
+		pins = "gpio48", "gpio49";
+		function = "qup1_se4";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
 };
 
 &pcie0 {
@@ -1022,13 +1074,72 @@
 	status = "okay";
 };
 
-&usb_0 {
-	status = "okay";
+&soc {
+	vbus_supply_regulator_0: vbus_supply_regulator_0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus_supply_0";
+		gpio = <&expander1 2 GPIO_ACTIVE_HIGH>;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-boot-on;
+		enable-active-high;
+	};
+
+	vbus_supply_regulator_1: vbus_supply_regulator_1 {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus_supply_1";
+		gpio = <&expander1 3 GPIO_ACTIVE_HIGH>;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-boot-on;
+		enable-active-high;
+		regulator-always-on;
+	};
 };
 
-&usb_0_dwc3 {
-	usb-role-switch;
+/delete-node/ &usb_0_dwc3;
+
+&usb_0 {
+	reg = <0x0 0x0a600000 0x0 0x200000>;
+
+	interrupts-extended = <&intc GIC_SPI 292 IRQ_TYPE_LEVEL_HIGH>,
+			      <&intc GIC_SPI 287 IRQ_TYPE_LEVEL_HIGH>,
+			      <&pdc 14 IRQ_TYPE_EDGE_BOTH>,
+			      <&pdc 15 IRQ_TYPE_EDGE_BOTH>,
+			      <&pdc 12 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-names = "dwc_usb3",
+			  "pwr_event",
+			  "dp_hs_phy_irq",
+			  "dm_hs_phy_irq",
+			  "ss_phy_irq";
+
+	iommus = <&apps_smmu 0x080 0x0>;
+	phys = <&usb_0_hsphy>, <&usb_0_qmpphy>;
+	phy-names = "usb2-phy", "usb3-phy";
+
 	dr_mode = "otg";
+	usb-role-switch;
+	snps,dis_u2_susphy_quirk;
+	snps,dis_enblslpm_quirk;
+	maximum-speed = "super-speed";
+	qcom,enable-rt;
+	wakeup-source;
+	vbus_dwc3-supply = <&vbus_supply_regulator_0>;
+	status = "okay";
+
+	ports {
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			usb_role_switch: endpoint {
+				remote-endpoint = <&hd3ss3220_ep>;
+			};
+		};
+
+	};
 };
 
 &usb_0_hsphy {
@@ -1046,15 +1157,34 @@
 	status = "okay";
 };
 
+/delete-node/ &usb_1_dwc3;
+
 &usb_1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&usb1_en_state>;
+	reg = <0x0 0x0a800000 0x0 0x200000>;
+	interrupts-extended = <&intc GIC_SPI 349 IRQ_TYPE_LEVEL_HIGH>,
+				<&intc GIC_SPI 352 IRQ_TYPE_LEVEL_HIGH>,
+				<&pdc 8 IRQ_TYPE_EDGE_BOTH>,
+				<&pdc 7 IRQ_TYPE_EDGE_BOTH>,
+				<&pdc 13 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-names = "dwc_usb3",
+			"pwr_event",
+			"dp_hs_phy_irq",
+			"dm_hs_phy_irq",
+			"ss_phy_irq";
 
+	iommus = <&apps_smmu 0x0a0 0x0>;
+	phys = <&usb_1_hsphy>, <&usb_1_qmpphy>;
+	phy-names = "usb2-phy", "usb3-phy";
+	snps,dis_u2_susphy_quirk;
+	snps,dis_enblslpm_quirk;
+	qcom,enable-rt;
+	wakeup-source;
+	maximum-speed = "super-speed";
+	dr_mode = "otg";
+	usb-role-switch;
+	role-switch-default-mode = "host";
+	vbus_dwc3-supply = <&vbus_supply_regulator_1>;
 	status = "okay";
-};
-
-&usb_1_dwc3 {
-	dr_mode = "host";
 };
 
 &usb_1_hsphy {
