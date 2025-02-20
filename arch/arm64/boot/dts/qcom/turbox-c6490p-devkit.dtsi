@@ -1184,3 +1184,11 @@
 &pm7325b {
 	status = "disabled";
 };
+
+&qup_i2c0_data_clk{
+	bias-disable;
+};
+
+&qup_i2c15_data_clk{
+	bias-disable;
+};
