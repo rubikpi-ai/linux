@@ -28,6 +28,17 @@
 		stdout-path = "serial0:115200n8";
 	};
 
+	dsi0-connector {
+		compatible = "dp-connector";
+		type = "full-size";
+		label = "DSI0";
+
+		port {
+			 dsi0_connector_in: endpoint {
+			};
+		};
+	};
+
 	/* PWR_CTR2_VDD_1P8 supply */
 	vreg_conn_1p8: vreg_conn_1p8 {
 		compatible = "regulator-fixed";
@@ -278,6 +289,10 @@
 	};
 };
 
+&dsi0_connector_in {
+	remote-endpoint = <&anx7625_1_out>;
+};
+
 &ethernet0 {
 	phy-mode = "2500base-x";
 	phy-handle = <&sgmii_phy0>;
@@ -371,9 +386,106 @@
 	status = "okay";
 };
 
+&i2c8 {
+	clock-frequency = <400000>;
+	pinctrl-0 = <&qup_i2c8_data_clk
+		     &io_expander_intr_active
+		     &io_expander_reset_active>;
+	pinctrl-names = "default";
+
+	status = "okay";
+
+	io_expander: gpio@74 {
+		compatible = "ti,tca9539";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		reg = <0x74>;
+		interrupt-parent = <&tlmm>;
+		interrupts = <93 IRQ_TYPE_EDGE_BOTH>;
+		gpio-controller;
+		#gpio-cells = <2>;
+		interrupt-controller;
+		#interrupt-cells = <2>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&dsi0_hpd_cfg_pins
+			    &dsi0_cdet_cfg_pins>;
+
+		dsi0_hpd_cfg_pins: gpio2-cfg {
+			pins = "gpio2";
+			input-enable;
+			bias-disable;
+		};
+
+		dsi0_cdet_cfg_pins: gpio3-cfg {
+			pins = "gpio3";
+			bias-pull-down;
+		};
+	};
+
+	i2c-mux@70 {
+		compatible = "nxp,pca9543";
+		#address-cells = <1>;
+
+		#size-cells = <0>;
+		reg = <0x70>;
+
+		i2c@0 {
+			reg = <0>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			anx_7625_1: anx7625@58 {
+				compatible = "analogix,anx7625";
+				reg = <0x58>;
+				interrupt-parent = <&io_expander>;
+				interrupts = <2 IRQ_TYPE_EDGE_FALLING>;
+				enable-gpios = <&io_expander 1 0>;
+				reset-gpios = <&io_expander 0 0>;
+
+				ports {
+					#address-cells = <1>;
+					#size-cells = <0>;
+
+					dsi2dp_bridge_1_in: port@0 {
+						reg = <0>;
+						anx7625_1_in: endpoint {
+							remote-endpoint = <&mdss_dsi0_out>;
+						};
+					};
+
+					dsi2dp_bridge_1_out: port@1 {
+						reg = <1>;
+						anx7625_1_out: endpoint {
+							remote-endpoint = <&dsi0_connector_in>;
+						};
+					};
+				};
+			};
+		};
+	};
+};
+
 &i2c15 {
 	clock-frequency = <400000>;
 	status = "okay";
+};
+
+&mdss_dsi0 {
+	vdda-supply = <&vreg_l5a>;
+
+	status = "okay";
+};
+
+&mdss_dsi0_phy {
+	vdds-supply = <&vreg_l4a>;
+
+	status = "okay";
+};
+
+&mdss_dsi0_out {
+	data-lanes = <0 1 2 3>;
+	remote-endpoint = <&anx7625_1_in>;
 };
 
 &pcieport0 {
@@ -465,6 +577,21 @@
 			drive-strength = <16>;
 			bias-pull-up;
 		};
+	};
+
+	io_expander_intr_active: io_expander_intr_active {
+		pins = "gpio93";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	io_expander_reset_active: io_expander_reset_active {
+		pins = "gpio66";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+		output-high;
 	};
 
 	wlan_en_state: wlan-en-state {
