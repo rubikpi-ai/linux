@@ -313,7 +313,7 @@
 
 &ethernet0 {
 	phy-handle = <&sgmii_phy0>;
-	phy-mode = "2500base-x";
+	phy-mode = "sgmii";
 
 	pinctrl-0 = <&ethernet0_default>;
 	pinctrl-names = "default";
