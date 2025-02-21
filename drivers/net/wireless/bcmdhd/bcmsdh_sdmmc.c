@@ -1002,7 +1002,6 @@ sdioh_request_byte(sdioh_info_t *sd, uint rw, uint func, uint regaddr, uint8 *by
 			 */
 			if (regaddr == SDIOD_CCCR_IOEN) {
 #if defined(BT_OVER_SDIO)
-				do {
 				if (sd->func[3]) {
 					sd_info(("bcmsdh_sdmmc F3: *byte 0x%x\n", *byte));
 
@@ -1066,10 +1065,7 @@ sdioh_request_byte(sdioh_info_t *sd, uint rw, uint func, uint regaddr, uint8 *by
 					}
 					sdio_release_host(sd->func[2]);
 				}
-#if defined(BT_OVER_SDIO)
-			} while (0);
-#endif /* defined (BT_OVER_SDIO) */
-		}
+			}
 #if defined(MMC_SDIO_ABORT)
 			/* to allow abort command through F1 */
 			else if (regaddr == SDIOD_CCCR_IOABORT) {

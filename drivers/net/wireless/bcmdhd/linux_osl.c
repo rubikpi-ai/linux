@@ -72,11 +72,6 @@
 #endif /* BCM_OBJECT_TRACE */
 #include "linux_osl_priv.h"
 
-#ifdef USERCOPY_CACHE
-#include <dhdioctl.h>
-#define USERCOPY_CACHE_MAXLEN (DHD_IOCTL_MAXLEN_32K+4)
-#endif /* USERCOPY_CACHE */
-
 #define PCI_CFG_RETRY		10	/* PR15065: retry count for pci cfg accesses */
 
 #define DUMPBUFSZ 1024
@@ -310,14 +305,14 @@ osl_attach(void *pdev, uint bustype, bool pkttag
 	}
 #endif /* DHD_MAP_LOGGING */
 
-#ifdef USERCOPY_CACHE
+#ifdef DHD_USE_KMEM_CACHE_USERCOPY
 	osh->ioctl_buf_cache = kmem_cache_create_usercopy(
-		"dhd_ioctl_buf", USERCOPY_CACHE_MAXLEN, 0,
-		SLAB_HWCACHE_ALIGN, 0, USERCOPY_CACHE_MAXLEN, NULL);
+		"dhd_ioctl_buf", KMEM_CACHE_USERCOPY_MAXLEN_32K, 0,
+		SLAB_HWCACHE_ALIGN, 0, KMEM_CACHE_USERCOPY_MAXLEN_32K, NULL);
 	if (osh->ioctl_buf_cache == NULL) {
 		OSL_PRINT(("%s: Failed to create ioctl_buf_cache\n", __FUNCTION__));
 	}
-#endif /* USERCOPY_CACHE */
+#endif /* DHD_USE_KMEM_CACHE_USERCOPY */
 
 	return osh;
 }
@@ -356,10 +351,10 @@ osl_detach(osl_t *osh)
 	osl_dma_map_log_deinit(osh);
 #endif /* DHD_MAP_LOGGING */
 
-#ifdef USERCOPY_CACHE
+#ifdef DHD_USE_KMEM_CACHE_USERCOPY
 	if (osh->ioctl_buf_cache)
 		kmem_cache_destroy(osh->ioctl_buf_cache);
-#endif /* USERCOPY_CACHE */
+#endif /* DHD_USE_KMEM_CACHE_USERCOPY */
 
 	ASSERT(osh->magic == OS_HANDLE_MAGIC);
 	atomic_sub(1, &osh->cmn->refcount);
@@ -703,16 +698,13 @@ osl_dma_mfree(osl_t *osh, void *addr, uint size)
 	addr = NULL;
 }
 
-#ifdef USERCOPY_CACHE
+#ifdef DHD_USE_KMEM_CACHE_USERCOPY
 void *
-osl_kmem_cache_alloc_usercopy(osl_t *osh, int len)
+osl_kmem_cache_alloc_usercopy(osl_t *osh)
 {
 	if (!osh->ioctl_buf_cache)
 		return NULL;
-	if (len > USERCOPY_CACHE_MAXLEN) {
-		OSL_PRINT(("No memory %d > %d\n", len, USERCOPY_CACHE_MAXLEN));
-		return NULL;
-	}
+
 	return kmem_cache_alloc(osh->ioctl_buf_cache, GFP_KERNEL);
 }
 
@@ -721,9 +713,10 @@ osl_kmem_cache_free_usercopy(osl_t *osh, void *addr)
 {
 	if (!osh->ioctl_buf_cache)
 		return;
+
 	kmem_cache_free(osh->ioctl_buf_cache, addr);
 }
-#endif /* USERCOPY_CACHE */
+#endif /* DHD_USE_KMEM_CACHE_USERCOPY */
 
 #ifdef BCMDBG_MEM
 /* In BCMDBG_MEM configurations osl_vmalloc is only used internally in
@@ -812,10 +805,11 @@ osl_kvmalloc(osl_t *osh, uint size)
 
 	flags = CAN_SLEEP() ? GFP_KERNEL: GFP_ATOMIC;
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0))
-	if ((addr = kmalloc(size, flags)) == NULL) {
+	if ((addr = kmalloc(size, flags)) == NULL)
 #else
-	if ((addr = kvmalloc(size, flags)) == NULL) {
+	if ((addr = kvmalloc(size, flags)) == NULL)
 #endif /* LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0) */
+	{
 		if (osh)
 			osh->failed++;
 		return (NULL);
@@ -2363,65 +2357,5 @@ osl_get_monotonic_boottime(struct osl_timespec *ts)
 	ts->tv_sec = curtime.tv_sec;
 	ts->tv_nsec = curtime.tv_nsec;
 	ts->tv_usec = curtime.tv_nsec / 1000;
-}
-#endif
-
-#ifdef USERCOPY_MAXLEN
-int
-osl_user_copy(osl_t *osh, void *dst, const void *src, const int len, bool to_user)
-{
-	int i, cnt = 0, remainder, copy_maxlen = (48 * 1024), ret = 0;
-	char *dst_ptr, *src_ptr;
-	void *local_buf = NULL;
-	struct folio *folio;
-
-#if USERCOPY_MAXLEN > 0
-	copy_maxlen = USERCOPY_MAXLEN;
-	if (copy_maxlen < PAGE_SIZE)
-		copy_maxlen = PAGE_SIZE;
-#endif
-	if (to_user)
-		folio = virt_to_folio(src);
-	else
-		folio = virt_to_folio(dst);
-	copy_maxlen = MIN(copy_maxlen, folio_size(folio));
-	if (!(local_buf = MALLOC(osh, copy_maxlen))) {
-		ret = BCME_NOMEM;
-		goto done;
-	}
-
-	cnt = len / copy_maxlen;
-	remainder = len - cnt * copy_maxlen;
-	dst_ptr = (char *)dst;
-	src_ptr = (char *)src;
-	for (i=0; i<cnt; i++) {
-		if (to_user) {
-			memcpy(local_buf, src_ptr, copy_maxlen);
-			ret = copy_to_user((void *)dst_ptr, local_buf, copy_maxlen);
-		} else {
-			ret = copy_from_user(local_buf, (void *)src_ptr, copy_maxlen);
-			memcpy(dst_ptr, local_buf, copy_maxlen);
-		}
-		dst_ptr += copy_maxlen;
-		src_ptr += copy_maxlen;
-		if (ret)
-			goto done;
-	}
-	if (remainder > 0) {
-		dst_ptr = (char *)dst + cnt * copy_maxlen;
-		src_ptr = (char *)src + cnt * copy_maxlen;
-		if (to_user) {
-			memcpy(local_buf, src_ptr, remainder);
-			ret = copy_to_user((void *)dst_ptr, local_buf, remainder);
-		} else {
-			ret = copy_from_user(local_buf, (void *)src_ptr, remainder);
-			memcpy(dst_ptr, local_buf, remainder);
-		}
-	}
-
-done:
-	if (local_buf)
-		MFREE(osh, local_buf, copy_maxlen);
-	return ret;
 }
 #endif

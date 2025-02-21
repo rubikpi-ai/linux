@@ -1988,7 +1988,7 @@ wl_cfgp2p_generate_bss_mac(struct bcm_cfg80211 *cfg)
 {
 	struct ether_addr *mac_addr = wl_to_p2p_bss_macaddr(cfg, P2PAPI_BSSCFG_DEVICE);
 	struct ether_addr *int_addr = NULL;
-#ifdef P2P_AP_CONCURRENT
+#if defined(P2P_AP_CONCURRENT) && !defined(WL_P2P_RAND)
 	dhd_pub_t *dhd = (dhd_pub_t *)(cfg->pub);
 #endif
 	if (!cfg->p2p) {
@@ -2005,7 +2005,7 @@ wl_cfgp2p_generate_bss_mac(struct bcm_cfg80211 *cfg)
 	mac_addr->octet[0] |= 0x02;
 #ifdef P2P_AP_CONCURRENT
 	if (dhd->conf->war & P2P_AP_MAC_CONFLICT)
-		wl_ext_iapsta_get_vif_macaddr(dhd, 2, (u8 *)mac_addr);
+		wl_ext_iapsta_get_vif_macaddr(2, (u8 *)mac_addr);
 #endif
 #endif /* WL_P2P_RAND */
 	WL_INFORM_MEM(("P2P Discovery address:"MACDBG "\n", MAC2STRDBG(mac_addr->octet)));

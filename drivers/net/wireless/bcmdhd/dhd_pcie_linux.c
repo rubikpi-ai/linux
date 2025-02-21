@@ -300,7 +300,7 @@ static struct pci_driver dhdpcie_driver = {
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 8, 0))
 	node:		{&dhdpcie_driver.node, &dhdpcie_driver.node},
 #endif /* LINUX_VERSION_CODE < 6.8.0 */
-	name:		"pcieh"BUS_TYPE,
+	name:		"pcieh"ADAPTER_IDX_STR,
 	id_table:	dhdpcie_pci_devid,
 	probe:		dhdpcie_pci_probe,
 	remove:		dhdpcie_pci_remove,
@@ -757,6 +757,9 @@ static int dhdpcie_pci_suspend(struct device *dev)
 		return ret;
 	}
 
+#ifdef DEVICE_PM_CALLBACK
+	dhd_pm_callback(bus->dhd, 1, NULL);
+#endif /* DEVICE_PM_CALLBACK */
 #if defined(DEVICE_TX_STUCK_DETECT) && defined(ASSOC_CHECK_SR)
 	dhd_assoc_check_sr(bus->dhd, TRUE);
 #endif /* DEVICE_TX_STUCK_DETECT && ASSOC_CHECK_SR */
@@ -789,10 +792,18 @@ static int dhdpcie_pci_suspend(struct device *dev)
 
 exit:
 	DHD_GENERAL_LOCK(bus->dhd, flags);
+	if (ret)
+		bus->dhd->hostsleep = HOSTSLEEP_CLEAR;
+	else
+		bus->dhd->hostsleep = HOSTSLEEP_DHD_SET;
 	DHD_BUS_BUSY_CLEAR_SUSPEND_IN_PROGRESS(bus->dhd);
 	dhd_os_busbusy_wake(bus->dhd);
 	printf("%s: Exit ret=%d\n", __FUNCTION__, ret);
 	DHD_GENERAL_UNLOCK(bus->dhd, flags);
+#ifdef DEVICE_PM_CALLBACK
+	if (ret)
+		dhd_pm_callback(bus->dhd, 0, NULL);
+#endif /* DEVICE_PM_CALLBACK */
 
 	return ret;
 }
@@ -875,10 +886,14 @@ static int dhdpcie_pci_resume(struct device *dev)
 		ret = dhdpcie_set_suspend_resume(bus, FALSE);
 
 	DHD_GENERAL_LOCK(bus->dhd, flags);
+	bus->dhd->hostsleep = HOSTSLEEP_CLEAR;
 	DHD_BUS_BUSY_CLEAR_RESUME_IN_PROGRESS(bus->dhd);
 	dhd_os_busbusy_wake(bus->dhd);
 	printf("%s: Exit ret=%d\n", __FUNCTION__, ret);
 	DHD_GENERAL_UNLOCK(bus->dhd, flags);
+#ifdef DEVICE_PM_CALLBACK
+	dhd_pm_callback(bus->dhd, 0, NULL);
+#endif /* DEVICE_PM_CALLBACK */
 #if defined(DEVICE_TX_STUCK_DETECT) && defined(ASSOC_CHECK_SR)
 	dhd_assoc_check_sr(bus->dhd, FALSE);
 #endif /* DEVICE_TX_STUCK_DETECT && ASSOC_CHECK_SR */
@@ -2920,11 +2935,11 @@ int dhdpcie_oob_intr_register(dhd_bus_t *bus)
 #ifdef DHD_USE_PCIE_OOB_THREADED_IRQ
 		err = request_threaded_irq(dhdpcie_osinfo->oob_irq_num,
 			wlan_oob_irq_isr, wlan_oob_irq,
-			dhdpcie_osinfo->oob_irq_flags, "dhdpcie_host_wake",
+			dhdpcie_osinfo->oob_irq_flags, "dhdpcie_host_wake"ADAPTER_IDX_STR,
 			bus);
 #else
 		err = request_irq(dhdpcie_osinfo->oob_irq_num, wlan_oob_irq,
-			dhdpcie_osinfo->oob_irq_flags, "dhdpcie_host_wake",
+			dhdpcie_osinfo->oob_irq_flags, "dhdpcie_host_wake"ADAPTER_IDX_STR,
 			bus);
 #endif /* DHD_USE_THREADED_IRQ_PCIE_OOB */
 		if (err) {

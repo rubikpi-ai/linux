@@ -2203,18 +2203,488 @@ set_wl_debug_level(struct dhd_info *dhd, const char *buf, size_t count)
 					}
 				}
 		} else
-			WL_ERR(("%s: can't parse '%s' as a "
+			DHD_ERROR(("%s: can't parse '%s' as a "
 			       "SUBMODULE:LEVEL (%d tokens)\n",
 			       tbuf, token, tokens));
 
 	}
-	DHD_INFO(("changed wl_dbg_level %d \n", wl_dbg_level));
+	DHD_ERROR(("changed wl_dbg_level %d \n", wl_dbg_level));
 	return count;
 }
 
 static struct dhd_attr dhd_attr_wl_dbg_level =
 __ATTR(wl_dbg_level, 0660, show_wl_debug_level, set_wl_debug_level);
 #endif /* WL_CFG80211 */
+
+static ssize_t
+show_dhd_console_ms(struct dhd_info *dhd, char *buf)
+{
+	dhd_pub_t *dhdp;
+	ssize_t ret = 0;
+
+	if (!dhd) {
+		DHD_ERROR(("%s: dhd is NULL\n", __FUNCTION__));
+		return -EINVAL;
+	}
+	dhdp = &dhd->pub;
+
+	ret = scnprintf(buf, PAGE_SIZE -1, "%u\n", dhdp->dhd_console_ms);
+
+	return ret;
+}
+
+static ssize_t
+set_dhd_console_ms(struct dhd_info *dhd, const char *buf, size_t count)
+{
+	dhd_pub_t *dhdp;
+	uint32 val;
+
+	if (!dhd) {
+		DHD_ERROR(("%s: dhd is NULL\n", __FUNCTION__));
+		return -EINVAL;
+	}
+	dhdp = &dhd->pub;
+
+	val = bcm_atoi(buf);
+
+	dhdp->dhd_console_ms = val;
+	DHD_ERROR(("%s: dhd_console_ms: %d\n", __FUNCTION__, dhdp->dhd_console_ms));
+	return count;
+}
+
+static struct dhd_attr dhd_attr_dhd_console_ms =
+	__ATTR(dhd_console_ms, 0660, show_dhd_console_ms, set_dhd_console_ms);
+
+static ssize_t
+show_dhd_watchdog_ms(struct dhd_info *dhd, char *buf)
+{
+	ssize_t ret = 0;
+
+	ret = scnprintf(buf, PAGE_SIZE -1, "%u\n", dhd_watchdog_ms);
+
+	return ret;
+}
+
+static ssize_t
+set_dhd_watchdog_ms(struct dhd_info *dhd, const char *buf, size_t count)
+{
+	uint32 val;
+
+	val = bcm_atoi(buf);
+
+	dhd_watchdog_ms = val;
+	DHD_ERROR(("%s: dhd_console_ms: %d\n", __FUNCTION__, dhd_watchdog_ms));
+	return count;
+}
+
+static struct dhd_attr dhd_attr_dhd_watchdog_ms =
+	__ATTR(dhd_watchdog_ms, 0660, show_dhd_watchdog_ms, set_dhd_watchdog_ms);
+
+static ssize_t
+show_tput_monitor_ms(struct dhd_info *dhd, char *buf)
+{
+	dhd_pub_t *dhdp;
+	ssize_t ret = 0;
+
+	if (!dhd) {
+		DHD_ERROR(("%s: dhd is NULL\n", __FUNCTION__));
+		return -EINVAL;
+	}
+	dhdp = &dhd->pub;
+
+	ret = scnprintf(buf, PAGE_SIZE -1, "%u\n", dhdp->conf->tput_monitor_ms);
+
+	return ret;
+}
+
+static ssize_t
+set_tput_monitor_ms(struct dhd_info *dhd, const char *buf, size_t count)
+{
+	dhd_pub_t *dhdp;
+	uint32 val;
+
+	if (!dhd) {
+		DHD_ERROR(("%s: dhd is NULL\n", __FUNCTION__));
+		return -EINVAL;
+	}
+	dhdp = &dhd->pub;
+
+	val = bcm_atoi(buf);
+
+	dhdp->conf->tput_monitor_ms = val;
+	DHD_ERROR(("%s: tput_monitor_ms: %d\n", __FUNCTION__, dhdp->conf->tput_monitor_ms));
+	return count;
+}
+
+static struct dhd_attr dhd_attr_tput_monitor_ms =
+	__ATTR(tput_monitor_ms, 0660, show_tput_monitor_ms, set_tput_monitor_ms);
+
+static const struct {
+	u32 log_level;
+	char *sublogname;
+} config_msg_name_map[] = {
+	{CONFIG_ERROR_LEVEL, "ERROR"},
+	{CONFIG_TRACE_LEVEL, "TRACE"}
+};
+
+static ssize_t
+show_config_msg_level(struct dhd_info *dhd, char *buf)
+{
+	char *param;
+	char tbuf[SUBLOGLEVELZ * ARRAYSIZE(config_msg_name_map)];
+	uint i;
+	ssize_t ret = 0;
+
+	bzero(tbuf, sizeof(tbuf));
+	param = &tbuf[0];
+	for (i = 0; i < ARRAYSIZE(config_msg_name_map); i++) {
+		param += snprintf(param, sizeof(tbuf) - 1, "%s:%d ",
+			config_msg_name_map[i].sublogname,
+			(config_msg_level & config_msg_name_map[i].log_level) ? 1 : 0);
+	}
+	ret = scnprintf(buf, PAGE_SIZE - 1, "%s \n", tbuf);
+	return ret;
+}
+
+static ssize_t
+set_config_msg_level(struct dhd_info *dhd, const char *buf, size_t count)
+{
+	char tbuf[SUBLOGLEVELZ * ARRAYSIZE(config_msg_name_map)], sublog[SUBLOGLEVELZ];
+	char *params, *token, *colon;
+	uint i, tokens, log_on = 0;
+	size_t minsize = min_t(size_t, (sizeof(tbuf) - 1), count);
+
+	bzero(tbuf, sizeof(tbuf));
+	bzero(sublog, sizeof(sublog));
+	strlcpy(tbuf, buf, minsize);
+
+	DHD_INFO(("current config_msg_level %d \n", config_msg_level));
+
+	tbuf[minsize] = '\0';
+	params = &tbuf[0];
+	colon = strchr(params, '\n');
+	if (colon != NULL)
+		*colon = '\0';
+	while ((token = strsep(&params, " ")) != NULL) {
+		bzero(sublog, sizeof(sublog));
+		if (token == NULL || !*token)
+			break;
+		if (*token == '\0')
+			continue;
+		colon = strchr(token, ':');
+		if (colon != NULL) {
+			*colon = ' ';
+		}
+		tokens = sscanf(token, "%"SIZE_CONST_STRING(SUBLOGLEVEL)"s %u", sublog, &log_on);
+		if (colon != NULL)
+			*colon = ':';
+
+		if (tokens == 2) {
+			for (i = 0; i < ARRAYSIZE(config_msg_name_map); i++) {
+				if (!strncmp(sublog, config_msg_name_map[i].sublogname,
+					strlen(config_msg_name_map[i].sublogname))) {
+					if (log_on) {
+						config_msg_level |=
+						(config_msg_name_map[i].log_level);
+					} else {
+						config_msg_level &=
+						~(config_msg_name_map[i].log_level);
+					}
+				}
+			}
+		} else
+			DHD_ERROR(("%s: can't parse '%s' as a "
+			       "SUBMODULE:LEVEL (%d tokens)\n",
+			       tbuf, token, tokens));
+
+	}
+	DHD_ERROR(("changed config_msg_level %d \n", config_msg_level));
+	return count;
+}
+
+static struct dhd_attr dhd_attr_config_msg_level =
+__ATTR(config_msg_level, 0660, show_config_msg_level, set_config_msg_level);
+
+static const struct {
+	u32 log_level;
+	char *sublogname;
+} dhd_msg_name_map[] = {
+	{DHD_ERROR_VAL, "ERROR"},
+	{DHD_TRACE_VAL, "TRACE"},
+	{DHD_INFO_VAL, "INFO"},
+	{DHD_DATA_VAL, "DATA"},
+	{DHD_CTL_VAL, "CTRL"},
+	{DHD_TIMER_VAL, "TIMER"},
+	{DHD_INTR_VAL, "INTR"},
+	{DHD_GLOM_VAL, "GLOM"},
+	{DHD_EVENT_VAL, "EVENT"},
+	{DHD_PNO_VAL, "PNO"},
+	{DHD_RTT_VAL, "RTT"},
+	{DHD_FWLOG_VAL, "FWLOG"},
+	{DHD_RPM_VAL, "RPM"}
+};
+
+static ssize_t
+show_dhd_msg_level(struct dhd_info *dhd, char *buf)
+{
+	char *param;
+	char tbuf[SUBLOGLEVELZ * ARRAYSIZE(dhd_msg_name_map)];
+	uint i;
+	ssize_t ret = 0;
+
+	bzero(tbuf, sizeof(tbuf));
+	param = &tbuf[0];
+	for (i = 0; i < ARRAYSIZE(dhd_msg_name_map); i++) {
+		param += snprintf(param, sizeof(tbuf) - 1, "%s:%d ",
+			dhd_msg_name_map[i].sublogname,
+			(dhd_msg_level & dhd_msg_name_map[i].log_level) ? 1 : 0);
+	}
+	ret = scnprintf(buf, PAGE_SIZE - 1, "%s \n", tbuf);
+	return ret;
+}
+
+static ssize_t
+set_dhd_msg_level(struct dhd_info *dhd, const char *buf, size_t count)
+{
+	char tbuf[SUBLOGLEVELZ * ARRAYSIZE(dhd_msg_name_map)], sublog[SUBLOGLEVELZ];
+	char *params, *token, *colon;
+	uint i, tokens, log_on = 0;
+	size_t minsize = min_t(size_t, (sizeof(tbuf) - 1), count);
+
+	bzero(tbuf, sizeof(tbuf));
+	bzero(sublog, sizeof(sublog));
+	strlcpy(tbuf, buf, minsize);
+
+	DHD_INFO(("current dhd_msg_level %d \n", dhd_msg_level));
+
+	tbuf[minsize] = '\0';
+	params = &tbuf[0];
+	colon = strchr(params, '\n');
+	if (colon != NULL)
+		*colon = '\0';
+	while ((token = strsep(&params, " ")) != NULL) {
+		bzero(sublog, sizeof(sublog));
+		if (token == NULL || !*token)
+			break;
+		if (*token == '\0')
+			continue;
+		colon = strchr(token, ':');
+		if (colon != NULL) {
+			*colon = ' ';
+		}
+		tokens = sscanf(token, "%"SIZE_CONST_STRING(SUBLOGLEVEL)"s %u", sublog, &log_on);
+		if (colon != NULL)
+			*colon = ':';
+
+		if (tokens == 2) {
+			for (i = 0; i < ARRAYSIZE(dhd_msg_name_map); i++) {
+				if (!strncmp(sublog, dhd_msg_name_map[i].sublogname,
+					strlen(dhd_msg_name_map[i].sublogname))) {
+					if (log_on) {
+						dhd_msg_level |=
+						(dhd_msg_name_map[i].log_level);
+					} else {
+						dhd_msg_level &=
+						~(dhd_msg_name_map[i].log_level);
+					}
+				}
+			}
+		} else
+			DHD_ERROR(("%s: can't parse '%s' as a "
+			       "SUBMODULE:LEVEL (%d tokens)\n",
+			       tbuf, token, tokens));
+
+	}
+	DHD_ERROR(("changed dhd_msg_level %d \n", dhd_msg_level));
+	return count;
+}
+
+static struct dhd_attr dhd_attr_dhd_msg_level =
+__ATTR(dhd_msg_level, 0660, show_dhd_msg_level, set_dhd_msg_level);
+
+static const struct {
+	u32 log_level;
+	char *sublogname;
+} dump_msg_name_map[] = {
+	{DUMP_EAPOL_VAL, "EAPOL"},
+	{DUMP_ARP_VAL, "ARP"},
+	{DUMP_DHCP_VAL, "DHCP"},
+	{DUMP_ICMP_VAL, "ICMP"},
+	{DUMP_DNS_VAL, "DNS"},
+	{DUMP_TRX_VAL, "TRX"}
+};
+
+static ssize_t
+show_dump_msg_level(struct dhd_info *dhd, char *buf)
+{
+	char *param;
+	char tbuf[SUBLOGLEVELZ * ARRAYSIZE(dump_msg_name_map)];
+	uint i;
+	ssize_t ret = 0;
+
+	bzero(tbuf, sizeof(tbuf));
+	param = &tbuf[0];
+	for (i = 0; i < ARRAYSIZE(dump_msg_name_map); i++) {
+		param += snprintf(param, sizeof(tbuf) - 1, "%s:%d ",
+			dump_msg_name_map[i].sublogname,
+			(dump_msg_level & dump_msg_name_map[i].log_level) ? 1 : 0);
+	}
+	ret = scnprintf(buf, PAGE_SIZE - 1, "%s \n", tbuf);
+	return ret;
+}
+
+static ssize_t
+set_dump_msg_level(struct dhd_info *dhd, const char *buf, size_t count)
+{
+	char tbuf[SUBLOGLEVELZ * ARRAYSIZE(dump_msg_name_map)], sublog[SUBLOGLEVELZ];
+	char *params, *token, *colon;
+	uint i, tokens, log_on = 0;
+	size_t minsize = min_t(size_t, (sizeof(tbuf) - 1), count);
+
+	bzero(tbuf, sizeof(tbuf));
+	bzero(sublog, sizeof(sublog));
+	strlcpy(tbuf, buf, minsize);
+
+	DHD_INFO(("current dump_msg_level %d \n", dump_msg_level));
+
+	tbuf[minsize] = '\0';
+	params = &tbuf[0];
+	colon = strchr(params, '\n');
+	if (colon != NULL)
+		*colon = '\0';
+	while ((token = strsep(&params, " ")) != NULL) {
+		bzero(sublog, sizeof(sublog));
+		if (token == NULL || !*token)
+			break;
+		if (*token == '\0')
+			continue;
+		colon = strchr(token, ':');
+		if (colon != NULL) {
+			*colon = ' ';
+		}
+		tokens = sscanf(token, "%"SIZE_CONST_STRING(SUBLOGLEVEL)"s %u", sublog, &log_on);
+		if (colon != NULL)
+			*colon = ':';
+
+		if (tokens == 2) {
+			for (i = 0; i < ARRAYSIZE(dump_msg_name_map); i++) {
+				if (!strncmp(sublog, dump_msg_name_map[i].sublogname,
+					strlen(dump_msg_name_map[i].sublogname))) {
+					if (log_on) {
+						dump_msg_level |=
+						(dump_msg_name_map[i].log_level);
+					} else {
+						dump_msg_level &=
+						~(dump_msg_name_map[i].log_level);
+					}
+				}
+			}
+		} else
+			DHD_ERROR(("%s: can't parse '%s' as a "
+			       "SUBMODULE:LEVEL (%d tokens)\n",
+			       tbuf, token, tokens));
+
+	}
+	DHD_ERROR(("changed dump_msg_level %d \n", dump_msg_level));
+	return count;
+}
+
+static struct dhd_attr dhd_attr_dump_msg_level =
+__ATTR(dump_msg_level, 0660, show_dump_msg_level, set_dump_msg_level);
+
+static const struct {
+	u32 log_level;
+	char *sublogname;
+} android_msg_name_map[] = {
+	{ANDROID_ERROR_LEVEL, "ERROR"},
+	{ANDROID_TRACE_LEVEL, "TRACE"},
+	{ANDROID_INFO_LEVEL, "INFO"},
+	{ANDROID_SCAN_LEVEL, "SCAN"},
+	{ANDROID_DBG_LEVEL, "DBG"},
+	{ANDROID_TPUT_LEVEL, "TPUT"},
+	{ANDROID_AMPDU_LEVEL, "AMPDU"},
+	{ANDROID_TVPM_LEVEL, "TVPM"},
+	{ANDROID_BTC_LEVEL, "BTC"},
+	{ANDROID_SWDIV_LEVEL, "SWDIV"}
+};
+
+static ssize_t
+show_android_msg_level(struct dhd_info *dhd, char *buf)
+{
+	char *param;
+	char tbuf[SUBLOGLEVELZ * ARRAYSIZE(android_msg_name_map)];
+	uint i;
+	ssize_t ret = 0;
+
+	bzero(tbuf, sizeof(tbuf));
+	param = &tbuf[0];
+	for (i = 0; i < ARRAYSIZE(android_msg_name_map); i++) {
+		param += snprintf(param, sizeof(tbuf) - 1, "%s:%d ",
+			android_msg_name_map[i].sublogname,
+			(android_msg_level & android_msg_name_map[i].log_level) ? 1 : 0);
+	}
+	ret = scnprintf(buf, PAGE_SIZE - 1, "%s \n", tbuf);
+	return ret;
+}
+
+static ssize_t
+set_android_msg_level(struct dhd_info *dhd, const char *buf, size_t count)
+{
+	char tbuf[SUBLOGLEVELZ * ARRAYSIZE(android_msg_name_map)], sublog[SUBLOGLEVELZ];
+	char *params, *token, *colon;
+	uint i, tokens, log_on = 0;
+	size_t minsize = min_t(size_t, (sizeof(tbuf) - 1), count);
+
+	bzero(tbuf, sizeof(tbuf));
+	bzero(sublog, sizeof(sublog));
+	strlcpy(tbuf, buf, minsize);
+
+	DHD_INFO(("current android_msg_level %d \n", android_msg_level));
+
+	tbuf[minsize] = '\0';
+	params = &tbuf[0];
+	colon = strchr(params, '\n');
+	if (colon != NULL)
+		*colon = '\0';
+	while ((token = strsep(&params, " ")) != NULL) {
+		bzero(sublog, sizeof(sublog));
+		if (token == NULL || !*token)
+			break;
+		if (*token == '\0')
+			continue;
+		colon = strchr(token, ':');
+		if (colon != NULL) {
+			*colon = ' ';
+		}
+		tokens = sscanf(token, "%"SIZE_CONST_STRING(SUBLOGLEVEL)"s %u", sublog, &log_on);
+		if (colon != NULL)
+			*colon = ':';
+
+		if (tokens == 2) {
+			for (i = 0; i < ARRAYSIZE(android_msg_name_map); i++) {
+				if (!strncmp(sublog, android_msg_name_map[i].sublogname,
+					strlen(android_msg_name_map[i].sublogname))) {
+					if (log_on) {
+						android_msg_level |=
+						(android_msg_name_map[i].log_level);
+					} else {
+						android_msg_level &=
+						~(android_msg_name_map[i].log_level);
+					}
+				}
+			}
+		} else
+			DHD_ERROR(("%s: can't parse '%s' as a "
+			       "SUBMODULE:LEVEL (%d tokens)\n",
+			       tbuf, token, tokens));
+
+	}
+	DHD_ERROR(("changed android_msg_level %d \n", android_msg_level));
+	return count;
+}
+
+static struct dhd_attr dhd_attr_android_msg_level =
+__ATTR(android_msg_level, 0660, show_android_msg_level, set_android_msg_level);
 
 #if defined(DHD_FILE_DUMP_EVENT) && defined(DHD_FW_COREDUMP)
 #define DUMP_TRIGGER	1
@@ -2366,6 +2836,13 @@ static struct attribute *default_file_attrs[] = {
 #if defined(WL_CFG80211)
 	&dhd_attr_wl_dbg_level.attr,
 #endif /* WL_CFG80211 */
+	&dhd_attr_dhd_console_ms.attr,
+	&dhd_attr_dhd_watchdog_ms.attr,
+	&dhd_attr_tput_monitor_ms.attr,
+	&dhd_attr_config_msg_level.attr,
+	&dhd_attr_dhd_msg_level.attr,
+	&dhd_attr_dump_msg_level.attr,
+	&dhd_attr_android_msg_level.attr,
 #if defined(DHD_FILE_DUMP_EVENT) && defined(DHD_FW_COREDUMP)
 	&dhd_attr_dump_in_progress.attr,
 #endif /* DHD_FILE_DUMP_EVENT && DHD_FW_COREDUMP */

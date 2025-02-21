@@ -10552,10 +10552,11 @@ dhdsdio_suspend(void *context)
 		bus->dhd->busstate = DHD_BUS_DATA;
 		/* resume all interface network queue. */
 		dhd_txflowcontrol(bus->dhd, ALL_INTERFACES, OFF);
+		bus->dhd->hostsleep = HOSTSLEEP_CLEAR;
 	} else {
 		bus->last_suspend_end_time = OSL_LOCALTIME_NS();
+		bus->dhd->hostsleep = HOSTSLEEP_DHD_SET;
 	}
-	bus->dhd->hostsleep = 2;
 	DHD_BUS_BUSY_CLEAR_SUSPEND_IN_PROGRESS(bus->dhd);
 	dhd_os_busbusy_wake(bus->dhd);
 	DHD_LINUX_GENERAL_UNLOCK(bus->dhd, flags);
@@ -10587,7 +10588,7 @@ dhdsdio_resume(void *context)
 
 	DHD_LINUX_GENERAL_LOCK(bus->dhd, flags);
 	DHD_BUS_BUSY_CLEAR_RESUME_IN_PROGRESS(bus->dhd);
-	bus->dhd->hostsleep = 0;
+	bus->dhd->hostsleep = HOSTSLEEP_CLEAR;
 	bus->dhd->busstate = DHD_BUS_DATA;
 	dhd_os_busbusy_wake(bus->dhd);
 	/* resume all interface network queue. */

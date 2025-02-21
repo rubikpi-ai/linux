@@ -191,9 +191,9 @@ struct osl_info {
 	void *dhd_map_log;
 	void *dhd_unmap_log;
 #endif /* DHD_MAP_LOGGING */
-#ifdef USERCOPY_CACHE
+#ifdef DHD_USE_KMEM_CACHE_USERCOPY
 	struct kmem_cache *ioctl_buf_cache;
-#endif /* USERCOPY_CACHE */
+#endif /* DHD_USE_KMEM_CACHE_USERCOPY */
 };
 
 #endif /* _LINUX_OSL_PRIV_H_ */

@@ -709,7 +709,8 @@ _dhd_wlfc_find_table_entry(athost_wl_status_info_t* ctx, void* p)
 			entry = &ctx->destination_entries.interfaces[ifid];
 	}
 
-	if (entry && ETHER_ISMULTI(dstn)) {
+	if (entry && ETHER_ISMULTI(dstn)
+		&& (entry->psq.num_prec != 0)) {
 		DHD_PKTTAG_SET_ENTRY(PKTTAG(p), entry);
 		return entry;
 	}
@@ -726,7 +727,8 @@ _dhd_wlfc_find_table_entry(athost_wl_status_info_t* ctx, void* p)
 		}
 	}
 
-	if (entry == NULL)
+	/* the entry might not been initialized yet */
+	if ((entry == NULL) || (entry->psq.num_prec == 0))
 		entry = &ctx->destination_entries.other;
 
 	DHD_PKTTAG_SET_ENTRY(PKTTAG(p), entry);

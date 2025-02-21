@@ -8060,6 +8060,7 @@ static int wl_cfgvendor_lstats_get_info(struct wiphy *wiphy,
 	int err = 0, i;
 	wifi_radio_stat_h radio_h;
 	wifi_channel_stat *chan_stats = NULL;
+	wl_wme_cnt_t *wl_wme_cnt;
 	int num_channels = 0;
 	uint chan_stats_size = 0;
 #ifdef LINKSTAT_EXT_SUPPORT
@@ -8380,10 +8381,40 @@ static int wl_cfgvendor_lstats_get_info(struct wiphy *wiphy,
 			WIFI_VSDB_TIMESLICE_DUTY_CYCLE);
 	}
 #endif /* LINKSTAT_EXT_SUPPORT */
+
+	err = wldev_iovar_getbuf(bcmcfg_to_prmry_ndev(cfg), "wme_counters", NULL, 0,
+		iovar_buf, WLC_IOCTL_MAXLEN, NULL);
+	if (unlikely(err)) {
+		WL_ERR(("error (%d)\n", err));
+		goto exit;
+	}
+
+	wl_wme_cnt = (wl_wme_cnt_t *)iovar_buf;
+
+	COMPAT_BZERO_IFACE(wifi_iface_stat, iface);
 	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_VO].ac, WIFI_AC_VO);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_VO].tx_mpdu, wl_wme_cnt->tx[AC_VO].packets);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_VO].rx_mpdu, wl_wme_cnt->rx[AC_VO].packets);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_VO].mpdu_lost,
+		wl_wme_cnt->tx_failed[WIFI_AC_VO].packets);
+
 	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_VI].ac, WIFI_AC_VI);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_VI].tx_mpdu, wl_wme_cnt->tx[AC_VI].packets);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_VI].rx_mpdu, wl_wme_cnt->rx[AC_VI].packets);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_VI].mpdu_lost,
+		wl_wme_cnt->tx_failed[WIFI_AC_VI].packets);
+
 	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].ac, WIFI_AC_BE);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].tx_mpdu, wl_wme_cnt->tx[AC_BE].packets);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].rx_mpdu, wl_wme_cnt->rx[AC_BE].packets);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].mpdu_lost,
+		wl_wme_cnt->tx_failed[WIFI_AC_BE].packets);
+
 	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BK].ac, WIFI_AC_BK);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BK].tx_mpdu, wl_wme_cnt->tx[AC_BK].packets);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BK].rx_mpdu, wl_wme_cnt->rx[AC_BK].packets);
+	COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BK].mpdu_lost,
+		wl_wme_cnt->tx_failed[WIFI_AC_BK].packets);
 
 	err = wldev_iovar_getbuf(inet_ndev, "counters", NULL, 0,
 		iovar_buf, WLC_IOCTL_MAXLEN, NULL);
@@ -8454,20 +8485,10 @@ static int wl_cfgvendor_lstats_get_info(struct wiphy *wiphy,
 				if_stats->version));
 			goto exit;
 		}
-		COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].tx_mpdu, (uint32)if_stats->txframe);
-		COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].rx_mpdu,
-			(uint32)(if_stats->rxframe - if_stats->rxmulti));
-		COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].mpdu_lost,
-				(uint32)if_stats->txfail + wlc_cnt->tx_toss_cnt);
 		COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].retries, (uint32)if_stats->txretrans);
 	} else
 #endif /* !DISABLE_IF_COUNTERS */
 	{
-		COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].tx_mpdu,
-			(wlc_cnt->txfrmsnt - wlc_cnt->txmulti));
-		COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].rx_mpdu, wlc_cnt->rxframe);
-		COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].mpdu_lost,
-				wlc_cnt->txfail + wlc_cnt->tx_toss_cnt);
 		COMPAT_ASSIGN_VALUE(iface, ac[WIFI_AC_BE].retries, wlc_cnt->txretrans);
 	}
 
@@ -12018,6 +12039,9 @@ wl_cfgvendor_notify_twt_event(struct bcm_cfg80211 *cfg,
 	int err = BCME_OK;
 	struct net_device *ndev = bcmcfg_to_prmry_ndev(cfg);
 	const wl_twt_event_t *twt_event = (wl_twt_event_t *)data;
+#ifdef PROP_TXSTATUS_VSDB
+	s32 bsscfg_idx = ntoh32(e->bsscfgidx);
+#endif /* PROP_TXSTATUS_VSDB */
 
 	kflags = in_atomic() ? GFP_ATOMIC : GFP_KERNEL;
 	skb = CFG80211_VENDOR_EVENT_ALLOC(wiphy, ndev_to_wdev(ndev),
@@ -12032,10 +12056,30 @@ wl_cfgvendor_notify_twt_event(struct bcm_cfg80211 *cfg,
 		case WL_TWT_EVENT_SETUP:
 			err = wl_cfgvendor_twt_update_setup_response(skb,
 					(void*)twt_event->event_info);
+#ifdef PROP_TXSTATUS_VSDB
+			if (!err && (cfg->twt_auto_sched == FALSE)) {
+				if (!(cfg->twt_if_bitmap & (1 << bsscfg_idx))) {
+					cfg->twt_count++;
+				}
+				cfg->twt_auto_sched = FALSE;
+				cfg->twt_if_bitmap |= (1 << bsscfg_idx);
+				wl_wlfc_toggle_check(cfg);
+			}
+#endif /* PROP_TXSTATUS_VSDB */
 			break;
 		case WL_TWT_EVENT_TEARDOWN:
 			err = wl_cfgvendor_twt_update_teardown_response(skb,
 					(void*)twt_event->event_info);
+#ifdef PROP_TXSTATUS_VSDB
+			if (!err && (cfg->twt_auto_sched == FALSE)) {
+				if (cfg->twt_if_bitmap & (1 << bsscfg_idx)) {
+					if (cfg->twt_count)
+						cfg->twt_count--;
+				}
+				cfg->twt_if_bitmap &= ~(1 << bsscfg_idx);
+				wl_wlfc_toggle_check(cfg);
+			}
+#endif /* PROP_TXSTATUS_VSDB */
 			break;
 		case WL_TWT_EVENT_INFOFRM:
 			err = wl_cfgvendor_twt_update_infoframe_response(skb,

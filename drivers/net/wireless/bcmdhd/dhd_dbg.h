@@ -136,9 +136,7 @@ do {	\
 #define DHD_ERROR_MEM(args) \
 do {	\
 	if (dhd_msg_level & DHD_ERROR_VAL) {	\
-		if (dhd_msg_level & DHD_ERROR_MEM_VAL) {	\
-			printf args;		\
-		}	\
+		printf args;		\
 	}	\
 	if (dhd_log_level & DHD_ERROR_VAL) {	\
 		DHD_LOG_DUMP_WRITE_TS;		\
@@ -392,7 +390,7 @@ do { \
 	} \
 } while (0)
 
-#else
+#else /* DHD_LOG_PRINT_RATE_LIMIT */
 #define DHD_FWLOG(args)	\
 	do { \
 		if (dhd_msg_level & DHD_FWLOG_VAL) { \
@@ -401,7 +399,7 @@ do { \
 			DHD_LOG_DUMP_WRITE args; \
 		} \
 	} while (0)
-#endif
+#endif /* DHD_LOG_PRINT_RATE_LIMIT */
 #else /* DHD_LOG_DUMP */
 #if defined(NDIS) && (NDISVER >= 0x0630)
 #define DHD_FWLOG(args)		do {if (dhd_msg_level & DHD_FWLOG_VAL) \

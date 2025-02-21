@@ -63,6 +63,9 @@
 #endif /* DBG_PKT_MON */
 #if defined(DHD_PKT_LOGGING) && defined(DHD_PKT_LOGGING_DBGRING)
 #include <dhd_pktlog.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+#include <linux/sched/clock.h>
+#endif /* KENEL >=4.11 */
 #endif /* DHD_PKT_LOGGING && DHD_PKT_LOGGING_DBGRING */
 
 #if defined(DHD_EVENT_LOG_FILTER)
@@ -611,7 +614,7 @@ done:
 #define LOG_PRINT_THRESH      (1u * USEC_PER_SEC)
 #endif /* LOG_PRINT_THRESH */
 #endif /* DHD_DEBUG */
-#endif
+#endif /* DHD_LOG_PRINT_RATE_LIMIT */
 #define EL_PARSE_VER	"V02"
 static uint64 verboselog_ts_saved = 0;
 
@@ -2097,7 +2100,8 @@ dhd_dbg_monitor_tx_pkts(dhd_pub_t *dhdp, void *pkt, uint32 pktid, frame_type typ
 				clone_pkt = PKTDUP(dhdp->osh, pkt);
 				skb_pull((struct sk_buff*)clone_pkt, SDIO_HLEN);
 				tx_pkts[pkt_pos].info.pkt = clone_pkt;
-				tx_pkts[pkt_pos].info.pkt_len = PKTLEN(dhdp->osh, clone_pkt) - SDIO_HLEN;
+				tx_pkts[pkt_pos].info.pkt_len =
+					PKTLEN(dhdp->osh, clone_pkt) - SDIO_HLEN;
 #else
 				tx_pkts[pkt_pos].info.pkt = PKTDUP(dhdp->osh, pkt);
 				tx_pkts[pkt_pos].info.pkt_len = PKTLEN(dhdp->osh, pkt);

@@ -4719,9 +4719,9 @@ extern void dhd_lb_rx_napi_dispatch(dhd_pub_t *dhdp);
 extern void dhd_lb_rx_pkt_enqueue(dhd_pub_t *dhdp, void *pkt, int ifidx);
 extern unsigned long dhd_read_lb_rxp(dhd_pub_t *dhdp);
 extern void dhd_rx_emerge_enqueue(dhd_pub_t *dhdp, void *pkt);
-extern void * dhd_rx_emerge_dequeue(dhd_pub_t *dhdp);
 
 #if defined(DHD_LB_RXP)
+extern void * dhd_rx_emerge_dequeue(dhd_pub_t *dhdp);
 /**
  * dhd_lb_dispatch_rx_process - load balance by dispatch Rx processing work
  * to other CPU cores
@@ -4731,13 +4731,13 @@ dhd_lb_dispatch_rx_process(dhd_pub_t *dhdp)
 {
 	dhd_lb_rx_napi_dispatch(dhdp); /* dispatch rx_process_napi */
 }
-#endif /* DHD_LB_RXP */
 #else
 static INLINE void *
 dhd_rx_emerge_dequeue(dhd_pub_t *dhdp)
 {
 	return NULL;
 }
+#endif /* DHD_LB_RXP */
 #endif /* DHD_LB */
 
 void
@@ -5065,6 +5065,23 @@ dhd_prot_detach_edl_rings(dhd_pub_t *dhd)
 }
 #endif	/* EWP_EDL */
 
+static void
+dhd_config_dongle_host_access(dhd_pub_t *dhd)
+{
+	int ret = 0;
+#ifdef WLAN_ACCEL_BOOT
+	uint32 bus_host_access = 0;
+#else
+	uint32 bus_host_access = 1;
+#endif /* !WLAN_ACCEL_BOOT */
+	/* When WLAN_ACCEL_BOOT is enabled CFG layer will set the host_access. Else set here. */
+	ret = dhd_iovar(dhd, 0, "bus:host_access",
+		(char *)&bus_host_access, sizeof(bus_host_access), NULL, 0, TRUE);
+	if (ret) {
+		DHD_ERROR(("bus:host_access(%d) error (%d)\n", bus_host_access, ret));
+	}
+}
+
 /**
  * Initialize protocol: sync w/dongle state.
  * Sets dongle media info (iswl, drv_version, mac address).
@@ -5176,6 +5193,7 @@ int dhd_sync_with_dongle(dhd_pub_t *dhd)
 
 	/* Post buffers for packet reception */
 	dhd_msgbuf_rxbuf_post(dhd, FALSE); /* alloc pkt ids */
+	dhd_config_dongle_host_access(dhd);
 
 	DHD_SSSR_DUMP_INIT(dhd);
 
@@ -5494,13 +5512,11 @@ BCMFASTPATH(dhd_prot_rxbuf_post)(dhd_pub_t *dhd, uint16 count, bool use_rsv_pkti
 	pktlen = (uint32 *)((uint8 *)pktbuf_pa + sizeof(dmaaddr_t) * prot->rx_buf_burst);
 
 	for (i = 0; i < count; i++) {
-		if (
-#if defined(DHD_LB_RXP)
 		/* First try to dequeue from emergency queue which will be filled
 		 * during rx flow control.
 		*/
-		((p = dhd_rx_emerge_dequeue(dhd)) == NULL) &&
-#endif /* DHD_LB_RXP */
+		p = dhd_rx_emerge_dequeue(dhd);
+		if ((p == NULL) &&
 			((p = PKTGET(dhd->osh, prot->rxbufpost_alloc_sz, FALSE)) == NULL)) {
 			dhd->rx_pktgetfail++;
 			DHD_ERROR_RLMT(("%s:%d: PKTGET for rxbuf failed, rx_pktget_fail :%lu\n",
@@ -5523,6 +5539,8 @@ BCMFASTPATH(dhd_prot_rxbuf_post)(dhd_pub_t *dhd, uint16 count, bool use_rsv_pkti
 						__FUNCTION__, __LINE__, dhd->rx_pktgetpool_fail));
 					break;
 				}
+#else
+				break;
 #endif /* RX_PKT_POOL */
 			}
 		}

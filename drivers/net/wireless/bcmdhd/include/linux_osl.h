@@ -262,6 +262,15 @@ extern void *osl_mallocz(osl_t *osh, uint size);
 extern void *osl_dma_mallocz(osl_t *osh, uint size, uint *dmable_size);
 extern void osl_mfree(osl_t *osh, void *addr, uint size);
 extern void osl_dma_mfree(osl_t *osh, void *addr, uint size);
+
+#ifdef DHD_USE_KMEM_CACHE_USERCOPY
+#define KMEM_CACHE_USERCOPY_MAXLEN_32K (32768u)
+#define KMEM_CACHE_ALLOC_USERCOPY(osh) osl_kmem_cache_alloc_usercopy((osh))
+#define KMEM_CACHE_FREE_USERCOPY(osh, addr) osl_kmem_cache_free_usercopy((osh), (addr))
+extern void *osl_kmem_cache_alloc_usercopy(osl_t *osh);
+extern void osl_kmem_cache_free_usercopy(osl_t *osh, void *addr);
+#endif /* DHD_USE_KMEM_CACHE_USERCOPY */
+
 #define MALLOC_NODBG(osh, size)		osl_malloc((osh), (size))
 #define MALLOCZ_NODBG(osh, size)	osl_mallocz((osh), (size))
 #define MFREE_NODBG(osh, addr, size)	({osl_mfree((osh), ((void *)addr), (size));(addr) = NULL;})
@@ -1010,23 +1019,4 @@ do {					\
 	pr_cont args;			\
 } while (0)
 #endif /* CUSTOM_PREFIX */
-
-#ifdef USERCOPY_CACHE
-extern void *osl_kmem_cache_alloc_usercopy(osl_t *osh, int len);
-extern void osl_kmem_cache_free_usercopy(osl_t *osh, void *addr);
-#define KMEM_CACHE_ALLOC_USERCOPY(osh, len) osl_kmem_cache_alloc_usercopy((osh), (len))
-#define KMEM_CACHE_FREE_USERCOPY(osh, addr, len) osl_kmem_cache_free_usercopy((osh), (addr))
-#else
-#define KMEM_CACHE_ALLOC_USERCOPY(osh, len) MALLOC((osh), (len))
-#define KMEM_CACHE_FREE_USERCOPY(osh, addr, len) MFREE((osh), (addr), (len))
-#endif /* USERCOPY_CACHE */
-
-#ifdef USERCOPY_MAXLEN
-extern int osl_user_copy(osl_t *osh, void *dst, const void *src, const int len, bool from);
-#define COPY_TO_USER(osh, dst, src, len)	osl_user_copy(osh, dst, src, len, TRUE)
-#define COPY_FROM_USER(osh, dst, src, len)	osl_user_copy(osh, dst, src, len, FALSE)
-#else
-#define COPY_TO_USER(osh, dst, src, len)	copy_to_user(dst, src, len)
-#define COPY_FROM_USER(osh, dst, src, len)	copy_from_user(dst, src, len)
-#endif /* USERCOPY_MAXLEN */
 #endif	/* _linux_osl_h_ */

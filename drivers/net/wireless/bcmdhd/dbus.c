@@ -3222,7 +3222,7 @@ dbus_suspend(void *context)
 	} else {
 		bus->last_suspend_end_time = OSL_LOCALTIME_NS();
 	}
-	bus->dhd->hostsleep = 2;
+	bus->dhd->hostsleep = HOSTSLEEP_DHD_SET;
 	DHD_BUS_BUSY_CLEAR_SUSPEND_IN_PROGRESS(bus->dhd);
 	dhd_os_busbusy_wake(bus->dhd);
 	DHD_LINUX_GENERAL_UNLOCK(bus->dhd, flags);
@@ -3260,7 +3260,7 @@ dbus_resume(void *context)
 
 	DHD_LINUX_GENERAL_LOCK(bus->dhd, flags);
 	DHD_BUS_BUSY_CLEAR_RESUME_IN_PROGRESS(bus->dhd);
-	bus->dhd->hostsleep = 0;
+	bus->dhd->hostsleep = HOSTSLEEP_CLEAR;
 	bus->dhd->busstate = DHD_BUS_DATA;
 	dhd_os_busbusy_wake(bus->dhd);
 	/* resume all interface network queue. */
@@ -3380,7 +3380,7 @@ dhd_dbus_probe_cb(uint16 bus_no, uint16 slot, uint32 hdrlen)
 	}
 	else if (net_attached && (pub->up == 1) && (dlneeded == 0)) {
 		// kernel resume case
-		pub->hostsleep = 0;
+		pub->hostsleep = HOSTSLEEP_CLEAR;
 		ret = dhd_dbus_sync_dongle(pub, dlneeded);
 #ifdef WL_CFG80211
 		__wl_cfg80211_up_resume(pub);

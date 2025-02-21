@@ -527,7 +527,7 @@ MODULE_DEVICE_TABLE(usb, devid_table);
 
 /** functions called by the Linux kernel USB subsystem */
 static struct usb_driver dbus_usbdev = {
-	name:           "dbus_usbdev"BUS_TYPE,
+	name:           "dbus_usbdev"ADAPTER_IDX_STR,
 	probe:          dbus_usbos_probe,
 	disconnect:     dbus_usbos_disconnect,
 	id_table:       devid_table,

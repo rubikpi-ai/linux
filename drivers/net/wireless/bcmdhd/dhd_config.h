@@ -9,6 +9,11 @@
 #include <wlioctl.h>
 #include <802.11.h>
 
+/* message levels */
+#define CONFIG_ERROR_LEVEL	(1 << 0)
+#define CONFIG_TRACE_LEVEL	(1 << 1)
+#define CONFIG_MSG_LEVEL	(1 << 0)
+
 #define FW_TYPE_STA     0
 #define FW_TYPE_APSTA   1
 #define FW_TYPE_P2P     2
@@ -115,6 +120,14 @@ typedef struct mchan_params {
 	int miracast_mode;
 } mchan_params_t;
 
+typedef enum MCHAN_MODE {
+	MCHAN_AUTO = -1,	/* Auto selection by Chip */
+	MCHAN_SCC = 0,		/* Same Channel Concurrent */
+	MCHAN_SBSC = 1,		/* Same Band Same Channel concurrent */
+	MCHAN_MCC = 2,		/* Multiple Channel Concurrent */
+	MCHAN_RSDB = 3		/* RSDB concurrent */
+} mchan_mode_t;
+
 #ifdef SCAN_SUPPRESS
 enum scan_intput_flags {
 	NO_SCAN_INTPUT	= (1 << (0)),
@@ -156,6 +169,12 @@ enum in_suspend_mode {
 	EARLY_SUSPEND = 0,
 	PM_NOTIFIER = 1,
 	SUSPEND_MODE_2 = 2
+};
+
+enum hostsleep_mode {
+	HOSTSLEEP_CLEAR = 0,
+	HOSTSLEEP_FW_SET = 1,
+	HOSTSLEEP_DHD_SET = 2,
 };
 
 enum conn_state {
@@ -219,7 +238,9 @@ typedef struct dhd_conf {
 	int ioctl_ver;
 	int band;
 	int bw_cap[2];
-	int mapsta_mode;
+	int ap_mchan_mode;
+	int go_mchan_mode;
+	bool csa;
 	wl_country_t cspec;
 	uint roam_off;
 	uint roam_off_suspend;
@@ -346,6 +367,8 @@ typedef struct dhd_conf {
 	char *wl_suspend;
 	char *wl_resume;
 	uint in4way;
+	char *wl_pre_in4way;
+	char *wl_post_in4way;
 	uint war;
 #ifdef WL_EXT_WOWL
 	uint wowl;
@@ -432,6 +455,7 @@ uint dhd_conf_get_chiprev(void *context);
 int dhd_conf_get_pm(dhd_pub_t *dhd);
 int dhd_conf_custom_mac(dhd_pub_t *dhd);
 int dhd_conf_reg2args(dhd_pub_t *dhd, char *cmd, bool set, uint32 index, uint32 *val);
+bool dhd_conf_set_wl_cmd(dhd_pub_t *dhd, char *data, bool down);
 int dhd_conf_check_hostsleep(dhd_pub_t *dhd, int cmd, void *buf, int len,
 	int *hostsleep_set, int *hostsleep_val, int *ret);
 void dhd_conf_get_hostsleep(dhd_pub_t *dhd,

@@ -3794,7 +3794,7 @@ wl_cfg80211_bcn_bringup_ap(
 		/* create softap */
 		if ((err = wldev_ioctl_set(dev, WLC_SET_SSID, &join_params,
 			join_params_size)) != 0) {
-			WL_ERR(("SoftAP/GO set ssid failed! \n"));
+			WL_ERR(("SoftAP/GO set ssid failed! %d\n", err));
 			goto exit;
 		} else {
 			WL_DBG((" SoftAP SSID \"%s\" \n", join_params.ssid.SSID));
@@ -3866,7 +3866,7 @@ wl_cfg80211_config_bss_selector(
 		err = wl_cfg80211_set_wsec_info(dev, &sae_pwe,
 				sizeof(sae_pwe), WL_WSEC_INFO_BSS_SAE_PWE);
 		if (unlikely(err)) {
-			WL_ERR(("set wsec_info_sae_pwe failed \n"));
+			WL_ERR(("set wsec_info_sae_pwe failed %d\n", err));
 		}
 	}
 
@@ -4284,7 +4284,6 @@ wl_cfg80211_start_ap(
 		if (err) {
 			WL_ERR(("Disabling NDO Failed %d\n", err));
 		}
-		wl_wlfc_enable(cfg, TRUE);
 #ifdef WL_EXT_IAPSTA
 		wl_ext_iapsta_update_iftype(dev, WL_IF_TYPE_AP);
 #endif /* WL_EXT_IAPSTA */
@@ -4353,7 +4352,13 @@ wl_cfg80211_start_ap(
 #else
 			dev->ieee80211_ptr->preset_chandef.chan,
 #endif /* LINUX_VER >= 5.19.2 || CFG80211_BKPORT_MLO */
-			info->chandef.width) < 0)) {
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0))
+			NL80211_CHAN_HT20
+#else
+			info->chandef.width
+#endif /* LINUX_VERSION_CODE < KERNEL_VERSION(3, 6, 0) */
+			) < 0))
+	{
 		WL_ERR(("Set channel failed \n"));
 		goto fail;
 	}
@@ -4476,7 +4481,6 @@ fail:
 			wl_cfg80211_set_frameburst(cfg, TRUE);
 #endif /* DISABLE_WL_FRAMEBURST_SOFTAP */
 #endif /* BCMDONGLEHOST */
-			wl_wlfc_enable(cfg, FALSE);
 #ifdef WL_EXT_IAPSTA
 		}
 #endif /* WL_EXT_IAPSTA */
@@ -4685,7 +4689,6 @@ exit:
 		if (wl_cfgvif_get_iftype_count(cfg, WL_IF_TYPE_AP) == 0) {
 			dhd->op_mode &= ~DHD_FLAG_HOSTAP_MODE;
 		}
-		wl_wlfc_enable(cfg, FALSE);
 #ifdef WL_EXT_IAPSTA
 		}
 #endif /* WL_EXT_IAPSTA */
@@ -5231,6 +5234,48 @@ exit:
 	}
 }
 
+#ifdef DHD_DFS_MASTER
+void
+wl_notify_cac_event(struct net_device *dev)
+{
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION (4, 17, 0))
+	struct bcm_cfg80211 *cfg = wl_get_cfg(dev);
+	struct wireless_dev *wdev = ndev_to_wdev(dev);
+	struct wiphy *wiphy = bcmcfg_to_wiphy(cfg);
+	struct cfg80211_chan_def chandef;
+	chanspec_t chanspec = INVCHANSPEC, chaninfo;
+	bool radar = FALSE;
+	s32 err = BCME_OK;
+
+	err = wldev_iovar_getint(dev, "chanspec", (s32 *)&chanspec);
+	if (unlikely(err)) {
+		WL_ERR(("Could not get chanspec %d\n", err));
+		return;
+	}
+	chaninfo = chanspec;
+	err = wldev_iovar_getint(dev, "per_chan_info", (s32 *)&chaninfo);
+	if (!err && (chaninfo & WL_CHAN_RADAR)) {
+		radar = TRUE;
+	}
+
+	if (radar && !wl_chspec_chandef(chanspec, &chandef, wiphy)) {
+		if(chandef.chan) {
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 19, 2) || defined(CFG80211_BKPORT_MLO)
+			wdev_chandef(wdev, 0)->chan = chandef.chan;
+#else
+			wdev->chandef.chan = chandef.chan;
+#endif /* KERNEL_VERSION(5, 19, 2) || defined(CFG80211_BKPORT_MLO) */
+			wdev->cac_start_time = jiffies - msecs_to_jiffies(IEEE80211_DFS_MIN_CAC_TIME_MS);
+			wdev->cac_time_ms = IEEE80211_DFS_MIN_CAC_TIME_MS;
+			WL_MSG(dev->name, "send fake CAC event\n");
+			cfg80211_cac_event(dev, &chandef, NL80211_RADAR_CAC_STARTED, KMALLOC_FLAG);
+			cfg80211_cac_event(dev, &chandef, NL80211_RADAR_CAC_FINISHED, KMALLOC_FLAG);
+		}
+	}
+#endif
+}
+#endif /* DHD_DFS_MASTER */
+
 s32
 wl_notify_connect_status_ap(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 	const wl_event_msg_t *e, void *data)
@@ -5304,6 +5349,9 @@ wl_notify_connect_status_ap(struct bcm_cfg80211 *cfg, struct net_device *ndev,
 				cancel_delayed_work_sync(&cfg->ap_work);
 				WL_DBG(("cancelled ap_work\n"));
 			}
+#ifdef DHD_DFS_MASTER
+			wl_notify_cac_event(ndev);
+#endif /* DHD_DFS_MASTER */
 #ifdef WL_EXT_IAPSTA
 			wl_ext_in4way_sync(ndev, 0, WL_EXT_STATUS_AP_ENABLED, NULL);
 #endif
@@ -6078,7 +6126,9 @@ int wl_chspec_chandef(chanspec_t chanspec,
 void
 wl_cfg80211_ch_switch_notify(struct net_device *dev, uint16 chanspec, struct wiphy *wiphy)
 {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 5, 0) && (LINUX_VERSION_CODE <= (3, 7, 0)))
 	u32 freq;
+#endif
 	struct cfg80211_chan_def chandef;
 
 	if (!wiphy) {
@@ -6094,14 +6144,19 @@ wl_cfg80211_ch_switch_notify(struct net_device *dev, uint16 chanspec, struct wip
 	}
 #endif /* (LINUX_VERSION_CODE <= KERNEL_VERSION (3, 18, 0)) */
 
+	WL_MSG(dev->name, "CSA to channel %s-%d(%sMHz)\n",
+		WLCBAND2STR(CHSPEC2WLC_BAND(chanspec)), wf_chspec_ctlchan(chanspec),
+		wf_chspec_to_bw_str(chanspec));
+
 	if (wl_chspec_chandef(chanspec, &chandef, wiphy)) {
 		WL_ERR(("chspec_chandef failed\n"));
 		return;
 	}
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 8, 0))
-	freq = chandef.chan ? chandef.chan->center_freq : chandef.center_freq1;
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0) || \
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 9, 0)
+	cfg80211_ch_switch_notify(dev, &chandef, 0);
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 3, 0) || \
 		((ANDROID_VERSION >= 14) && (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 144))) || \
 		((ANDROID_VERSION == 13) && (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 94)))
 	cfg80211_ch_switch_notify(dev, &chandef, 0, 0);
@@ -6115,8 +6170,6 @@ wl_cfg80211_ch_switch_notify(struct net_device *dev, uint16 chanspec, struct wip
 	cfg80211_ch_switch_notify(dev, freq, chandef.chan_type);
 #endif /* (LINUX_VERSION_CODE >= KERNEL_VERSION (3, 8, 0)) */
 
-	WL_MSG(dev->name, "Channel switch notification for freq: %d chanspec: 0x%x\n",
-		freq, chanspec);
 #ifdef WL_EXT_IAPSTA
 	wl_ext_fw_reinit_incsa(dev);
 #endif
@@ -6138,6 +6191,11 @@ wl_ap_channel_ind(struct bcm_cfg80211 *cfg,
 	wl_update_apchan_bwcap(cfg, ndev, chanspec);
 #endif /* SUPPORT_AP_BWCTRL */
 
+	if (ndev->ieee80211_ptr->iftype == NL80211_IFTYPE_P2P_GO) {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 5, 0))
+		wl_cfg80211_ch_switch_notify(ndev, chanspec, bcmcfg_to_wiphy(cfg));
+#endif /* LINUX_VERSION_CODE >= (3, 5, 0) */
+	} else
 	if (!(cfg->ap_oper_channel == INVCHANSPEC) && (cfg->ap_oper_channel != chanspec)) {
 		/*
 		 * If cached channel is different from the channel indicated
@@ -6151,8 +6209,8 @@ wl_ap_channel_ind(struct bcm_cfg80211 *cfg,
 #ifdef WL_CELLULAR_CHAN_AVOID
 		wl_cellavoid_set_csa_done(cfg->cellavoid_info);
 #endif /* WL_CELLULAR_CHAN_AVOID */
-
 	}
+	wl_ext_iapsta_csa_event(ndev);
 }
 
 s32
@@ -8067,9 +8125,10 @@ struct net_device *
 wl_cfg80211_register_static_if(struct bcm_cfg80211 *cfg, u16 iftype, char *ifname,
 	int static_ifidx)
 {
-#if defined(CUSTOM_MULTI_MAC) || defined(WL_EXT_IAPSTA)
+#ifdef CUSTOM_MULTI_MAC
 	dhd_pub_t *dhd = cfg->pub;
-#endif
+	char hw_ether[62];
+#endif /* CUSTOM_MULTI_MAC */
 	struct net_device *ndev;
 	struct wireless_dev *wdev = NULL;
 	int ifidx = WL_STATIC_IFIDX; /* Register ndev with a reserved ifidx */
@@ -8078,9 +8137,6 @@ wl_cfg80211_register_static_if(struct bcm_cfg80211 *cfg, u16 iftype, char *ifnam
 #ifdef DHD_USE_RANDMAC
 	struct ether_addr ea_addr;
 #endif /* DHD_USE_RANDMAC */
-#ifdef CUSTOM_MULTI_MAC
-	char hw_ether[62];
-#endif
 
 	BCM_REFERENCE(primary_ndev);
 
@@ -8094,28 +8150,28 @@ wl_cfg80211_register_static_if(struct bcm_cfg80211 *cfg, u16 iftype, char *ifnam
 	UNUSED_PARAMETER(primary_ndev);
 
 	ifidx += static_ifidx;
+
 	if (iface_wlan1_mac[0]) {
 		bcm_ether_atoe(iface_wlan1_mac, (struct ether_addr *)mac_addr);
-	} else {
+	}
 #ifdef DHD_USE_RANDMAC
+	else if (TRUE) {
 		wl_cfg80211_generate_mac_addr(&ea_addr);
 		(void)memcpy_s(mac_addr, ETH_ALEN, ea_addr.octet, ETH_ALEN);
-#else
-#if defined(CUSTOM_MULTI_MAC)
-		if (!wifi_platform_get_mac_addr(dhd->info->adapter, hw_ether, static_ifidx+1)) {
-			(void)memcpy_s(mac_addr, ETH_ALEN, hw_ether, ETH_ALEN);
-			DEV_ADDR_GET(hw_ether, mac_addr);
-		} else
+	}
 #endif
-		{
-			/* Use primary mac with locally admin bit set */
-			DEV_ADDR_GET(primary_ndev, mac_addr);
-			mac_addr[0] |= 0x02;
+#ifdef CUSTOM_MULTI_MAC
+	else if (!wifi_platform_get_mac_addr(dhd->info->adapter, hw_ether, static_ifidx+1)) {
+		(void)memcpy_s(mac_addr, ETH_ALEN, hw_ether, ETH_ALEN);
+	}
+#endif /* CUSTOM_MULTI_MAC */
+	else {
+		/* Use primary mac with locally admin bit set */
+		DEV_ADDR_GET(primary_ndev, mac_addr);
+		mac_addr[0] |= 0x02;
 #ifdef WL_EXT_IAPSTA
-			wl_ext_iapsta_get_vif_macaddr(dhd, static_ifidx+1, mac_addr);
+		wl_ext_iapsta_get_vif_macaddr(static_ifidx+1, mac_addr);
 #endif
-		}
-#endif /* DHD_USE_RANDMAC */
 	}
 
 	ndev = wl_cfg80211_allocate_if(cfg, ifidx, ifname, mac_addr,
@@ -8178,16 +8234,16 @@ wl_cfg80211_unregister_static_if(struct bcm_cfg80211 *cfg)
 s32
 wl_cfg80211_static_if_open(struct net_device *net)
 {
+#ifdef CUSTOM_MULTI_MAC
+	dhd_pub_t *dhd = dhd_get_pub(net);
+	char hw_ether[62];
+#endif /* CUSTOM_MULTI_MAC */
 	struct wireless_dev *wdev = NULL;
 	struct bcm_cfg80211 *cfg = wl_get_cfg(net);
 	struct net_device *primary_ndev = bcmcfg_to_prmry_ndev(cfg);
 	u16 iftype = net->ieee80211_ptr ? net->ieee80211_ptr->iftype : 0;
 	u16 wl_iftype, wl_mode;
 	u8 mac_addr[ETH_ALEN];
-#ifdef CUSTOM_MULTI_MAC
-	dhd_pub_t *dhd = dhd_get_pub(net);
-	char hw_ether[62];
-#endif
 	int static_ifidx;
 
 	WL_INFORM_MEM(("[STATIC_IF] dev_open ndev %p and wdev %p\n", net, net->ieee80211_ptr));
@@ -8200,15 +8256,17 @@ wl_cfg80211_static_if_open(struct net_device *net)
 	if (cfg->static_ndev_state[static_ifidx] != NDEV_STATE_FW_IF_CREATED) {
 		if (iface_wlan1_mac[0]) {
 			bcm_ether_atoe(iface_wlan1_mac, (struct ether_addr *)mac_addr);
-			wdev = wl_cfg80211_add_if(cfg, primary_ndev, wl_iftype, net->name,
-			mac_addr);
-		} else {
-#ifdef CUSTOM_MULTI_MAC
-			if (!wifi_platform_get_mac_addr(dhd->info->adapter, hw_ether, static_ifidx+1))
-				dev_addr_set(net, hw_ether);
-#endif
-			wdev = wl_cfg80211_add_if(cfg, primary_ndev, wl_iftype, net->name, net->dev_addr);
 		}
+#ifdef CUSTOM_MULTI_MAC
+		else if (!wifi_platform_get_mac_addr(dhd->info->adapter, hw_ether,
+				static_ifidx+1)) {
+			memcpy(mac_addr, hw_ether, ETHER_ADDR_LEN);
+		}
+#endif /* CUSTOM_MULTI_MAC */
+		else {
+			memcpy(mac_addr, net->dev_addr, ETHER_ADDR_LEN);
+		}
+		wdev = wl_cfg80211_add_if(cfg, primary_ndev, wl_iftype, net->name, mac_addr);
 		if (!wdev) {
 			WL_ERR(("[STATIC_IF] wdev is NULL, can't proceed"));
 			return BCME_ERROR;
@@ -8216,6 +8274,7 @@ wl_cfg80211_static_if_open(struct net_device *net)
 	} else {
 		WL_INFORM_MEM(("Fw IF for static netdev already created\n"));
 	}
+	wl_update_wiphybands(cfg, FALSE);
 
 	return BCME_OK;
 }

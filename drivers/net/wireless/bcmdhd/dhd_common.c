@@ -2085,6 +2085,24 @@ dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifidx, wl_ioctl_t *ioc, void *buf, int len)
 	}
 #endif /* DHD_PCIE_NATIVE_RUNTIMEPM */
 
+#ifdef WL_NAN
+#ifdef PROP_TXSTATUS_VSDB
+	/* pre enable wlfc before interface create */
+	if (ioc->cmd == WLC_GET_VAR && buf) {
+		char tmp_buf[64];
+		dhd_if_t *ifp = dhd_get_ifp(dhd_pub, ifidx);
+		int minlen = MIN(sizeof(tmp_buf) - 1, strlen(buf));
+		memset(tmp_buf, 0, sizeof(tmp_buf));
+		bcopy(buf, tmp_buf, minlen);
+		tmp_buf[minlen] = '\0';
+
+		if (strcmp("interface_create", tmp_buf) == 0) {
+			wl_cfg80211_set_wlfc(ifp->net, TRUE);
+		}
+	}
+#endif /* PROP_TXSTATUS_VSDB */
+#endif /* WL_NAN */
+
 #ifdef KEEPIF_ON_DEVICE_RESET
 	if (ioc->cmd == WLC_GET_VAR) {
 		dbus_config_t config;
@@ -2243,6 +2261,10 @@ dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifidx, wl_ioctl_t *ioc, void *buf, int len)
 		* is called, so that sync_id does not
 		* get incremented if 2 consecutive escans are fired in quick succession
 		*/
+		/* XXX Except that wl_cfgscan.c is having its own sync_id setting
+		 * and expectation, so that below cannot work with a wpa_supplicant!!
+		 * For now disable the REPORT_FATAL_TIMEOUTS flag.
+		 */
 		if ((ioc->cmd == WLC_SET_VAR &&
 				buf != NULL &&
 				strcmp("escan", buf) == 0)) {
@@ -2271,6 +2293,17 @@ dhd_wl_ioctl(dhd_pub_t *dhd_pub, int ifidx, wl_ioctl_t *ioc, void *buf, int len)
 		ret = dhd_prot_ioctl(dhd_pub, ifidx, ioc, buf, len);
 		dhd_conf_get_hostsleep(dhd_pub, hostsleep_set, hostsleep_val, ret);
 
+#ifdef PROP_TXSTATUS_VSDB
+#if defined(WL_TWT) || defined(WL_TWT_HAL_IF)
+		if (ret == BCME_OK && (ioc->cmd == WLC_SET_VAR &&
+				buf != NULL &&
+				strcmp("twt", buf) == 0)) {
+			uint16 *type = (uint16 *)((uint8 *)buf + strlen("twt") + 1);
+			dhd_if_t *ifp = dhd_get_ifp(dhd_pub, ifidx);
+			wl_cfg80211_twt_update(ifp->net, *type);
+		}
+#endif /* WL_TWT_HAL_IF || WL_TWT */
+#endif /* PROP_TXSTATUS_VSDB */
 #ifdef DUMP_IOCTL_IOV_LIST
 		if (ret == -ETIMEDOUT) {
 			DHD_ERROR(("Last %d issued commands: Latest one is at bottom.\n",
@@ -8586,6 +8619,98 @@ exit:
 		MFREE(dhd->osh, new_buf, size2alloc);
 	}
 #endif /* LINUX || linux */
+	return err;
+}
+
+int
+dhd_download_apf(dhd_pub_t *dhd, unsigned char *buf,
+		uint32 len, char *iovar)
+{
+	int chunk_len;
+	int cumulative_len = 0;
+	int size2alloc;
+	unsigned char *new_buf = NULL;
+	int err = 0, data_offset;
+	uint16 dl_flag = DL_BEGIN;
+	uint16 dl_type = DL_TYPE_CLM;
+	bool split_iovar = FALSE;
+
+	if (iovar && strncmp(iovar, "txcapload", 9) != 0 &&
+		strncmp(iovar, "clmload", 7) != 0) {
+		split_iovar = TRUE;
+		dl_type = DL_TYPE_DRRBLOB;
+	}
+
+	data_offset = OFFSETOF(wl_dload_data_t, data);
+	size2alloc = data_offset + MAX_CHUNK_LEN;
+	size2alloc = ROUNDUP(size2alloc, 8);
+
+	if ((new_buf = (unsigned char *)MALLOCZ(dhd->osh, size2alloc)) != NULL) {
+		do {
+			if (split_iovar) {
+				/* there is no file handling in split iovar case */
+				if (len >= MAX_CHUNK_LEN) {
+					chunk_len = MAX_CHUNK_LEN;
+				} else {
+					chunk_len = len;
+				}
+				err = memcpy_s(new_buf + data_offset, MAX_CHUNK_LEN,
+					buf + cumulative_len, chunk_len);
+				if (err) {
+					DHD_ERROR(("%s: failed to copy chunk at len %u !\n",
+						__FUNCTION__, cumulative_len));
+					err = BCME_ERROR;
+					goto exit;
+				}
+				cumulative_len += chunk_len;
+			} else {
+#if !defined(__linux__) || defined(DHD_LINUX_STD_FW_API)
+				if (len >= MAX_CHUNK_LEN) {
+					chunk_len = MAX_CHUNK_LEN;
+				} else {
+					chunk_len = len;
+				}
+				err = memcpy_s(new_buf + data_offset, MAX_CHUNK_LEN,
+					buf + cumulative_len, chunk_len);
+				if (err) {
+					DHD_ERROR(("%s: failed to copy chunk at len %u !\n",
+						__FUNCTION__, cumulative_len));
+					err = BCME_ERROR;
+					goto exit;
+				}
+				cumulative_len += chunk_len;
+#else
+				chunk_len = dhd_os_get_image_block((char *)(new_buf + data_offset),
+					MAX_CHUNK_LEN, buf);
+				if (chunk_len < 0) {
+					DHD_ERROR(("%s: dhd_os_get_image_block failed (%d)\n",
+						__FUNCTION__, chunk_len));
+					err = BCME_ERROR;
+					goto exit;
+				}
+#endif /* !__linux__ || DHD_LINUX_STD_FW_API */
+			}
+			if (len - chunk_len == 0) {
+				dl_flag |= DL_END;
+			}
+
+			err = dhd_download_2_dongle(dhd, iovar, dl_flag, dl_type,
+				new_buf, data_offset + chunk_len);
+
+			dl_flag &= ~DL_BEGIN;
+
+			len = len - chunk_len;
+		} while ((len > 0) && (err == 0));
+	} else {
+		DHD_ERROR(("%s: Unable to alloc %u bytes of mem!\n", __FUNCTION__,
+			size2alloc));
+		err = BCME_NOMEM;
+	}
+
+exit:
+	if (new_buf) {
+		MFREE(dhd->osh, new_buf, size2alloc);
+	}
 	return err;
 }
 

@@ -1103,14 +1103,13 @@ static inline void do_gettimeofday(struct timeval *tv)
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(6, 7, 0) */
 #endif /* !defined(FREEBSD) && !defined(MACOSX) && !defined(BCM_USE_PLATFORM_STRLCPY) */
 
-/* USERCOPY_CACHE or USERCOPY_MAXLEN is to fix for "kernel BUG at mm/usercopy.c:102!" due to
+/* DHD_USE_KMEM_CACHE_USERCOPY is to fix for "kernel BUG at mm/usercopy.c:102!" due to
   * folio_size(folio) is always return PAGE_SIZE(4096) in check_heap_object(), this issue only happened
   * when CONFIG_HARDENED_USERCOPY enabled and check_heap_object() is modified from kernel 5.19,
-  * so use these 2 conditions to undefine USERCOPY_CACHE and USERCOPY_MAXLEN
+  * so use these 2 conditions to undefine DHD_USE_KMEM_CACHE_USERCOPY
   */
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)) || !defined(CONFIG_HARDENED_USERCOPY)
-#undef USERCOPY_CACHE
-#undef USERCOPY_MAXLEN
+#undef DHD_USE_KMEM_CACHE_USERCOPY
 #endif /* (LINUX_VERSION_CODE < KERNEL_VERSION(5, 19, 0)) || !defined(CONFIG_HARDENED_USERCOPY) */
 
 #endif /* _linuxver_h_ */

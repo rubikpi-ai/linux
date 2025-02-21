@@ -652,6 +652,9 @@ do {	\
 #define WL_ERR_EX(x) WL_ERR_EX_MSG x
 #define	WL_MEM_MSG(x, args...)	\
 do {	\
+	if (wl_dbg_level & WL_DBG_DBG) {			\
+		printf(CFG80211_DEBUG_TEXT "%s : " x, __func__, ## args); \
+	}									\
 	if (wl_log_level & WL_DBG_ERR) {	\
 		DHD_LOG_DUMP_WRITE_TS_FN;	\
 		DHD_LOG_DUMP_WRITE(x, ## args);	\
@@ -2162,6 +2165,9 @@ struct bcm_cfg80211 {
 	bool disable_roam_event;
 	struct delayed_work pm_enable_work;
 	struct delayed_work recovery_work;
+#ifdef PROP_TXSTATUS_VSDB
+	struct delayed_work wlfc_work;
+#endif /* PROP_TXSTATUS_VSDB */
 	u32 recovery_state;
 
 #ifdef OEM_ANDROID
@@ -2243,6 +2249,10 @@ struct bcm_cfg80211 {
 #endif /* CUSTOMER_SCAN_TIMEOUT_SETTING */
 #endif /* WES_SUPPORT */
 	uint8 vif_count;	/* Virtual Interface count */
+	uint8 vndev_count;	/* Virtual network device count */
+	uint8 twt_count;
+	uint16 twt_if_bitmap;
+	bool twt_auto_sched;
 #ifdef WBTEXT
 	struct list_head wbtext_bssid_list;
 #endif /* WBTEXT */
@@ -3663,6 +3673,16 @@ extern void update_roam_cache(struct bcm_cfg80211 *cfg, int ioctl_ver);
 extern int wl_cfgnan_get_stats(struct bcm_cfg80211 *cfg);
 #endif /* WL_NAN */
 
+#ifdef PROP_TXSTATUS_VSDB
+void
+wl_cfg80211_set_wlfc(struct net_device * dev, bool enable);
+void
+wl_wlfc_toggle_check(struct bcm_cfg80211 *cfg);
+#if defined(WL_TWT) || defined(WL_TWT_HAL_IF)
+void
+wl_cfg80211_twt_update(struct net_device * dev, uint16 cmd);
+#endif /* WL_TWT_HAL_IF || WL_TWT */
+#endif /* PROP_TXSTATUS_VSDB */
 extern s32 wl_cfg80211_set_wsec_info(struct net_device *dev, uint32 *data,
 	uint16 data_len, int tag);
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
@@ -3898,7 +3918,6 @@ struct wl_cp_coex {
 s32
 __wl_cfg80211_up_resume(dhd_pub_t *dhd);
 #endif /* BCMDBUS */
-void wl_wlfc_enable(struct bcm_cfg80211 *cfg, bool enable);
 s32 wl_handle_join(struct bcm_cfg80211 *cfg, struct net_device *dev,
 	wlcfg_assoc_info_t *assoc_info);
 s32 wl_handle_reassoc(struct bcm_cfg80211 *cfg, struct net_device *dev,

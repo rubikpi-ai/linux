@@ -71,6 +71,7 @@ int wl_escan_drv_acs_scan(struct net_device *dev, uint32 band,
 	wl_scan_info_t *scan_info);
 int wl_escan_drv_apcs(struct net_device *dev, uint32 band, wl_scan_info_t *scan_info);
 int wl_escan_set_scan(struct net_device *dev, wl_scan_info_t *scan_info);
+void wl_escan_passive_chan_scan(struct net_device *dev);
 #if defined(WL_WIRELESS_EXT)
 int wl_escan_get_scan(struct net_device *dev,
 	struct iw_request_info *info, struct iw_point *dwrq, char *extra);

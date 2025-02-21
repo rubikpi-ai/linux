@@ -4028,6 +4028,9 @@ void dhd_free_download_buffer(dhd_pub_t	*dhd, void *buffer, int length);
 
 int dhd_download_blob(dhd_pub_t *dhd, unsigned char *buf,
 		uint32 len, char *iovar);
+ 
+int dhd_download_apf(dhd_pub_t *dhd, unsigned char *buf,
+		uint32 len, char *iovar);
 
 int dhd_download_blob_cached(dhd_pub_t *dhd, char *file_path,
 	uint32 len, char *iovar);

@@ -58,11 +58,16 @@
 #include "dhd_csi.h"
 #include "dhd_linux.h"
 #include "bcmudp.h"
+#include "bcmdevs.h"
 
 /* For kernel < 3.12 */
 #ifndef list_last_entry
 #define list_last_entry(ptr, type, member) list_entry((ptr)->prev, type, member)
 #endif /* list_last_entry */
+
+#ifdef BCMDHDUSB
+#define dhd_bus_chip_id(dhdp)    0x0
+#endif /* BCMDHDUSB */
 
 #ifdef CSI_SUPPORT
 
@@ -324,7 +329,7 @@ static int dhd_csi_data_output_common_to_v2(struct csi_cfr_node *ptr)
 	return ret;
 }
 
-int dhd_csi_data_output_convert(dhd_pub_t *dhdp, struct csi_cfr_node *ptr)
+static int dhd_csi_data_output_convert(dhd_pub_t *dhdp, struct csi_cfr_node *ptr)
 {
 	int    ret = BCME_OK;
 
@@ -398,7 +403,7 @@ static int dhd_csi_data_queue_notify(dhd_pub_t *dhdp, const char * func, int lin
 		pUDP = (struct bcmudp_hdr *)(IPV4_HLEN_MIN + (uint8 *)(pIP));
 
 		memcpy(pEthernet, gpDHD_csi_network_template, sizeof(gpDHD_csi_network_template));
-		/*** UDP */
+		/* UDP */
 		len = ptr->length_data_total;
 		len += UDP_HDR_LEN;
 		/* early change since psudo header counting use this */
@@ -676,7 +681,11 @@ static int dhd_csi_data_input_revision0(dhd_pub_t *dhdp, const wl_event_msg_t *e
 
 	pEntry->magic_flag = CONST_SYNA_CSI_MAGIC_FLAG;
 	pEntry->version = CONST_SYNA_CSI_COMMON_HEADER_VERSION;
-	pEntry->format_type = SYNA_CSI_FORMAT_Q8;
+	if (dhd_bus_chip_id(dhdp) == BCM43711_CHIP_ID) {
+		pEntry->format_type = SYNA_CSI_FORMAT_Q9;
+	} else {
+		pEntry->format_type = SYNA_CSI_FORMAT_Q8;
+	}
 	pEntry->frame_control = 0;
 	pEntry->global_id = dhdp->packet_global_id_last++;
 	pEntry->header_length = sizeof(syna_csi_common_header);
@@ -1476,7 +1485,7 @@ int dhd_csi_config(dhd_pub_t *dhdp, char *pBuf, uint length, bool is_set)
 		}
 
 		/* skip if no more parameter */
-		if (!pRX_config->data_version) {
+		if ((length < (sizeof(uint32)+1)) || (!pRX_config->data_version))  {
 			goto done;
 		}
 
@@ -1509,10 +1518,12 @@ int dhd_csi_config(dhd_pub_t *dhdp, char *pBuf, uint length, bool is_set)
 		}
 	} else {
 		pRX_config->mode = dhdp->csi_data_send_manner;
-		pRX_config->data_version = TRUE;
-		pRX_config->data_header_version_output = dhdp->csi_header_output_version;
-		pRX_config->ip   = dhdp->csi_notify_ip;
-		pRX_config->port = dhdp->csi_notify_port;
+		if ((length > sizeof(uint32))) {
+			pRX_config->data_version = TRUE;
+			pRX_config->data_header_version_output = dhdp->csi_header_output_version;
+			pRX_config->ip   = dhdp->csi_notify_ip;
+			pRX_config->port = dhdp->csi_notify_port;
+		}
 	}
 
 done:

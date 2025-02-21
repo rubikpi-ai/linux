@@ -462,13 +462,10 @@ s32 wl_inform_single_bss(struct bcm_cfg80211 *cfg, wl_bss_info_v109_t *bi, bool 
 	channel = ieee80211_get_channel(wiphy, freq);
 	memcpy(tmp_buf, bi->SSID, bi->SSID_len);
 	tmp_buf[bi->SSID_len] = '\0';
-	WL_SCAN(("BSSID %pM, channel %s-%-3d(%3d %3sMHz), rssi %3d, capa 0x%-4x, mgmt_type %d, "
-		"frame_len %3d, SSID \"%s\"\n",
-		&bi->BSSID, CHSPEC2BANDSTR(chanspec), notif_bss_info->channel, CHSPEC_CHANNEL(chanspec),
-		CHSPEC_IS20(chanspec)?"20":
-		CHSPEC_IS40(chanspec)?"40":
-		CHSPEC_IS80(chanspec)?"80":
-		CHSPEC_IS160(chanspec)?"160":"??",
+	WL_SCAN(("BSSID %pM, channel %s-%-3d(%3d %3sMHz), rssi %3d, capa 0x%-4x, "
+		"mgmt_type %d, frame_len %3d, SSID \"%s\"\n",
+		&bi->BSSID, CHSPEC2BANDSTR(chanspec), notif_bss_info->channel,
+		CHSPEC_CHANNEL(chanspec), wf_chspec_to_bw_str(chanspec),
 		notif_bss_info->rssi, mgmt->u.beacon.capab_info, mgmt_type,
 		notif_bss_info->frame_len, tmp_buf));
 	if (unlikely(!channel)) {
@@ -1825,17 +1822,19 @@ wl_cfgscan_populate_scan_channels(struct bcm_cfg80211 *cfg,
 	is_p2p_scan = p2p_is_on(cfg) && p2p_scan(cfg);
 
 	for (i = 0; i < n_channels; i++) {
-		if (skip_dfs && (IS_RADAR_CHAN(channels[i]->flags))) {
-			WL_DBG(("Skipping radar channel. freq:%d\n",
-				(channels[i]->center_freq)));
-			continue;
-		}
-
 		chanspec = wl_freq_to_chanspec(channels[i]->center_freq);
 		if (chanspec == INVCHANSPEC) {
 			WL_ERR(("Invalid chanspec! Skipping channel\n"));
 			continue;
 		}
+
+#ifndef DHD_DFS_MASTER
+		if (skip_dfs && (IS_RADAR_CHAN(channels[i]->flags))) {
+			WL_SCAN(("Skipping radar chan: %s-%d, chanspec: %x\n",
+				CHSPEC2BANDSTR(chanspec), wf_chspec_ctlchan(chanspec), channel_list[j]));
+			continue;
+		}
+#endif /* DHD_DFS_MASTER */
 
 		support_chanspec = wl_channel_to_chanspec(cfg->wdev->wiphy,
 			bcmcfg_to_prmry_ndev(cfg), CHSPEC_CHANNEL(chanspec), WL_CHANSPEC_BW_80);
@@ -4605,7 +4604,8 @@ static void wl_scan_timeout(unsigned long data)
 #if defined(BCMDONGLEHOST) && defined(DHD_FW_COREDUMP)
 	if (dhdp->memdump_enabled) {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27)) && defined(OEM_ANDROID)
-		dhd_os_send_hang_message(dhdp);
+//		dhd_os_send_hang_message(dhdp);
+		dhd_msg_level=0x911;
 #else
 		WL_ERR(("HANG event is unsupported\n"));
 #endif /* LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 27) && OEM_ANDROID */

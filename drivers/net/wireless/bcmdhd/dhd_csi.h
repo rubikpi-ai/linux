@@ -60,10 +60,10 @@
  * dhd_cfr_header_rev_1  \                              / syna_csi_header_v1
  * dhd_cfr_header_rev_2   --> syna_csi_common_header -->  syna_csi_header_v2
  * dhd_cfr_header_rev_3  /                              \      ...
- *     ...           /
+ *     ...              /
  */
 
-/*** definition for structure and API between APP and driver */
+/* definition for structure and API between APP and driver */
 enum eSyna_csi_data_mode_type {
 	SYNA_CSI_DATA_MODE_NONE = 0,
 	/* upper layer will fetch data by sysfs */
@@ -86,6 +86,9 @@ enum syna_csi_format_type {
 	SYNA_CSI_FORMAT_Q13, /* (14,14,0) Q13 fixed point
 	                      * BCM4339/4345x/43013x
 	                      */
+	SYNA_CSI_FORMAT_Q9,  /* (10,10,5) Q9 fixed point
+	                      * BCM43711
+	                      */
 	SYNA_CSI_FORMAT_LAST
 };
 
@@ -97,23 +100,42 @@ enum syna_csi_format_type {
 #define SYNA_CSI_DATA_Q8_REAL(t) \
 (((0 < _Q8_REAL_SI(t)) \
 	? (-1) \
-	:  (1)) \
+	: (1)) \
 	* ((int32)_Q8_REAL_MA(t)) \
 )
-
 #define SYNA_CSI_DATA_Q8_IMAGINARY(t) \
 (((0 < _Q8_IMAGINARY_SI(t)) \
 	? (-1) \
-	:  (1)) \
+	: (1)) \
 	* ((int32)_Q8_IMAGINARY_MA(t)) \
 )
-
 #define SYNA_CSI_DATA_Q8_EXP(t) \
 (((int8)(0xf8 \
 	& ((t) << 3))) \
 	>> 3 \
 )
-
+/* (10,10,5) Q9 floating point format */
+#define _Q9_REAL_MA(t)         (0x001ff &((t)>>15))
+#define _Q9_REAL_SI(t)         (0x00001 &((t)>>24))
+#define _Q9_IMAGINARY_MA(t)    (0x001ff &((t)>> 5))
+#define _Q9_IMAGINARY_SI(t)    (0x00001 &((t)>>14))
+#define SYNA_CSI_DATA_Q9_REAL(t) \
+(((0 < _Q9_REAL_SI(t)) \
+	? (-1) \
+	: (1)) \
+	* ((int32)_Q9_REAL_MA(t)) \
+)
+#define SYNA_CSI_DATA_Q9_IMAGINARY(t) \
+(((0 < _Q9_IMAGINARY_SI(t)) \
+	? (-1) \
+	: (1)) \
+	* ((int32)_Q9_IMAGINARY_MA(t)) \
+)
+#define SYNA_CSI_DATA_Q9_EXP(t) \
+(((int8)(0xf8 \
+	& ((t) << 3))) \
+	>> 3 \
+)
 /* (12,12,6) Q11 floating point format */
 #define _Q11_REAL_MA(t)         (0x007ff &((t)>>18))
 #define _Q11_REAL_SI(t)         (0x00001 &((t)>>29))
@@ -125,40 +147,34 @@ enum syna_csi_format_type {
 	: (1)) \
 	* ((int32)_Q11_REAL_MA(t)) \
 )
-
 #define SYNA_CSI_DATA_Q11_IMAGINARY(t) \
 (((0 < _Q11_IMAGINARY_SI(t)) \
 	? (-1) \
 	: (1)) \
 	* ((int32)_Q11_IMAGINARY_MA(t)) \
 )
-
 #define SYNA_CSI_DATA_Q11_EXP(t) \
 (((int8)(0xfc \
 	& ((t) << 2))) \
 	>> 2 \
 )
-
 /* (13,13,0) Q12 fixed point data format */
 #define SYNA_CSI_DATA_Q12_REAL(t) \
-(((int32)(0xfffc0000 \
+(((int32)(0xfff80000 \
 	& ((t) << 6))) \
 	>> (13 + 6) \
 )
-
 #define SYNA_CSI_DATA_Q12_IMAGINARY(t) \
-(((int32)(0xfffc0000 \
+(((int32)(0xfff80000 \
 	& ((t) << 19))) \
 	>> (0 + 19) \
 )
-
 /* (14,14,0) Q13 fixed point data format */
 #define SYNA_CSI_DATA_Q13_REAL(t) \
 (((int32)(0xfffc0000 \
 	& ((t) << 4))) \
 	>> (14 + 4) \
 )
-
 #define SYNA_CSI_DATA_Q13_IMAGINARY(t) \
 (((int32)(0xfffc0000 \
 	& ((t) << 18))) \
@@ -202,8 +218,13 @@ enum syna_csi_error_flag {
 	SYNA_CSI_FLAG_ERROR_TX_NO_ACK = 21,
 
 	SYNA_CSI_FLAG_ERROR_DATA_FEEDBACK_MISS = 30,
-	SYNA_CSI_FLAG_ERROR_TX_FEEDBACK_MISS = 31,
-	SYNA_CSI_FLAG_ERROR_POWERSAVING = 32,
+	SYNA_CSI_FLAG_ERROR_DATA_FETCH = 31,
+	SYNA_CSI_FLAG_ERROR_DATA_CONVERT = 32,
+	SYNA_CSI_FLAG_ERROR_DATA_VERIFY = 33,
+	SYNA_CSI_FLAG_ERROR_DATA_LENGTH = 34,
+	SYNA_CSI_FLAG_ERROR_TX_FEEDBACK_MISS = 35,
+	SYNA_CSI_FLAG_ERROR_POWERSAVING = 36,
+	SYNA_CSI_FLAG_ERROR_UNKNOW_CHIPSET = 37,
 
 	/* active mode suppress */
 	SYNA_CSI_FLAG_ERROR_SUPPRESS = 100,
@@ -327,7 +348,7 @@ enum syna_csi_bandwidth_type {
 /* 'SYNA' -> 'S'53, 'Y'59, 'N'4E, 'A'41 */
 #define CONST_SYNA_CSI_MAGIC_FLAG               0x414E5953
 
-/*** CSI API common header structure (8 bytes alignment for 64bit system) */
+/* CSI API common header structure (8 bytes alignment for 64bit system) */
 /* Version 1 'syna_csi_header' (8 bytes alignment for 64bit system) */
 #define CONST_SYNA_CSI_HEADER_VERSION_V1    0x01
 struct syna_csi_header_v1 {
@@ -532,7 +553,7 @@ typedef struct syna_csi_header_v2                  syna_csi_common_header;
 #define CONST_CSI_MAX_STA_QTY			16
 #define CONST_CSI_QUEUE_MAX_SIZE		((1024 * 4) * CONST_CSI_MAX_STA_QTY)
 
-/*** definition for structure and functions between driver and FW */
+/* definition for structure and functions between driver and FW */
 /* revision 0 'dhd_cfr_header' (can only access by byte due to not aligned!) */
 #define CONST_CFR_HEADER_REVISION_0	0 /* cfr header version V0 */
 struct dhd_cfr_header_rev_0 {
@@ -791,8 +812,8 @@ union dhd_cfr_header {
 #define CSI_CFR_MAXIMUM_LENGTH(data_len) \
 	(sizeof(union dhd_cfr_header) + data_len)
 
-/* BW80 2x2 => 4bytes * 256subcarries * 2txstream * 2rxchain */
-#define CONST_CSI_DATA_BYTES_MAX          (CSI_CFR_MAXIMUM_LENGTH(256 *2 *2 *4))
+/* 11ax/HE BW80 2x2 => 4bytes * (256*4)subcarries * 2txstream * 2rxchain */
+#define CONST_CSI_DATA_BYTES_MAX          (CSI_CFR_MAXIMUM_LENGTH((256*4) *2 *2 *4))
 
 #define CONST_SYNA_SOCKET_HEADER_BYTES    (14 + 20 + 8)
 

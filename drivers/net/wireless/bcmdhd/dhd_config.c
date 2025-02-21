@@ -38,11 +38,6 @@
 #endif /* defined(BCMSDIO) */
 #endif
 
-/* message levels */
-#define CONFIG_ERROR_LEVEL	(1 << 0)
-#define CONFIG_TRACE_LEVEL	(1 << 1)
-#define CONFIG_MSG_LEVEL	(1 << 0)
-
 uint config_msg_level = CONFIG_ERROR_LEVEL | CONFIG_MSG_LEVEL;
 uint dump_msg_level = 0;
 
@@ -97,7 +92,7 @@ typedef struct chip_name_map_t {
 } chip_name_map_t;
 
 const chip_name_map_t chip_name_map[] = {
-	/* ChipID			Chiprev	ChipName		ModuleName  */
+	/* ChipID			Chiprev	ChipName		ModuleName */
 #ifdef BCMSDIO
 	{BCM43430_CHIP_ID,	0,	"bcm43438a0",		""},
 	{BCM43430_CHIP_ID,	1,	"bcm43438a1",		""},
@@ -125,6 +120,7 @@ typedef struct module_name_map_v2_t {
 } module_name_map_v2_t;
 
 const module_name_map_v2_t module_name_map_v2[] = {
+	/* ChipID			Chiprev	ModuleName */
 #ifdef BCMSDIO
 	{BCM4381_CHIP_ID,	0,	""},
 	{BCM4381_CHIP_ID,	1,	""},
@@ -140,6 +136,7 @@ const module_name_map_v2_t module_name_map_v2[] = {
 	{BCM43752_CHIP_ID,	4,	""},
 	{BCM43756_CHIP_ID,	4,	""},
 	{BCM43756_CHIP_ID,	6,	""},
+	{BCM43711_CHIP_ID,	0,	""},
 	{BCM4382_CHIP_ID,	3,	""},
 	{BCM4383_CHIP_ID,	2,	""},
 #endif
@@ -157,6 +154,7 @@ typedef struct chip_name_map_v2_t {
 } chip_name_map_v2_t;
 
 const chip_name_map_v2_t chip_name_map_v2[] = {
+	/* ChipID			Chiprev	ChipName */
 	{BCM4381_CHIP_ID,	0,	"syn4381a0"},
 	{BCM4381_CHIP_ID,	1,	"syn4381a0"},
 	{BCM43752_CHIP_ID,	4,	"syn43756b0"},
@@ -1486,7 +1484,7 @@ exit:
 	return ret;
 }
 
-int
+static int
 dhd_conf_map_country_list(dhd_pub_t *dhd, wl_country_t *cspec)
 {
 	int ret = -1;
@@ -1530,15 +1528,8 @@ static int
 dhd_conf_set_country(dhd_pub_t *dhd, wl_country_t *cspec)
 {
 	int bcmerror = -1;
-	struct net_device *net;
-	int bytes_written = 0;
-	char event_msg[32];
 
 	memset(&dhd->dhd_cspec, 0, sizeof(wl_country_t));
-
-	net = dhd_idx2net(dhd, 0);
-	snprintf(event_msg, sizeof(event_msg), "wl event_msg %d 0", WLC_E_COUNTRY_CODE_CHANGED);
-	wl_android_ext_priv_cmd(net, event_msg, 0, &bytes_written);
 
 	CONFIG_MSG("set country %s, revision %d\n", cspec->ccode, cspec->rev);
 	bcmerror = dhd_conf_set_bufiovar(dhd, 0, WLC_SET_VAR, "country", (char *)cspec,
@@ -1546,49 +1537,6 @@ dhd_conf_set_country(dhd_pub_t *dhd, wl_country_t *cspec)
 	dhd_conf_get_country(dhd, cspec);
 	CONFIG_MSG("Country code: %s (%s/%d)\n",
 		cspec->country_abbrev, cspec->ccode, cspec->rev);
-
-	snprintf(event_msg, sizeof(event_msg), "wl event_msg %d 1", WLC_E_COUNTRY_CODE_CHANGED);
-	wl_android_ext_priv_cmd(net, event_msg, 0, &bytes_written);
-
-	return bcmerror;
-}
-
-int
-dhd_conf_fix_country(dhd_pub_t *dhd)
-{
-	int bcmerror = -1;
-	int band;
-	wl_uint32_list_t *list;
-	u8 valid_chan_list[sizeof(u32)*(WL_NUMCHANNELS + 1)];
-	wl_country_t cspec;
-
-	if (!(dhd && dhd->conf)) {
-		return bcmerror;
-	}
-
-	memset(valid_chan_list, 0, sizeof(valid_chan_list));
-	list = (wl_uint32_list_t *)(void *) valid_chan_list;
-	list->count = htod32(WL_NUMCHANNELS);
-	if ((bcmerror = dhd_wl_ioctl_cmd(dhd, WLC_GET_VALID_CHANNELS, valid_chan_list,
-			sizeof(valid_chan_list), FALSE, 0)) < 0) {
-		CONFIG_ERROR("get channels failed with %d\n", bcmerror);
-	}
-
-	band = dhd_conf_get_band(dhd);
-
-	if (bcmerror || ((band==WLC_BAND_AUTO || band==WLC_BAND_2G || band==-1) &&
-			dtoh32(list->count)<11)) {
-		CONFIG_ERROR("bcmerror=%d, # of channels %d\n",
-			bcmerror, dtoh32(list->count));
-		dhd_conf_map_country_list(dhd, &dhd->conf->cspec);
-		if ((bcmerror = dhd_conf_set_country(dhd, &dhd->conf->cspec)) < 0) {
-			strcpy(cspec.country_abbrev, "US");
-			cspec.rev = 0;
-			strcpy(cspec.ccode, "US");
-			dhd_conf_map_country_list(dhd, &cspec);
-			dhd_conf_set_country(dhd, &cspec);
-		}
-	}
 
 	return bcmerror;
 }
@@ -1643,8 +1591,10 @@ dhd_conf_btc_params(dhd_pub_t *dhd, char *cmd, char *buf)
 	int ret = BCME_OK;
 	uint32 cur_val;
 	int index = 0, mask = 0, value = 0;
-	// btc_params=[index] [mask] [value]
-	// Ex: btc_params=82 0x0021 0x0001
+	/* btc_params=[index] [mask] [value]
+	  * btc_params=51 0x0080 0x0000
+	  * btc_params=51 0x0080 0x0080
+	  */
 
 	if (buf) {
 		sscanf(buf, "%d %x %x", &index, &mask, &value);
@@ -1907,9 +1857,6 @@ dhd_conf_country(dhd_pub_t *dhd, char *cmd, char *buf)
 			}
 			err = dhd_conf_set_country(dhd, &cspec);
 		}
-		if (!err) {
-			dhd_conf_fix_country(dhd);
-		}
 		dhd_conf_get_country(dhd, &dhd->dhd_cspec);
 	}
 
@@ -1981,7 +1928,7 @@ static int iovar_tpl_parse(const iovar_tpl_t *tpl, int tpl_count,
 	return ret;
 }
 
-static bool
+bool
 dhd_conf_set_wl_cmd(dhd_pub_t *dhd, char *data, bool down)
 {
 	int cmd, val, ret = 0, len;
@@ -2552,11 +2499,11 @@ dhd_conf_check_hostsleep(dhd_pub_t *dhd, int cmd, void *buf, int len,
 			if (dhd->conf->insuspend & NO_TXDATA_IN_SUSPEND) {
 				dhd_txflowcontrol(dhd, ALL_INTERFACES, ON);
 			}
-			if (dhd->hostsleep == 2) {
+			if (dhd->hostsleep == HOSTSLEEP_DHD_SET) {
 				*ret = 0;
 				goto exit;
 			}
-		} else if (dhd->hostsleep == 2 && !*hostsleep_val) {
+		} else if (dhd->hostsleep == HOSTSLEEP_DHD_SET && !*hostsleep_val) {
 			CONFIG_TRACE("hostsleep %d => %d\n", dhd->hostsleep, *hostsleep_val);
 			dhd->hostsleep = *hostsleep_val;
 			if (dhd->conf->insuspend & NO_TXDATA_IN_SUSPEND) {
@@ -2598,13 +2545,13 @@ dhd_conf_get_hostsleep(dhd_pub_t *dhd,
 		if (hostsleep_set) {
 			if (hostsleep_val && ret) {
 				CONFIG_TRACE("reset hostsleep %d => 0\n", dhd->hostsleep);
-				dhd->hostsleep = 0;
+				dhd->hostsleep = HOSTSLEEP_CLEAR;
 				if (dhd->conf->insuspend & NO_TXDATA_IN_SUSPEND) {
 					dhd_txflowcontrol(dhd, ALL_INTERFACES, OFF);
 				}
 			} else if (!hostsleep_val && !ret) {
 				CONFIG_TRACE("set hostsleep %d => 0\n", dhd->hostsleep);
-				dhd->hostsleep = 0;
+				dhd->hostsleep = HOSTSLEEP_CLEAR;
 				if (dhd->conf->insuspend & NO_TXDATA_IN_SUSPEND) {
 					dhd_txflowcontrol(dhd, ALL_INTERFACES, OFF);
 				}
@@ -3118,7 +3065,10 @@ dhd_conf_suspend_resume_ap(dhd_pub_t *dhd, int ifidx, int suspend)
 static int
 dhd_conf_suspend_resume_bus(dhd_pub_t *dhd, int suspend)
 {
+	int ret = 0, hostsleep = HOSTSLEEP_DHD_SET, wowl_dngldown = 0;
+	char iovbuf[WLC_IOCTL_SMLEN];
 	uint insuspend = 0;
+	uint32 intstatus = 0;
 
 	insuspend = dhd_conf_get_insuspend(dhd, ALL_IN_SUSPEND);
 	if (insuspend)
@@ -3126,10 +3076,8 @@ dhd_conf_suspend_resume_bus(dhd_pub_t *dhd, int suspend)
 
 	if (suspend) {
 		if (insuspend & (WOWL_IN_SUSPEND | NO_TXCTL_IN_SUSPEND)) {
-			uint32 intstatus = 0;
-			int ret = 0, hostsleep = 2, wowl_dngldown = 0;
 #ifdef WL_EXT_WOWL
-			hostsleep = 1;
+			hostsleep = HOSTSLEEP_FW_SET;
 			if ((insuspend & WOWL_IN_SUSPEND) && dhd_master_mode) {
 				dhd_conf_set_intiovar(dhd, 0, WLC_SET_VAR, "wowl_activate", 1, 0, FALSE);
 #ifdef BCMDBUS
@@ -3155,7 +3103,11 @@ dhd_conf_suspend_resume_bus(dhd_pub_t *dhd, int suspend)
 		}
 	} else {
 		if (insuspend & (WOWL_IN_SUSPEND | NO_TXCTL_IN_SUSPEND)) {
-			dhd_conf_set_intiovar(dhd, 0, WLC_SET_VAR, "hostsleep", 0, 0, FALSE);
+			hostsleep = HOSTSLEEP_CLEAR;
+			CONFIG_TRACE("set hostsleep %d\n", hostsleep);
+			bcm_mkiovar("hostsleep", (char *)&hostsleep, sizeof(hostsleep), iovbuf, sizeof(iovbuf));
+			if ((ret = dhd_wl_ioctl_cmd(dhd, WLC_SET_VAR, iovbuf, sizeof(iovbuf), TRUE, 0)) < 0)
+				CONFIG_TRACE("hostsleep setting failed %d\n", ret);
 		}
 	}
 
@@ -4424,9 +4376,20 @@ dhd_conf_read_others(dhd_pub_t *dhd, char *full_param, uint len_param)
 			CONFIG_MSG("bw_cap 5g = %d\n", conf->bw_cap[1]);
 		}
 	}
-	else if (!strncmp("mapsta_mode=", full_param, len_param)) {
-		conf->mapsta_mode = (uint)simple_strtol(data, NULL, 0);
-		CONFIG_MSG("mapsta_mode = %d\n", conf->mapsta_mode);
+	else if (!strncmp("ap_mchan_mode=", full_param, len_param)) {
+		conf->ap_mchan_mode = (uint)simple_strtol(data, NULL, 0);
+		CONFIG_MSG("ap_mchan_mode = %d\n", conf->ap_mchan_mode);
+	}
+	else if (!strncmp("go_mchan_mode=", full_param, len_param)) {
+		conf->go_mchan_mode = (uint)simple_strtol(data, NULL, 0);
+		CONFIG_MSG("go_mchan_mode = %d\n", conf->go_mchan_mode);
+	}
+	else if (!strncmp("csa=", full_param, len_param)) {
+		if (!strncmp(data, "0", 1))
+			conf->csa = FALSE;
+		else
+			conf->csa = TRUE;
+		CONFIG_MSG("csa = %d\n", conf->csa);
 	}
 	else if (!strncmp("keep_alive_period=", full_param, len_param)) {
 		conf->keep_alive_period = (uint)simple_strtol(data, NULL, 10);
@@ -4500,6 +4463,32 @@ dhd_conf_read_others(dhd_pub_t *dhd, char *full_param, uint len_param)
 	else if (!strncmp("in4way=", full_param, len_param)) {
 		conf->in4way = (int)simple_strtol(data, NULL, 0);
 		CONFIG_MSG("in4way = 0x%x\n", conf->in4way);
+	}
+	else if (!strncmp("wl_pre_in4way=", full_param, len_param)) {
+		if (conf->wl_pre_in4way) {
+			kfree(conf->wl_pre_in4way);
+			conf->wl_pre_in4way = NULL;
+		}
+		if (!(conf->wl_pre_in4way = kmalloc(strlen(data)+1, GFP_KERNEL))) {
+			CONFIG_ERROR("kmalloc failed\n");
+		} else {
+			memset(conf->wl_pre_in4way, 0, strlen(data)+1);
+			strcpy(conf->wl_pre_in4way, data);
+			CONFIG_MSG("wl_pre_in4way = %s\n", conf->wl_pre_in4way);
+		}
+	}
+	else if (!strncmp("wl_post_in4way=", full_param, len_param)) {
+		if (conf->wl_post_in4way) {
+			kfree(conf->wl_post_in4way);
+			conf->wl_post_in4way = NULL;
+		}
+		if (!(conf->wl_post_in4way = kmalloc(strlen(data)+1, GFP_KERNEL))) {
+			CONFIG_ERROR("kmalloc failed\n");
+		} else {
+			memset(conf->wl_post_in4way, 0, strlen(data)+1);
+			strcpy(conf->wl_post_in4way, data);
+			CONFIG_MSG("wl_post_in4way = %s\n", conf->wl_post_in4way);
+		}
 	}
 #ifdef BTC_WAR
 	else if (!strncmp("btc_war=", full_param, len_param)) {
@@ -5024,15 +5013,9 @@ dhd_conf_preinit_ioctls_sta(dhd_pub_t *dhd, int ifidx)
 {
 	struct dhd_conf *conf = dhd->conf;
 	int pm;
-#ifdef WL_CFG80211
-	struct net_device *net = dhd_idx2net(dhd, ifidx);
-	struct bcm_cfg80211 *cfg = wl_get_cfg(net);
-#ifdef WL_SCHED_SCAN
-	struct wireless_dev *wdev = cfg->wdev;
-#endif /* WL_SCHED_SCAN */
-#endif /* defined(WL_CFG80211) */
 
-	dhd_conf_set_intiovar(dhd, ifidx, WLC_SET_VAR, "bcn_timeout", conf->bcn_timeout, 0, FALSE);
+	dhd_conf_set_intiovar(dhd, ifidx, WLC_SET_VAR, "bcn_timeout",
+		conf->bcn_timeout, 0, FALSE);
 #ifdef NO_POWER_SAVE
 	pm = PM_OFF;
 #else
@@ -5044,8 +5027,16 @@ dhd_conf_preinit_ioctls_sta(dhd_pub_t *dhd, int ifidx)
 	dhd_conf_set_intiovar(dhd, ifidx, WLC_SET_PM, "WLC_SET_PM", pm, 0, FALSE);
 	dhd_conf_set_intiovar(dhd, ifidx, WLC_SET_VAR, "assoc_retry_max", 10, 0, FALSE);
 	dhd_conf_set_roam(dhd, ifidx);
+}
 
 #ifdef WL_CFG80211
+static void
+dhd_conf_postinit_cfg80211(dhd_pub_t *dhd, int ifidx)
+{
+	struct dhd_conf *conf = dhd->conf;
+	struct net_device *net = dhd_idx2net(dhd, ifidx);
+	struct bcm_cfg80211 *cfg = wl_get_cfg(net);
+
 #ifndef DISABLE_BUILTIN_ROAM
 	cfg->roam_on = conf->roam_off ? false : true;
 #endif
@@ -5053,21 +5044,22 @@ dhd_conf_preinit_ioctls_sta(dhd_pub_t *dhd, int ifidx)
 		cfg->roam_flags = 0;
 	else
 		cfg->roam_flags |= WL_ROAM_OFF_ON_CONCURRENT;
+
 #ifdef WL_SCHED_SCAN
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(4, 12, 0))
 	if (conf->max_sched_scan_reqs > 0)
-		wdev->wiphy->flags |= WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
+		cfg->wdev->wiphy->flags |= WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
 	else if (conf->max_sched_scan_reqs == 0)
-		wdev->wiphy->flags &= ~WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
+		cfg->wdev->wiphy->flags &= ~WIPHY_FLAG_SUPPORTS_SCHED_SCAN;
 #else
 	if (conf->max_sched_scan_reqs > 0)
-		wdev->wiphy->max_sched_scan_reqs = 1;
+		cfg->wdev->wiphy->max_sched_scan_reqs = 1;
 	else if (conf->max_sched_scan_reqs == 0)
-		wdev->wiphy->max_sched_scan_reqs = 0;
+		cfg->wdev->wiphy->max_sched_scan_reqs = 0;
 #endif /* LINUX_VER < 4.12 */
 #endif /* WL_SCHED_SCAN */
-#endif /* defined(WL_CFG80211) */
 }
+#endif /* WL_CFG80211 */
 
 void
 dhd_conf_postinit_ioctls(dhd_pub_t *dhd)
@@ -5113,6 +5105,9 @@ dhd_conf_postinit_ioctls(dhd_pub_t *dhd)
 		conf->frameburst, 0, FALSE);
 
 	dhd_conf_preinit_ioctls_sta(dhd, 0);
+#ifdef WL_CFG80211
+	dhd_conf_postinit_cfg80211(dhd, 0);
+#endif /* WL_CFG80211 */
 #if defined(BCMSDIO)
 	dhd_conf_set_ampdu_mpdu(dhd);
 #endif
@@ -5217,6 +5212,14 @@ dhd_conf_free_preinit(dhd_pub_t *dhd)
 		kfree(conf->wl_resume);
 		conf->wl_resume = NULL;
 	}
+	if (conf->wl_pre_in4way) {
+		kfree(conf->wl_pre_in4way);
+		conf->wl_pre_in4way = NULL;
+	}
+	if (conf->wl_post_in4way) {
+		kfree(conf->wl_post_in4way);
+		conf->wl_post_in4way = NULL;
+	}
 	if (conf->vndr_ie_assocreq) {
 		kfree(conf->vndr_ie_assocreq);
 		conf->vndr_ie_assocreq = NULL;
@@ -5233,7 +5236,9 @@ dhd_conf_preinit(dhd_pub_t *dhd)
 	dhd_conf_free_preinit(dhd);
 	conf->band = -1;
 	memset(&conf->bw_cap, -1, sizeof(conf->bw_cap));
-	conf->mapsta_mode = 0;
+	conf->ap_mchan_mode = MCHAN_AUTO;
+	conf->go_mchan_mode = MCHAN_AUTO;
+	conf->csa = FALSE;
 	if (conf->chip == BCM4345_CHIP_ID || conf->chip == BCM4359_CHIP_ID ||
 			conf->chip == BCM43569_CHIP_ID ||
 			conf->chip == BCM4375_CHIP_ID) {

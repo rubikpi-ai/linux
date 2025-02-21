@@ -55,6 +55,7 @@
 #include <bcmmsgbuf.h>
 #endif /* PCIE_FULL_DONGLE */
 
+#include <bcmsdpcm.h>
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -676,8 +677,10 @@ dhd_rx_frame(dhd_pub_t *dhdp, int ifidx, void *pktbuf, int numpkt, uint8 chan)
 #else /* !BCM_ROUTER_DHD */
 
 #if defined(DBG_PKT_MON) && !defined(PCIE_FULL_DONGLE)
-		if (chan == SDPCM_AML_CHANNEL && dhd_80211_mon_pkt(dhdp, pktbuf, ifidx)) {
-			continue;
+		if (chan == SDPCM_EVENT_CHANNEL) {
+			if (dhd_80211_mon_pkt(dhdp, pktbuf, ifidx)) {
+				continue;
+			}
 		}
 #endif
 
@@ -933,14 +936,17 @@ dhd_rx_frame(dhd_pub_t *dhdp, int ifidx, void *pktbuf, int numpkt, uint8 chan)
 				continue;
 			}
 
-#ifdef SENDPROB
-			if ((dhdp->wl_event_enabled) || (WLC_E_ESCAN_RESULT == event_type) ||
-				(dhdp->recv_probereq && (event.event_type == WLC_E_PROBREQ_MSG)))
-#else
 			/* always send up WLC_E_ESCAN_RESULT for WL utility */
-			if ((dhdp->wl_event_enabled) || (WLC_E_ESCAN_RESULT == event_type))
+			if ((dhdp->wl_event_enabled) || (WLC_E_ESCAN_RESULT == event_type) ||
+#ifdef SENDPROB
+				(dhdp->recv_probereq && (event.event_type == WLC_E_PROBREQ_MSG)) ||
 #endif
-			{
+				/* Also send nan and ranging events for the same */
+				(WLC_E_RANGING_EVENT == event_type) ||
+				(WLC_E_RANGING_RESULTS == event_type) ||
+				(WLC_E_NAN_NON_CRITICAL == event_type) ||
+				(WLC_E_NAN_CRITICAL == event_type) ||
+				0) {
 #ifdef DHD_USE_STATIC_CTRLBUF
 				/* If event bufs are allocated via static buf pool
 				 * and wl events are enabled, make a copy, free the

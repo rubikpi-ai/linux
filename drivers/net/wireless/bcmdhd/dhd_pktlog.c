@@ -54,6 +54,9 @@
 #include <dhd_debug.h>
 #ifdef LINUX
 #include <linux/vmalloc.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+#include <linux/sched/clock.h>
+#endif /* KERNEL >= 4.11 */
 #endif /* LINUX */
 
 #ifdef DHD_COMPACT_PKT_LOG

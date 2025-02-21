@@ -1563,7 +1563,7 @@ typedef uint32 ratespec_t;
 #define WL_CHAN_RADAR_EU_WEATHER   (1u << 7)     /* EU Radar weather channel.
 						  * Implies an EU Radar channel.
 						  */
-#define WL_CHAN_CLM_RESTRICTED     (1u << 8)     /* channel restricted in CLM (i.e. by default) */
+#define WL_CHAN_CLM_RESTRICTED     (1u << 5)     /* channel restricted in CLM (i.e. by default) */
 #define WL_CHAN_BAND_6G            (1u << 9)     /* 6GHz-band channel */
 #define WL_CHAN_BAND_6G_VLP        (1u << 10u)   /* 6GHz VLP channel */
 #define WL_CHAN_BAND_6G_PSC        (1u << 11u)   /* 6GHz PSC channel */
