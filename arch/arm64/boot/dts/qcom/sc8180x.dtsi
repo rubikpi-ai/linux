@@ -2,6 +2,7 @@
 /*
  * Copyright (c) 2017-2019, The Linux Foundation. All rights reserved.
  * Copyright (c) 2020-2023, Linaro Limited
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <dt-bindings/clock/qcom,dispcc-sm8250.h>
@@ -2615,6 +2616,9 @@
 				phys = <&usb_prim_hsphy>, <&usb_prim_ssphy>;
 				phy-names = "usb2-phy", "usb3-phy";
 
+				snps,dis-u1-entry-quirk;
+				snps,dis-u2-entry-quirk;
+
 				port {
 					usb_prim_role_switch: endpoint {
 					};
@@ -2671,6 +2675,9 @@
 				snps,dis_enblslpm_quirk;
 				phys = <&usb_sec_hsphy>, <&usb_sec_ssphy>;
 				phy-names = "usb2-phy", "usb3-phy";
+
+				snps,dis-u1-entry-quirk;
+				snps,dis-u2-entry-quirk;
 
 				port {
 					usb_sec_role_switch: endpoint {
