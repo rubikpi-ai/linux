@@ -3,7 +3,7 @@
  * Memory allocator for buffers shared with the TrustZone.
  *
  * Copyright (C) 2023-2024 Linaro Ltd.
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #define pr_fmt(fmt) "qcom_tzmem: [%d][%s]: " fmt, __LINE__,  __func__
@@ -127,7 +127,6 @@ static int32_t __qcom_tzmem_deregister(uint64_t handle)
 
 static bool qcom_tzmem_using_shm_bridge;
 static struct bridge_list bridge_list_head;
-static bool support_hyp;
 
 /* List of machines that are known to not support SHM bridge correctly. */
 static const char *const qcom_tzmem_blacklist[] = {
@@ -367,7 +366,7 @@ static int32_t __qcom_tzmem_register(
 	ipfn_and_s_perm_flags = UPDATE_IPFN_AND_S_PERM_FLAGS(paddr, tz_perm);
 	size_and_flags = UPDATE_SIZE_AND_FLAGS(size, ns_vmid_num);
 
-	if (support_hyp) {
+	if (ns_vmid_num == 0) {
 		size_and_flags |= SELF_OWNER_BIT << 1;
 		size_and_flags |= QCOM_SCM_PERM_RW << 2;
 	}
