@@ -188,14 +188,14 @@ static const struct snd_soc_dapm_widget qcs8300_dapm_widgets[] = {
 };
 
 static const struct snd_soc_dapm_route qcs8300_dapm_routes[] = {
-	{"STUB_AIF1_RX", NULL, "STUB_AIF1_PINCTRL"},
-	{"STUB_AIF1_TX", NULL, "STUB_AIF1_PINCTRL"},
-	{"STUB_AIF2_RX", NULL, "STUB_AIF2_PINCTRL"},
-	{"STUB_AIF2_TX", NULL, "STUB_AIF2_PINCTRL"},
-	{"STUB_AIF1_RX", NULL, "STUB_AIF3_PINCTRL"},
-	{"STUB_AIF1_TX", NULL, "STUB_AIF3_PINCTRL"},
-	{"STUB_AIF1_RX", NULL, "STUB_AIF4_PINCTRL"},
-	{"STUB_AIF1_TX", NULL, "STUB_AIF4_PINCTRL"},
+	{"STUB_AIF0_RX", NULL, "STUB_AIF1_PINCTRL"},
+	{"STUB_AIF0_TX", NULL, "STUB_AIF1_PINCTRL"},
+	{"STUB_AIF1_RX", NULL, "STUB_AIF2_PINCTRL"},
+	{"STUB_AIF1_TX", NULL, "STUB_AIF2_PINCTRL"},
+	{"STUB_AIF2_RX", NULL, "STUB_AIF3_PINCTRL"},
+	{"STUB_AIF2_TX", NULL, "STUB_AIF3_PINCTRL"},
+	{"STUB_AIF3_RX", NULL, "STUB_AIF4_PINCTRL"},
+	{"STUB_AIF3_TX", NULL, "STUB_AIF4_PINCTRL"},
 };
 
 static const struct snd_soc_dapm_widget qcs9100_dapm_widgets[] = {
