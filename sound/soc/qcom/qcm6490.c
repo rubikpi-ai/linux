@@ -25,6 +25,7 @@
 #define NAME_SIZE	32
 
 struct qcm6490_snd_data {
+	struct qcom_snd_common_data common_priv;
 	bool stream_prepared[AFE_PORT_MAX];
 	struct snd_soc_card *card;
 	struct sdw_stream_runtime *sruntime[AFE_PORT_MAX];
@@ -139,6 +140,31 @@ static int qcm6490_snd_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(rtd, 0);
 	struct qcm6490_snd_data *pdata = snd_soc_card_get_drvdata(rtd->card);
+	struct snd_soc_dai *codec_dai = NULL;
+	struct qcom_snd_dailink_data *link_priv = &pdata->common_priv.link_data[rtd->num];
+	unsigned int daifmt = 0;
+	u32 mclk_fs, mclk_rate, clk_dir;
+	int ret = 0;
+	int i;
+
+	daifmt = rtd->dai_link->dai_fmt;
+	for_each_rtd_codec_dais(rtd, i, codec_dai) {
+		if (daifmt)
+			snd_soc_dai_set_fmt(codec_dai, daifmt);
+
+		mclk_fs = link_priv->mclk_fs;
+		clk_dir = link_priv->clk_direction;
+		if (mclk_fs) {
+			mclk_rate = params_rate(params) * mclk_fs;
+			ret = snd_soc_dai_set_sysclk(codec_dai, link_priv->mclk_id,
+						     mclk_rate, clk_dir);
+			if (ret < 0) {
+				dev_err(rtd->dev, "snd_soc_dai_set_sysclk err = %d\n",
+					ret);
+				return ret;
+			}
+		}
+	}
 
 	return qcom_snd_sdw_hw_params(substream, params, &pdata->sruntime[cpu_dai->id]);
 }
@@ -313,7 +339,7 @@ static int qcm6490_platform_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(dev, card);
 	snd_soc_card_set_drvdata(card, data);
-	ret = qcom_snd_parse_of(card);
+	ret = qcom_snd_parse_of_v2(card, &data->common_priv);
 	if (ret)
 		return ret;
 
