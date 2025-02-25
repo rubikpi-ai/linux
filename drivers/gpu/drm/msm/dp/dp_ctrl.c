@@ -181,33 +181,35 @@ static void msm_dp_ctrl_config_ctrl(struct msm_dp_ctrl_private *ctrl,
 	u32 config = 0, tbd;
 	const u8 *dpcd = ctrl->panel->dpcd;
 
-	/* Default-> LSCLK DIV: 1/4 LCLK  */
-	config |= (2 << DP_CONFIGURATION_CTRL_LSCLK_DIV_SHIFT);
+	if (msm_dp_panel->stream_id == DP_STREAM_0) {
+		/* Default-> LSCLK DIV: 1/4 LCLK  */
+		config |= (2 << DP_CONFIGURATION_CTRL_LSCLK_DIV_SHIFT);
+
+		/* Scrambler reset enable */
+		if (drm_dp_alternate_scrambler_reset_cap(dpcd))
+			config |= DP_CONFIGURATION_CTRL_ASSR;
+
+		/* Num of Lanes */
+		config |= ((ctrl->link->link_params.num_lanes - 1)
+				<< DP_CONFIGURATION_CTRL_NUM_OF_LANES_SHIFT);
+
+		if (drm_dp_enhanced_frame_cap(dpcd))
+			config |= DP_CONFIGURATION_CTRL_ENHANCED_FRAMING;
+
+		config |= DP_CONFIGURATION_CTRL_P_INTERLACED; /* progressive video */
+
+		/* sync clock & static Mvid */
+		config |= DP_CONFIGURATION_CTRL_STATIC_DYNAMIC_CN;
+		config |= DP_CONFIGURATION_CTRL_SYNC_ASYNC_CLK;
+	}
 
 	if (msm_dp_panel->msm_dp_mode.out_fmt_is_yuv_420)
 		config |= DP_CONFIGURATION_CTRL_RGB_YUV; /* YUV420 */
-
-	/* Scrambler reset enable */
-	if (drm_dp_alternate_scrambler_reset_cap(dpcd))
-		config |= DP_CONFIGURATION_CTRL_ASSR;
 
 	tbd = msm_dp_link_get_test_bits_depth(ctrl->link,
 		msm_dp_panel->msm_dp_mode.bpp);
 
 	config |= tbd << DP_CONFIGURATION_CTRL_BPC_SHIFT;
-
-	/* Num of Lanes */
-	config |= ((ctrl->link->link_params.num_lanes - 1)
-			<< DP_CONFIGURATION_CTRL_NUM_OF_LANES_SHIFT);
-
-	if (drm_dp_enhanced_frame_cap(dpcd))
-		config |= DP_CONFIGURATION_CTRL_ENHANCED_FRAMING;
-
-	config |= DP_CONFIGURATION_CTRL_P_INTERLACED; /* progressive video */
-
-	/* sync clock & static Mvid */
-	config |= DP_CONFIGURATION_CTRL_STATIC_DYNAMIC_CN;
-	config |= DP_CONFIGURATION_CTRL_SYNC_ASYNC_CLK;
 
 	if (ctrl->panel->psr_cap.version)
 		config |= DP_CONFIGURATION_CTRL_SEND_VSC;
