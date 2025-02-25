@@ -602,7 +602,11 @@ u32 ath11k_hal_ce_dst_status_get_length(void *buf)
 	u32 len;
 
 	len = FIELD_GET(HAL_CE_DST_STATUS_DESC_FLAGS_LEN, desc->flags);
-	desc->flags &= ~HAL_CE_DST_STATUS_DESC_FLAGS_LEN;
+	/* Skip updating the length field of the descriptor when it is 0,
+	 * because there's a racing update, may never see the updated length.
+	 */
+	if (likely(len))
+		desc->flags &= ~HAL_CE_DST_STATUS_DESC_FLAGS_LEN;
 
 	return len;
 }
