@@ -940,11 +940,6 @@
 			no-map;
 		};
 
-		tzffi_mem: tzffi-region@91c00000 {
-			reg = <0x0 0x91c00000 0x0 0x1400000>;
-			no-map;
-		};
-
 		lpass_machine_learning_mem: lpass-machine-learning-region@93b00000 {
 			reg = <0x0 0x93b00000 0x0 0xf00000>;
 			no-map;
@@ -1012,11 +1007,6 @@
 
 		firmware_mem: firmware-region@b0000000 {
 			reg = <0x0 0xb0000000 0x0 0x800000>;
-			no-map;
-		};
-
-		hyptz_reserved_mem: hyptz-reserved@beb00000 {
-			reg = <0x0 0xbeb00000 0x0 0x11500000>;
 			no-map;
 		};
 
