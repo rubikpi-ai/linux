@@ -3,7 +3,7 @@
  * Memory allocator for buffers shared with the TrustZone.
  *
  * Copyright (C) 2023-2024 Linaro Ltd.
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #define pr_fmt(fmt) "qcom_tzmem: [%d][%s]: " fmt, __LINE__,  __func__
@@ -32,14 +32,6 @@
 #include <linux/device.h>
 
 #include "qcom_tzmem.h"
-
-struct qcom_tzmem_area {
-	struct list_head list;
-	void *vaddr;
-	dma_addr_t paddr;
-	size_t size;
-	void *priv;
-};
 
 struct qcom_tzmem_pool {
 	struct gen_pool *genpool;
@@ -115,16 +107,6 @@ static int qcom_tzmem_init(void)
 	return 0;
 }
 
-static int qcom_tzmem_init_area(struct qcom_tzmem_area *area)
-{
-	return 0;
-}
-
-static void qcom_tzmem_cleanup_area(struct qcom_tzmem_area *area)
-{
-
-}
-
 static int32_t __qcom_tzmem_register(phys_addr_t paddr, size_t size, uint32_t *ns_vmid_list,
 		uint32_t *ns_vm_perm_list, uint32_t ns_vmid_num, uint32_t tz_perm, uint64_t *handle)
 {
@@ -145,7 +127,6 @@ static int32_t __qcom_tzmem_deregister(uint64_t handle)
 
 static bool qcom_tzmem_using_shm_bridge;
 static struct bridge_list bridge_list_head;
-static bool support_hyp;
 
 /* List of machines that are known to not support SHM bridge correctly. */
 static const char *const qcom_tzmem_blacklist[] = {
@@ -180,7 +161,7 @@ notsupp:
 	return 0;
 }
 
-static int qcom_tzmem_init_area(struct qcom_tzmem_area *area)
+int qcom_tzmem_init_area(struct qcom_tzmem_area *area)
 {
 	u64 pfn_and_ns_perm, ipfn_and_s_perm, size_and_flags;
 	int ret;
@@ -206,8 +187,9 @@ static int qcom_tzmem_init_area(struct qcom_tzmem_area *area)
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(qcom_tzmem_init_area);
 
-static void qcom_tzmem_cleanup_area(struct qcom_tzmem_area *area)
+void qcom_tzmem_cleanup_area(struct qcom_tzmem_area *area)
 {
 	u64 *handle = area->priv;
 
@@ -217,6 +199,7 @@ static void qcom_tzmem_cleanup_area(struct qcom_tzmem_area *area)
 	qcom_scm_shm_bridge_delete(qcom_tzmem_dev, *handle);
 	kfree(handle);
 }
+EXPORT_SYMBOL_GPL(qcom_tzmem_cleanup_area);
 
 static int32_t qcom_tzmem_list_add_locked(phys_addr_t paddr,
 						uint64_t handle)
@@ -383,7 +366,7 @@ static int32_t __qcom_tzmem_register(
 	ipfn_and_s_perm_flags = UPDATE_IPFN_AND_S_PERM_FLAGS(paddr, tz_perm);
 	size_and_flags = UPDATE_SIZE_AND_FLAGS(size, ns_vmid_num);
 
-	if (support_hyp) {
+	if (ns_vmid_num == 0) {
 		size_and_flags |= SELF_OWNER_BIT << 1;
 		size_and_flags |= QCOM_SCM_PERM_RW << 2;
 	}

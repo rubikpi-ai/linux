@@ -536,8 +536,11 @@ bool stmmac_eee_init(struct stmmac_priv *priv)
 static void stmmac_get_tx_hwtstamp(struct stmmac_priv *priv,
 				   struct dma_desc *p, struct sk_buff *skb)
 {
+	const struct dwxgmac_addrs *dwxgmac_addrs = priv->plat->dwxgmac_addrs;
 	struct skb_shared_hwtstamps shhwtstamp;
+	void __iomem *ioaddr = priv->hw->pcsr;
 	bool found = false;
+	u32 pktid;
 	u64 ns = 0;
 
 	if (!priv->hwts_tx_en)
@@ -546,6 +549,9 @@ static void stmmac_get_tx_hwtstamp(struct stmmac_priv *priv,
 	/* exit if skb doesn't support hw tstamp */
 	if (likely(!skb || !(skb_shinfo(skb)->tx_flags & SKBTX_IN_PROGRESS)))
 		return;
+
+	if (priv->plat->insert_ts_pktid)
+		pktid = readl(ioaddr + XGMAC_TXTIMESTAMP_STATUS_PKTID(dwxgmac_addrs));
 
 	/* check tx tstamp status */
 	if (stmmac_get_tx_timestamp_status(priv, p)) {
@@ -1051,6 +1057,34 @@ static void stmmac_mac_link_up(struct phylink_config *config,
 			break;
 		case SPEED_1000:
 			ctrl |= priv->hw->link.speed1000;
+			break;
+		default:
+			return;
+		}
+	} else if (interface == PHY_INTERFACE_MODE_10GBASER) {
+		switch (speed) {
+		case SPEED_10000:
+			ctrl |= priv->hw->link.xgmii.speed10000;
+			break;
+		default:
+			return;
+		}
+	} else if (interface == PHY_INTERFACE_MODE_5GBASER) {
+		switch (speed) {
+		case SPEED_5000:
+			ctrl |= priv->hw->link.xgmii.speed5000;
+			break;
+		case SPEED_2500:
+			ctrl |= priv->hw->link.xgmii.speed2500;
+			break;
+		case SPEED_1000:
+			ctrl |= priv->hw->link.speed1000;
+			break;
+		case SPEED_100:
+			ctrl |= priv->hw->link.speed100;
+			break;
+		case SPEED_10:
+			ctrl |= priv->hw->link.speed10;
 			break;
 		default:
 			return;
@@ -4183,7 +4217,7 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 	bool has_vlan, set_ic;
 	u8 proto_hdr_len, hdr;
 	u32 pay_len, mss;
-	dma_addr_t des;
+	dma_addr_t tso_des, des;
 	int i;
 
 	tx_q = &priv->dma_conf.tx_queue[queue];
@@ -4268,14 +4302,15 @@ static netdev_tx_t stmmac_tso_xmit(struct sk_buff *skb, struct net_device *dev)
 
 		/* If needed take extra descriptors to fill the remaining payload */
 		tmp_pay_len = pay_len - TSO_MAX_BUFF_SIZE;
+		tso_des = des;
 	} else {
 		stmmac_set_desc_addr(priv, first, des);
 		tmp_pay_len = pay_len;
-		des += proto_hdr_len;
+		tso_des = des + proto_hdr_len;
 		pay_len = 0;
 	}
 
-	stmmac_tso_allocator(priv, des, tmp_pay_len, (nfrags == 0), queue);
+	stmmac_tso_allocator(priv, tso_des, tmp_pay_len, (nfrags == 0), queue);
 
 	/* In case two or more DMA transmit descriptors are allocated for this
 	 * non-paged SKB data, the DMA buffer address should be saved to
@@ -4440,6 +4475,34 @@ static bool stmmac_has_ip_ethertype(struct sk_buff *skb)
 		(proto == htons(ETH_P_IP) || proto == htons(ETH_P_IPV6));
 }
 
+#define STMMAC_MAX_PID 1023
+
+static void stmmac_hw_ts_insert(struct stmmac_priv *priv, struct stmmac_tx_queue *tx_q)
+{
+	struct dma_desc *p;
+
+	if (!priv->plat->insert_ts_pktid)
+		return;
+
+	if (priv->extend_desc)
+		p = &tx_q->dma_etx[tx_q->cur_tx].basic;
+	else if (tx_q->tbs & STMMAC_TBS_AVAIL)
+		p = &tx_q->dma_entx[tx_q->cur_tx].basic;
+	else
+		p = &tx_q->dma_tx[tx_q->cur_tx];
+
+	tx_q->pid = (tx_q->pid + 1) % STMMAC_MAX_PID;
+
+	/*this condition will be hit when 1023%1023 is 0*/
+	if (tx_q->pid == 0)
+		tx_q->pid = 1;
+
+	stmmac_set_desc_hw_ts(priv, p, tx_q->pid);
+	stmmac_set_tx_owner(priv, p);
+
+	tx_q->cur_tx = STMMAC_GET_ENTRY(tx_q->cur_tx, priv->dma_conf.dma_tx_size);
+}
+
 /**
  *  stmmac_xmit - Tx entry point of the driver
  *  @skb : the socket buffer
@@ -4491,6 +4554,11 @@ static netdev_tx_t stmmac_xmit(struct sk_buff *skb, struct net_device *dev)
 		}
 		return NETDEV_TX_BUSY;
 	}
+
+	/* Check if HW TS can be inserted by HW */
+	if (unlikely((skb_shinfo(skb)->tx_flags & SKBTX_HW_TSTAMP) &&
+		     priv->hwts_tx_en))
+		stmmac_hw_ts_insert(priv, tx_q);
 
 	/* Check if VLAN can be inserted by HW */
 	has_vlan = stmmac_vlan_insert(priv, skb, tx_q);

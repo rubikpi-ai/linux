@@ -1255,10 +1255,10 @@ static void anx7625_power_on(struct anx7625_data *ctx)
 	usleep_range(11000, 12000);
 
 	/* Power on pin enable */
-	gpiod_set_value(ctx->pdata.gpio_p_on, 1);
+	gpiod_set_value_cansleep(ctx->pdata.gpio_p_on, 1);
 	usleep_range(10000, 11000);
 	/* Power reset pin enable */
-	gpiod_set_value(ctx->pdata.gpio_reset, 1);
+	gpiod_set_value_cansleep(ctx->pdata.gpio_reset, 1);
 	usleep_range(10000, 11000);
 
 	DRM_DEV_DEBUG_DRIVER(dev, "power on !\n");
@@ -1278,9 +1278,9 @@ static void anx7625_power_standby(struct anx7625_data *ctx)
 		return;
 	}
 
-	gpiod_set_value(ctx->pdata.gpio_reset, 0);
+	gpiod_set_value_cansleep(ctx->pdata.gpio_reset, 0);
 	usleep_range(1000, 1100);
-	gpiod_set_value(ctx->pdata.gpio_p_on, 0);
+	gpiod_set_value_cansleep(ctx->pdata.gpio_p_on, 0);
 	usleep_range(1000, 1100);
 
 	ret = regulator_bulk_disable(ARRAY_SIZE(ctx->pdata.supplies),
@@ -1826,9 +1826,6 @@ static enum drm_connector_status anx7625_sink_detect(struct anx7625_data *ctx)
 
 	DRM_DEV_DEBUG_DRIVER(dev, "sink detect\n");
 
-	if (ctx->pdata.panel_bridge)
-		return connector_status_connected;
-
 	return ctx->hpd_status ? connector_status_connected :
 				     connector_status_disconnected;
 }
@@ -2199,19 +2196,6 @@ static int anx7625_bridge_attach(struct drm_bridge *bridge,
 	int err;
 	struct device *dev = ctx->dev;
 
-	if (!ctx->pdata.is_dpi) {
-		err = anx7625_setup_dsi_device(ctx);
-		if (err < 0) {
-			DRM_DEV_ERROR(dev, "failed to setup dsi device");
-			return -EINVAL;
-		}
-		err = anx7625_attach_dsi(ctx);
-		if (err < 0) {
-			DRM_DEV_ERROR(dev, "failed to attach dsi");
-			return -EINVAL;
-		}
-	}
-
 	DRM_DEV_DEBUG_DRIVER(dev, "drm attach\n");
 	if (!(flags & DRM_BRIDGE_ATTACH_NO_CONNECTOR))
 		return -EINVAL;
@@ -2238,6 +2222,9 @@ static int anx7625_bridge_attach(struct drm_bridge *bridge,
 
 	ctx->bridge_attached = 1;
 
+	if (ctx->pdata.panel_bridge->type == DRM_MODE_CONNECTOR_DisplayPort)
+		pm_runtime_get_sync(dev);
+
 	return 0;
 }
 
@@ -2246,6 +2233,9 @@ static void anx7625_bridge_detach(struct drm_bridge *bridge)
 	struct anx7625_data *ctx = bridge_to_anx7625(bridge);
 
 	drm_dp_aux_unregister(&ctx->aux);
+
+	if (ctx->pdata.panel_bridge->type == DRM_MODE_CONNECTOR_DisplayPort)
+		pm_runtime_put_sync(ctx->dev);
 }
 
 static enum drm_mode_status
@@ -2637,7 +2627,7 @@ static int anx7625_link_bridge(struct drm_dp_aux *aux)
 	platform->bridge.of_node = dev->of_node;
 	if (!anx7625_of_panel_on_aux_bus(dev))
 		platform->bridge.ops |= DRM_BRIDGE_OP_EDID;
-	if (!platform->pdata.panel_bridge)
+	if (platform->pdata.panel_bridge->type == DRM_MODE_CONNECTOR_DisplayPort)
 		platform->bridge.ops |= DRM_BRIDGE_OP_HPD |
 					DRM_BRIDGE_OP_DETECT;
 	platform->bridge.type = platform->pdata.panel_bridge ?
@@ -2645,6 +2635,12 @@ static int anx7625_link_bridge(struct drm_dp_aux *aux)
 				    DRM_MODE_CONNECTOR_DisplayPort;
 
 	drm_bridge_add(&platform->bridge);
+
+	if (!platform->pdata.is_dpi) {
+		ret = anx7625_attach_dsi(platform);
+		if (ret)
+			drm_bridge_remove(&platform->bridge);
+	}
 
 	return ret;
 }
@@ -2729,6 +2725,12 @@ static int anx7625_i2c_probe(struct i2c_client *client)
 		if (ret != -EPROBE_DEFER)
 			DRM_DEV_ERROR(dev, "fail to parse DT : %d\n", ret);
 		goto free_wq;
+	}
+
+	if (!platform->pdata.is_dpi) {
+		ret = anx7625_setup_dsi_device(platform);
+		if (ret < 0)
+			goto free_wq;
 	}
 
 	/*

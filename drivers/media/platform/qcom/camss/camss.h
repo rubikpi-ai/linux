@@ -84,6 +84,7 @@ enum camss_version {
 	CAMSS_8250,
 	CAMSS_8280XP,
 	CAMSS_8775P,
+	CAMSS_8300,
 };
 
 enum icc_count {
