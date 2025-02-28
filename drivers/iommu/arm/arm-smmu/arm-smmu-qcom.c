@@ -240,15 +240,7 @@ static void *qcom_alloc_pages(void *cookie, size_t size, gfp_t gfp)
 	int ret;
 
 	struct arm_smmu_domain *domain = (void *)cookie;
-	/*
-	 * qcom_scm_assign_mem call during atomic allocation can sleep, Using GFP flags
-	 * to detect allocation path and return failure for atomic allocations.
-	 */
-	if (!gfpflags_allow_blocking(gfp)) {
-		dev_err(domain->smmu->dev,
-			"qcom_scm_assign_mem call are not allowed during atomic allocations\n");
-		return NULL;
-	}
+
 	p = alloc_page(gfp);
 	if (!p)
 		return NULL;
