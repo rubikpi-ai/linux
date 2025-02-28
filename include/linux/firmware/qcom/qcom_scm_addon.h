@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef __QCOM_SCM_ADDON_H
@@ -62,6 +62,8 @@ extern int qcom_scm_spin_cpu(void);
 extern int qcom_scm_ddrbw_profiler(phys_addr_t in_buf, size_t in_buf_size,
 				   phys_addr_t out_buf, size_t out_buf_size);
 extern int qcom_scm_she_op(u64 _arg1, u64 _arg2, u64 _arg3, u64 _arg4, u64 *res1);
+extern int qcom_scm_assign_dump_table_region(bool is_assign, phys_addr_t addr,
+			size_t size);
 #else
 static inline bool qcom_scm_dcvs_ca_available(void)
 {
@@ -214,6 +216,11 @@ static inline int qcom_scm_ddrbw_profiler(phys_addr_t in_buf, size_t in_buf_size
 }
 
 static inline int qcom_scm_she_op(u64 _arg1, u64 _arg2, u64 _arg3, u64 _arg4, u64 *res1)
+{
+	return -EPERM;
+}
+static inline int qcom_scm_assign_dump_table_region(bool is_assign,
+				phys_addr_t addr, size_t size)
 {
 	return -EPERM;
 }
