@@ -129,10 +129,235 @@
 		cooling-max-state = <2>;
 		cooling-levels = <0 100 255>;
 	};
+
+	forty_pin_vreg: forty_pin_vreg {
+		pinctrl-names = "default";
+		pinctrl-0 = <&io_level_selection_3v3>,<&io_level_selection_5v0>,
+				<&gpio4_active>,<&gpio5_active>,<&gpio8_active>,
+				<&gpio9_active>,<&gpio10_active>,<&gpio11_active>,
+				<&gpio12_active>,<&gpio24_active>,<&gpio25_active>,
+				<&gpio26_active>,<&gpio27_active>,<&gpio32_active>,
+				<&gpio33_active>,<&gpio34_active>,<&gpio35_active>,
+				<&gpio44_active>,<&gpio48_active>,<&gpio49_active>,
+				<&gpio50_active>,<&gpio51_active>,<&gpio55_active>,
+				<&gpio101_active>,<&gpio102_active>,<&gpio103_active>,
+				<&gpio104_active>,<&gpio105_active>;
+		compatible = "regulator-fixed";
+	};
+};
+
+&qupv3_id_0 {
+	dummy = <&forty_pin_vreg>;
+};
+
+&qupv3_id_1 {
+	dummy = <&qupv3_id_0>;
 };
 
 &tlmm {
 	/delete-property/ gpio-reserved-ranges;
+
+	gpio4_active: gpio4_active {
+		pins = "gpio4";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio5_active: gpio5_active {
+		pins = "gpio5";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio8_active: gpio8_active {
+		pins = "gpio8";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio9_active: gpio9_active {
+		pins = "gpio9";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio10_active: gpio10_active {
+		pins = "gpio10";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio11_active: gpio11_active {
+		pins = "gpio11";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	qup_uart2_rx: qup-uart2-rx-state {
+		pins = "gpio11";
+		function = "qup02";
+		bias-disable;
+	};
+
+	gpio12_active: gpio12_active {
+		pins = "gpio12";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio24_active: gpio24_active {
+		pins = "gpio24";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio25_active: gpio25_active {
+		pins = "gpio25";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio24_active: gpio24_active {
+		pins = "gpio24";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio25_active: gpio25_active {
+		pins = "gpio25";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio26_active: gpio26_active {
+		pins = "gpio26";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio27_active: gpio27_active {
+		pins = "gpio27";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio32_active: gpio32_active {
+		pins = "gpio32";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio33_active: gpio33_active {
+		pins = "gpio33";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio34_active: gpio34_active {
+		pins = "gpio34";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio35_active: gpio35_active {
+		pins = "gpio35";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio44_active: gpio44_active {
+		pins = "gpio44";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio48_active: gpio48_active {
+		pins = "gpio48";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio49_active: gpio49_active {
+		pins = "gpio49";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio50_active: gpio50_active {
+		pins = "gpio50";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio51_active: gpio51_active {
+		pins = "gpio51";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio55_active: gpio55_active {
+		pins = "gpio55";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio101_active: gpio101_active {
+		pins = "gpio101";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio102_active: gpio102_active {
+		pins = "gpio102";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio103_active: gpio103_active {
+		pins = "gpio103";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio104_active: gpio104_active {
+		pins = "gpio104";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	gpio105_active: gpio105_active {
+		pins = "gpio105";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
 
 	pcie1_wake_n: pcie1-wake-n-state {
 		pins = "gpio3";
@@ -492,7 +717,7 @@
 &i2c1 {
 	clock-frequency = <100000>;
 	pinctrl-names = "default";
-	pinctrl-0 = <&qup_i2c1_data_clk>, <&io_level_selection_3v3>, <&io_level_selection_5v0>;
+	pinctrl-0 = <&qup_i2c1_data_clk>;
 
 	/delete-node/ typec-mux@42;
 
