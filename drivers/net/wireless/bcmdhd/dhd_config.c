@@ -1525,11 +1525,20 @@ dhd_conf_map_country_list(dhd_pub_t *dhd, wl_country_t *cspec)
 }
 
 static int
-dhd_conf_set_country(dhd_pub_t *dhd, wl_country_t *cspec)
+dhd_conf_set_country(dhd_pub_t *dhd, wl_country_t *cspec, bool no_ccode_evt)
 {
 	int bcmerror = -1;
+	struct net_device *net;
+	int bytes_written = 0;
+	char event_msg[32];
 
 	memset(&dhd->dhd_cspec, 0, sizeof(wl_country_t));
+
+	if (no_ccode_evt) {
+		net = dhd_idx2net(dhd, 0);
+		snprintf(event_msg, sizeof(event_msg), "wl event_msg %d 0", WLC_E_COUNTRY_CODE_CHANGED);
+		wl_android_ext_priv_cmd(net, event_msg, 0, &bytes_written);
+	}
 
 	CONFIG_MSG("set country %s, revision %d\n", cspec->ccode, cspec->rev);
 	bcmerror = dhd_conf_set_bufiovar(dhd, 0, WLC_SET_VAR, "country", (char *)cspec,
@@ -1537,6 +1546,11 @@ dhd_conf_set_country(dhd_pub_t *dhd, wl_country_t *cspec)
 	dhd_conf_get_country(dhd, cspec);
 	CONFIG_MSG("Country code: %s (%s/%d)\n",
 		cspec->country_abbrev, cspec->ccode, cspec->rev);
+
+	if (no_ccode_evt) {
+		snprintf(event_msg, sizeof(event_msg), "wl event_msg %d 1", WLC_E_COUNTRY_CODE_CHANGED);
+		wl_android_ext_priv_cmd(net, event_msg, 0, &bytes_written);
+	}
 
 	return bcmerror;
 }
@@ -1776,7 +1790,7 @@ dhd_conf_set_country_all(dhd_pub_t *dhd, wl_country_t *cspec)
 		ccode_all->disable_5g_band, ccode_all->disable_6g_band);
 
 	memcpy(&cspec_all, &ccode_all->cspec, sizeof(wl_country_t));
-	ret = dhd_conf_set_country(dhd, &cspec_all);
+	ret = dhd_conf_set_country(dhd, &cspec_all, FALSE);
 	if (!ret) {
 		dhd_conf_intiovar(dhd, 0, WLC_SET_VAR, "ww_2g_chan_only",
 			(char *)&ccode_all->ww_2g_chan_only, sizeof(ccode_all->ww_2g_chan_only));
@@ -1835,11 +1849,30 @@ dhd_conf_same_country(dhd_pub_t *dhd, char *buf)
 	return FALSE;
 }
 
+bool
+dhd_conf_same_country_diff_regrev(dhd_pub_t *dhd, char *buf)
+{
+	wl_country_t cur_cspec = {{0}, 0, {0}};
+	wl_country_t cspec = {{0}, 0, {0}};
+
+	strlcpy(cspec.country_abbrev, buf, WL_CCODE_LEN + 1);
+	strlcpy(cspec.ccode, buf, WL_CCODE_LEN + 1);
+	dhd_conf_map_country_list(dhd, &cspec);
+	dhd_conf_get_country(dhd, &cur_cspec);
+	if (!memcmp(&cspec.ccode, &cur_cspec.ccode, WL_CCODE_LEN) &&
+			(cspec.rev != cur_cspec.rev)) {
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
 int
 dhd_conf_country(dhd_pub_t *dhd, char *cmd, char *buf)
 {
 	wl_ccode_all_t *ccode_all = &dhd->conf->ccode_all;
 	wl_country_t cspec = {{0}, 0, {0}};
+	bool no_ccode_evt;
 	int err = 0;
 
 	if (buf) {
@@ -1855,7 +1888,8 @@ dhd_conf_country(dhd_pub_t *dhd, char *cmd, char *buf)
 			if (strlen(dhd->conf->ccode_all.cspec.ccode)) {
 				dhd_conf_reset_country_all(dhd);
 			}
-			err = dhd_conf_set_country(dhd, &cspec);
+			no_ccode_evt = dhd_conf_same_country_diff_regrev(dhd, buf);
+			err = dhd_conf_set_country(dhd, &cspec, no_ccode_evt);
 		}
 		dhd_conf_get_country(dhd, &dhd->dhd_cspec);
 	}

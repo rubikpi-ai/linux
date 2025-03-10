@@ -5496,9 +5496,7 @@ wl_ext_iapsta_ccode(struct wl_if_info *cur_if,
 			return;
 		}
 		WL_MSG(cur_if->ifname, "Updated new country %s\n", country_str);
-		dhd_conf_get_country(dhd, &cspec);
-		WL_MSG(cur_if->dev->name, "Country code: %s (%s/%d)\n",
-			cspec.country_abbrev, cspec.ccode, cspec.rev);
+		dhd_conf_country(dhd, "country", country_str);
 #if defined(WL_CFG80211) && defined(WL_ESCAN)
 		if (!(dhd->op_mode & DHD_FLAG_MFG_MODE)) {
 			wl_escan_passive_chan_scan(cur_if->dev);
