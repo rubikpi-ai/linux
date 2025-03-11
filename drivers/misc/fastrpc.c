@@ -32,7 +32,9 @@
 #define SDSP_DOMAIN_ID (2)
 #define CDSP_DOMAIN_ID (3)
 #define CDSP1_DOMAIN_ID (4)
-#define FASTRPC_DEV_MAX		5 /* adsp, mdsp, slpi, cdsp, cdsp1*/
+#define GDSP0_DOMAIN_ID (5)
+#define GDSP1_DOMAIN_ID (6)
+#define FASTRPC_DEV_MAX		7 /* adsp, mdsp, slpi, cdsp, cdsp1, gdsp0, gdsp1 */
 #define FASTRPC_MAX_SESSIONS	14
 #define FASTRPC_MAX_SPD		4
 #define FASTRPC_MAX_VMIDS	16
@@ -145,7 +147,9 @@ enum fastrpc_response_flags {
 };
 
 static const char *domains[FASTRPC_DEV_MAX] = { "adsp", "mdsp",
-						"sdsp", "cdsp", "cdsp1"};
+						"sdsp", "cdsp",
+						"cdsp1", "gdsp0",
+						"gdsp1"};
 
 struct fastrpc_invoke_v2 {
 	struct fastrpc_invoke inv;
@@ -3063,6 +3067,8 @@ static int fastrpc_rpmsg_probe(struct rpmsg_device *rpdev)
 		break;
 	case CDSP_DOMAIN_ID:
 	case CDSP1_DOMAIN_ID:
+	case GDSP0_DOMAIN_ID:
+	case GDSP1_DOMAIN_ID:
 		data->unsigned_support = true;
 		/* Create both device nodes so that we can allow both Signed and Unsigned PD */
 		err = fastrpc_device_register(rdev, data, true, domains[domain_id]);
