@@ -7797,7 +7797,7 @@
 			snps,dis_enblslpm_quirk;
 			phys = <&usb_1_hsphy>, <&usb_qmpphy>;
 			phy-names = "usb2-phy", "usb3-phy";
-			maximum-speed = "super-speed";
+			maximum-speed = "super-speed-plus";
 			role-switch;
 
 			port {
