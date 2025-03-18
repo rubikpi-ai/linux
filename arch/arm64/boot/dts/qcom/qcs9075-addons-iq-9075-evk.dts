@@ -4,7 +4,7 @@
  */
 /dts-v1/;
 
-#include "qcs9075-rb8.dts"
+#include "qcs9075-iq-9075-evk.dts"
 #include "sa8775p-addons.dtsi"
 
 / {
