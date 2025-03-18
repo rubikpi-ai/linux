@@ -13,8 +13,8 @@
 #include "qcs9xxx-reserved-memory.dtsi"
 
 / {
-	model = "Qualcomm Technologies, Inc. QCS9075 RB8";
-	compatible = "qcom,qcs9075-rb8", "qcom,qcs9075", "qcom,sa8775p";
+	model = "Qualcomm Technologies, Inc. IQ 9075 EVK";
+	compatible = "qcom,qcs9075-iq-9075-evk", "qcom,qcs9075", "qcom,sa8775p";
 	qcom,msm-id = <676 0x20000>;
 	qcom,board-id = <0x10020 0>, <0x10019 0>;
 
