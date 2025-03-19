@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #define QCOM_SCM_MP_CP_SMMU_APERTURE_ID         0x1b
@@ -60,6 +60,10 @@
 /* IDs for CAMERA */
 #define QCOM_SCM_SVC_CAMERA			0x18
 #define QCOM_SCM_CAMERA_UPDATE_CAMNOC_QOS	0xA
+
+/* IDs for Dump Table*/
+#define QCOM_SCM_SVC_UTIL			0x03
+#define QCOM_SCM_UTIL_DUMP_TABLE_ASSIGN		0x13
 
 static int __qcom_scm_get_feat_version(struct device *dev, u64 feat_id, u64 *version)
 {
@@ -671,3 +675,19 @@ int qcom_scm_camera_update_camnoc_qos(uint32_t use_case_id,
 	return ret;
 }
 EXPORT_SYMBOL_GPL(qcom_scm_camera_update_camnoc_qos);
+
+int qcom_scm_assign_dump_table_region(bool is_assign, phys_addr_t addr, size_t size)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_UTIL,
+		.cmd = QCOM_SCM_UTIL_DUMP_TABLE_ASSIGN,
+		.arginfo = QCOM_SCM_ARGS(3, QCOM_SCM_VAL, QCOM_SCM_RW, QCOM_SCM_VAL),
+		.owner = ARM_SMCCC_OWNER_SIP,
+		.args[0] = is_assign,
+		.args[1] = addr,
+		.args[2] = size,
+	};
+
+	return qcom_scm_call(__scm->dev, &desc, NULL);
+}
+EXPORT_SYMBOL_GPL(qcom_scm_assign_dump_table_region);
