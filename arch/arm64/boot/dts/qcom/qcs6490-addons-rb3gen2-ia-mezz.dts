@@ -372,6 +372,11 @@
 	status = "okay";
 };
 
+&redriver_ss_in {
+	data-lanes = <0 1 2 3>;
+	remote-endpoint = <&usb_1_qmpphy_out>;
+};
+
 &sound {
 	compatible = "qcom,qcs6490-rb3gen2-ia-sndcard";
 	model = "qcm6490-rb3-ia-snd-card";
