@@ -1070,18 +1070,13 @@ static int viommu_fill_evtq(struct viommu_dev *viommu)
 	return 0;
 }
 
-static int viommu_probe(struct virtio_device *vdev)
+int viommu_probe_common(struct virtio_device *vdev)
 {
-	struct device *parent_dev = vdev->dev.parent;
 	struct viommu_dev *viommu = NULL;
 	struct device *dev = &vdev->dev;
 	u64 input_start = 0;
 	u64 input_end = -1UL;
 	int ret;
-
-	if (!virtio_has_feature(vdev, VIRTIO_F_VERSION_1) ||
-	    !virtio_has_feature(vdev, VIRTIO_IOMMU_F_MAP_UNMAP))
-		return -ENODEV;
 
 	viommu = devm_kzalloc(dev, sizeof(*viommu), GFP_KERNEL);
 	if (!viommu)
@@ -1147,13 +1142,6 @@ static int viommu_probe(struct virtio_device *vdev)
 	if (ret)
 		goto err_free_vqs;
 
-	ret = iommu_device_sysfs_add(&viommu->iommu, dev, NULL, "%s",
-				     virtio_bus_name(vdev));
-	if (ret)
-		goto err_free_vqs;
-
-	iommu_device_register(&viommu->iommu, &viommu_ops, parent_dev);
-
 	vdev->priv = viommu;
 
 	dev_info(dev, "input address: %u bits\n",
@@ -1165,6 +1153,34 @@ static int viommu_probe(struct virtio_device *vdev)
 err_free_vqs:
 	vdev->config->del_vqs(vdev);
 
+	return ret;
+}
+
+static int viommu_probe(struct virtio_device *vdev)
+{
+	struct viommu_dev *viommu;
+	int ret;
+
+	if (!virtio_has_feature(vdev, VIRTIO_F_VERSION_1) ||
+	    !virtio_has_feature(vdev, VIRTIO_IOMMU_F_MAP_UNMAP))
+		return -ENODEV;
+
+	ret = viommu_probe_common(vdev);
+	if (ret)
+		return ret;
+
+	viommu = (struct viommu_dev *)vdev->priv;
+	ret = iommu_device_sysfs_add(&viommu->iommu, &vdev->dev, NULL, "%s",
+				     virtio_bus_name(vdev));
+	if (ret)
+		goto err;
+
+	iommu_device_register(&viommu->iommu, &viommu_ops, vdev->dev.parent);
+	return 0;
+
+err:
+	virtio_reset_device(vdev);
+	vdev->config->del_vqs(vdev);
 	return ret;
 }
 

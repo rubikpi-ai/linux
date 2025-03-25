@@ -34,5 +34,8 @@ struct viommu_dev {
 	u32				map_flags;
 	u32				probe_size;
 };
+
+int viommu_probe_common(struct virtio_device *vdev);
+
 #endif /* _LINUX_VIRTIO_IOMMU_QCOM_H */
 
