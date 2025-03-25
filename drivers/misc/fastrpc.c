@@ -1359,23 +1359,6 @@ static int fastrpc_get_spd_session(struct fastrpc_channel_ctx *cctx,
 	return session;
 }
 
-static int fastrpc_check_pd_status(struct fastrpc_user *fl,
-				char *servloc_name)
-{
-	int session = -1;
-
-	if (fl->servloc_name && servloc_name
-		&& !strcmp(fl->servloc_name, servloc_name)) {
-		session = fastrpc_get_spd_session(fl->cctx, servloc_name);
-		if (session < 0)
-			return -EUSERS;
-		if (atomic_read(&fl->cctx->spd[session].ispdup) == 0)
-			return -ENOTCONN;
-	}
-
-	return 0;
-}
-
 static void fastrpc_update_invoke_count(u32 handle, u64 *perf_counter,
 					struct timespec64 *invoket)
 {
@@ -1505,17 +1488,6 @@ static int fastrpc_internal_invoke(struct fastrpc_user *fl,
 	ctx = fastrpc_context_alloc(fl, kernel, sc, inv2);
 	if (IS_ERR(ctx))
 		return PTR_ERR(ctx);
-
-	if (fl->servloc_name) {
-		err = fastrpc_check_pd_status(fl,
-			AUDIO_PDR_SERVICE_LOCATION_CLIENT_NAME);
-		err |= fastrpc_check_pd_status(fl,
-			SENSORS_PDR_ADSP_SERVICE_LOCATION_CLIENT_NAME);
-		err |= fastrpc_check_pd_status(fl,
-			SENSORS_PDR_SLPI_SERVICE_LOCATION_CLIENT_NAME);
-		if (err)
-			goto bail;
-	}
 
 	PERF(ctx->perf_kernel, GET_COUNTER((u64 *)ctx->perf, PERF_GETARGS),
 	err = fastrpc_get_args(kernel, ctx);
