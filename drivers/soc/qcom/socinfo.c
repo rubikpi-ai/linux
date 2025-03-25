@@ -154,6 +154,7 @@ struct socinfo_params {
 	u32 boot_core;
 	u32 raw_package_type;
 	u32 nsubpart_feat_array_offset;
+	u32 ncluster_cores_array_offset;
 };
 
 struct smem_image_version {
@@ -599,6 +600,7 @@ static void socinfo_debugfs_init(struct qcom_socinfo *qcom_socinfo,
 			   &qcom_socinfo->info.fmt);
 
 	switch (qcom_socinfo->info.fmt) {
+	case SOCINFO_VERSION(0, 22):
 	case SOCINFO_VERSION(0, 21):
 	case SOCINFO_VERSION(0, 20):
 		qcom_socinfo->info.raw_package_type = __le32_to_cpu(info->raw_package_type);
