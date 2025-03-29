@@ -2691,6 +2691,12 @@ static struct iommu_device *arm_smmu_probe_device(struct device *dev)
 	if (!smmu)
 		return ERR_PTR(-ENODEV);
 
+	if (smmu->impl_ops && smmu->impl_ops->probe_device) {
+		ret = smmu->impl_ops->probe_device(smmu, dev);
+		if (ret)
+			return ERR_PTR(ret);
+	}
+
 	master = kzalloc(sizeof(*master), GFP_KERNEL);
 	if (!master)
 		return ERR_PTR(-ENOMEM);
@@ -3115,7 +3121,7 @@ static int arm_smmu_init_strtab(struct arm_smmu_device *smmu)
 	return 0;
 }
 
-static int arm_smmu_init_structures(struct arm_smmu_device *smmu)
+int arm_smmu_init_structures(struct arm_smmu_device *smmu)
 {
 	int ret;
 
@@ -3469,7 +3475,10 @@ static void arm_smmu_device_iidr_probe(struct arm_smmu_device *smmu)
 	u32 reg;
 	unsigned int implementer, productid, variant, revision;
 
-	reg = readl_relaxed(smmu->base + ARM_SMMU_IIDR);
+	if (smmu->impl_ops && smmu->impl_ops->read_idr)
+		reg = smmu->impl_ops->read_idr(smmu, ARM_SMMU_IIDR);
+	else
+		reg = readl_relaxed(smmu->base + ARM_SMMU_IIDR);
 	implementer = FIELD_GET(IIDR_IMPLEMENTER, reg);
 	productid = FIELD_GET(IIDR_PRODUCTID, reg);
 	variant = FIELD_GET(IIDR_VARIANT, reg);
@@ -3498,13 +3507,16 @@ static void arm_smmu_device_iidr_probe(struct arm_smmu_device *smmu)
 	}
 }
 
-static int arm_smmu_device_hw_probe(struct arm_smmu_device *smmu)
+int arm_smmu_device_hw_probe(struct arm_smmu_device *smmu)
 {
 	u32 reg;
 	bool coherent = smmu->features & ARM_SMMU_FEAT_COHERENCY;
 
 	/* IDR0 */
-	reg = readl_relaxed(smmu->base + ARM_SMMU_IDR0);
+	if (smmu->impl_ops && smmu->impl_ops->read_idr)
+		reg = smmu->impl_ops->read_idr(smmu, ARM_SMMU_IDR0);
+	else
+		reg = readl_relaxed(smmu->base + ARM_SMMU_IDR0);
 
 	/* 2-level structures */
 	if (FIELD_GET(IDR0_ST_LVL, reg) == IDR0_ST_LVL_2LVL)
@@ -3602,7 +3614,10 @@ static int arm_smmu_device_hw_probe(struct arm_smmu_device *smmu)
 	smmu->vmid_bits = reg & IDR0_VMID16 ? 16 : 8;
 
 	/* IDR1 */
-	reg = readl_relaxed(smmu->base + ARM_SMMU_IDR1);
+	if (smmu->impl_ops && smmu->impl_ops->read_idr)
+		reg = smmu->impl_ops->read_idr(smmu, ARM_SMMU_IDR1);
+	else
+		reg = readl_relaxed(smmu->base + ARM_SMMU_IDR1);
 	if (reg & (IDR1_TABLES_PRESET | IDR1_QUEUES_PRESET | IDR1_REL)) {
 		dev_err(smmu->dev, "embedded implementation not supported\n");
 		return -ENXIO;
@@ -3641,12 +3656,18 @@ static int arm_smmu_device_hw_probe(struct arm_smmu_device *smmu)
 		smmu->features &= ~ARM_SMMU_FEAT_2_LVL_STRTAB;
 
 	/* IDR3 */
-	reg = readl_relaxed(smmu->base + ARM_SMMU_IDR3);
+	if (smmu->impl_ops && smmu->impl_ops->read_idr)
+		reg = smmu->impl_ops->read_idr(smmu, ARM_SMMU_IDR3);
+	else
+		reg = readl_relaxed(smmu->base + ARM_SMMU_IDR3);
 	if (FIELD_GET(IDR3_RIL, reg))
 		smmu->features |= ARM_SMMU_FEAT_RANGE_INV;
 
 	/* IDR5 */
-	reg = readl_relaxed(smmu->base + ARM_SMMU_IDR5);
+	if (smmu->impl_ops && smmu->impl_ops->read_idr)
+		reg = smmu->impl_ops->read_idr(smmu, ARM_SMMU_IDR5);
+	else
+		reg = readl_relaxed(smmu->base + ARM_SMMU_IDR5);
 
 	/* Maximum number of outstanding stalls */
 	smmu->evtq.max_stalls = FIELD_GET(IDR5_STALL_MAX, reg);

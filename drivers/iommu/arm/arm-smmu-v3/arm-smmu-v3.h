@@ -13,6 +13,7 @@
 #include <linux/kernel.h>
 #include <linux/mmzone.h>
 #include <linux/sizes.h>
+#include <linux/platform_device.h>
 #include <linux/virtio-iommu.h>
 #include <linux/platform_device.h>
 
@@ -628,6 +629,8 @@ struct arm_smmu_impl_ops {
 	int (*device_reset)(struct arm_smmu_device *smmu);
 	void (*device_remove)(struct arm_smmu_device *smmu);
 	struct arm_smmu_cmdq *(*get_secondary_cmdq)(struct arm_smmu_device *smmu);
+	int (*probe_device)(struct arm_smmu_device *smmu, struct device *dev);
+	u32 (*read_idr)(struct arm_smmu_device *smmu, u32 offset);
 };
 
 /* An SMMUv3 instance */
@@ -771,6 +774,8 @@ int arm_smmu_atc_inv_domain(struct arm_smmu_domain *smmu_domain, int ssid,
 
 int arm_smmu_device_dt_probe(struct platform_device *pdev,
 			     struct arm_smmu_device *smmu);
+int arm_smmu_device_hw_probe(struct arm_smmu_device *smmu);
+int arm_smmu_init_structures(struct arm_smmu_device *smmu);
 
 #ifdef CONFIG_ARM_SMMU_V3_SVA
 bool arm_smmu_sva_supported(struct arm_smmu_device *smmu);

@@ -10,12 +10,183 @@
 #include "arm-smmu-v3.h"
 #include "../../iommu-sva.h"
 
+/*
+ * @probe_complete:
+ * A positive number if arm_smmu_init_structures() has completed successfully,
+ * and client devices can be added. Negative on error. Zero otherwise.
+ */
 struct arm_vsmmu_device {
 	struct arm_smmu_device smmu;
 	struct viommu_dev *viommu;
+	int probe_complete;
+	u32 idr[ARM_SMMU_IIDR/sizeof(u32) + 1];
 };
 
 #define ARM_VSMMU_DRIVER_NAME "arm-smmu-v3-virtio-pdev"
+
+static const char * const probe_t_field_names[] = {
+	"IDR0",
+	"IDR1",
+	NULL, /* Reserved */
+	"IDR3",
+	NULL, /* Reserved */
+	"IDR5",
+};
+
+/*
+ * Ideally we would call arm_smmu_device_hw_probe & arm_smmu_init_structures
+ * from arm_smm_virtio_device_probe. However, we don't know the idr register
+ * values until after a client device calls ops->probe_device.
+ *
+ * An alternate implementation would be to call VIRTIO_IOMMU_T_PROBE with
+ * incrementing endpoint ids until one returns successfully.
+ */
+static int arm_vsmmu_impl_probe_t_hw_arm_smmu3(struct arm_smmu_device *smmu, struct device *dev,
+		struct virtio_iommu_probe_hw_arm_smmu3 *prop)
+{
+	struct arm_vsmmu_device *vsmmu = container_of(smmu, struct arm_vsmmu_device, smmu);
+	int ret, i;
+	u32 idr[ARRAY_SIZE(vsmmu->idr)] = {0};
+
+
+	idr[0] = __le64_to_cpu(prop->idr0);
+	idr[1] = __le64_to_cpu(prop->idr1);
+	idr[3] = __le64_to_cpu(prop->idr3);
+	idr[5] = __le64_to_cpu(prop->idr5);
+
+	mutex_lock(&smmu->streams_mutex);
+	if (vsmmu->probe_complete) {
+		mutex_unlock(&smmu->streams_mutex);
+
+		if (vsmmu->probe_complete < 0)
+			return vsmmu->probe_complete;
+
+		if (WARN(memcmp(idr, vsmmu->idr, sizeof(vsmmu->idr)),
+				"%s Unexpected idr value %#x %#x %#x %#x\n",
+				dev_name(dev), idr[0], idr[1], idr[3], idr[5]))
+			return -EINVAL;
+		return 0;
+	}
+
+	vsmmu->idr[0] = idr[0];
+	vsmmu->idr[1] = idr[1];
+	vsmmu->idr[3] = idr[3];
+	vsmmu->idr[5] = idr[5];
+
+	dev_info(smmu->dev, "Detected configuration:\n");
+	for (i = 0; i < ARRAY_SIZE(probe_t_field_names); i++)
+		if (probe_t_field_names[i])
+			pr_info(" %s: %#x\n", probe_t_field_names[i], vsmmu->idr[i]);
+
+	/* Now that idr registers are known, finish setting up the hardware */
+	ret = arm_smmu_device_hw_probe(smmu);
+	if (ret)
+		goto out_unlock;
+
+	/* Initialise in-memory data structures */
+	ret = arm_smmu_init_structures(smmu);
+	if (ret)
+		goto out_unlock;
+
+out_unlock:
+	vsmmu->probe_complete = ret ? ret : true;
+	mutex_unlock(&smmu->streams_mutex);
+	return ret;
+}
+
+/*
+ * Based on viommu_probe_endpoint() from virtio-iommu.c.
+ * Deltas:
+ * dev_iommu_priv_get() is not a 'struct viommu_endpoint'
+ * PROBE_T_RESV_MEM unsupported
+ */
+static int arm_vsmmu_impl_probe_device(struct arm_smmu_device *smmu, struct device *dev)
+{
+	int ret;
+	u16 type, len;
+	size_t cur = 0;
+	size_t probe_len;
+	struct virtio_iommu_req_probe *probe;
+	struct virtio_iommu_probe_property *prop;
+	struct iommu_fwspec *fwspec = dev_iommu_fwspec_get(dev);
+	struct viommu_dev *viommu = dev_to_virtio(smmu->dev->parent)->priv;
+
+	if (!fwspec->num_ids)
+		return -EINVAL;
+
+	probe_len = sizeof(*probe) + viommu->probe_size +
+		    sizeof(struct virtio_iommu_req_tail);
+	probe = kzalloc(probe_len, GFP_KERNEL);
+	if (!probe)
+		return -ENOMEM;
+
+	probe->head.type = VIRTIO_IOMMU_T_PROBE;
+	/*
+	 * For now, assume that properties of an endpoint that outputs multiple
+	 * IDs are consistent. Only probe the first one.
+	 */
+	probe->endpoint = cpu_to_le32(fwspec->ids[0]);
+
+	ret = viommu_send_req_sync(viommu, probe, probe_len);
+	if (ret)
+		goto out_free;
+
+	prop = (void *)probe->properties;
+	type = le16_to_cpu(prop->type) & VIRTIO_IOMMU_PROBE_T_MASK;
+
+	while (type != VIRTIO_IOMMU_PROBE_T_NONE &&
+	       cur < viommu->probe_size) {
+		len = le16_to_cpu(prop->length) + sizeof(*prop);
+
+		switch (type) {
+		case VIRTIO_IOMMU_PROBE_T_RESV_MEM:
+			/* ignore */
+			break;
+		case VIRTIO_IOMMU_PROBE_T_HW_ARM_SMMU3:
+			ret = arm_vsmmu_impl_probe_t_hw_arm_smmu3(smmu, dev, (void *)prop);
+			break;
+		default:
+			dev_err(dev, "unknown viommu prop 0x%x\n", type);
+		}
+
+		if (ret) {
+			dev_err(dev, "failed to parse viommu prop 0x%x\n", type);
+			goto out_free;
+		}
+
+		cur += len;
+		if (cur >= viommu->probe_size)
+			break;
+
+		prop = (void *)probe->properties + cur;
+		type = le16_to_cpu(prop->type) & VIRTIO_IOMMU_PROBE_T_MASK;
+	}
+
+out_free:
+	kfree(probe);
+	return ret;
+}
+
+static u32 arm_vsmmu_impl_read_idr(struct arm_smmu_device *smmu, u32 offset)
+{
+	struct arm_vsmmu_device *vsmmu;
+	u32 index;
+	u32 val;
+
+	vsmmu = container_of(smmu, struct arm_vsmmu_device, smmu);
+
+	index = offset / sizeof(*vsmmu->idr);
+	if (WARN(index >= ARRAY_SIZE(vsmmu->idr), "Unexpected idr offset: %x\n", offset))
+		return 0;
+
+	val = vsmmu->idr[index];
+	return val;
+}
+
+static const struct arm_smmu_impl_ops vsmmu_impl_ops = {
+	.read_idr = arm_vsmmu_impl_read_idr,
+	.probe_device = arm_vsmmu_impl_probe_device,
+};
 
 static int arm_smmu_virtio_device_probe(struct virtio_device *vdev)
 {
@@ -160,6 +331,7 @@ static int arm_vsmmu_device_probe(struct platform_device *pdev)
 	smmu->dev = dev;
 	smmu->options |= ARM_SMMU_OPT_VIRTIO;
 	smmu->options |= ARM_SMMU_OPT_SKIP_PREFETCH;
+	smmu->impl_ops = &vsmmu_impl_ops;
 
 	ret = arm_smmu_device_dt_probe(pdev, smmu);
 	if (ret)
