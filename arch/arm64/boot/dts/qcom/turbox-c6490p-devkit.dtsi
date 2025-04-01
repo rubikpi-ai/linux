@@ -1399,9 +1399,6 @@
 		reg = <2>;
 		color = <LED_COLOR_ID_GREEN>;
 		label = "green";
-		linux,default-trigger = "heartbeat";
-		linux,default-brightness = <5>;
-		default-state = "on";
 	};
 };
 
