@@ -692,6 +692,10 @@ static int pcie_portdrv_probe(struct pci_dev *dev,
 	if (type == PCI_EXP_TYPE_RC_EC)
 		pcie_link_rcec(dev);
 
+	status = of_pci_setup_wake_irq(dev);
+	if (status)
+		return status;
+
 	status = pcie_port_device_register(dev);
 	if (status)
 		return status;
@@ -724,6 +728,8 @@ static void pcie_portdrv_remove(struct pci_dev *dev)
 		pm_runtime_get_noresume(&dev->dev);
 		pm_runtime_dont_use_autosuspend(&dev->dev);
 	}
+
+	of_pci_teardown_wake_irq(dev);
 
 	pcie_port_device_remove(dev);
 
