@@ -56,6 +56,41 @@ struct eud_cfg {
 	bool secure_eud_en;
 };
 
+/**
+ * qcom_eud_vbus_control() - check if the role switch notification is sent
+ * for vbus control.
+ * @sw: The role switch handler that sent the notification.
+ *
+ * EUD driver uses role switch to notify different events like Vbus toggle,
+ * USB attach/detach to the usb controller. Vbus toggle event should be
+ * performed only when the USB is operating in HS mode. To differentiate
+ * between these events, the controller driver can invoke this function and
+ * query if the role swicth notification is sent for Vbus control event.
+ *
+ * Returns either true or false.
+ */
+bool qcom_eud_vbus_control(struct usb_role_switch *sw)
+{
+	struct eud_chip *chip;
+	const char *name;
+
+	if (IS_ERR_OR_NULL(sw))
+		return false;
+
+	chip = usb_role_switch_get_drvdata(sw);
+
+	if (!chip)
+		return false;
+
+	/* Ensure that the dev belongs to eud driver */
+	name = dev_driver_string(chip->dev);
+	if (strcmp(name, "qcom_eud"))
+		return false;
+
+	return chip->vbus_control;
+}
+EXPORT_SYMBOL_GPL(qcom_eud_vbus_control);
+
 static int eud_phy_enable(struct eud_chip *chip)
 {
 	int ret;
