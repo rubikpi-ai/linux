@@ -681,7 +681,7 @@ int qcom_scm_assign_dump_table_region(bool is_assign, phys_addr_t addr, size_t s
 	struct qcom_scm_desc desc = {
 		.svc = QCOM_SCM_SVC_UTIL,
 		.cmd = QCOM_SCM_UTIL_DUMP_TABLE_ASSIGN,
-		.arginfo = QCOM_SCM_ARGS(3, QCOM_SCM_VAL, QCOM_SCM_RW, QCOM_SCM_VAL),
+		.arginfo = QCOM_SCM_ARGS(3, QCOM_SCM_VAL, QCOM_SCM_VAL, QCOM_SCM_VAL),
 		.owner = ARM_SMCCC_OWNER_SIP,
 		.args[0] = is_assign,
 		.args[1] = addr,
