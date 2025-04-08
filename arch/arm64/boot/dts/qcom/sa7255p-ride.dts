@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 /dts-v1/;
@@ -20,6 +20,7 @@
 		i2c8 = &i2c8;
 		i2c15 = &i2c15;
 		serial0 = &uart7;
+		serial1 = &uart12;
 		spi10 = &spi10;
 		scmichannels = &scmichannels;
 		ufshc1 = &ufs_mem_hc;
@@ -135,6 +136,13 @@
 
 &uart7 {
 	power-domains = <&scmi11_pd 7>, <&scmi11_dvfs 7>;
+	power-domain-names = "power", "perf";
+
+	status = "okay";
+};
+
+&uart12 {
+	power-domains = <&scmi11_pd 12>, <&scmi11_dvfs 12>;
 	power-domain-names = "power", "perf";
 
 	status = "okay";
