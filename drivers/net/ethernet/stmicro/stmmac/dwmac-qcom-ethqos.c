@@ -899,8 +899,8 @@ static void ethqos_fix_mac_speed(void *priv_n, unsigned int speed, unsigned int 
 	ethqos->speed = speed;
 	ethqos_update_link_clk(ethqos, speed);
 	ethqos_configure(ethqos);
-	if (priv->plat->qcom_pcs)
-		qcom_xpcs_link_up(priv->plat->qcom_pcs, mode,
+	if (priv->hw->qcom_pcs)
+		qcom_xpcs_link_up(priv->hw->qcom_pcs, mode,
 				  priv->plat->phy_interface, speed,
 				  DUPLEX_FULL);
 }
@@ -1014,10 +1014,27 @@ static void qcom_ethqos_hdma_cfg(struct plat_stmmacenet_data *plat)
 	plat->dma_cfg->rx_pdma_map[11] = 7;
 }
 
+static int ethqos_xpcs_init(struct stmmac_priv *priv)
+{
+	struct device_node *xpcs_node;
+
+	xpcs_node = of_parse_phandle(priv->device->of_node, "qcom-xpcs-handle", 0);
+
+	priv->hw->qcom_pcs = qcom_xpcs_create(xpcs_node, priv->plat->phy_interface);
+	if (IS_ERR_OR_NULL(priv->hw->qcom_pcs))
+		return -ENODEV;
+
+	return 0;
+}
+
+static void ethqos_xpcs_exit(struct stmmac_priv *priv)
+{
+	qcom_xpcs_destroy(priv->hw->qcom_pcs);
+}
+
 static int qcom_ethqos_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node, *root;
-	struct device_node *pcs_node;
 	const struct ethqos_emac_driver_data *data;
 	struct plat_stmmacenet_data *plat_dat;
 	struct stmmac_resources stmmac_res;
@@ -1136,6 +1153,10 @@ static int qcom_ethqos_probe(struct platform_device *pdev)
 		if (plat_dat->has_hdma)
 			qcom_ethqos_hdma_cfg(plat_dat);
 	}
+	if (of_property_present(dev->of_node, "qcom-xpcs-handle")) {
+		plat_dat->pcs_init = ethqos_xpcs_init;
+		plat_dat->pcs_exit = ethqos_xpcs_exit;
+	}
 	if (of_property_read_bool(np, "snps,tso"))
 		plat_dat->flags |= STMMAC_FLAG_TSO_EN;
 	if (of_device_is_compatible(np, "qcom,qcs404-ethqos"))
@@ -1148,15 +1169,6 @@ static int qcom_ethqos_probe(struct platform_device *pdev)
 	if (ethqos->serdes_phy) {
 		plat_dat->serdes_powerup = qcom_ethqos_serdes_powerup;
 		plat_dat->serdes_powerdown  = qcom_ethqos_serdes_powerdown;
-	}
-
-	if (of_property_present(dev->of_node, "qcom-xpcs-handle")) {
-		pcs_node = of_parse_phandle(dev->of_node, "qcom-xpcs-handle", 0);
-		plat_dat->qcom_pcs = qcom_xpcs_create(pcs_node, plat_dat->phy_interface);
-		if (IS_ERR_OR_NULL(plat_dat->qcom_pcs)) {
-			dev_warn(dev, "Qcom Xpcs not found\n");
-			return -ENODEV;
-		}
 	}
 
 	/* Enable TSO on queue0 and enable TBS on rest of the queues */

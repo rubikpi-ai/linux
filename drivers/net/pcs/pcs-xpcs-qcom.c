@@ -711,11 +711,12 @@ out:
 EXPORT_SYMBOL_GPL(qcom_xpcs_create);
 
 /* Power off the DWC_xpcs controller */
-void qcom_xpcs_destroy(struct dw_xpcs_qcom *qxpcs)
+void qcom_xpcs_destroy(struct phylink_pcs *pcs)
 {
 	int i, ret;
 	u32 xpcs_id;
 	const struct xpcs_compat *compat;
+	struct dw_xpcs_qcom *qxpcs = phylink_pcs_to_xpcs(pcs);
 
 	xpcs_id = xpcs_get_id(qxpcs);
 	if (xpcs_id == 0xffffffff) {
