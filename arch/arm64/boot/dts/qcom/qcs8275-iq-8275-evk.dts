@@ -9,6 +9,9 @@
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
 #include "qcs8300.dtsi"
 #include "qcs8300-pmics.dtsi"
+
+/delete-node/ &usb_1_dwc3;
+
 / {
 	model = "Qualcomm Technologies, Inc. IQ 8275 EVK";
 	compatible = "qcom,qcs8275-iq-8275-evk", "qcom,qcs8275", "qcom,qcs8300";
@@ -400,12 +403,36 @@
 };
 
 &usb_1 {
-	status = "okay";
-};
+	reg = <0x0 0x0a600000 0x0 0x20000>;
 
-&usb_1_dwc3 {
+	interrupts-extended = <&intc GIC_SPI 292 IRQ_TYPE_LEVEL_HIGH>,
+			      <&intc GIC_SPI 131 IRQ_TYPE_LEVEL_HIGH>,
+			      <&pdc 14 IRQ_TYPE_EDGE_BOTH>,
+			      <&pdc 15 IRQ_TYPE_EDGE_BOTH>,
+			      <&pdc 12 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-names = "dwc_usb3",
+			  "pwr_event",
+			  "dp_hs_phy_irq",
+			  "dm_hs_phy_irq",
+			  "ss_phy_irq";
+
+	iommus = <&apps_smmu 0x80 0x0>;
+	snps,dis_u2_susphy_quirk;
+	snps,dis_enblslpm_quirk;
+	phys = <&usb_1_hsphy>, <&usb_qmpphy>;
+	phy-names = "usb2-phy", "usb3-phy";
+	maximum-speed = "super-speed-plus";
+	role-switch;
+
 	usb-role-switch;
 	dr_mode = "peripheral";
+	status = "okay";
+
+	port {
+		usb1_role_switch: endpoint {
+			remote-endpoint = <&eud_ep>;
+		};
+	};
 };
 
 &usb_1_hsphy {
