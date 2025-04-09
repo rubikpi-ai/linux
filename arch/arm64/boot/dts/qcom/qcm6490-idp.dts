@@ -663,6 +663,14 @@
 	};
 };
 
+&gpu {
+	status = "okay";
+};
+
+&gpu_zap_shader {
+	firmware-name = "qcom/qcm6490/a660_zap.mbn";
+};
+
 &pm7250b_gpios {
 	lcd_disp_bias_en: lcd-disp-bias-en-state {
 		pins = "gpio2";
