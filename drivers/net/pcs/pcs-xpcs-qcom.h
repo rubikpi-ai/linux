@@ -2,7 +2,7 @@
 /*
  * Synopsys DesignWare XPCS platform device driver
  *
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/pcs-xpcs-qcom.h>
@@ -20,6 +20,13 @@
 #define DW_VR_XS_PCS_DIG_STS		0x2040 /* SWI name: EMAC0_VR_XS_PCS_DIG_STS */
 #define DW_RXFIFO_ERR			GENMASK(6, 5)
 #define DW_R2TLBE				BIT(14)
+#define DW_SR_XS_PCS_STS1		BIT(2)
+
+/* SWI name: EMAC0_VR_XS_PCS_SFTY_UE_INTR0 */
+#define DW_VR_XS_PCS_SFTY_UE_INTR0		0x23C0
+/* SWI name EMAC0_VR_XS_PCS_SFTY_DISABLE*/
+#define DW_VR_XS_PCS_SFTY_DISABLE		0x23D0
+
 
 /* SR_MII */
 #define DW_FULL_DUPLEX			BIT(8)

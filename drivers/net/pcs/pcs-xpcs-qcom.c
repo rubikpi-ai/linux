@@ -147,6 +147,22 @@ static int qcom_xpcs_poll_reset(struct dw_xpcs_qcom *qxpcs, unsigned int offset,
 	return (ret & field) ? -ETIMEDOUT : 0;
 }
 
+static int qcom_xpcs_poll_bit_set(struct dw_xpcs_qcom *qxpcs, unsigned int offset,
+				  unsigned int field)
+{
+	unsigned int retries = 256;
+	int ret;
+
+	do {
+		usleep_range(1000, 2000);
+		ret = qcom_xpcs_read(qxpcs, offset);
+		if (ret & field)
+			return 0;
+	} while (--retries);
+
+	return -ETIMEDOUT;
+}
+
 static int xpcs_soft_reset(struct dw_xpcs_qcom *qxpcs,
 			   const struct xpcs_compat *compat)
 {
@@ -242,8 +258,28 @@ static int qcom_xpcs_reset_usxgmii(struct dw_xpcs_qcom *qxpcs)
 
 	qcom_xpcs_write(qxpcs, DW_VR_MII_PCS_DIG_CTRL1, ret | DW_USXGMII_RST);
 
-	if (!qxpcs->intr_en)
-		return qcom_xpcs_poll_reset(qxpcs, DW_VR_MII_PCS_DIG_CTRL1, USXG_RST_BIT_STATUS);
+	if (!qxpcs->intr_en) {
+		ret = qcom_xpcs_poll_reset(qxpcs, DW_VR_MII_PCS_DIG_CTRL1, USXG_RST_BIT_STATUS);
+
+		if (ret < 0)
+			return ret;
+
+		switch (qxpcs->phy_interface) {
+		case PHY_INTERFACE_MODE_USXGMII:
+			ret = qcom_xpcs_poll_bit_set(qxpcs,
+						     DW_SR_MII_MMD_STS, DW_SR_MII_STS_LINK_STS);
+			if (ret < 0)
+				return ret;
+			fallthrough;
+		case PHY_INTERFACE_MODE_10GBASER:
+		case PHY_INTERFACE_MODE_5GBASER:
+			ret = qcom_xpcs_poll_bit_set(qxpcs,
+						     DW_SR_MII_PCS_STS1, DW_SR_XS_PCS_STS1);
+			if (ret < 0)
+				return ret;
+		}
+		return ret;
+	}
 
 	return qcom_xpcs_poll_reset_usxgmii(qxpcs, DW_VR_MII_PCS_DIG_CTRL1, USXG_RST_BIT_STATUS);
 }
@@ -449,6 +485,86 @@ static void qcom_xpcs_get_state(struct phylink_pcs *pcs,
 	}
 }
 
+irqreturn_t qcom_xpcs_fusa_isr(int irq, void *dev_data)
+{
+	struct dw_xpcs_qcom *qxpcs = (struct dw_xpcs_qcom *)dev_data;
+	int ret, linksts, remotelinksts;
+
+	ret = qcom_xpcs_read(qxpcs, DW_VR_XS_PCS_SFTY_UE_INTR0);
+
+	/* PCS fusa is valid only when link is up */
+	switch (qxpcs->phy_interface) {
+	case PHY_INTERFACE_MODE_USXGMII:
+		remotelinksts = qcom_xpcs_read(qxpcs, DW_SR_MII_MMD_STS);
+		if (!(remotelinksts & DW_SR_MII_STS_LINK_STS))
+			return IRQ_NONE;
+		fallthrough;
+	case PHY_INTERFACE_MODE_10GBASER:
+	case PHY_INTERFACE_MODE_5GBASER:
+		linksts = qcom_xpcs_read(qxpcs, DW_SR_MII_PCS_STS1);
+		if (!(linksts & DW_SR_XS_PCS_STS1))
+			return IRQ_NONE;
+	}
+
+	if (ret > 0) {
+		pr_debug("Fusa XPCS IRQ %d\n", ret);
+		qxpcs->pcs_fusa_error_count++;
+		qcom_xpcs_write(qxpcs, DW_VR_XS_PCS_SFTY_UE_INTR0, 0x0);
+		return IRQ_HANDLED;
+	}
+
+	return IRQ_NONE;
+}
+
+static int qcom_xpcs_fusa_intr_enable(struct dw_xpcs_qcom *qxpcs)
+{
+	int ret = 0;
+
+	ret = request_irq(qxpcs->pcs_fusa_intr, qcom_xpcs_fusa_isr,
+			  IRQF_SHARED, "xpcs-fusa", qxpcs);
+	if (ret)
+		pr_err("Unable to register XPCS IRQ %d\n",
+		       qxpcs->pcs_fusa_intr);
+
+	return ret;
+}
+
+static void qcom_xpcs_fusa_intr_disable(struct dw_xpcs_qcom *qxpcs)
+{
+	if (qxpcs->pcs_fusa_intr) {
+		free_irq(qxpcs->pcs_fusa_intr, qxpcs);
+		qxpcs->pcs_fusa_error_count = 0x0;
+		qcom_xpcs_write(qxpcs, DW_VR_XS_PCS_SFTY_DISABLE, 0x1);
+	}
+}
+
+static int qcom_xpcs_enable(struct phylink_pcs *pcs)
+{
+	struct dw_xpcs_qcom *qxpcs = phylink_pcs_to_xpcs(pcs);
+	int ret = 0;
+
+	if (qxpcs->pcs_fusa_intr)
+		ret = qcom_xpcs_fusa_intr_enable(qxpcs);
+
+	return ret;
+}
+
+static void qcom_xpcs_disable(struct phylink_pcs *pcs)
+{
+	struct dw_xpcs_qcom *qxpcs = phylink_pcs_to_xpcs(pcs);
+
+	if (qxpcs->pcs_fusa_intr)
+		qcom_xpcs_fusa_intr_disable(qxpcs);
+}
+
+void qcom_xpcs_get_err_stats(struct phylink_pcs *pcs, unsigned long *ptr)
+{
+	struct dw_xpcs_qcom *qxpcs = phylink_pcs_to_xpcs(pcs);
+
+	*ptr = qxpcs->pcs_fusa_error_count;
+}
+EXPORT_SYMBOL_GPL(qcom_xpcs_get_err_stats);
+
 void qcom_xpcs_link_up_usxgmii(struct dw_xpcs_qcom *qxpcs, int speed)
 {
 	int mmd_ctrl;
@@ -527,6 +643,12 @@ void qcom_xpcs_link_up_usxgmii(struct dw_xpcs_qcom *qxpcs, int speed)
 	if (mmd_ctrl < 0)
 		goto out;
 
+	if (qxpcs->pcs_fusa_intr) {
+		/* enable PCS FUSA only when link is up*/
+		qcom_xpcs_write(qxpcs, DW_VR_XS_PCS_SFTY_DISABLE, 0x0);
+		/* Reset Fusa Error for all Link down/up */
+		qxpcs->pcs_fusa_error_count = 0x0;
+	}
 	XPCSINFO("USXGMII link is up\n");
 	return;
 read_err:
@@ -677,6 +799,8 @@ static const struct phylink_pcs_ops qcom_xpcs_phylink_ops = {
 	.pcs_validate = qcom_xpcs_validate,
 	.pcs_config = qcom_xpcs_config,
 	.pcs_get_state = qcom_xpcs_get_state,
+	.pcs_enable = qcom_xpcs_enable,
+	.pcs_disable = qcom_xpcs_disable,
 };
 
 struct phylink_pcs *qcom_xpcs_create(struct device_node *np, phy_interface_t interface)
@@ -867,6 +991,10 @@ static int qcom_xpcs_probe(struct platform_device *pdev)
 		else
 			qxpcs->intr_en = true;
 	}
+
+	qxpcs->pcs_fusa_intr = platform_get_irq_byname_optional(pdev, "sfty");
+	if (qxpcs->pcs_fusa_intr < 0)
+		pr_info("XPCS FUSA IRQ is not enabled\n");
 
 	platform_set_drvdata(pdev, qxpcs);
 
