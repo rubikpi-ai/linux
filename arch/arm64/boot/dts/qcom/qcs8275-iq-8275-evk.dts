@@ -7,6 +7,7 @@
 
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
 #include "qcs8300.dtsi"
+#include "qcs8300-pmics.dtsi"
 / {
 	model = "Qualcomm Technologies, Inc. IQ 8275 EVK";
 	compatible = "qcom,qcs8275-iq-8275-evk", "qcom,qcs8275", "qcom,qcs8300";
@@ -196,6 +197,15 @@
 	};
 };
 
+&pmm8650au_1_gpios {
+	usb2_en_state: usb2-en-state {
+		pins = "gpio7";
+		function = "normal";
+		output-high;
+		power-source = <0>;
+	};
+};
+
 &qupv3_id_0 {
 	status = "okay";
 };
@@ -231,6 +241,26 @@
 &usb_qmpphy {
 	vdda-phy-supply = <&vreg_l7a>;
 	vdda-pll-supply = <&vreg_l5a>;
+
+	status = "okay";
+};
+
+
+&usb_2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&usb2_en_state>;
+
+	status = "okay";
+};
+
+&usb_2_dwc3 {
+	dr_mode = "host";
+};
+
+&usb_2_hsphy {
+	vdda-pll-supply = <&vreg_l7a>;
+	vdda18-supply = <&vreg_l7c>;
+	vdda33-supply = <&vreg_l9a>;
 
 	status = "okay";
 };
