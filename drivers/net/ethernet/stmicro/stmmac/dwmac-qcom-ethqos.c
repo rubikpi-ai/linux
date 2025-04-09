@@ -887,6 +887,16 @@ static int ethqos_configure(struct qcom_ethqos *ethqos)
 	return ethqos->configure_func(ethqos);
 }
 
+static void ethqos_safety_feature(struct stmmac_priv *priv, bool en)
+{
+	if (priv->sfty_irq > 0) {
+		if (en)
+			enable_irq(priv->sfty_irq);
+		else
+			disable_irq(priv->sfty_irq);
+	}
+}
+
 static void ethqos_fix_mac_speed(void *priv_n, unsigned int speed, unsigned int mode)
 {
 	struct qcom_ethqos *ethqos = priv_n;
@@ -1030,6 +1040,12 @@ static void ethqos_xpcs_exit(struct stmmac_priv *priv)
 	qcom_xpcs_destroy(priv->hw->qcom_pcs);
 }
 
+static void ethqos_xpcs_safety_stats(struct stmmac_priv *priv, unsigned long *ptr)
+{
+	if (priv->sfty_irq > 0)
+		qcom_xpcs_get_err_stats(priv->hw->qcom_pcs, ptr);
+}
+
 static int qcom_ethqos_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node, *root;
@@ -1153,6 +1169,8 @@ static int qcom_ethqos_probe(struct platform_device *pdev)
 	if (of_property_present(dev->of_node, "qcom-xpcs-handle")) {
 		plat_dat->pcs_init = ethqos_xpcs_init;
 		plat_dat->pcs_exit = ethqos_xpcs_exit;
+		plat_dat->safety_irq = ethqos_safety_feature;
+		plat_dat->safety_pcs_stats = ethqos_xpcs_safety_stats;
 	}
 	if (of_property_read_bool(np, "snps,tso"))
 		plat_dat->flags |= STMMAC_FLAG_TSO_EN;
