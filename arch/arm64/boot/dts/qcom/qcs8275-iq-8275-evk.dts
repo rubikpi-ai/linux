@@ -21,6 +21,7 @@
 
 	aliases {
 		serial0 = &uart7;
+		serial1 = &uart2;
 	};
 
 	chosen {
@@ -380,6 +381,18 @@
 		function = "qup1_se7";
 		drive-strength = <2>;
 		bias-pull-up;
+	};
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	status = "okay";
+
+	/* HS UART Instance */
+	bluetooth: bluetooth {
+		compatible = "qcom,wcn6855-bt";
+		pinctrl-names = "default";
+		max-speed = <3200000>;
 	};
 };
 
