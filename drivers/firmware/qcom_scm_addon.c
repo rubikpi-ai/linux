@@ -369,6 +369,20 @@ int qcom_scm_kgsl_init_regs(u32 gpu_req)
 }
 EXPORT_SYMBOL_GPL(qcom_scm_kgsl_init_regs);
 
+int qcom_scm_multi_kgsl_init_regs(u32 gpu_req, u32 cmd)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_GPU,
+		.cmd = cmd,
+		.owner = ARM_SMCCC_OWNER_SIP,
+		.args[0] = gpu_req,
+		.arginfo = QCOM_SCM_ARGS(1),
+	};
+
+	return qcom_scm_call(__scm->dev, &desc, NULL);
+}
+EXPORT_SYMBOL_GPL(qcom_scm_multi_kgsl_init_regs);
+
 int qcom_scm_invoke_smc(phys_addr_t in_buf, size_t in_buf_size,
 		phys_addr_t out_buf, size_t out_buf_size, int32_t *result,
 		u64 *response_type, unsigned int *data)
