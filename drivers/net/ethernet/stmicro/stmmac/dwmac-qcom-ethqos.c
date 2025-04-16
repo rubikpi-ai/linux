@@ -339,13 +339,13 @@ static const struct ethqos_emac_por emac_v4_0_0_por[] = {
 };
 
 static const struct ethqos_emac_por emac_v6_6_0_por[] = {
-	{ .offset = RGMII_IO_MACRO_CONFIG,	.value = 0x40c04c03 },
-	{ .offset = SDCC_HC_REG_DLL_CONFIG,	.value = 0xd642c },
-	{ .offset = SDCC_HC_REG_DDR_CONFIG,	.value = 0x80040868 },
-	{ .offset = SDCC_HC_REG_DLL_CONFIG2,	.value = 0xa001 },
-	{ .offset = SDCC_USR_CTL,		.value = 0x90106c0 },
-	{ .offset = RGMII_IO_MACRO_CONFIG2,	.value = 0x2200a0 },
-	{ .offset = SDCC_TEST_CTL, .value = 0x90106c0 },
+	{ .offset = RGMII_IO_MACRO_CONFIG,	.value = 0xC04D03 },
+	{ .offset = SDCC_HC_REG_DLL_CONFIG,	.value = 0x2004642C },
+	{ .offset = SDCC_HC_REG_DDR_CONFIG,	.value = 0x80040800 },
+	{ .offset = SDCC_HC_REG_DLL_CONFIG2,	.value = 0x00200000 },
+	{ .offset = SDCC_USR_CTL,		.value = 0x00010800 },
+	{ .offset = RGMII_IO_MACRO_CONFIG2,	.value = 0x222060},
+	{ .offset = RGMII_IO_MACRO_SCRATCH_2, .value = 0x4c },
 };
 
 static const struct ethqos_emac_driver_data emac_v4_0_0_data = {
@@ -807,6 +807,13 @@ static int  ethqos_configure_5gbaser(struct qcom_ethqos *ethqos)
 
 static int ethqos_configure_usxgmii(struct qcom_ethqos *ethqos)
 {
+	unsigned int i;
+
+	/* Reset to POR values */
+	for (i = 0; i < ethqos->num_por; i++)
+		rgmii_writel(ethqos, ethqos->por[i].value,
+			     ethqos->por[i].offset);
+
 	ethqos_set_func_clk_en(ethqos);
 
 	rgmii_updatel(ethqos, RGMII_BYPASS_EN, RGMII_BYPASS_EN, RGMII_IO_MACRO_BYPASS);
@@ -864,7 +871,7 @@ static int ethqos_configure_usxgmii(struct qcom_ethqos *ethqos)
 			      RGMII_IO_MACRO_CONFIG);
 		rgmii_updatel(ethqos, RGMII_CONFIG2_MAX_SPD_PRG_3, BIT(20),
 			      RGMII_IO_MACRO_CONFIG2);
-		rgmii_updatel(ethqos, RGMII_SCRATCH2_MAX_SPD_PRG_6, BIT(1),
+		rgmii_updatel(ethqos, RGMII_SCRATCH2_MAX_SPD_PRG_6, BIT(10),
 			      RGMII_IO_MACRO_SCRATCH_2);
 		break;
 
