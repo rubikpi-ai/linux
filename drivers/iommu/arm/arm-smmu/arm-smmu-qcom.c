@@ -43,6 +43,43 @@ static const struct actlr_config sc7280_gfx_actlr_cfg[] = {
 	{ 0x0000, 0x07ff, PREFETCH_DEEP_GFX | CPRE | CMTLB },
 };
 
+static const struct actlr_config sa7255p_apps_actlr_cfg[] = {
+	{ 0x0800, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x0801, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x0802, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x0803, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x0840, 0x0480, PREFETCH_DISABLE | CMTLB },
+	{ 0x0860, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x2400, 0x0020, PREFETCH_DISABLE | CMTLB },
+	{ 0x2401, 0x0020, PREFETCH_DISABLE | CMTLB },
+	{ 0x2402, 0x0020, PREFETCH_DISABLE | CMTLB },
+	{ 0x2403, 0x0020, PREFETCH_DISABLE | CMTLB },
+	{ 0x1000, 0x0402, PREFETCH_DISABLE | CMTLB },
+	{ 0x1001, 0x0400, PREFETCH_DISABLE | CMTLB },
+	{ 0x0880, 0x0400, PREFETCH_SHALLOW | CPRE | CMTLB },
+	{ 0x0881, 0x0404, PREFETCH_SHALLOW | CPRE | CMTLB },
+	{ 0x0883, 0x0400, PREFETCH_SHALLOW | CPRE | CMTLB },
+	{ 0x0884, 0x0400, PREFETCH_SHALLOW | CPRE | CMTLB },
+	{ 0x0887, 0x0400, PREFETCH_SHALLOW | CPRE | CMTLB },
+	{ 0x1961, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x1962, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x1963, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x1964, 0x0400, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x1981, 0x0440, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x1982, 0x0440, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x1983, 0x0440, PREFETCH_DEEP | CPRE | CMTLB },
+	{ 0x1984, 0x0440, PREFETCH_DEEP | CPRE | CMTLB },
+};
+
+static const struct actlr_config sa7255p_gfx_actlr_cfg[] = {
+	{ 0x0000, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+	{ 0x0001, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+	{ 0x0002, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+	{ 0x0004, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+	{ 0x0005, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+	{ 0x0007, 0x0c00, PREFETCH_DEEP_GFX | CPRE | CMTLB },
+};
+
 static const struct actlr_config sa8775p_apps_actlr_cfg[] = {
 	{ 0x0800, 0x0400, PREFETCH_DISABLE | CMTLB },
 	{ 0x0801, 0x0400, PREFETCH_DISABLE | CMTLB },
@@ -595,6 +632,20 @@ static int qcom_smmu_cfg_probe(struct arm_smmu_device *smmu)
 	int i;
 
 	/*
+	 * MSM8998 LPASS SMMU reports 13 context banks, but accessing
+	 * the last context bank crashes the system.
+	 */
+	if (of_device_is_compatible(smmu->dev->of_node, "qcom,msm8998-smmu-v2") &&
+	    smmu->num_context_banks == 13) {
+		smmu->num_context_banks = 12;
+	} else if (of_device_is_compatible(smmu->dev->of_node, "qcom,sdm630-smmu-v2")) {
+		if (smmu->num_context_banks == 21) /* SDM630 / SDM660 A2NOC SMMU */
+			smmu->num_context_banks = 7;
+		else if (smmu->num_context_banks == 14) /* SDM630 / SDM660 LPASS SMMU */
+			smmu->num_context_banks = 13;
+	}
+
+	/*
 	 * Some platforms support more than the Arm SMMU architected maximum of
 	 * 128 stream matching groups. For unknown reasons, the additional
 	 * groups don't exhibit the same behavior as the architected registers,
@@ -646,6 +697,19 @@ static int qcom_smmu_cfg_probe(struct arm_smmu_device *smmu)
 			smmu->s2crs[i].cbndx = 0xff;
 		}
 	}
+
+	return 0;
+}
+
+static int qcom_adreno_smmuv2_cfg_probe(struct arm_smmu_device *smmu)
+{
+	/* Support for 16K pages is advertised on some SoCs, but it doesn't seem to work */
+	smmu->features &= ~ARM_SMMU_FEAT_FMT_AARCH64_16K;
+
+	/* TZ protects several last context banks, hide them from Linux */
+	if (of_device_is_compatible(smmu->dev->of_node, "qcom,sdm630-smmu-v2") &&
+	    smmu->num_context_banks == 5)
+		smmu->num_context_banks = 2;
 
 	return 0;
 }
@@ -765,6 +829,7 @@ static const struct arm_smmu_impl sdm845_smmu_500_impl = {
 
 static const struct arm_smmu_impl qcom_adreno_smmu_v2_impl = {
 	.init_context = qcom_adreno_smmu_init_context,
+	.cfg_probe = qcom_adreno_smmuv2_cfg_probe,
 	.def_domain_type = qcom_smmu_def_domain_type,
 	.alloc_context_bank = qcom_adreno_smmu_alloc_context_bank,
 	.write_sctlr = qcom_adreno_smmu_write_sctlr,
@@ -867,6 +932,16 @@ static const struct qcom_smmu_match_data sc7280_smmu_500_impl0_data = {
 	.actlrcfg_gfx_size = ARRAY_SIZE(sc7280_gfx_actlr_cfg),
 };
 
+static const struct qcom_smmu_match_data sa7255p_smmu_500_impl0_data = {
+	.impl = &qcom_smmu_500_impl,
+	.adreno_impl = &qcom_adreno_smmu_500_impl,
+	.cfg = &qcom_smmu_impl0_cfg,
+	.actlrcfg = sa7255p_apps_actlr_cfg,
+	.actlrcfg_size = ARRAY_SIZE(sa7255p_apps_actlr_cfg),
+	.actlrcfg_gfx = sa7255p_gfx_actlr_cfg,
+	.actlrcfg_gfx_size = ARRAY_SIZE(sa7255p_gfx_actlr_cfg),
+};
+
 static const struct qcom_smmu_match_data sa8775p_smmu_500_impl0_data = {
 	.impl = &qcom_smmu_500_impl,
 	.adreno_impl = &qcom_adreno_smmu_500_impl,
@@ -905,6 +980,7 @@ static const struct of_device_id __maybe_unused qcom_smmu_impl_of_match[] = {
 	{ .compatible = "qcom,sc7180-smmu-500", .data = &qcom_smmu_500_impl0_data },
 	{ .compatible = "qcom,sc7180-smmu-v2", .data = &qcom_smmu_v2_data },
 	{ .compatible = "qcom,sc7280-smmu-500", .data = &sc7280_smmu_500_impl0_data },
+	{ .compatible = "qcom,sa7255p-smmu-500", .data = &sa7255p_smmu_500_impl0_data },
 	{ .compatible = "qcom,sa8255p-smmu-500", .data = &sa8775p_smmu_500_impl0_data },
 	{ .compatible = "qcom,sa8775p-smmu-500", .data = &sa8775p_smmu_500_impl0_data },
 	{ .compatible = "qcom,sc8180x-smmu-500", .data = &qcom_smmu_500_impl0_data },

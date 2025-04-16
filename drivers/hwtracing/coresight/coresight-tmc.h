@@ -14,6 +14,7 @@
 #include <linux/refcount.h>
 #include "coresight-byte-cntr.h"
 #include "coresight-tmc-usb.h"
+#include "coresight-trace-id.h"
 
 #define TMC_RSZ			0x004
 #define TMC_STS			0x00c
@@ -231,6 +232,7 @@ struct tmc_drvdata {
 	struct etr_buf		*perf_buf;
 	enum tmc_etr_out_mode	out_mode;
 	struct tmc_usb_data	*usb_data;
+	u8			atid_refcnt[CORESIGHT_TRACE_ID_RES_TOP];
 };
 
 struct etr_buf_operations {

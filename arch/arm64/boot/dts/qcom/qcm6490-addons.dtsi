@@ -463,14 +463,6 @@
 	/delete-node/ video-encoder;
 };
 
-&gmu {
-	status = "disabled";
-};
-
-&gpu {
-	status = "disabled";
-};
-
 &pm8350c {
 	pm8350c_bcl: bcl@4700 {
 		compatible = "qcom,bcl-v5";

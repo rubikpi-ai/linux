@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024, 2025, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 /dts-v1/;
 
@@ -10,14 +10,16 @@
 #include "sa8775p.dtsi"
 #include "sa8775p-pmics.dtsi"
 #include "qcs9075-thermal.dtsi"
+#include "qcs9xxx-reserved-memory.dtsi"
 
 / {
-	model = "Qualcomm Technologies, Inc. QCS9075 RB8";
-	compatible = "qcom,qcs9075-rb8", "qcom,qcs9075", "qcom,sa8775p";
+	model = "Qualcomm Technologies, Inc. IQ 9075 EVK";
+	compatible = "qcom,qcs9075-iq-9075-evk", "qcom,qcs9075", "qcom,sa8775p";
 	qcom,msm-id = <676 0x20000>;
 	qcom,board-id = <0x10020 0>, <0x10019 0>;
 
 	aliases {
+		ethernet0 = &ethernet0;
 		serial0 = &uart10;
 		serial1 = &uart17;
 		ufshc1 = &ufs_mem_hc;
@@ -309,6 +311,98 @@
 	};
 };
 
+&ethernet0 {
+	phy-handle = <&sgmii_phy0>;
+	phy-mode = "sgmii";
+
+	pinctrl-0 = <&ethernet0_default>;
+	pinctrl-names = "default";
+
+	snps,mtl-rx-config = <&mtl_rx_setup>;
+	snps,mtl-tx-config = <&mtl_tx_setup>;
+	snps,ps-speed = <1000>;
+
+	status = "okay";
+
+	mdio {
+		compatible = "snps,dwmac-mdio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		sgmii_phy0: phy@1c {
+			compatible = "ethernet-phy-id004d.d101";
+			reg = <0x1c>;
+			device_type = "ethernet-phy";
+			reset-gpios = <&pmm8654au_2_gpios 8 GPIO_ACTIVE_LOW>;
+			reset-assert-us = <11000>;
+			reset-deassert-us = <70000>;
+		};
+	};
+
+	mtl_rx_setup: rx-queues-config {
+		snps,rx-queues-to-use = <4>;
+		snps,rx-sched-sp;
+
+		queue0 {
+			snps,dcb-algorithm;
+			snps,map-to-dma-channel = <0x0>;
+			snps,route-up;
+			snps,priority = <0x1>;
+		};
+
+		queue1 {
+			snps,dcb-algorithm;
+			snps,map-to-dma-channel = <0x1>;
+			snps,route-ptp;
+		};
+
+		queue2 {
+			snps,avb-algorithm;
+			snps,map-to-dma-channel = <0x2>;
+			snps,route-avcp;
+		};
+
+		queue3 {
+			snps,avb-algorithm;
+			snps,map-to-dma-channel = <0x3>;
+			snps,priority = <0xc>;
+		};
+	};
+
+	mtl_tx_setup: tx-queues-config {
+		snps,tx-queues-to-use = <4>;
+		snps,tx-sched-sp;
+
+		queue0 {
+			snps,dcb-algorithm;
+		};
+
+		queue1 {
+			snps,dcb-algorithm;
+		};
+
+		queue2 {
+			snps,avb-algorithm;
+			snps,send_slope = <0x1000>;
+			snps,idle_slope = <0x1000>;
+			snps,high_credit = <0x3e800>;
+			snps,low_credit = <0xffc18000>;
+		};
+
+		queue3 {
+			snps,avb-algorithm;
+			snps,send_slope = <0x1000>;
+			snps,idle_slope = <0x1000>;
+			snps,high_credit = <0x3e800>;
+			snps,low_credit = <0xffc18000>;
+		};
+	};
+};
+
+&eud {
+	status = "okay";
+};
+
 &i2c0 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
@@ -362,6 +456,36 @@
 &i2c11 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
+
+	pinctrl-0 = <&qup_i2c11_default>, <&usb0_intr_state>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	hd3ss3220@67 {
+		compatible = "ti,hd3ss3220";
+		reg = <0x67>;
+		interrupt-parent = <&pmm8654au_2_gpios>;
+		interrupts = < 5 IRQ_TYPE_EDGE_FALLING>;
+
+		connector@0 {
+			compatible = "usb-c-connector";
+			label = "USB-C";
+			data-role = "dual";
+			power-role = "dual";
+
+			ports {
+				#address-cells = <1>;
+				#size-cells = <0>;
+
+				port@0 {
+					reg = <0>;
+					hd3ss3220_ep: endpoint {
+						remote-endpoint = <&usb_role_switch>;
+					};
+				};
+			};
+		};
+	};
 };
 
 &i2c12 {
@@ -397,6 +521,51 @@
 &i2c18 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
+	pinctrl-0 = <&qup_i2c18_default>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	expander0: pca953x@38 {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x38>;
+	};
+
+	expander1: pca953x@39 {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x39>;
+
+		io-exp-hog2 {
+			gpio-hog;
+			gpios = <2 GPIO_ACTIVE_HIGH>;
+			output-low;
+			line-name = "io_exp_gpio2";
+		};
+
+		io-exp-hog3 {
+			gpio-hog;
+			gpios = <3 GPIO_ACTIVE_HIGH>;
+			output-low;
+			line-name = "io_exp_gpio3";
+		};
+	};
+
+	expander2: pca953x@3a {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x3a>;
+	};
+
+	expander3: pca953x@3b {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x3b>;
+	};
 };
 
 &i2c19 {
@@ -421,7 +590,20 @@
 	link-frequencies = /bits/ 64 <1620000000 2700000000 5400000000 8100000000>;
 };
 
+&mdss0_dp1 {
+	status = "okay";
+};
+
+&mdss0_dp1_out {
+	data-lanes = <0 1 2 3>;
+	link-frequencies = /bits/ 64 <1620000000 2700000000 5400000000 8100000000>;
+};
+
 &mdss0_edp_phy {
+	status = "okay";
+};
+
+&mdss0_edp1_phy {
 	status = "okay";
 };
 
@@ -460,10 +642,11 @@
 };
 
 &pmm8654au_2_gpios {
-	usb1_en_state: usb1-en-state {
-		pins = "gpio8";
+	usb0_intr_state: usb0-intr-state {
+		pins = "gpio5";
 		function = "normal";
-		output-high;
+		input-enable;
+		bias-pull-up;
 		power-source = <0>;
 	};
 };
@@ -498,6 +681,11 @@
 
 &remoteproc_gpdsp1 {
 	firmware-name = "qcom/sa8775p/gpdsp1.mbn";
+	status = "okay";
+};
+
+&serdes0 {
+	phy-supply = <&vreg_l5a>;
 	status = "okay";
 };
 
@@ -604,15 +792,33 @@
 		drive-strength = <2>;
 	};
 
-	/* FIXME: mdss0_dp0 is dependent on this so adding a dummy node for now */
 	dp_hot_plug_det: dp-hot-plug-det-state {
 		pins = "gpio101";
 		function = "edp0_hot";
 		bias-disable;
 	};
 
-	/* FIXME: mdss0_dp1 is dependent on this so adding a dummy node for now */
-	dp1_hot_plug_det: dp1-hot-plug-det-state {};
+	dp1_hot_plug_det: dp1-hot-plug-det-state {
+		pins = "gpio102";
+		function = "edp1_hot";
+		bias-disable;
+	};
+
+	ethernet0_default: ethernet0-default-state {
+		ethernet0_mdc: ethernet0-mdc-pins {
+			pins = "gpio8";
+			function = "emac0_mdc";
+			drive-strength = <16>;
+			bias-pull-up;
+		};
+
+		ethernet0_mdio: ethernet0-mdio-pins {
+			pins = "gpio9";
+			function = "emac0_mdio";
+			drive-strength = <16>;
+			bias-pull-up;
+		};
+	};
 
 	qup_uart10_default: qup-uart10-state {
 		pins = "gpio46", "gpio47";
@@ -690,6 +896,20 @@
 			bias-pull-up;
 		};
 	};
+
+	qup_i2c18_default: qup-i2c18-state {
+		pins = "gpio95", "gpio96";
+		function = "qup2_se4";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	qup_i2c11_default: qup-i2c11-state {
+		pins = "gpio48", "gpio49";
+		function = "qup1_se4";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
 };
 
 &pcie0 {
@@ -741,6 +961,11 @@
 		vddpcie0p9-supply = <&vreg_pmu_pcie_0p9>;
 		vddpcie1p8-supply = <&vreg_pmu_pcie_1p8>;
 	};
+};
+
+&pmm8654au_0_pon_resin {
+	linux,code = <KEY_VOLUMEDOWN>;
+	status = "okay";
 };
 
 &uart0 {
@@ -864,13 +1089,72 @@
 	status = "okay";
 };
 
-&usb_0 {
-	status = "okay";
+&soc {
+	vbus_supply_regulator_0: vbus_supply_regulator_0 {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus_supply_0";
+		gpio = <&expander1 2 GPIO_ACTIVE_HIGH>;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-boot-on;
+		enable-active-high;
+	};
+
+	vbus_supply_regulator_1: vbus_supply_regulator_1 {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus_supply_1";
+		gpio = <&expander1 3 GPIO_ACTIVE_HIGH>;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-boot-on;
+		enable-active-high;
+		regulator-always-on;
+	};
 };
 
-&usb_0_dwc3 {
-	usb-role-switch;
+/delete-node/ &usb_0_dwc3;
+
+&usb_0 {
+	reg = <0x0 0x0a600000 0x0 0x200000>;
+
+	interrupts-extended = <&intc GIC_SPI 292 IRQ_TYPE_LEVEL_HIGH>,
+			      <&intc GIC_SPI 287 IRQ_TYPE_LEVEL_HIGH>,
+			      <&pdc 14 IRQ_TYPE_EDGE_BOTH>,
+			      <&pdc 15 IRQ_TYPE_EDGE_BOTH>,
+			      <&pdc 12 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-names = "dwc_usb3",
+			  "pwr_event",
+			  "dp_hs_phy_irq",
+			  "dm_hs_phy_irq",
+			  "ss_phy_irq";
+
+	iommus = <&apps_smmu 0x080 0x0>;
+	phys = <&usb_0_hsphy>, <&usb_0_qmpphy>;
+	phy-names = "usb2-phy", "usb3-phy";
+
 	dr_mode = "otg";
+	usb-role-switch;
+	snps,dis_u2_susphy_quirk;
+	snps,dis_enblslpm_quirk;
+	maximum-speed = "super-speed";
+	qcom,enable-rt;
+	wakeup-source;
+	vbus_dwc3-supply = <&vbus_supply_regulator_0>;
+	status = "okay";
+
+	ports {
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			usb_role_switch: endpoint {
+				remote-endpoint = <&hd3ss3220_ep>;
+			};
+		};
+
+	};
 };
 
 &usb_0_hsphy {
@@ -888,15 +1172,34 @@
 	status = "okay";
 };
 
+/delete-node/ &usb_1_dwc3;
+
 &usb_1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&usb1_en_state>;
+	reg = <0x0 0x0a800000 0x0 0x200000>;
+	interrupts-extended = <&intc GIC_SPI 349 IRQ_TYPE_LEVEL_HIGH>,
+				<&intc GIC_SPI 352 IRQ_TYPE_LEVEL_HIGH>,
+				<&pdc 8 IRQ_TYPE_EDGE_BOTH>,
+				<&pdc 7 IRQ_TYPE_EDGE_BOTH>,
+				<&pdc 13 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-names = "dwc_usb3",
+			"pwr_event",
+			"dp_hs_phy_irq",
+			"dm_hs_phy_irq",
+			"ss_phy_irq";
 
+	iommus = <&apps_smmu 0x0a0 0x0>;
+	phys = <&usb_1_hsphy>, <&usb_1_qmpphy>;
+	phy-names = "usb2-phy", "usb3-phy";
+	snps,dis_u2_susphy_quirk;
+	snps,dis_enblslpm_quirk;
+	qcom,enable-rt;
+	wakeup-source;
+	maximum-speed = "super-speed";
+	dr_mode = "otg";
+	usb-role-switch;
+	role-switch-default-mode = "host";
+	vbus_dwc3-supply = <&vbus_supply_regulator_1>;
 	status = "okay";
-};
-
-&usb_1_dwc3 {
-	dr_mode = "host";
 };
 
 &usb_1_hsphy {

@@ -137,15 +137,9 @@
 			qcom,dump-size = <0x20000>;
 		};
 
-		etf-reg {
-			qcom,dump-id = <0x101>;
-			qcom,dump-size = <0x1000>;
-		};
-
-
 		etf-swao {
 			qcom,dump-id = <0xf1>;
-			qcom,dump-size = <0x8400>;
+			qcom,dump-size = <0x10000>;
 		};
 
 		etfswao-reg {
@@ -361,11 +355,6 @@
 		rpmh {
 			qcom,dump-id = <0xec>;
 			qcom,dump-size = <0x2000000>;
-		};
-
-		tmc-etf {
-			qcom,dump-id = <0xf0>;
-			qcom,dump-size = <0x10000>;
 		};
 	};
 };

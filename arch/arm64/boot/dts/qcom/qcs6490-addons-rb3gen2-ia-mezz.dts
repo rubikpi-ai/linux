@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 /dts-v1/;
@@ -246,12 +246,16 @@
 				pcie0_qps615_eth0,pcie0_qps615_eth0@pcie0_rp {
 					reg = <0x0 0x0 0x0 0x0 0x0>;
 					pinctrl-names = "default";
-					pinctrl-0 = <&aqr_rc0_intn_wol_sig>;
+					pinctrl-0 = <&rtl_rc0_intn_wol_sig>;
 					phy-rst-som-gpios = <&tlmm 90 GPIO_ACTIVE_HIGH>;
 					interrupts-extended = <&tlmm 136 IRQ_TYPE_EDGE_FALLING>;
+					qcom,phy-port-interface = <4>;
+					qcom,mdc-clk = <0x8>;
+					qcom,c45-state = <0>;
+					qcom,link-down-macrst = <0>;
 					interrupt-names = "wol_irq";
 					qcom,always-on-supply;
-					qcom,phy-rst-delay-us = <221000>;
+					qcom,phy-rst-delay-us = <75000>;
 					#address-cells = <1>;
 					#size-cells = <1>;
 				};
@@ -337,19 +341,6 @@
 		/* BDF 7.0.0 */
 		pcie1_bus7_dev0_fn0: pcie1-bus7-dev0-fn0 {
 			reg = <0x0 0x0 0x0 0x0 0x0>;
-		};
-
-		pcie1_qps615_eth2,pcie1_qps615_eth2@pcie1_rp {
-			reg = <0x100 0x0 0x0 0x0 0x0>;
-			pinctrl-names = "default";
-			pinctrl-0 = <&napa_rc1_intn_wol_sig>;
-			phy-rst-som-gpios = <&tlmm 120 GPIO_ACTIVE_HIGH>;
-			interrupts-extended = <&tlmm 6 IRQ_TYPE_EDGE_FALLING>;
-			interrupt-names = "wol_irq";
-			qcom,always-on-supply;
-			qcom,phy-rst-delay-us = <20000>;
-			#address-cells = <1>;
-			#size-cells = <1>;
 		};
 
 		/* BDF 7.0.1 */
@@ -605,7 +596,7 @@
 
 &tlmm {
 	qps615_rc0_intn_wol {
-		aqr_rc0_intn_wol_sig: aqr-rc0-intn-wol-sig {
+		rtl_rc0_intn_wol_sig: rtl-rc0-intn-wol-sig {
 			pins = "gpio136";
 			function = "gpio";
 			input-enable;
@@ -619,16 +610,6 @@
 			bias-disable;
 		};
 	};
-
-	qps615_rc1_intn_wol {
-		napa_rc1_intn_wol_sig: napa-rc1-intn-wol-sig {
-			pins = "gpio6";
-			function = "gpio";
-			input-enable;
-			bias-disable;
-		};
-	};
-
 
 	wcd_reset_n: wcd-reset-n-state {
 		pins = "gpio83";
@@ -647,6 +628,10 @@
 
 &uart4 {
 	status = "okay";
+};
+
+&uart7 {
+	status = "disabled";
 };
 
 &soc {
