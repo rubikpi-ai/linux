@@ -118,6 +118,10 @@ dtb-$(CONFIG_ARCH_QCOM)	+= qcs615-ride.dtb
 qcs8275-addons-iq-8275-evk-dtbs:= qcs8275-iq-8275-evk.dtb qcs8275-addons-iq-8275-evk.dtbo
 
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-addons-iq-8275-evk.dtb
+
+qcs8275-addons-iq-8275-evk-mezz-dtbs:= qcs8275-addons-iq-8275-evk.dtb qcs8275-addons-iq-8275-evk-mezz.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-addons-iq-8275-evk-mezz.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-iq-8275-evk.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8300-addons-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8300-ride.dtb
