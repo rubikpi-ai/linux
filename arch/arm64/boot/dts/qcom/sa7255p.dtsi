@@ -376,6 +376,11 @@
 			reg = <0x0 0x9be82000 0x0 0x700000>;
 		};
 
+		audio_mdf_mem: audio-mdf-region@ae000000 {
+			reg = <0x0 0xae000000 0x0 0x2000000>;
+			no-map;
+		};
+
 		firmware_mem: firmware-region@b0000000 {
 			reg = <0x0 0xb0000000 0x0 0x800000>;
 			no-map;
