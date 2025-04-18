@@ -474,6 +474,15 @@ config MHI_NET
 	  QCOM based WWAN modems for IP or QMAP/rmnet protocol (like SDX55).
 	  Say Y or M.
 
+ config MHI_EP_NET
+	tristate "MHI Endpoint network driver"
+	depends on MHI_BUS_EP
+	help
+	  This is the network driver for MHI bus implementation in endpoint
+	  devices. It is used provide the network interface for QCOM modems
+	  such as SDX55.
+	  Say Y or M.
+
 endif # NET_CORE
 
 config SUNGEM_PHY

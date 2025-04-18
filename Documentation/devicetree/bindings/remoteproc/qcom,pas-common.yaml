@@ -52,6 +52,48 @@ properties:
     minItems: 1
     maxItems: 3
 
+  iommus:
+    maxItems: 1
+
+  qcom,devmem:
+    $ref: /schemas/types.yaml#/definitions/uint32-matrix
+    description:
+      Qualcomm’s PAS implementation for remote processors only supports a
+      single stage of IOMMU translation and is presently managed by the
+      Qualcomm EL2 hypervisor (QHEE) if it is present. In the absence of QHEE,
+      such as with a KVM hypervisor, IOMMU translations need to be set up by
+      the KVM host. Remoteproc might need some device resources and related
+      access permissions to be set before it comes up, and this information is
+      presently available statically with QHEE.
+
+      In the absence of QHEE, the boot firmware needs to overlay this
+      information based on SoCs running with either QHEE or a KVM hypervisor
+      (CPUs booted in EL2).
+
+      The qcom,devmem property provides IOMMU devmem translation information
+      intended for non-QHEE based systems. It is an array of u32 values
+      describing the device memory regions for which IOMMU translations need to
+      be set up before bringing up Remoteproc. This array consists of 4-tuples
+      defining the device address, physical address, size, and attribute flags
+      with which it has to be mapped.
+
+      remoteproc@3000000 {
+          ...
+
+          qcom,devmem = <0x82000 0x82000 0x2000 0x3>,
+                        <0x92000 0x92000 0x1000 0x1>;
+      }
+
+    items:
+      items:
+        - description: device address
+        - description: physical address
+        - description: size of mapping
+        - description: |
+            iommu attributes - IOMMU_READ, IOMMU_WRITE, IOMMU_CACHE, IOMMU_NOEXEC, IOMMU_MMIO
+          enum: [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24,
+                  25, 26, 27, 28, 29, 30, 31 ]
+
   qcom,smem-states:
     $ref: /schemas/types.yaml#/definitions/phandle-array
     description: States used by the AP to signal the Hexagon core

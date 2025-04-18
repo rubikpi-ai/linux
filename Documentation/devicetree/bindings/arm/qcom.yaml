@@ -49,6 +49,7 @@ description: |
         msm8996
         msm8998
         qcs404
+        qcs615
         qcs8275
         qcs8300
         qcs8550
@@ -913,6 +914,12 @@ properties:
 
       - items:
           - enum:
+              - qcom,qcs615-addons-ride
+              - qcom,qcs615-ride
+          - const: qcom,qcs615
+
+      - items:
+          - enum:
               - qcom,qcs8300-addons-ride
               - qcom,qcs8300-ride
           - const: qcom,qcs8275
@@ -965,10 +972,10 @@ properties:
 
       - items:
           - enum:
-              - qcom,qcs9075-addons-rb8
+              - qcom,qcs9075-addons-iq-9075-evk
               - qcom,qcs9075-addons-ride
               - qcom,qcs9075-addons-ride-r3
-              - qcom,qcs9075-rb8
+              - qcom,qcs9075-iq-9075-evk
               - qcom,qcs9075-ride
               - qcom,qcs9075-ride-r3
           - const: qcom,qcs9075

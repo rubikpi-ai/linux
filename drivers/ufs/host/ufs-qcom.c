@@ -93,7 +93,7 @@ static const struct __ufs_qcom_bw_table {
 	[MODE_HS_RB][UFS_HS_G3][UFS_LANE_2] = { 1492582,	204800 },
 	[MODE_HS_RB][UFS_HS_G4][UFS_LANE_2] = { 2915200,	409600 },
 	[MODE_HS_RB][UFS_HS_G5][UFS_LANE_2] = { 5836800,	819200 },
-	[MODE_MAX][0][0]		    = { 7643136,	307200 },
+	[MODE_MAX][0][0]		    = { 7643136,	819200 },
 };
 
 static struct ufs_qcom_host *ufs_qcom_hosts[MAX_UFS_QCOM_HOSTS];
@@ -226,6 +226,13 @@ int ufs_qcom_ice_import_key(struct ufs_hba *hba,
 				   lt_key);
 }
 
+static int ufs_qcom_ice_scale_clk(struct ufs_qcom_host *host, bool scale_up)
+{
+	if (host->hba->caps & UFSHCD_CAP_CRYPTO)
+		return qcom_ice_scale_clk(host->ice, scale_up);
+	return 0;
+}
+
 #else
 
 #define ufs_qcom_ice_program_key NULL
@@ -249,6 +256,11 @@ static inline int ufs_qcom_ice_resume(struct ufs_qcom_host *host)
 }
 
 static inline int ufs_qcom_ice_suspend(struct ufs_qcom_host *host)
+{
+	return 0;
+}
+
+static inline int  ufs_qcom_ice_scale_clk(struct ufs_qcom_host *host, bool scale_up)
 {
 	return 0;
 }
@@ -516,7 +528,7 @@ static int ufs_qcom_power_up_sequence(struct ufs_hba *hba)
 		return ret;
 	}
 
-	phy_set_mode_ext(phy, PHY_MODE_UFS_HS_B, host->hs_gear);
+	phy_set_mode_ext(phy, PHY_MODE_UFS_HS_B, host->phy_gear);
 
 	/* power on phy - start serdes and phy's power and clocks */
 	ret = phy_power_on(phy);
@@ -981,12 +993,22 @@ static int ufs_qcom_pwr_change_notify(struct ufs_hba *hba,
 		}
 
 		/*
-		 * Update hs_gear only when the gears are scaled to a higher value. This is because,
-		 * the PHY gear settings are backwards compatible and we only need to change the PHY
-		 * settings while scaling to higher gears.
+		 * During UFS driver probe, always update the PHY gear to match the negotiated
+		 * gear, so that, if quirk UFSHCD_QUIRK_REINIT_AFTER_MAX_GEAR_SWITCH is enabled,
+		 * the second init can program the optimal PHY settings. This allows one to start
+		 * the first init with either the minimum or the maximum support gear.
 		 */
-		if (dev_req_params->gear_tx > host->hs_gear)
-			host->hs_gear = dev_req_params->gear_tx;
+		if (hba->ufshcd_state == UFSHCD_STATE_RESET) {
+			/*
+			 * Skip REINIT if the negotiated gear matches with the
+			 * initial phy_gear. Otherwise, update the phy_gear to
+			 * program the optimal gear setting during REINIT.
+			 */
+			if (host->phy_gear == dev_req_params->gear_tx)
+				hba->quirks &= ~UFSHCD_QUIRK_REINIT_AFTER_MAX_GEAR_SWITCH;
+			else
+				host->phy_gear = dev_req_params->gear_tx;
+		}
 
 		/* enable the device ref clock before changing to HS mode */
 		if (!ufshcd_is_hs_mode(&hba->pwr_info) &&
@@ -1353,7 +1375,7 @@ static int ufs_qcom_init(struct ufs_hba *hba)
 	 * Power up the PHY using the minimum supported gear (UFS_HS_G2).
 	 * Switching to max gear will be performed during reinit if supported.
 	 */
-	host->hs_gear = UFS_HS_G2;
+	host->phy_gear = UFS_HS_G2;
 
 	return 0;
 
@@ -1573,6 +1595,7 @@ static int ufs_qcom_clk_scale_notify(struct ufs_hba *hba,
 		err = ufshcd_uic_hibern8_enter(hba);
 		if (err)
 			return err;
+
 		if (scale_up)
 			err = ufs_qcom_clk_scale_up_pre_change(hba);
 		else
@@ -1588,6 +1611,8 @@ static int ufs_qcom_clk_scale_notify(struct ufs_hba *hba,
 		else
 			err = ufs_qcom_clk_scale_down_post_change(hba);
 
+		if (!err)
+			err = ufs_qcom_ice_scale_clk(host, scale_up);
 
 		if (err) {
 			ufshcd_uic_hibern8_exit(hba);

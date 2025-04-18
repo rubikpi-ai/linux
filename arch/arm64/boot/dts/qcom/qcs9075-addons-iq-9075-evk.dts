@@ -1,15 +1,15 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 /dts-v1/;
 
-#include "qcs9075-rb8.dts"
+#include "qcs9075-iq-9075-evk.dts"
 #include "sa8775p-addons.dtsi"
 
 / {
-	model = "Qualcomm Technologies, Inc. QCS9075 Addons RB8";
-	compatible = "qcom,qcs9075-addons-rb8", "qcom,qcs9075", "qcom,sa8775p";
+	model = "Qualcomm Technologies, Inc. Addons IQ 9075 EVK";
+	compatible = "qcom,qcs9075-addons-iq-9075-evk", "qcom,qcs9075", "qcom,sa8775p";
 
 	sound {
 		compatible = "qcom,qcs9075-rb8-sndcard";
@@ -19,17 +19,43 @@
 			    <&q6prmcc LPASS_HW_DCODEC_VOTE LPASS_CLK_ATTRIBUTE_COUPLE_NO>;
 		clock-names = "macro", "dcodec";
 
-		pinctrl-names = "default";
-		pinctrl-0 = <&lpass_i2s1_data>, <&lpass_i2s1_ws>,
-			    <&hs1_mi2s_data0>, <&mi2s_mclk>, <&hs1_mi2s_sclk>,
-			    <&hs1_mi2s_data1>, <&hs1_mi2s_ws>, <&hs2_mi2s_data0>,
-			    <&hs2_mi2s_data1>, <&hs2_mi2s_sck>,<&hs2_mi2s_ws>;
+		pinctrl-names = "default", "mi2s_aud_out_active", "mi2s_aud_out_sleep";
+		pinctrl-0 = <&hs1_mi2s_data0_sleep>, <&mi2s_mclk_sleep>, <&hs0_mi2s_data0_sleep>,
+			    <&hs0_mi2s_sclk_sleep>, <&hs0_mi2s_data1_sleep>, <&hs0_mi2s_ws_sleep>,
+			    <&hs1_mi2s_sclk_sleep>, <&hs1_mi2s_data1_sleep>, <&hs1_mi2s_ws_sleep>,
+			    <&hs2_mi2s_data0_sleep>, <&hs2_mi2s_data1_sleep>, <&hs2_mi2s_sck_sleep>,
+			    <&hs2_mi2s_ws_sleep>, <&lpass_quad_clk_sleep>, <&lpass_quad_data_sleep>,
+			    <&lpass_quad_ws_sleep>;
+		pinctrl-1 = <&hs1_mi2s_data0>, <&mi2s_mclk>, <&hs0_mi2s_data0>,
+			    <&hs0_mi2s_sclk>, <&hs0_mi2s_data1>, <&hs0_mi2s_ws>,
+			    <&hs1_mi2s_sclk>, <&hs1_mi2s_data1>, <&hs1_mi2s_ws>,
+			    <&hs2_mi2s_data0>, <&hs2_mi2s_data1>, <&hs2_mi2s_sck>,
+			    <&hs2_mi2s_ws>, <&lpass_quad_clk>, <&lpass_quad_data>,
+			    <&lpass_quad_ws>;
+		pinctrl-2 = <&hs1_mi2s_data0_sleep>, <&mi2s_mclk_sleep>, <&hs0_mi2s_data0_sleep>,
+			    <&hs0_mi2s_sclk_sleep>, <&hs0_mi2s_data1_sleep>, <&hs0_mi2s_ws_sleep>,
+			    <&hs1_mi2s_sclk_sleep>, <&hs1_mi2s_data1_sleep>, <&hs1_mi2s_ws_sleep>,
+			    <&hs2_mi2s_data0_sleep>, <&hs2_mi2s_data1_sleep>, <&hs2_mi2s_sck_sleep>,
+			    <&hs2_mi2s_ws_sleep>, <&lpass_quad_clk_sleep>, <&lpass_quad_data_sleep>,
+			    <&lpass_quad_ws_sleep>;
+
+		hs0-mi2s-playback-dai-link {
+			link-name = "MI2S-LPAIF_SDR-RX-PRIMARY";
+
+			cpu {
+				sound-dai = <&q6apmbedai PRIMARY_SDR_MI2S_RX>;
+			};
+
+			codec {
+				sound-dai = <&max98357a>;
+			};
+		};
 
 		hs1-mi2s-playback-dai-link {
 			link-name = "MI2S-LPAIF_SDR-RX-SECONDARY";
 
 			cpu {
-				sound-dai = <&q6apmbedai TERTIARY_MI2S_RX>;
+				sound-dai = <&q6apmbedai SECONDARY_SDR_MI2S_RX>;
 			};
 
 			codec {
@@ -41,11 +67,59 @@
 			link-name = "MI2S-LPAIF_SDR-TX-TERTIARY";
 
 			cpu {
-				sound-dai = <&q6apmbedai TERTIARY_MI2S_TX>;
+				sound-dai = <&q6apmbedai TERTIARY_SDR_MI2S_TX>;
 			};
 
 			codec {
 				sound-dai = <&dmic_codec>;
+			};
+		};
+
+		lpi-quad-capture-dai-link {
+			link-name = "MI2S-LPAIF_RXTX-TX-PRIMARY";
+
+			cpu {
+				sound-dai = <&q6apmbedai PRIMARY_MI2S_TX>;
+			};
+
+			codec {
+				sound-dai = <&msm_stub_codec 1>;
+			};
+		};
+
+		lpi-quad-playback-dai-link {
+			link-name = "MI2S-LPAIF_RXTX-RX-PRIMARY";
+
+			cpu {
+				sound-dai = <&q6apmbedai PRIMARY_MI2S_RX>;
+			};
+
+			codec {
+				sound-dai = <&msm_stub_codec 0>;
+			};
+		};
+
+		lpi-tdm-quad-capture-dai-link {
+			link-name = "TDM-LPAIF_RXTX-TX-PRIMARY";
+
+			cpu {
+				sound-dai = <&q6apmbedai PRIMARY_TDM_TX_0>;
+			};
+
+			codec {
+				sound-dai = <&msm_stub_codec 1>;
+			};
+		};
+
+		lpi-tdm-quad-playback-dai-link {
+			link-name = "TDM-LPAIF_RXTX-RX-PRIMARY";
+
+			cpu {
+				sound-dai = <&q6apmbedai PRIMARY_TDM_RX_0>;
+			};
+
+			codec {
+				sound-dai = <&msm_stub_codec 0>;
 			};
 		};
 
@@ -81,6 +155,52 @@
 			drive-strength = <2>;
 			bias-pull-down;
 			input-enable;
+	};
+
+	lpass_quad_clk_sleep: quad-clk-sleep-state {
+			pins = "gpio0";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+	};
+
+	lpass_quad_clk: quad-clk-state {
+			pins = "gpio0";
+			function = "qua_mi2s_sclk";
+			drive-strength = <8>;
+			bias-disable;
+			output-high;
+	};
+
+	lpass_quad_data_sleep: quad-data-sleep-state {
+			pins = "gpio2", "gpio3", "gpio4", "gpio5";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+	};
+
+	lpass_quad_data: quad-data-state {
+			pins = "gpio2", "gpio3", "gpio4", "gpio5";
+			function = "qua_mi2s_data";
+			drive-strength = <8>;
+			bias-disable;
+	};
+
+	lpass_quad_ws_sleep: quad-ws-sleep-state {
+			pins = "gpio1";
+			function = "gpio";
+			drive-strength = <2>;
+			bias-pull-down;
+			input-enable;
+	};
+
+	lpass_quad_ws: quad-ws-state {
+			pins = "gpio1";
+			function = "qua_mi2s_ws";
+			drive-strength = <8>;
+			output-high;
 	};
 };
 
@@ -121,9 +241,65 @@
 };
 
 &tlmm {
-	hs0_mi2s: hs0-mi2s-state {
-		pins = "gpio114", "gpio115", "gpio116", "gpio117";
+	hs0_mi2s_data0_sleep: hs0-mi2s-data0-sleep-state {
+		pins = "gpio116";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	hs0_mi2s_data0: hs0-mi2s-data0-state {
+		pins = "gpio116";
 		function = "hs0_mi2s";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	hs0_mi2s_data1_sleep: hs0-mi2s-data1-sleep-state {
+		pins = "gpio117";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	hs0_mi2s_data1: hs0-mi2s-data1-state {
+		pins = "gpio117";
+		function = "hs0_mi2s";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	hs0_mi2s_sclk_sleep: hs0-mi2s-sclk-sleep-state {
+		pins = "gpio114";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	hs0_mi2s_sclk: hs0-mi2s-sclk-state {
+		pins = "gpio114";
+		function = "hs0_mi2s";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
+	hs0_mi2s_ws_sleep: hs0-mi2s-ws-sleep-state {
+		pins = "gpio115";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
+	};
+
+	hs0_mi2s_ws: hs0-mi2s-ws-state {
+		pins = "gpio115";
+		function = "hs0_mi2s";
+		drive-strength = <8>;
+		bias-disable;
+		output-high;
 	};
 
 	hs1_mi2s_data0: hs1-mi2s-data0-state {

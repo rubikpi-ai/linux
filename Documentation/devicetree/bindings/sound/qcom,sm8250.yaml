@@ -35,6 +35,7 @@ properties:
           - qcom,qcs6490-rb3gen2-video-sndcard
           - qcom,qcs6490-rb3gen2-vision-sndcard
           - qcom,qcs8300-sndcard
+          - qcom,qcs9075-rb8-sndcard
           - qcom,qcs9100-sndcard
           - qcom,qrb5165-rb5-sndcard
           - qcom,sc8280xp-sndcard
@@ -99,6 +100,34 @@ patternProperties:
         description: Indicates dai-link name and PCM stream name.
         $ref: /schemas/types.yaml#/definitions/string
         maxItems: 1
+
+      mclk-fs:
+        description: Multiplication factor between stream rate and codec mclk.
+        $ref: simple-card.yaml#/definitions/mclk-fs
+        maxItems: 1
+
+      mclk-id:
+        description: Codec mclk id
+        $ref: /schemas/types.yaml#/definitions/uint32
+        maxItems: 1
+
+      mclk-direction-out:
+        $ref: simple-card.yaml#/definitions/system-clock-direction-out
+
+      dai-format:
+        $ref: simple-card.yaml#/definitions/format
+
+      bitclock-inversion:
+        $ref: simple-card.yaml#/definitions/bitclock-inversion
+
+      frame-inversion:
+        $ref: simple-card.yaml#/definitions/frame-inversion
+
+      bitclock-master:
+        $ref: simple-card.yaml#/definitions/bitclock-master
+
+      frame-master:
+        $ref: simple-card.yaml#/definitions/frame-master
 
       cpu:
         description: Holds subnode which indicates cpu dai.
@@ -331,6 +360,14 @@ examples:
 
         primary-dai-link {
             link-name = "Primary MI2S";
+            mclk-fs = <512>;
+            mclk-id = <0>;
+            bitclock-inversion;
+            frame-inversion;
+            dai-format = "i2s";
+            bitclock-master = <&cpu>;
+            frame-master = <&cpu>;
+
             cpu {
                 sound-dai = <&q6afedai PRIMARY_MI2S_RX>;
             };

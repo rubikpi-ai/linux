@@ -556,6 +556,8 @@ static int wcd937x_codec_aux_dac_event(struct snd_soc_dapm_widget *w,
 				WCD937X_DIGITAL_CDC_ANA_CLK_CTL,
 				BIT(2), BIT(2));
 		snd_soc_component_update_bits(component,
+				WCD937X_AUX_AUXPA, BIT(4), BIT(4));
+		snd_soc_component_update_bits(component,
 				WCD937X_DIGITAL_CDC_DIG_CLK_CTL,
 				BIT(2), BIT(2));
 		snd_soc_component_update_bits(component,
@@ -571,6 +573,8 @@ static int wcd937x_codec_aux_dac_event(struct snd_soc_dapm_widget *w,
 		snd_soc_component_update_bits(component,
 				WCD937X_DIGITAL_CDC_ANA_CLK_CTL,
 				BIT(2), 0x00);
+		snd_soc_component_update_bits(component,
+				WCD937X_AUX_AUXPA, BIT(4), 0x00);
 		break;
 	}
 
@@ -732,6 +736,12 @@ static int wcd937x_codec_enable_aux_pa(struct snd_soc_dapm_widget *w,
 			snd_soc_component_update_bits(component,
 					WCD937X_ANA_RX_SUPPLIES,
 					BIT(1), BIT(1));
+			snd_soc_component_update_bits(component,
+					WCD937X_ANA_RX_SUPPLIES,
+					BIT(6), BIT(6));
+			snd_soc_component_update_bits(component,
+					WCD937X_ANA_RX_SUPPLIES,
+					BIT(7), BIT(7));
 		enable_irq(wcd937x->aux_pdm_wd_int);
 		break;
 	case SND_SOC_DAPM_PRE_PMD:
@@ -745,6 +755,10 @@ static int wcd937x_codec_enable_aux_pa(struct snd_soc_dapm_widget *w,
 					hph_mode);
 		snd_soc_component_update_bits(component,
 				WCD937X_DIGITAL_PDM_WD_CTL2, BIT(0), 0x00);
+		snd_soc_component_update_bits(component,
+					WCD937X_ANA_RX_SUPPLIES, BIT(6), 0x00);
+		snd_soc_component_update_bits(component,
+					WCD937X_ANA_RX_SUPPLIES, BIT(7), 0x00);
 		break;
 	}
 
