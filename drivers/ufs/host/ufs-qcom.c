@@ -2084,8 +2084,7 @@ static int ufs_qcom_config_esi(struct ufs_hba *hba)
 		msi_unlock_descs(hba->dev);
 		platform_msi_domain_free_irqs(hba->dev);
 	} else {
-		if (host->hw_ver.major == 6 && host->hw_ver.minor == 0 &&
-		    host->hw_ver.step == 0) {
+		if (host->hw_ver.major >= 6) {
 			ufshcd_writel(hba,
 				      ufshcd_readl(hba, REG_UFS_CFG3) | 0x1F000,
 				      REG_UFS_CFG3);
