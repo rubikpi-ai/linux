@@ -22,6 +22,7 @@
 		ethernet0 = &ethernet0;
 		serial0 = &uart10;
 		serial1 = &uart17;
+		serial2 = &uart0;
 		ufshc1 = &ufs_mem_hc;
 	};
 
@@ -651,6 +652,10 @@
 	};
 };
 
+&qupv3_id_0 {
+	status = "okay";
+};
+
 &qupv3_id_1 {
 	status = "okay";
 };
@@ -820,6 +825,20 @@
 		};
 	};
 
+	qup_uart0_default: qup-uart0-state {
+		qup_uart0_tx: qup0-uart0-tx-pins {
+			pins = "gpio22";
+			function = "qup0_se0";
+			bias-pull-up;
+		};
+
+		qup_uart0_rx: qup0-uart0-rx-pins {
+			pins = "gpio23";
+			function = "qup0_se0";
+			bias-pull-down;
+		};
+	};
+
 	qup_uart10_default: qup-uart10-state {
 		pins = "gpio46", "gpio47";
 		function = "qup1_se3";
@@ -969,8 +988,11 @@
 };
 
 &uart0 {
+	pinctrl-0 = <&qup_uart0_default>;
+	pinctrl-names = "default";
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
+	status = "okay";
 };
 
 &uart1 {
