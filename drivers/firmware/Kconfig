@@ -223,16 +223,6 @@ config QCOM_SCM_ADDON
 	  QCOM SCM addon provision APIs for client like kgsl, SHMBridge, etc,
 	  once enable it provides extra API via QCOM_SCM.
 
-config QTEE_SHM_BRIDGE
-	bool "QTI TEE shared memory bridge"
-	depends on QCOM_SCM && QCOM_SCM_ADDON
-	help
-	  QTEE shared memory bridge driver provides kernel APIs to share
-	  memory between trustzone & other VMs through shared memory bridge.
-	  It allows kernel clients to create bridge, delete bridge, and do
-	  memory sub-allocation and free from the default kernel bridge
-	  created by bridge driver.
-
 config SYSFB
 	bool
 	select BOOT_VESA_SUPPORT

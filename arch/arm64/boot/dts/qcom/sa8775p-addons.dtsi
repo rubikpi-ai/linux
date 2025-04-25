@@ -48,10 +48,6 @@
 		qcom_smcinvoke {
 			compatible = "qcom,smcinvoke";
 		};
-
-		qtee_shmbridge {
-			compatible = "qcom,tee-shared-memory-bridge";
-		};
 	};
 
 	mem-dump {
