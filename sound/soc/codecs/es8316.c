@@ -891,7 +891,7 @@ static int es8316_init_regs(struct snd_soc_component *component)
 	snd_soc_component_write(component, ES8316_SYS_PDN_REG0D, 0x00);
 	snd_soc_component_write(component, ES8316_RESET_REG00, 0xC0);
 	msleep(50);
-	//snd_soc_component_write(component, ES8316_CPHP_OUTEN_REG17, 0x66);
+	// snd_soc_component_write(component, ES8316_CPHP_OUTEN_REG17, 0x66);
 	snd_soc_component_write(component, ES8316_ADC_PGAGAIN_REG23, 0x60);
 	snd_soc_component_write(component, ES8316_ADC_D2SEPGA_REG24, 0x01);
 	/* adc ds mode, HPF enable */
@@ -904,7 +904,7 @@ static int es8316_init_regs(struct snd_soc_component *component)
 	snd_soc_component_write(component, ES8316_ADC_ALC6_REG2E, 0xab);
 
 	snd_soc_component_write(component, ES8316_SYS_VMIDSEL, 0xff);
-	snd_soc_component_write(component, ES8316_CLKMGR_ADCOSR, 0x32);
+	// snd_soc_component_write(component, ES8316_CLKMGR_ADCOSR, 0x32);
 
 	snd_soc_component_update_bits(component, ES8316_SERDATA_DAC,
 			    ES8316_SERDATA2_LEN_MASK, ES8316_SERDATA2_LEN_16);
