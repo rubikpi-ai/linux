@@ -10,7 +10,6 @@
 /dts-v1/;
 
 #include "turbox-c6490p-devkit.dtsi"
-#include "rubikpi3-display.dtsi"
 
 / {
 	model = "Thundercomm, Inc. RUBIK Pi 3";
