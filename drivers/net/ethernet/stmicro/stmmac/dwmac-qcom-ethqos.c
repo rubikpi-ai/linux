@@ -914,8 +914,8 @@ static void ethqos_fix_mac_speed(void *priv_n, unsigned int speed, unsigned int 
 	ethqos->speed = speed;
 	ethqos_update_link_clk(ethqos, speed);
 	ethqos_configure(ethqos);
-	if (priv->hw->qcom_pcs)
-		qcom_xpcs_link_up(priv->hw->qcom_pcs, mode,
+	if (priv->hw->phylink_pcs)
+		qcom_xpcs_link_up(priv->hw->phylink_pcs, mode,
 				  priv->plat->phy_interface, speed,
 				  DUPLEX_FULL);
 }
@@ -1035,8 +1035,8 @@ static int ethqos_xpcs_init(struct stmmac_priv *priv)
 
 	xpcs_node = of_parse_phandle(priv->device->of_node, "qcom-xpcs-handle", 0);
 
-	priv->hw->qcom_pcs = qcom_xpcs_create(xpcs_node, priv->plat->phy_interface);
-	if (IS_ERR_OR_NULL(priv->hw->qcom_pcs))
+	priv->hw->phylink_pcs = qcom_xpcs_create(xpcs_node, priv->plat->phy_interface);
+	if (IS_ERR_OR_NULL(priv->hw->phylink_pcs))
 		return -ENODEV;
 
 	return 0;
@@ -1044,13 +1044,13 @@ static int ethqos_xpcs_init(struct stmmac_priv *priv)
 
 static void ethqos_xpcs_exit(struct stmmac_priv *priv)
 {
-	qcom_xpcs_destroy(priv->hw->qcom_pcs);
+	qcom_xpcs_destroy(priv->hw->phylink_pcs);
 }
 
 static void ethqos_xpcs_safety_stats(struct stmmac_priv *priv, unsigned long *ptr)
 {
 	if (priv->sfty_irq > 0)
-		qcom_xpcs_get_err_stats(priv->hw->qcom_pcs, ptr);
+		qcom_xpcs_get_err_stats(priv->hw->phylink_pcs, ptr);
 }
 
 static int qcom_ethqos_probe(struct platform_device *pdev)
