@@ -19,7 +19,7 @@
 #define DW_USXGMII_EN			BIT(9)
 #define DW_VR_XS_PCS_DIG_STS		0x2040 /* SWI name: EMAC0_VR_XS_PCS_DIG_STS */
 #define DW_RXFIFO_ERR			GENMASK(6, 5)
-#define DW_R2TLBE				BIT(14)
+#define DW_LBE				BIT(14)
 #define DW_SR_XS_PCS_STS1		BIT(2)
 
 /* SWI name: EMAC0_VR_XS_PCS_SFTY_UE_INTR0 */
