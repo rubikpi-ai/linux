@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /* Copyright (c) 2010,2015,2019 The Linux Foundation. All rights reserved.
  * Copyright (C) 2015 Linaro Ltd.
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #include <linux/platform_device.h>
 #include <linux/init.h>
@@ -1789,7 +1789,7 @@ int qcom_scm_wait_for_wq_completion(u32 wq_ctx)
 	if (ret)
 		return ret;
 
-	wait_for_completion(&__scm->waitq_comp);
+	wait_for_completion_state(&__scm->waitq_comp, TASK_IDLE);
 
 	return 0;
 }
