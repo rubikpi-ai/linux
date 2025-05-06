@@ -107,9 +107,7 @@ struct si_object_invoke_ctx {
 	struct {
 		struct si_buffer msg;
 		phys_addr_t paddr;
-
-		/* TODO. remove after moving to tzmem allocator. */
-		struct qtee_shm shm;
+		uint64_t handle;
 	} in, out;
 };
 

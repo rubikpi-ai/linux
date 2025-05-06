@@ -5,14 +5,17 @@
 
 #define pr_fmt(fmt) "si-core: %s: " fmt, __func__
 
-#include <linux/kobject.h>
-#include <linux/sysfs.h>
-#include <linux/module.h>
-#include <linux/init.h>
-#include <linux/slab.h>
+#include <dt-bindings/firmware/qcom,scm.h>
 #include <linux/delay.h>
-#include <linux/xarray.h>
+#include <linux/firmware/qcom/qcom_tzmem.h>
+#include <linux/firmware/qcom/qcom_scm.h>
+#include <linux/init.h>
+#include <linux/kobject.h>
+#include <linux/module.h>
 #include <linux/mm.h>
+#include <linux/sysfs.h>
+#include <linux/slab.h>
+#include <linux/xarray.h>
 
 #include "si_core.h"
 
@@ -442,6 +445,7 @@ static DEFINE_IDA(si_object_invoke_ctxs_ida);
 
 static int shmem_alloc(struct si_object_invoke_ctx *oic, struct si_arg u[])
 {
+	int ret = 0;
 	int i;
 
 	/* See 'prepare_msg'. Calculate size of inbound message. */
@@ -459,28 +463,55 @@ static int shmem_alloc(struct si_object_invoke_ctx *oic, struct si_arg u[])
 	 *   (2) to be multiple of PAGE_SIZE.
 	 */
 
-	/* We assume 'qtee_shmbridge_allocate_shm' allocates PAGE_SIZE aligned memory. */
-
 	size = PAGE_ALIGN(size);
 
+	oic->in.msg.size = size;
 	/* Get inbound buffer. */
-	if (qtee_shmbridge_allocate_shm(size, &oic->in.shm))
+	oic->in.msg.addr = (void *)__get_free_pages(GFP_KERNEL | __GFP_COMP | GFP_DMA32,
+						get_order(oic->in.msg.size));
+
+	if (!oic->in.msg.addr)
 		return -ENOMEM;
 
+	oic->out.msg.size = OUT_BUFFER_SIZE;
 	/* Get outbound buffer. */
-	if (qtee_shmbridge_allocate_shm(OUT_BUFFER_SIZE, &oic->out.shm)) {
-		qtee_shmbridge_free_shm(&oic->in.shm);
+	oic->out.msg.addr = (void *)__get_free_pages(GFP_KERNEL | __GFP_COMP | GFP_DMA32,
+						get_order(oic->out.msg.size));
 
+	if (!oic->out.msg.addr) {
+		free_pages((long)oic->in.msg.addr, get_order(oic->in.msg.size));
 		return -ENOMEM;
 	}
 
-	oic->in.msg.addr = oic->in.shm.vaddr;
-	oic->in.msg.size = size;
-	oic->in.paddr = oic->in.shm.paddr;
+	oic->in.paddr = __pa(oic->in.msg.addr);
+	oic->out.paddr = __pa(oic->out.msg.addr);
+	pr_debug("IN : paddr: %llx, size: %zu\n", oic->in.paddr, oic->in.msg.size);
+	pr_debug("OUT: paddr: %llx, size: %zu\n", oic->out.paddr, oic->out.msg.size);
 
-	oic->out.msg.addr = oic->out.shm.vaddr;
-	oic->out.msg.size = OUT_BUFFER_SIZE;
-	oic->out.paddr = oic->out.shm.paddr;
+	ret = qcom_tzmem_register(oic->in.paddr, oic->in.msg.size,
+				(uint32_t[]){ QCOM_SCM_VMID_HLOS },
+				(uint32_t[]){ QCOM_SCM_PERM_RW }, 1, QCOM_SCM_PERM_RW,
+				&oic->in.handle);
+	if (ret) {
+		pr_err("Bridge creation failed for in buffer, paddr: %llx, size: %zu, ret: %d\n",
+			oic->in.paddr, oic->in.msg.size, ret);
+		free_pages((long)oic->in.msg.addr, get_order(oic->in.msg.size));
+		free_pages((long)oic->out.msg.addr, get_order(oic->out.msg.size));
+		return -EINVAL;
+	}
+
+	ret = qcom_tzmem_register(oic->out.paddr, oic->out.msg.size,
+				(uint32_t[]){ QCOM_SCM_VMID_HLOS },
+				(uint32_t[]){ QCOM_SCM_PERM_RW }, 1, QCOM_SCM_PERM_RW,
+				&oic->out.handle);
+	if (ret) {
+		pr_err("Bridge creation failed for out buffer, paddr: %llx, size: %zu, ret: %d\n",
+			oic->out.paddr, oic->out.msg.size, ret);
+		qcom_tzmem_deregister(oic->in.handle);
+		free_pages((long)oic->in.msg.addr, get_order(oic->in.msg.size));
+		free_pages((long)oic->out.msg.addr, get_order(oic->out.msg.size));
+		return -EINVAL;
+	}
 
 	/* QTEE assume unused buffers are zeroed; Do it now! */
 	memset(oic->in.msg.addr, 0, oic->in.msg.size);
@@ -518,8 +549,10 @@ static void si_object_invoke_ctx_uninit(struct si_object_invoke_ctx *oic)
 {
 	ida_free(&si_object_invoke_ctxs_ida, oic->context_id);
 
-	qtee_shmbridge_free_shm(&oic->in.shm);
-	qtee_shmbridge_free_shm(&oic->out.shm);
+	qcom_tzmem_deregister(oic->in.handle);
+	qcom_tzmem_deregister(oic->out.handle);
+	free_pages((long)oic->in.msg.addr, get_order(oic->in.msg.size));
+	free_pages((long)oic->out.msg.addr, get_order(oic->out.msg.size));
 }
 
 /* For X_msg functions, on failure we do the cleanup. Because, we could not

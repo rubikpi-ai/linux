@@ -7,7 +7,6 @@
 #define __SMCI_IMPL_H__
 
 #include <linux/sched.h>
-#include <linux/qtee_shmbridge.h>
 #include <linux/firmware/qcom/si_object.h>
 
 #include "smci_internal.h"

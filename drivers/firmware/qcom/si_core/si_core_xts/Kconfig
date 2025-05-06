@@ -4,7 +4,7 @@
 #
 config QCOM_SI_CORE_XTS
 	tristate "Secure QSEE Support"
-	depends on QTEE_SHM_BRIDGE && QCOM_SCM_ADDON && QCOM_SI_CORE
+	depends on QCOM_SI_CORE
 	help
 	  Enable SMCInvoke driver which supports capability based secure
 	  communication between QTI Secure Execution Environment (QSEE)
