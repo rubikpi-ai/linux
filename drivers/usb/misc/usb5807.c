@@ -83,12 +83,10 @@ static int usb5807_write_reg_u8(struct i2c_client *i2c, u16 reg, u8 value)
 /* Decode array of port numbers property into bit mask */
 static u8 usb5807_get_ports_field(struct device *dev, const char *prop_name)
 {
-	struct property *prop;
-	const __be32 *p;
 	u32 port;
 	u8 result = 0;
 
-	of_property_for_each_u32(dev->of_node, prop_name, prop, p, port) {
+	of_property_for_each_u32(dev->of_node, prop_name, port) {
 		if (port < USB5807_NUM_PORTS)
 			result |= BIT(port);
 		else
