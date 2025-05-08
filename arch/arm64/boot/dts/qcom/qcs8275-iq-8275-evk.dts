@@ -11,6 +11,9 @@
 	model = "Qualcomm Technologies, Inc. IQ 8275 EVK";
 	compatible = "qcom,qcs8275-iq-8275-evk", "qcom,qcs8275", "qcom,qcs8300";
 
+	qcom,msm-id = <675 0x10000>;
+	qcom,board-id = <0x00010020 0>, <0x00010019 0>;
+
 	aliases {
 		serial0 = &uart7;
 	};
