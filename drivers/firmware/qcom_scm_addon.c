@@ -691,3 +691,21 @@ int qcom_scm_assign_dump_table_region(bool is_assign, phys_addr_t addr, size_t s
 	return qcom_scm_call(__scm->dev, &desc, NULL);
 }
 EXPORT_SYMBOL_GPL(qcom_scm_assign_dump_table_region);
+
+int qcom_scm_load_ccu_qup_fw(u32 qup_type)
+{
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_TZ_CCU_QUP,
+		.cmd = QCOM_SCM_LOAD_CCU_QUP_FW,
+		.arginfo = QCOM_SCM_ARGS(1),
+		.args[0] = qup_type,
+		.owner = ARM_SMCCC_OWNER_SIP,
+	};
+	struct qcom_scm_res res;
+	int ret;
+
+	ret = qcom_scm_call(__scm->dev, &desc, &res);
+
+	return ret ? : res.result[0];
+}
+EXPORT_SYMBOL_GPL(qcom_scm_load_ccu_qup_fw);

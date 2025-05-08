@@ -12,6 +12,9 @@
 
 #define QCOM_SCM_CAMERA_MAX_QOS_CNT	2
 
+#define QCOM_SCM_TZ_CCU_QUP		0x2A
+#define QCOM_SCM_LOAD_CCU_QUP_FW	0x1
+
 struct qcom_scm_camera_qos {
 	u32 offset;
 	u32 val;
@@ -64,6 +67,7 @@ extern int qcom_scm_ddrbw_profiler(phys_addr_t in_buf, size_t in_buf_size,
 extern int qcom_scm_she_op(u64 _arg1, u64 _arg2, u64 _arg3, u64 _arg4, u64 *res1);
 extern int qcom_scm_assign_dump_table_region(bool is_assign, phys_addr_t addr,
 			size_t size);
+extern int qcom_scm_load_ccu_qup_fw(u32 qup_type);
 #else
 static inline bool qcom_scm_dcvs_ca_available(void)
 {
@@ -221,6 +225,10 @@ static inline int qcom_scm_she_op(u64 _arg1, u64 _arg2, u64 _arg3, u64 _arg4, u6
 }
 static inline int qcom_scm_assign_dump_table_region(bool is_assign,
 				phys_addr_t addr, size_t size)
+{
+	return -EPERM;
+}
+static inline int qcom_scm_load_ccu_qup_fw(u32 qup_type)
 {
 	return -EPERM;
 }
