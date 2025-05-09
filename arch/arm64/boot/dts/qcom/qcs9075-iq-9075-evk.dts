@@ -660,6 +660,30 @@
 	status = "okay";
 };
 
+&qup_uart0_tx {
+	bias-pull-up;
+};
+
+&qup_uart0_rx {
+	bias-pull-down;
+};
+
+&qup_uart17_cts {
+	bias-disable;
+};
+
+&qup_uart17_rts {
+	bias-pull-down;
+};
+
+&qup_uart17_tx {
+	bias-pull-up;
+};
+
+&qup_uart17_rx {
+	bias-pull-down;
+};
+
 &remoteproc_adsp {
 	firmware-name = "qcom/sa8775p/adsp.mbn";
 	status = "okay";
@@ -813,51 +837,6 @@
 		};
 	};
 
-	qup_uart0_default: qup-uart0-state {
-		qup_uart0_tx: qup0-uart0-tx-pins {
-			pins = "gpio22";
-			function = "qup0_se0";
-			bias-pull-up;
-		};
-
-		qup_uart0_rx: qup0-uart0-rx-pins {
-			pins = "gpio23";
-			function = "qup0_se0";
-			bias-pull-down;
-		};
-	};
-
-	qup_uart10_default: qup-uart10-state {
-		pins = "gpio46", "gpio47";
-		function = "qup1_se3";
-	};
-
-	qup_uart17_default: qup-uart17-state {
-		qup_uart17_cts: qup-uart17-cts-pins {
-			pins = "gpio91";
-			function = "qup2_se3";
-			bias-disable;
-		};
-
-		qup_uart17_rts: qup0-uart17-rts-pins {
-			pins = "gpio92";
-			function = "qup2_se3";
-			bias-pull-down;
-		};
-
-		qup_uart17_tx: qup0-uart17-tx-pins {
-			pins = "gpio93";
-			function = "qup2_se3";
-			bias-pull-up;
-		};
-
-		qup_uart17_rx: qup0-uart17-rx-pins {
-			pins = "gpio94";
-			function = "qup2_se3";
-			bias-pull-down;
-		};
-	};
-
 	pcie0_default_state: pcie0-default-state {
 		perst-pins {
 			pins = "gpio2";
@@ -985,9 +964,10 @@
 	status = "okay";
 };
 
+/delete-node/ &qup_uart0_rts;
+/delete-node/ &qup_uart0_cts;
+
 &uart0 {
-	pinctrl-0 = <&qup_uart0_default>;
-	pinctrl-names = "default";
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
 	status = "okay";
@@ -1035,8 +1015,6 @@
 
 &uart10 {
 	compatible = "qcom,geni-debug-uart";
-	pinctrl-0 = <&qup_uart10_default>;
-	pinctrl-names = "default";
 	status = "okay";
 };
 
@@ -1066,8 +1044,6 @@
 };
 
 &uart17 {
-	pinctrl-0 = <&qup_uart17_default>;
-	pinctrl-names = "default";
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
 	status = "okay";
