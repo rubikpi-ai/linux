@@ -557,6 +557,34 @@ static void qcom_xpcs_disable(struct phylink_pcs *pcs)
 		qcom_xpcs_fusa_intr_disable(qxpcs);
 }
 
+static void qcom_xpcs_loopback(struct dw_xpcs_qcom *qxpcs, bool on)
+{
+	int ret;
+
+	ret = qcom_xpcs_read(qxpcs, DW_VR_MII_PCS_DIG_CTRL1);
+
+	qcom_xpcs_write(qxpcs, DW_VR_MII_PCS_DIG_CTRL1, ret |= DW_USXGMII_EN);
+
+	ret = qcom_xpcs_read(qxpcs, DW_SR_MII_MMD_CTRL);
+	if (on)
+		ret |= DW_LBE;
+	else
+		ret &= ~DW_LBE;
+
+	qcom_xpcs_write(qxpcs, DW_SR_MII_MMD_CTRL, ret);
+}
+
+static int qcom_xpcs_pre_init(struct phylink_pcs *pcs)
+{
+	struct dw_xpcs_qcom *qxpcs = phylink_pcs_to_xpcs(pcs);
+
+	/* Loopback RX clock if MAC requires it */
+	if (pcs->rxc_always_on)
+		qcom_xpcs_loopback(qxpcs, true);
+
+	return 0;
+}
+
 void qcom_xpcs_get_err_stats(struct phylink_pcs *pcs, unsigned long *ptr)
 {
 	struct dw_xpcs_qcom *qxpcs = phylink_pcs_to_xpcs(pcs);
@@ -692,8 +720,7 @@ static int qcom_xpcs_select_mode(struct dw_xpcs_qcom *qxpcs, phy_interface_t int
 		if (ret < 0)
 			goto out;
 
-		if (interface == PHY_INTERFACE_MODE_USXGMII)
-			qcom_xpcs_write(qxpcs, DW_VR_MII_PCS_DIG_CTRL1, ret | DW_USXGMII_EN);
+		qcom_xpcs_write(qxpcs, DW_VR_MII_PCS_DIG_CTRL1, ret | DW_USXGMII_EN);
 
 		ret = qcom_xpcs_read(qxpcs, DW_VR_MII_PCS_KR_CTRL);
 		if (ret < 0)
@@ -726,20 +753,34 @@ void qcom_xpcs_link_up(struct phylink_pcs *pcs, unsigned int mode,
 		       phy_interface_t interface, int speed, int duplex)
 {
 	struct dw_xpcs_qcom *qxpcs = phylink_pcs_to_xpcs(pcs);
+	int ret;
 
 	if (qxpcs->intr_en)
 		return;
 
+	/* Disable Loopback RX clock as we expect the Phy or switch
+	 * to be able to supply the required Rx clock by this time
+	 */
+	qcom_xpcs_loopback(qxpcs, false);
+
 	switch (interface) {
-	case PHY_INTERFACE_MODE_USXGMII:
 	case PHY_INTERFACE_MODE_10GBASER:
 	case PHY_INTERFACE_MODE_5GBASER:
+		ret = qcom_xpcs_read(qxpcs, DW_VR_MII_PCS_DIG_CTRL1);
+		if (ret < 0)
+			goto read_err;
+
+		qcom_xpcs_write(qxpcs, DW_VR_MII_PCS_DIG_CTRL1, ret &= ~DW_USXGMII_EN);
+		fallthrough;
+	case PHY_INTERFACE_MODE_USXGMII:
 		qcom_xpcs_link_up_usxgmii(qxpcs, speed);
 		break;
 	default:
 		XPCSERR("Invalid MII mode: %s\n", phy_modes(interface));
 		return;
 	}
+read_err:
+	XPCSERR("Failed to read register\n");
 }
 EXPORT_SYMBOL_GPL(qcom_xpcs_link_up);
 
@@ -801,6 +842,7 @@ static const struct phylink_pcs_ops qcom_xpcs_phylink_ops = {
 	.pcs_get_state = qcom_xpcs_get_state,
 	.pcs_enable = qcom_xpcs_enable,
 	.pcs_disable = qcom_xpcs_disable,
+	.pcs_pre_init = qcom_xpcs_pre_init,
 };
 
 struct phylink_pcs *qcom_xpcs_create(struct device_node *np, phy_interface_t interface)
@@ -859,6 +901,11 @@ struct phylink_pcs *qcom_xpcs_create(struct device_node *np, phy_interface_t int
 		ret = qcom_xpcs_select_mode(qxpcs, interface);
 		if (ret < 0)
 			goto out;
+
+		/* Loopback RX clock from the get go to be able to
+		 * support the needs of the MAC HW
+		 */
+		qcom_xpcs_loopback(qxpcs, true);
 
 		return &qxpcs->pcs;
 	}
