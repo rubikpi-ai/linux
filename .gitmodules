@@ -7,3 +7,21 @@
 [submodule "techpack/display"]
 	path = techpack/display
 	url = https://github.com/rubikpi-ai/display-drivers.git
+[submodule "display-devicetree"]
+	path = display-devicetree
+	url = https://git.codelinaro.org/clo/le/platform/vendor/opensource/display-devicetree.git
+[submodule "graphics-devicetree"]
+	path = graphics-devicetree
+	url = http://git.codelinaro.org/clo/le/platform/vendor/qcom/opensource/graphics-devicetree.git
+[submodule "arch/arm64/boot/dts/qcom/graphics-devicetree"]
+	path = arch/arm64/boot/dts/qcom/graphics-devicetree
+	url = http://git.codelinaro.org/clo/le/platform/vendor/qcom/opensource/graphics-devicetree.git
+[submodule "arch/arm64/boot/dts/qcom/display-devicetree"]
+	path = arch/arm64/boot/dts/qcom/display-devicetree
+	url = https://git.codelinaro.org/clo/le/platform/vendor/opensource/display-devicetree.git
+[submodule "arch/arm64/boot/dts/qcom/camera-devicetree"]
+	path = arch/arm64/boot/dts/qcom/camera-devicetree
+	url = https://git.codelinaro.org/clo/le/platform/vendor/opensource/camera-devicetree.git
+[submodule "arch/arm64/boot/dts/qcom/video-devicetree"]
+	path = arch/arm64/boot/dts/qcom/video-devicetree
+	url = https://git.codelinaro.org/clo/le/platform/vendor/opensource/video-devicetree.git
