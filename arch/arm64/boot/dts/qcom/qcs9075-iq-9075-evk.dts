@@ -23,6 +23,7 @@
 		serial0 = &uart10;
 		serial1 = &uart17;
 		serial2 = &uart0;
+		spi16 = &spi16;
 		ufshc1 = &ufs_mem_hc;
 	};
 
@@ -929,6 +930,16 @@
 		drive-strength = <2>;
 		bias-pull-up;
 	};
+
+	qup_spi16_cs: qup-spi16-cs-state {
+		pins = "gpio89";
+		function = "qup2_se2";
+	};
+
+	qup_spi16_data_clk: qup-spi16-data-clk-state {
+		pins = "gpio86", "gpio87", "gpio88";
+		function = "qup2_se2";
+	};
 };
 
 &pcie0 {
@@ -1131,6 +1142,21 @@
 		regulator-boot-on;
 		enable-active-high;
 		regulator-always-on;
+	};
+};
+
+&spi16 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&qup_spi16_cs>, <&qup_spi16_data_clk>;
+	status = "okay";
+
+	st33htpm0: st33htpm@0 {
+		compatible = "st,st33htpm-spi";
+		reg = <0>;
+		spi-max-frequency = <20000000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "okay";
 	};
 };
 
