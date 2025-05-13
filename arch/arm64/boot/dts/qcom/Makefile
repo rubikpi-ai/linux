@@ -123,6 +123,7 @@ qcs8275-addons-iq-8275-evk-mezz-dtbs:= qcs8275-addons-iq-8275-evk.dtb qcs8275-ad
 
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-addons-iq-8275-evk-mezz.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-iq-8275-evk.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-iq-8275-evk-pro-sku.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8300-addons-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8300-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8550-addons-aim300-aiot.dtb
