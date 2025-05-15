@@ -1585,7 +1585,8 @@ static __maybe_unused int msm_pinctrl_suspend(struct device *dev)
 {
 	struct msm_pinctrl *pctrl = dev_get_drvdata(dev);
 
-	if (pm_suspend_target_state == PM_SUSPEND_MEM)
+	if (pm_suspend_target_state == PM_SUSPEND_MEM
+		|| pm_suspend_target_state == PM_SUSPEND_TO_IDLE)
 		return msm_pinctrl_save_hw_ctx(pctrl);
 
 	return pinctrl_force_sleep(pctrl->pctrl);
@@ -1595,7 +1596,8 @@ static __maybe_unused int msm_pinctrl_resume(struct device *dev)
 {
 	struct msm_pinctrl *pctrl = dev_get_drvdata(dev);
 
-	if (pm_suspend_target_state == PM_SUSPEND_MEM)
+	if (pm_suspend_target_state == PM_SUSPEND_MEM
+		|| pm_suspend_target_state == PM_SUSPEND_TO_IDLE)
 		return msm_pinctrl_restore_hw_ctx(pctrl);
 
 	return pinctrl_force_default(pctrl->pctrl);
