@@ -6,7 +6,6 @@
 #ifndef __SI_CORE_H__
 #define __SI_CORE_H__
 
-#include <linux/qtee_shmbridge.h>
 #include <linux/firmware/qcom/si_object.h>
 
 /* QTEE object ID API. */

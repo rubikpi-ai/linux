@@ -3,16 +3,22 @@
  * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
-#include <linux/file.h>
-#include <linux/fs.h>
-#include <linux/fdtable.h>
+#define pr_fmt(fmt) "qseecom: %s: " fmt, __func__
+
+#include <dt-bindings/firmware/qcom,scm.h>
 #include <linux/anon_inodes.h>
 #include <linux/delay.h>
-#include <linux/kref.h>
-#include <linux/types.h>
-#include <linux/slab.h>
-#include <linux/firmware.h>
 #include <linux/elf.h>
+#include <linux/fdtable.h>
+#include <linux/file.h>
+#include <linux/firmware.h>
+#include <linux/firmware/qcom/qcom_tzmem.h>
+#include <linux/firmware/qcom/qcom_scm.h>
+#include <linux/fs.h>
+#include <linux/kref.h>
+#include <linux/mm.h>
+#include <linux/slab.h>
+#include <linux/types.h>
 
 #include "smci_internal.h"
 
@@ -37,15 +43,14 @@ struct qseecom_compat_context {
 	void *dev; /* in/out */
 	unsigned char *sbuf; /* in/out */
 	u32 sbuf_len; /* in/out */
-	struct qtee_shm shm;
+	uint64_t handle;
 	u8 app_arch;
 	struct Object client_env;
 	struct Object app_loader;
 	struct Object app_controller;
 };
 
-char *firmware_request_from_smcinvoke(const char *appname,
-	size_t *fw_size, struct qtee_shm *shm);
+char *firmware_request_from_smcinvoke(const char *appname, size_t *fw_size, uint64_t *handle);
 
 static int load_app(struct qseecom_compat_context *cxt, const char *app_name)
 {
@@ -54,7 +59,7 @@ static int load_app(struct qseecom_compat_context *cxt, const char *app_name)
 	int ret = 0;
 	char dist_name[MAX_FW_APP_SIZE] = {0};
 	size_t dist_name_len = 0;
-	struct qtee_shm shm = {0};
+	uint64_t handle;
 
 	if (strnlen(app_name, MAX_FW_APP_SIZE) == MAX_FW_APP_SIZE) {
 		pr_err("The app_name (%s) with length %zu is not valid\n",
@@ -69,7 +74,7 @@ static int load_app(struct qseecom_compat_context *cxt, const char *app_name)
 		return ret;
 	}
 
-	imgbuf_va = firmware_request_from_smcinvoke(app_name, &fw_size, &shm);
+	imgbuf_va = firmware_request_from_smcinvoke(app_name, &fw_size, &handle);
 	if (imgbuf_va == NULL) {
 		pr_err("Failed on firmware_request_from_smcinvoke\n");
 		return -EINVAL;
@@ -91,7 +96,8 @@ static int load_app(struct qseecom_compat_context *cxt, const char *app_name)
 		__func__, __LINE__, app_name, dist_name, dist_name_len);
 
 exit_release_shm:
-	qtee_shmbridge_free_shm(&shm);
+	qcom_tzmem_deregister(handle);
+	free_pages((long)imgbuf_va, get_order(*fw_size));
 	return ret;
 }
 
@@ -139,15 +145,28 @@ static int __qseecom_start_app(struct qseecom_handle **handle,
 		goto exit_release_apploader;
 	}
 
-	/* Get the physical address of the req/resp buffer */
-	ret = qtee_shmbridge_allocate_shm(size, &cxt->shm);
+	/* Align size with page_size as __get_free_pages expect page aligned size. */
+	size = PAGE_ALIGN(size);
 
-	if (ret) {
-		pr_err("qtee_shmbridge_allocate_shm failed, ret :%d\n", ret);
+	/* Get the physical address of the req/resp buffer */
+	cxt->sbuf = (unsigned char *)__get_free_pages(GFP_KERNEL | __GFP_COMP | GFP_DMA32,
+							get_order(size));
+	if (!cxt->sbuf) {
 		ret = -EINVAL;
 		goto exit_release_appcontroller;
 	}
-	cxt->sbuf = cxt->shm.vaddr;
+
+	ret = qcom_tzmem_register(__pa(cxt->sbuf), size,
+				(uint32_t[]){ QCOM_SCM_VMID_HLOS },
+				(uint32_t[]){ QCOM_SCM_PERM_RW }, 1, QCOM_SCM_PERM_RW,
+				&cxt->handle);
+	if (ret) {
+		pr_err("failed to create bridge for req/rsp buffer, ret: %d\n", ret);
+		free_pages((long)cxt->sbuf, get_order(size));
+		ret = -EINVAL;
+		goto exit_release_appcontroller;
+	}
+
 	cxt->sbuf_len = size;
 	*handle = (struct qseecom_handle *)cxt;
 
@@ -176,7 +195,8 @@ static int __qseecom_shutdown_app(struct qseecom_handle **handle)
 
 	cxt = (struct qseecom_compat_context *)(*handle);
 
-	qtee_shmbridge_free_shm(&cxt->shm);
+	qcom_tzmem_deregister(cxt->handle);
+	free_pages((long)cxt->sbuf, get_order(cxt->sbuf_len));
 	Object_release(cxt->app_controller);
 	Object_release(cxt->app_loader);
 	Object_release(cxt->client_env);
@@ -248,7 +268,7 @@ EXPORT_SYMBOL_GPL(qseecom_process_listener_from_smcinvoke);
 
 #endif /* CONFIG_QSEECOM_COMPAT */
 
-char *firmware_request_from_smcinvoke(const char *appname, size_t *fw_size, struct qtee_shm *shm)
+char *firmware_request_from_smcinvoke(const char *appname, size_t *fw_size, uint64_t *handle)
 {
 	int rc = 0;
 	const struct firmware *fw_entry = NULL, *fw_entry00 = NULL, *fw_entrylast = NULL;
@@ -319,14 +339,26 @@ char *firmware_request_from_smcinvoke(const char *appname, size_t *fw_size, stru
 
 	/*Total size of image will be the offset of last image + the size of last split image*/
 	*fw_size = fw_entrylast->size + offset[num_images-1];
+	*fw_size = PAGE_ALIGN(*fw_size);
 
 	/*Allocate memory for the buffer that will hold the split image*/
-	rc = qtee_shmbridge_allocate_shm((*fw_size), shm);
-	if (rc) {
-		pr_err("smbridge alloc failed for size: %zu\n", *fw_size);
+	img_data_ptr = (u8 *)__get_free_pages(GFP_KERNEL|__GFP_COMP|GFP_DMA32,
+						get_order(*fw_size));
+	if (!img_data_ptr) {
+		pr_err("failed to allocate memory for size: %zu\n", *fw_size);
 		goto release_fw_entrylast;
 	}
-	img_data_ptr = shm->vaddr;
+
+	rc = qcom_tzmem_register(__pa((unsigned long) img_data_ptr), *fw_size,
+				(uint32_t[]){ QCOM_SCM_VMID_HLOS },
+				(uint32_t[]){ QCOM_SCM_PERM_RW }, 1, QCOM_SCM_PERM_RW,
+				handle);
+	if (rc) {
+		pr_err("failed to create bridge for buffer, rc: %d, size: %zu\n", rc, *fw_size);
+		free_pages((long)img_data_ptr, get_order(*fw_size));
+		goto release_fw_entrylast;
+	}
+
 	/*
 	 * Copy contents of split bins to the buffer
 	 */
@@ -336,7 +368,8 @@ char *firmware_request_from_smcinvoke(const char *appname, size_t *fw_size, stru
 		rc = firmware_request_nowarn(&fw_entry, fw_name, smci_dev);
 		if (rc) {
 			pr_err("Failed to locate blob %s\n", fw_name);
-			qtee_shmbridge_free_shm(shm);
+			qcom_tzmem_deregister(*handle);
+			free_pages((long)img_data_ptr, get_order(*fw_size));
 			img_data_ptr = NULL;
 			goto release_fw_entrylast;
 		}

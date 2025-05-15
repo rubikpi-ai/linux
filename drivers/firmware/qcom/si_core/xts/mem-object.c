@@ -11,7 +11,7 @@
 #include <linux/dma-buf.h>
 #include <linux/mem-buf.h>
 #include <linux/of_platform.h>
-#include <linux/qtee_shmbridge.h>
+#include <linux/firmware/qcom/qcom_tzmem.h>
 #include <linux/firmware/qcom/si_core_xts.h>
 #include <linux/firmware/qcom/qcom_scm.h>
 
@@ -163,7 +163,7 @@ static int make_shm_bridge_single(struct mem_object *mo)
 	mo->mapping_info.p_addr_len = sg_dma_len(mo->map.sgt->sgl);
 	mo->mapping_info.perms = QCOM_SCM_PERM_RW;
 
-	ret = qtee_shmbridge_register(mo->mapping_info.p_addr, mo->mapping_info.p_addr_len,
+	ret = qcom_tzmem_register(mo->mapping_info.p_addr, mo->mapping_info.p_addr_len,
 		vmid_list, perms_list, nelems, mo->mapping_info.perms,
 		&mo->shm_bridge_handle);
 
@@ -186,7 +186,7 @@ static int make_shm_bridge_single(struct mem_object *mo)
 static void rm_shm_bridge(struct mem_object *mo)
 {
 	if (mo->shm_bridge_handle)
-		qtee_shmbridge_deregister(mo->shm_bridge_handle);
+		qcom_tzmem_deregister(mo->shm_bridge_handle);
 	mo->shm_bridge_handle = 0;
 }
 

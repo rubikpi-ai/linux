@@ -1,13 +1,12 @@
 /* SPDX-License-Identifier: GPL-2.0-only WITH Linux-syscall-note */
 /*
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023, 2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #ifndef __SMCINVOKE_OBJECT_H
 #define __SMCINVOKE_OBJECT_H
 
 #include <linux/types.h>
 #include <linux/firmware.h>
-#include <linux/qtee_shmbridge.h>
 #include <linux/smcinvoke.h>
 
 /*
@@ -194,7 +193,7 @@ int get_root_fd(int *root_fd);
 int process_invoke_request_from_kernel_client(
 		int fd, struct smcinvoke_cmd_req *req);
 
-char *firmware_request_from_smcinvoke(const char *appname, size_t *fw_size, struct qtee_shm *shm);
+char *firmware_request_from_smcinvoke(const char *appname, size_t *fw_size, uint64_t *handle);
 
 int32_t get_client_env_object(struct Object *clientEnvObj);
 
