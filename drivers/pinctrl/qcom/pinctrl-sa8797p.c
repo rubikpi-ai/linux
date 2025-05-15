@@ -2935,6 +2935,7 @@ static int sa8797p_pinctrl_probe(struct platform_device *pdev)
 static struct platform_driver sa8797p_pinctrl_driver = {
 	.driver = {
 		.name = "sa8797p-tlmm",
+		.pm = &msm_pinctrl_dev_pm_ops,
 		.of_match_table = sa8797p_pinctrl_of_match,
 	},
 	.probe = sa8797p_pinctrl_probe,
