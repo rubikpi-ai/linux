@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include "qcs8300-addons.dtsi"
+
+&{/} {
+	model = "Qualcomm Technologies, Inc. IQ8 8275 addons Pro SKU EVK";
+};
