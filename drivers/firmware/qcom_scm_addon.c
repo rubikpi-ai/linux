@@ -39,11 +39,6 @@
 
 #define QCOM_SCM_IO_RESET           0x03
 
-/* IDs for SHM bridge */
-#define QCOM_SCM_MEMP_SHM_BRIDGE_ENABLE         0x1c
-#define QCOM_SCM_MEMP_SHM_BRIDGE_DELETE         0x1d
-#define QCOM_SCM_MEMP_SHM_BRDIGE_CREATE         0x1e
-
 /* IDs for sdi and sec wdog control */
 #define QCOM_SCM_BOOT_SEC_WDOG_DIS	0x07
 #define QCOM_SCM_BOOT_SEC_WDOG_TRIGGER	0x08
@@ -480,63 +475,6 @@ int qcom_scm_invoke_callback_response(phys_addr_t out_buf,
 
 }
 EXPORT_SYMBOL_GPL(qcom_scm_invoke_callback_response);
-
-int qcom_scm_enable_shm_bridge(void)
-{
-	int ret;
-	struct qcom_scm_desc desc = {
-		.svc = QCOM_SCM_SVC_MP,
-		.cmd = QCOM_SCM_MEMP_SHM_BRIDGE_ENABLE,
-		.owner = ARM_SMCCC_OWNER_SIP
-	};
-	struct qcom_scm_res res;
-
-	ret = qcom_scm_call(__scm->dev, &desc, &res);
-
-	return ret ? : res.result[0];
-}
-EXPORT_SYMBOL_GPL(qcom_scm_enable_shm_bridge);
-
-int qcom_scm_delete_shm_bridge(u64 handle)
-{
-	struct qcom_scm_desc desc = {
-		.svc = QCOM_SCM_SVC_MP,
-		.cmd = QCOM_SCM_MEMP_SHM_BRIDGE_DELETE,
-		.owner = ARM_SMCCC_OWNER_SIP,
-		.args[0] = handle,
-		.arginfo = QCOM_SCM_ARGS(1, QCOM_SCM_VAL),
-	};
-
-	return qcom_scm_call(__scm ? __scm->dev : NULL, &desc, NULL);
-}
-EXPORT_SYMBOL_GPL(qcom_scm_delete_shm_bridge);
-
-int qcom_scm_create_shm_bridge(u64 pfn_and_ns_perm_flags,
-	u64 ipfn_and_s_perm_flags, u64 size_and_flags, u64 ns_vmids,
-	u64 *handle)
-{
-	int ret;
-	struct qcom_scm_desc desc = {
-	.svc = QCOM_SCM_SVC_MP,
-	.cmd = QCOM_SCM_MEMP_SHM_BRDIGE_CREATE,
-	.owner = ARM_SMCCC_OWNER_SIP,
-	.args[0] = pfn_and_ns_perm_flags,
-	.args[1] = ipfn_and_s_perm_flags,
-	.args[2] = size_and_flags,
-	.args[3] = ns_vmids,
-	.arginfo = QCOM_SCM_ARGS(4, QCOM_SCM_VAL, QCOM_SCM_VAL,
-				QCOM_SCM_VAL, QCOM_SCM_VAL),
-	};
-	struct qcom_scm_res res;
-
-	ret = qcom_scm_call(__scm->dev, &desc, &res);
-
-	if (handle)
-		*handle = res.result[1];
-
-	return ret ? : res.result[0];
-}
-EXPORT_SYMBOL_GPL(qcom_scm_create_shm_bridge);
 
 /**
  * qcm_scm_sec_wdog_deactivate() - Deactivate secure watchdog

@@ -57,11 +57,6 @@ extern int qcom_scm_invoke_callback_response(phys_addr_t out_buf,
 			unsigned int *data);
 extern int qcom_scm_sec_wdog_deactivate(void);
 extern int qcom_scm_sec_wdog_trigger(void);
-extern int qcom_scm_enable_shm_bridge(void);
-extern int qcom_scm_delete_shm_bridge(u64 handle);
-extern int qcom_scm_create_shm_bridge(u64 pfn_and_ns_perm_flags,
-			u64 ipfn_and_s_perm_flags, u64 size_and_flags, u64 ns_vmids,
-			u64 *handle);
 extern int qcom_scm_spin_cpu(void);
 extern int qcom_scm_ddrbw_profiler(phys_addr_t in_buf, size_t in_buf_size,
 				   phys_addr_t out_buf, size_t out_buf_size);
@@ -193,23 +188,6 @@ static inline int qcom_scm_sec_wdog_deactivate(void)
 }
 
 static inline int qcom_scm_sec_wdog_trigger(void)
-{
-	return -EPERM;
-}
-
-static inline int qcom_scm_enable_shm_bridge(void)
-{
-	return -EPERM;
-}
-
-static inline int qcom_scm_delete_shm_bridge(u64 handle)
-{
-	return -EPERM;
-}
-
-static inline int qcom_scm_create_shm_bridge(u64 pfn_and_ns_perm_flags,
-			u64 ipfn_and_s_perm_flags, u64 size_and_flags, u64 ns_vmids,
-			u64 *handle)
 {
 	return -EPERM;
 }
