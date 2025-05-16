@@ -9,6 +9,9 @@
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
 #include "qcs8300.dtsi"
 #include "qcs8300-pmics.dtsi"
+
+/delete-node/ &usb_1_dwc3;
+
 / {
 	model = "Qualcomm Technologies, Inc. IQ 8275 EVK";
 	compatible = "qcom,qcs8275-iq-8275-evk", "qcom,qcs8275", "qcom,qcs8300";
@@ -198,6 +201,62 @@
 	};
 };
 
+&i2c15 {
+	pinctrl-0 = <&qup_i2c15_default>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	expander0: pca953x@38 {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x38>;
+	};
+
+	expander1: pca953x@39 {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x39>;
+	};
+
+	expander2: pca953x@3a {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x3a>;
+	};
+
+	expander3: pca953x@3b {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x3b>;
+	};
+
+	expander4: pca953x@3c {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x3c>;
+	};
+
+	expander5: pca953x@3d {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x3d>;
+	};
+
+	expander6: pca953x@3e {
+		compatible = "ti,tca9538";
+		#gpio-cells = <2>;
+		gpio-controller;
+		reg = <0x3e>;
+	};
+
+};
+
 &pcie0 {
 	perst-gpios = <&tlmm 2 GPIO_ACTIVE_LOW>;
 	wake-gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>;
@@ -242,6 +301,25 @@
 };
 
 &qupv3_id_0 {
+	status = "okay";
+};
+
+&qupv3_id_1 {
+	status = "okay";
+};
+
+&remoteproc_adsp {
+	firmware-name = "qcom/qcs8300/adsp.mbn";
+	status = "okay";
+};
+
+&remoteproc_cdsp {
+	firmware-name = "qcom/qcs8300/cdsp0.mbn";
+	status = "okay";
+};
+
+&remoteproc_gpdsp {
+	firmware-name = "qcom/qcs8300/gpdsp0.mbn";
 	status = "okay";
 };
 
@@ -296,6 +374,13 @@
 			bias-pull-up;
 		};
 	};
+
+	qup_i2c15_default: qup-i2c15-state {
+		pins = "gpio91", "gpio92";
+		function = "qup1_se7";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
 };
 
 &uart7 {
@@ -318,12 +403,36 @@
 };
 
 &usb_1 {
-	status = "okay";
-};
+	reg = <0x0 0x0a600000 0x0 0x20000>;
 
-&usb_1_dwc3 {
+	interrupts-extended = <&intc GIC_SPI 292 IRQ_TYPE_LEVEL_HIGH>,
+			      <&intc GIC_SPI 131 IRQ_TYPE_LEVEL_HIGH>,
+			      <&pdc 14 IRQ_TYPE_EDGE_BOTH>,
+			      <&pdc 15 IRQ_TYPE_EDGE_BOTH>,
+			      <&pdc 12 IRQ_TYPE_LEVEL_HIGH>;
+	interrupt-names = "dwc_usb3",
+			  "pwr_event",
+			  "dp_hs_phy_irq",
+			  "dm_hs_phy_irq",
+			  "ss_phy_irq";
+
+	iommus = <&apps_smmu 0x80 0x0>;
+	snps,dis_u2_susphy_quirk;
+	snps,dis_enblslpm_quirk;
+	phys = <&usb_1_hsphy>, <&usb_qmpphy>;
+	phy-names = "usb2-phy", "usb3-phy";
+	maximum-speed = "super-speed-plus";
+	role-switch;
+
 	usb-role-switch;
 	dr_mode = "peripheral";
+	status = "okay";
+
+	port {
+		usb1_role_switch: endpoint {
+			remote-endpoint = <&eud_ep>;
+		};
+	};
 };
 
 &usb_1_hsphy {
@@ -340,7 +449,6 @@
 
 	status = "okay";
 };
-
 
 &usb_2 {
 	pinctrl-names = "default";
