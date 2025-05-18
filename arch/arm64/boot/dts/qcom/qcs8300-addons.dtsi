@@ -3,8 +3,11 @@
  * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
-#include "qcs8300-dma-heaps.dtsi"
-/ {
+#include <dt-bindings/arm/qcom_dma_heap_dt_constants.h>
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/sound/qcom,q6dsp-lpass-ports.h>
+
+&{/} {
 	firmware {
 		qcom_mem_object {
 			compatible = "qcom,mem-object";
@@ -137,9 +140,15 @@
 			qcom,dump-size = <0x20000>;
 		};
 
+		etf-reg {
+			qcom,dump-id = <0x101>;
+			qcom,dump-size = <0x1000>;
+		};
+
+
 		etf-swao {
 			qcom,dump-id = <0xf1>;
-			qcom,dump-size = <0x10000>;
+			qcom,dump-size = <0x8400>;
 		};
 
 		etfswao-reg {
@@ -356,6 +365,11 @@
 			qcom,dump-id = <0xec>;
 			qcom,dump-size = <0x2000000>;
 		};
+
+		tmc-etf {
+			qcom,dump-id = <0xf0>;
+			qcom,dump-size = <0x10000>;
+		};
 	};
 };
 
@@ -462,6 +476,36 @@
 		qcom,blk-size = <1>;
 	};
 
+	qcom_tzlog: tz-log@146d8720 {
+		compatible = "qcom,tz-log";
+		reg = <0x0 0x146d8720 0x0 0x3000>;
+		qcom,hyplog-enabled;
+		hyplog-address-offset = <0x410>;
+		hyplog-size-offset = <0x414>;
+	};
+
+	qcom,dma-heaps {
+		compatible = "qcom,dma-heaps";
+
+		qcom,qseecom {
+			qcom,dma-heap-name = "qcom,qseecom";
+			qcom,dma-heap-type = <HEAP_TYPE_CMA>;
+			memory-region = <&qseecom_mem>;
+		};
+
+		qcom,qseecom_ta {
+			qcom,dma-heap-name = "qcom,qseecom-ta";
+			qcom,dma-heap-type = <HEAP_TYPE_CMA>;
+			memory-region = <&qseecom_ta_mem>;
+		};
+
+		qcom,secure_cdsp {
+			qcom,dma-heap-name = "qcom,cma-secure-cdsp";
+			qcom,dma-heap-type = <HEAP_TYPE_CMA>;
+			memory-region = <&cdsp_secure_heap>;
+		};
+	};
+
 	qcom,mem-buf {
 		compatible = "qcom,mem-buf";
 		qcom,mem-buf-capabilities = "supplier";
@@ -477,13 +521,6 @@
 		qcom,vmid-cp-camera-preview-ro;
 	};
 
-	qcom_tzlog: tz-log@146d8720 {
-		compatible = "qcom,tz-log";
-		reg = <0x0 0x146d8720 0x0 0x3000>;
-		qcom,hyplog-enabled;
-		hyplog-address-offset = <0x410>;
-		hyplog-size-offset = <0x414>;
-	};
 };
 
 &sram {
