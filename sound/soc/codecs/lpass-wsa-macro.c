@@ -70,6 +70,10 @@
 #define CDC_WSA_TX_SPKR_PROT_CLK_DISABLE	0
 #define CDC_WSA_TX_SPKR_PROT_PCM_RATE_MASK	GENMASK(3, 0)
 #define CDC_WSA_TX_SPKR_PROT_PCM_RATE_8K	0
+#define CDC_WSA_TX_SPKR_PROT_PCM_RATE_16K	1
+#define CDC_WSA_TX_SPKR_PROT_PCM_RATE_24K	2
+#define CDC_WSA_TX_SPKR_PROT_PCM_RATE_32K	3
+#define CDC_WSA_TX_SPKR_PROT_PCM_RATE_48K	4
 #define CDC_WSA_TX0_SPKR_PROT_PATH_CFG0		(0x0248)
 #define CDC_WSA_TX1_SPKR_PROT_PATH_CTL		(0x0264)
 #define CDC_WSA_TX1_SPKR_PROT_PATH_CFG0		(0x0268)
@@ -1025,6 +1029,7 @@ static int wsa_macro_hw_params(struct snd_pcm_substream *substream,
 		if (dai->id == WSA_MACRO_AIF_VI)
 			wsa->pcm_rate_vi = params_rate(params);
 
+		break;
 	default:
 		break;
 	}
@@ -1193,16 +1198,6 @@ static void wsa_macro_mclk_enable(struct wsa_macro *wsa, bool mclk_enable)
 	}
 }
 
-static int wsa_macro_mclk_event(struct snd_soc_dapm_widget *w,
-				struct snd_kcontrol *kcontrol, int event)
-{
-	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
-	struct wsa_macro *wsa = snd_soc_component_get_drvdata(component);
-
-	wsa_macro_mclk_enable(wsa, event == SND_SOC_DAPM_PRE_PMU);
-	return 0;
-}
-
 static void wsa_macro_enable_disable_vi_sense(struct snd_soc_component *component, bool enable,
 						u32 tx_reg0, u32 tx_reg1, u32 val)
 {
@@ -1252,21 +1247,26 @@ static void wsa_macro_enable_disable_vi_feedback(struct snd_soc_component *compo
 						 bool enable, u32 rate)
 {
 	struct wsa_macro *wsa = snd_soc_component_get_drvdata(component);
-	u32 tx_reg0, tx_reg1;
 
-	if (test_bit(WSA_MACRO_TX0, &wsa->active_ch_mask[WSA_MACRO_AIF_VI])) {
-		tx_reg0 = CDC_WSA_TX0_SPKR_PROT_PATH_CTL;
-		tx_reg1 = CDC_WSA_TX1_SPKR_PROT_PATH_CTL;
-		wsa_macro_enable_disable_vi_sense(component, enable, tx_reg0, tx_reg1, rate);
-	}
+	if (test_bit(WSA_MACRO_TX0, &wsa->active_ch_mask[WSA_MACRO_AIF_VI]))
+		wsa_macro_enable_disable_vi_sense(component, enable,
+				CDC_WSA_TX0_SPKR_PROT_PATH_CTL,
+				CDC_WSA_TX1_SPKR_PROT_PATH_CTL, rate);
 
-	if (test_bit(WSA_MACRO_TX1, &wsa->active_ch_mask[WSA_MACRO_AIF_VI])) {
-		tx_reg0 = CDC_WSA_TX2_SPKR_PROT_PATH_CTL;
-		tx_reg1 = CDC_WSA_TX3_SPKR_PROT_PATH_CTL;
-		wsa_macro_enable_disable_vi_sense(component, enable, tx_reg0, tx_reg1, rate);
+	if (test_bit(WSA_MACRO_TX1, &wsa->active_ch_mask[WSA_MACRO_AIF_VI]))
+		wsa_macro_enable_disable_vi_sense(component, enable,
+				CDC_WSA_TX2_SPKR_PROT_PATH_CTL,
+				CDC_WSA_TX3_SPKR_PROT_PATH_CTL, rate);
+}
 
-	}
+static int wsa_macro_mclk_event(struct snd_soc_dapm_widget *w,
+				struct snd_kcontrol *kcontrol, int event)
+{
+	struct snd_soc_component *component = snd_soc_dapm_to_component(w->dapm);
+	struct wsa_macro *wsa = snd_soc_component_get_drvdata(component);
 
+	wsa_macro_mclk_enable(wsa, event == SND_SOC_DAPM_PRE_PMU);
+	return 0;
 }
 
 static int wsa_macro_enable_vi_feedback(struct snd_soc_dapm_widget *w,
@@ -1278,17 +1278,23 @@ static int wsa_macro_enable_vi_feedback(struct snd_soc_dapm_widget *w,
 	u32 rate_val;
 
 	switch (wsa->pcm_rate_vi) {
-	case 48000:
-		rate_val = 0x04;
+	case 8000:
+		rate_val = CDC_WSA_TX_SPKR_PROT_PCM_RATE_8K;
+		break;
+	case 16000:
+		rate_val = CDC_WSA_TX_SPKR_PROT_PCM_RATE_16K;
 		break;
 	case 24000:
-		rate_val = 0x02;
+		rate_val = CDC_WSA_TX_SPKR_PROT_PCM_RATE_24K;
 		break;
-	case 8000:
-		rate_val = 0x00;
+	case 32000:
+		rate_val = CDC_WSA_TX_SPKR_PROT_PCM_RATE_32K;
+		break;
+	case 48000:
+		rate_val = CDC_WSA_TX_SPKR_PROT_PCM_RATE_48K;
 		break;
 	default:
-		rate_val = 0x00;
+		rate_val = CDC_WSA_TX_SPKR_PROT_PCM_RATE_8K;
 		break;
 	}
 
