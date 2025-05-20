@@ -60,7 +60,7 @@ struct usb_conn_info {
  *
  * In case we have only one of these signals:
  * - VBUS only - we want to distinguish between [1] and [2], so ID is always 1
- * - ID only - we want to distinguish between [1] and [4], so VBUS = ID
+ * - ID only - we want to distinguish between [2] and [3], so VBUS = !ID
  */
 static void usb_conn_detect_cable(struct work_struct *work)
 {
@@ -75,7 +75,7 @@ static void usb_conn_detect_cable(struct work_struct *work)
 	id = info->id_gpiod ?
 		gpiod_get_value_cansleep(info->id_gpiod) : 1;
 	vbus = info->vbus_gpiod ?
-		gpiod_get_value_cansleep(info->vbus_gpiod) : id;
+		gpiod_get_value_cansleep(info->vbus_gpiod) : !id;
 
 	if (!id)
 		role = USB_ROLE_HOST;
