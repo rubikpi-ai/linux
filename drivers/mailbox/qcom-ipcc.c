@@ -310,7 +310,8 @@ static int qcom_ipcc_pm_resume(struct device *dev)
 	u32 hwirq;
 	int virq;
 
-	if (pm_suspend_target_state == PM_SUSPEND_MEM)
+	if (pm_suspend_target_state == PM_SUSPEND_MEM
+		|| pm_suspend_target_state == PM_SUSPEND_TO_IDLE)
 		qcom_ipcc_restore_unmask_irq(dev);
 
 	hwirq = readl(ipcc->base + IPCC_REG_RECV_ID);
