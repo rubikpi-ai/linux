@@ -128,6 +128,10 @@ dtb-$(CONFIG_ARCH_QCOM)	+= qcs8300-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8550-addons-aim300-aiot.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8550-aim300-aiot.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8550-rb5gen2-hdk.dtb
+
+qcs9075-addons-iq-9075-evk-mezz-dtbs:= qcs9075-addons-iq-9075-evk.dtb qcs9075-addons-iq-9075-evk-mezz.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-addons-iq-9075-evk-mezz.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-addons-iq-9075-evk.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-addons-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-addons-ride-r3.dtb
