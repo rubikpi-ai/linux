@@ -11,6 +11,10 @@
 	model = "Qualcomm Technologies, Inc. Addons IQ 9075 EVK";
 	compatible = "qcom,qcs9075-addons-iq-9075-evk", "qcom,qcs9075", "qcom,sa8775p";
 
+	aliases {
+		ethernet1 = &ethernet1;
+	};
+
 	sound {
 		compatible = "qcom,qcs9075-rb8-sndcard";
 		model = "qcs9075-rb8-snd-card";
