@@ -575,6 +575,14 @@
 &i2c19 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
+	pinctrl-0 = <&qup_i2c19_default>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	fan: fan@18 {
+		compatible = "ti,amc6821";
+		reg = <0x18>;
+	};
 };
 
 &llcc {
@@ -926,6 +934,13 @@
 	qup_spi16_data_clk: qup-spi16-data-clk-state {
 		pins = "gpio86", "gpio87", "gpio88";
 		function = "qup2_se2";
+	};
+
+	qup_i2c19_default: qup-i2c19-state {
+		pins = "gpio99", "gpio100";
+		function = "qup2_se5";
+		drive-strength = <2>;
+		bias-pull-up;
 	};
 };
 
