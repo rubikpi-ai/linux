@@ -27,6 +27,7 @@
 		serial2 = &uart0;
 		spi16 = &spi16;
 		ufshc1 = &ufs_mem_hc;
+		mmc0 = &sdhc_1; /* SDC1 SD card slot */
 	};
 
 	chosen {
@@ -81,6 +82,19 @@
 				regulator-name = "vreg_pmu_pcie_1p8";
 			};
 		};
+	};
+
+	dummy_reg: regulator-dummy {
+		compatible = "regulator-fixed";
+		regulator-name = "dummy-supply";
+	};
+
+	dummy_s4a: regulator-dummy-s4a {
+		compatible = "regulator-fixed";
+		regulator-name = "dummy-supply-s4a";
+
+		regulator-min-microvolt = <2950000>;
+		regulator-max-microvolt = <2950000>;
 	};
 };
 
@@ -921,6 +935,48 @@
 		drive-strength = <2>;
 		bias-pull-up;
 	};
+
+	sdc1_clk: sdc1-clk-state {
+		pins = "sdc1_clk";
+		bias-disable;
+		drive-strength = <16>;
+	};
+
+	sdc1_cmd: sdc1-cmd-state {
+		pins = "sdc1_cmd";
+		bias-pull-up;
+		drive-strength = <10>;
+	};
+
+	sdc1_data: sdc1-data-state {
+		pins = "sdc1_data";
+		bias-pull-up;
+		drive-strength = <10>;
+	};
+
+	sdc1_clk_sleep: sdc1-clk-sleep-state {
+		pins = "sdc1_clk";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sdc1_cmd_sleep: sdc1-cmd-sleep-state {
+		pins = "sdc1_cmd";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sdc1_data_sleep: sdc1-data-sleep-state {
+		pins = "sdc1_data";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sd_cd: sd-cd-state {
+		pins = "gpio36";
+		function = "gpio";
+		bias-pull-up;
+	};
 };
 
 &pcie0 {
@@ -1278,4 +1334,21 @@
 
 &xo_board_clk {
 	clock-frequency = <38400000>;
+};
+
+&sdhc_1 {
+	vmmc-supply = <&dummy_reg>;
+	vqmmc-supply = <&dummy_s4a>;
+
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&sdc1_clk>, <&sdc1_cmd>, <&sdc1_data>, <&sd_cd>;
+	pinctrl-1 = <&sdc1_clk_sleep>, <&sdc1_cmd_sleep>, <&sdc1_data_sleep>, <&sd_cd>;
+
+	cap-sd-highspeed;
+
+	cd-gpios = <&tlmm 36 GPIO_ACTIVE_LOW>;
+
+	iommus = <&apps_smmu 0x0 0x0>;
+
+	status = "okay";
 };
