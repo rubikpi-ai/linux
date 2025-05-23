@@ -381,7 +381,14 @@
 		gpio-controller;
 		reg = <0x3e>;
 	};
+};
 
+&gpi_dma0 {
+	status = "okay";
+};
+
+&gpi_dma1 {
+	status = "okay";
 };
 
 &pcie0 {
