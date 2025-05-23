@@ -2927,19 +2927,6 @@
 			interrupts-extended = <&pdc 11 IRQ_TYPE_LEVEL_HIGH>;
 
 			status = "disabled";
-
-			ports {
-				#address-cells = <1>;
-				#size-cells = <0>;
-
-				port@0 {
-					reg = <0>;
-
-					eud_ep: endpoint {
-						remote-endpoint = <&usb1_role_switch>;
-					};
-				};
-			};
 		};
 
 		pmu@9091000 {
@@ -7992,12 +7979,6 @@
 			phy-names = "usb2-phy", "usb3-phy";
 			maximum-speed = "super-speed-plus";
 			role-switch;
-
-			port {
-				usb1_role_switch: endpoint {
-					remote-endpoint = <&eud_ep>;
-				};
-			};
 		};
 	};
 
