@@ -32,6 +32,7 @@
 
 #define MST_DP0_PUSH_VCPF		BIT(12)
 #define MST_DP1_PUSH_VCPF		BIT(14)
+#define MST_MST2_MST3_PUSH_VCPF		BIT(12)
 
 #define MR_LINK_TRAINING1  0x8
 #define MR_LINK_SYMBOL_ERM 0x80
@@ -161,12 +162,19 @@ void msm_dp_ctrl_push_vcpf(struct msm_dp_ctrl *msm_dp_ctrl, struct msm_dp_panel 
 
 	if (msm_dp_panel->stream_id == DP_STREAM_0)
 		state |= MST_DP0_PUSH_VCPF;
-	else
+	else if (msm_dp_panel->stream_id == DP_STREAM_1)
 		state |= MST_DP1_PUSH_VCPF;
+	else
+		state |= MST_MST2_MST3_PUSH_VCPF;
 
 	reinit_completion(&ctrl->idle_comp);
 
-	msm_dp_catalog_ctrl_state_ctrl(ctrl->catalog, state);
+	if (msm_dp_panel->stream_id == DP_STREAM_3)
+		msm_dp_catalog_ctrl_mst3_state_ctrl(ctrl->catalog, state);
+	else if (msm_dp_panel->stream_id == DP_STREAM_2)
+		msm_dp_catalog_ctrl_mst2_state_ctrl(ctrl->catalog, state);
+	else
+		msm_dp_catalog_ctrl_state_ctrl(ctrl->catalog, state);
 
 	if (!wait_for_completion_timeout(&ctrl->idle_comp,
 					 IDLE_PATTERN_COMPLETION_TIMEOUT_JIFFIES))
@@ -181,33 +189,35 @@ static void msm_dp_ctrl_config_ctrl(struct msm_dp_ctrl_private *ctrl,
 	u32 config = 0, tbd;
 	const u8 *dpcd = ctrl->panel->dpcd;
 
-	/* Default-> LSCLK DIV: 1/4 LCLK  */
-	config |= (2 << DP_CONFIGURATION_CTRL_LSCLK_DIV_SHIFT);
+	if (msm_dp_panel->stream_id == DP_STREAM_0) {
+		/* Default-> LSCLK DIV: 1/4 LCLK  */
+		config |= (2 << DP_CONFIGURATION_CTRL_LSCLK_DIV_SHIFT);
+
+		/* Scrambler reset enable */
+		if (drm_dp_alternate_scrambler_reset_cap(dpcd))
+			config |= DP_CONFIGURATION_CTRL_ASSR;
+
+		/* Num of Lanes */
+		config |= ((ctrl->link->link_params.num_lanes - 1)
+				<< DP_CONFIGURATION_CTRL_NUM_OF_LANES_SHIFT);
+
+		if (drm_dp_enhanced_frame_cap(dpcd))
+			config |= DP_CONFIGURATION_CTRL_ENHANCED_FRAMING;
+
+		config |= DP_CONFIGURATION_CTRL_P_INTERLACED; /* progressive video */
+
+		/* sync clock & static Mvid */
+		config |= DP_CONFIGURATION_CTRL_STATIC_DYNAMIC_CN;
+		config |= DP_CONFIGURATION_CTRL_SYNC_ASYNC_CLK;
+	}
 
 	if (msm_dp_panel->msm_dp_mode.out_fmt_is_yuv_420)
 		config |= DP_CONFIGURATION_CTRL_RGB_YUV; /* YUV420 */
-
-	/* Scrambler reset enable */
-	if (drm_dp_alternate_scrambler_reset_cap(dpcd))
-		config |= DP_CONFIGURATION_CTRL_ASSR;
 
 	tbd = msm_dp_link_get_test_bits_depth(ctrl->link,
 		msm_dp_panel->msm_dp_mode.bpp);
 
 	config |= tbd << DP_CONFIGURATION_CTRL_BPC_SHIFT;
-
-	/* Num of Lanes */
-	config |= ((ctrl->link->link_params.num_lanes - 1)
-			<< DP_CONFIGURATION_CTRL_NUM_OF_LANES_SHIFT);
-
-	if (drm_dp_enhanced_frame_cap(dpcd))
-		config |= DP_CONFIGURATION_CTRL_ENHANCED_FRAMING;
-
-	config |= DP_CONFIGURATION_CTRL_P_INTERLACED; /* progressive video */
-
-	/* sync clock & static Mvid */
-	config |= DP_CONFIGURATION_CTRL_STATIC_DYNAMIC_CN;
-	config |= DP_CONFIGURATION_CTRL_SYNC_ASYNC_CLK;
 
 	if (ctrl->panel->psr_cap.version)
 		config |= DP_CONFIGURATION_CTRL_SEND_VSC;
@@ -2424,7 +2434,15 @@ static int msm_dp_ctrl_clk_init(struct msm_dp_ctrl *msm_dp_ctrl)
 
 	ctrl->pixel_clk[DP_STREAM_1] = devm_clk_get(dev, "stream_1_pixel");
 	if (IS_ERR(ctrl->pixel_clk[DP_STREAM_1]))
-		DRM_ERROR("failed to get stream_pixel_2");
+		DRM_DEBUG("failed to get stream_pixel_1 clock");
+
+	ctrl->pixel_clk[DP_STREAM_2] = devm_clk_get(dev, "stream_2_pixel");
+	if (IS_ERR(ctrl->pixel_clk[DP_STREAM_2]))
+		DRM_DEBUG("failed to get stream_2_pixel clock");
+
+	ctrl->pixel_clk[DP_STREAM_3] = devm_clk_get(dev, "stream_3_pixel");
+	if (IS_ERR(ctrl->pixel_clk[DP_STREAM_3]))
+		DRM_DEBUG("failed to get stream_3_clock clock");
 
 	return 0;
 }

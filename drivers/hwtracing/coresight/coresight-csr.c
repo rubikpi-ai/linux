@@ -498,7 +498,9 @@ int of_get_coresight_csr_name(struct device_node *node, const char **csr_name)
 		return -EINVAL;
 
 	drvdata = platform_get_drvdata(pdev);
-	*csr_name = drvdata->csr.name;
+	if (drvdata && drvdata->csr.name)
+		*csr_name = drvdata->csr.name;
+
 	of_node_put(csr_node);
 	return 0;
 }

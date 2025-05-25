@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #define pr_fmt(fmt) "smcinvoke: %s: " fmt, __func__
@@ -213,7 +213,6 @@ static struct cdev smcinvoke_cdev;
 static struct class *driver_class;
 struct device *class_dev;
 static struct platform_device *smcinvoke_pdev;
-static bool smci_support_hyp;
 
 /* We disable async memory object support by default,
  * until we receive the first message from TZ over the
@@ -1138,7 +1137,6 @@ static int smcinvoke_create_bridge(struct smcinvoke_mem_obj *mem_obj)
 	uint32_t *vmid_list = NULL;
 	uint32_t *perms_list = NULL;
 	uint32_t nelems = 0;
-	uint32_t ns_vm_ids_hyp[] = {};
 	uint32_t ns_vm_ids_hlos[] = {QCOM_SCM_VMID_HLOS};
 	uint32_t ns_vm_perms[] = {QCOM_SCM_PERM_RW};
 	struct dma_buf *dmabuf = mem_obj->dma_buf;
@@ -1151,20 +1149,14 @@ static int smcinvoke_create_bridge(struct smcinvoke_mem_obj *mem_obj)
 
 	/*
 	 * 1. Check mem-buf is available or not.
-	 * 2. If mem-buf API fails, then read the DT property.
-	 *	2.1 If property is defined, pick HYP(0x0) VM for automotive targets.
-	 *	2.2 If undefined, pick HLOS(0x3) VM and then pass value to QTEE.
+	 * 2. If mem-buf API fails, then register bridge with HLOS VMID.
 	 */
 	ret = mem_buf_dma_buf_copy_vmperm(dmabuf, (int **)&vmid_list,
 					 (int **)&perms_list, (int *)&nelems);
 	if (ret) {
 		pr_debug("mem_buf copy_vmperm failure, ret=%d, registering with single VM\n", ret);
-		if (smci_support_hyp) {
-			vmid_list = ns_vm_ids_hyp;
-		} else {
-			nelems = 1;
-			vmid_list = ns_vm_ids_hlos;
-		}
+		nelems = 1;
+		vmid_list = ns_vm_ids_hlos;
 		perms_list = ns_vm_perms;
 	} else {
 		allocation_from_mem_buf = true;
@@ -3199,9 +3191,6 @@ static int smcinvoke_probe(struct platform_device *pdev)
 	legacy_smc_call = of_property_read_bool((&pdev->dev)->of_node,
 			"qcom,support-legacy_smc");
 	invoke_cmd = legacy_smc_call ? SMCINVOKE_INVOKE_CMD_LEGACY : SMCINVOKE_INVOKE_CMD;
-
-	smci_support_hyp = of_property_read_bool((&pdev->dev)->of_node,
-			"qcom,support-hypervisor");
 
 	rc = smcinvoke_create_kthreads();
 	if (rc) {

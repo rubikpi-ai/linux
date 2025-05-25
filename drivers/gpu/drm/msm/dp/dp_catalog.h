@@ -83,6 +83,8 @@ u32 msm_dp_catalog_aux_get_irq(struct msm_dp_catalog *msm_dp_catalog);
 
 /* DP Controller APIs */
 void msm_dp_catalog_ctrl_state_ctrl(struct msm_dp_catalog *msm_dp_catalog, u32 state);
+void msm_dp_catalog_ctrl_mst2_state_ctrl(struct msm_dp_catalog *msm_dp_catalog, u32 state);
+void msm_dp_catalog_ctrl_mst3_state_ctrl(struct msm_dp_catalog *msm_dp_catalog, u32 state);
 void msm_dp_catalog_ctrl_config_ctrl(struct msm_dp_catalog *msm_dp_catalog, u32 config);
 void msm_dp_catalog_ctrl_lane_mapping(struct msm_dp_catalog *msm_dp_catalog);
 void msm_dp_catalog_ctrl_mainlink_ctrl(struct msm_dp_catalog *msm_dp_catalog, bool enable);
