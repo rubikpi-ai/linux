@@ -7,6 +7,7 @@
 /plugin/;
 
 #include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
 
 &{/} {
 	model = "Qualcomm Technologies, Inc. IQ-9075-evk Addons Mezzanine";
@@ -79,15 +80,50 @@
 			/* BDF 2.3.0 */
 			pcie0_bus2_dev3_fn0: pcie0_bus2_dev3_fn0 {
 				reg = <0x1800 0x0 0x0 0x0 0x0>;
+				qps615_eth0,qps615_eth0@pcie0_rp {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+				};
 
 				/* BDF 5.0.0 */
 				pcie0_bus5_dev0_fn0: pcie0_qps_eth0 {
 					reg = <0x0 0x0 0x0 0x0 0x0>;
+					pinctrl-names = "default";
+					pinctrl-0 = <&aqr_intn_wol_sig>;
+					phy-rst-som-gpios = <&tlmm 76 GPIO_ACTIVE_HIGH>;
+					interrupts-extended = <&tlmm 56 IRQ_TYPE_EDGE_FALLING>;
+					interrupt-names = "wol_irq";
+					qcom,always-on-supply;
+					qcom,phy-rst-delay-us = <221000>;
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					qcom,iommu-group = <&eth0_pci_iommu_group>;
+					eth0_pci_iommu_group: eth0_pci_iommu_group {
+						qcom,iommu-dma = "atomic";
+					};
+				};
+
+				qps615_eth1,qps615_eth1@pcie0_rp {
+					reg = <0x100 0x0 0x0 0x0 0x0>;
 				};
 
 				/* BDF 5.0.1 */
 				pcie0_bus5_dev0_fn1: pcie0_qps_eth1 {
 					reg = <0x100 0x0 0x0 0x0 0x0>;
+					pinctrl-names = "default";
+					pinctrl-0 = <&napa_intn_wol_sig>;
+					phy-rst-som-gpios = <&tlmm 77 GPIO_ACTIVE_HIGH>;
+					interrupts-extended = <&tlmm 57 IRQ_TYPE_EDGE_FALLING>;
+					interrupt-names = "wol_irq";
+					qcom,always-on-supply;
+					qcom,phy-rst-delay-us = <20000>;
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					qcom,iommu-group = <&eth1_pci_iommu_group>;
+					eth1_pci_iommu_group: eth1_pci_iommu_group {
+						qcom,iommu-dma = "atomic";
+					};
 				};
 			};
 		};
@@ -201,6 +237,22 @@
 			function = "emac1_mdio";
 			drive-strength = <16>;
 			bias-pull-up;
+		};
+	};
+
+	qps615_intn_wol {
+		aqr_intn_wol_sig: aqr-intn-wol-sig {
+				pins = "gpio56";
+				function = "gpio";
+				input-enable;
+				bias-disable;
+		};
+
+		napa_intn_wol_sig: napa-intn-wol-sig {
+				pins = "gpio57";
+				function = "gpio";
+				input-enable;
+				bias-disable;
 		};
 	};
 };
