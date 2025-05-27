@@ -977,6 +977,13 @@
 		function = "gpio";
 		bias-pull-up;
 	};
+
+	usb1_id_det_default: usb1-id-det-default {
+		pins = "gpio51";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
 };
 
 &pcie0 {
@@ -1155,6 +1162,25 @@
 };
 
 &soc {
+	connector_usb1: connector-usb1 {
+		compatible = "gpio-usb-b-connector";
+		id-gpio = <&tlmm 51 GPIO_ACTIVE_HIGH>;
+		vbus-supply = <&vbus_supply_regulator_1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usb1_id_det_default>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				usb1_port_connector: endpoint {
+					remote-endpoint = <&usb1_port>;
+				};
+			};
+		};
+	};
+
 	vbus_supply_regulator_0: vbus_supply_regulator_0 {
 		compatible = "regulator-fixed";
 		regulator-name = "vbus_supply_0";
@@ -1173,7 +1199,6 @@
 		regulator-max-microvolt = <5000000>;
 		regulator-boot-on;
 		enable-active-high;
-		regulator-always-on;
 	};
 };
 
@@ -1277,9 +1302,21 @@
 	maximum-speed = "super-speed";
 	dr_mode = "otg";
 	usb-role-switch;
-	role-switch-default-mode = "host";
-	vbus_dwc3-supply = <&vbus_supply_regulator_1>;
 	status = "okay";
+
+	ports {
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			usb1_port: endpoint {
+				remote-endpoint = <&usb1_port_connector>;
+			};
+		};
+
+	};
 };
 
 &usb_1_hsphy {
