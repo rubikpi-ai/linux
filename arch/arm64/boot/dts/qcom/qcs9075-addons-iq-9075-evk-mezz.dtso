@@ -24,6 +24,10 @@
 	};
 };
 
+&connector_usb1 {
+	status = "disabled";
+};
+
 &i2c18 {
     qps615_switch: pcie-switch@77 {
         compatible = "qcom,switch-i2c";
@@ -254,5 +258,17 @@
 				input-enable;
 				bias-disable;
 		};
+	};
+};
+
+&usb1_id_det_default {
+	status = "disabled";
+};
+
+&usb_1 {
+	vbus_dwc3-supply = <&vbus_supply_regulator_1>;
+
+	ports {
+		status = "disabled";
 	};
 };
