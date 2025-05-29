@@ -473,6 +473,19 @@
 	};
 };
 
+&spi10 {
+	status = "okay";
+
+	st33htpm0: st33htpm@0 {
+		compatible = "st,st33htpm-spi";
+		reg = <0>;
+		spi-max-frequency = <20000000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "okay";
+	};
+};
+
 &tlmm {
 
 	dp_hot_plug_det: dp-hot-plug-det-state {
