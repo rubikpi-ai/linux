@@ -27,6 +27,8 @@
 #define USB_CONN_IRQF	\
 	(IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING | IRQF_ONESHOT)
 
+static atomic_t device_counter = ATOMIC_INIT(0);
+
 struct usb_conn_info {
 	struct device *dev;
 	struct usb_role_switch *role_sw;
@@ -160,7 +162,9 @@ static int usb_conn_psy_register(struct usb_conn_info *info)
 		.of_node = dev->of_node,
 	};
 
-	desc->name = "usb-charger";
+	desc->name = devm_kmalloc(dev, sizeof(*desc), GFP_KERNEL);
+	snprintf((char *)desc->name, sizeof(*desc), "usb-charger%d", atomic_read(&device_counter));
+	atomic_inc(&device_counter);
 	desc->properties = usb_charger_properties;
 	desc->num_properties = ARRAY_SIZE(usb_charger_properties);
 	desc->get_property = usb_charger_get_property;
