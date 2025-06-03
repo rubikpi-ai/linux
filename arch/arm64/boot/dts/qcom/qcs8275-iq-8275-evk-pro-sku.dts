@@ -12,7 +12,7 @@
 #include "qcs8300-pmics.dtsi"
 
 /delete-node/ &usb_1_dwc3;
-
+/delete-node/ &usb_2_dwc3;
 / {
 	model = "Qualcomm Technologies, Inc. IQ8 8275 Pro SKU EVK";
 	compatible = "qcom,qcs8275-iq-8275-evk-pro-sku", "qcom,qcs8275", "qcom,qcs8300";
@@ -272,6 +272,15 @@
 
 };
 
+&pmm8650au_1_gpios {
+	usb2_en_state: usb2-en-state {
+		pins = "gpio7";
+		function = "normal";
+		output-high;
+		power-source = <0>;
+	};
+};
+
 &qupv3_id_0 {
 	status = "okay";
 };
@@ -372,6 +381,43 @@
 &usb_qmpphy {
 	vdda-phy-supply = <&vreg_l7a>;
 	vdda-pll-supply = <&vreg_l5a>;
+
+	status = "okay";
+};
+
+&usb_2 {
+	reg = <0x0 0x0a400000 0x0 0x200000>;
+
+	interrupts-extended = <&intc GIC_SPI 442 IRQ_TYPE_LEVEL_HIGH>,
+				<&intc GIC_SPI 444 IRQ_TYPE_LEVEL_HIGH>,
+				<&pdc 10 IRQ_TYPE_EDGE_BOTH>,
+				<&pdc 9 IRQ_TYPE_EDGE_BOTH>;
+	interrupt-names = "dwc_usb2",
+			"pwr_event",
+			"dp_hs_phy_irq",
+			"dm_hs_phy_irq";
+
+	iommus = <&apps_smmu 0x20 0x0>;
+	phys = <&usb_2_hsphy>;
+	phy-names = "usb2-phy";
+	maximum-speed = "high-speed";
+
+	dr_mode = "otg";
+	usb-role-switch;
+	role-switch-default-mode = "host";
+	qcom,enable-rt;
+	wakeup-source;
+
+	pinctrl-names = "default";
+	pinctrl-0 = <&usb2_en_state>;
+
+	status = "okay";
+};
+
+&usb_2_hsphy {
+	vdda-pll-supply = <&vreg_l7a>;
+	vdda18-supply = <&vreg_l7c>;
+	vdda33-supply = <&vreg_l9a>;
 
 	status = "okay";
 };
