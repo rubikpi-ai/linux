@@ -12,7 +12,7 @@
 #include "turbox-c6490p-devkit.dtsi"
 
 / {
-	model = "Thundercomm, Inc. RUBIK Pi 3";
+	model = "Thundercomm, Inc. RUBIK Pi 3 test";
 	compatible = "qcom,qcm6490-addons-idp","qcom,sc7280";
 
 	/* This will be deprecated soon */
