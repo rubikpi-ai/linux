@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 /dts-v1/;
@@ -56,6 +57,8 @@
 		reg = <0x0 0x0 0x0 0x0 0x0>;
 		#address-cells = <5>;
 		#size-cells = <0>;
+
+		wake-gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>;
 
 		/* BDF 1.0.0 */
 		pcie0_bus1_dev0_fn0: pcie0_bus1_dev0_fn0 {
