@@ -20,9 +20,9 @@
 	qcom,board-id = <32 0xb>, <32 0x60b>;
 };
 
-&uart2 {
-	status = "okay";
-};
+// &uart2 {
+// 	status = "okay";
+// };
 
 &i2c1 {
 	status = "okay";
