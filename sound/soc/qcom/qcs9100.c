@@ -180,6 +180,15 @@ static int qcs9100_snd_hw_free(struct snd_pcm_substream *substream)
 				    &data->stream_prepared[cpu_dai->id]);
 }
 
+static const struct snd_soc_dapm_widget iq8_8275_evk_dapm_widgets[] = {
+	SND_SOC_DAPM_PINCTRL("MI2S_OUT_PINCTRL", "mi2s_aud_out_active", "mi2s_aud_out_sleep"),
+};
+
+static const struct snd_soc_dapm_route iq8_8275_evk_dapm_routes[] = {
+	{"Speaker", NULL, "MI2S_OUT_PINCTRL"},
+	{"DMic", NULL, "MI2S_OUT_PINCTRL"},
+};
+
 static const struct snd_soc_dapm_widget qcs8300_dapm_widgets[] = {
 	SND_SOC_DAPM_PINCTRL("STUB_AIF1_PINCTRL", "stub_aif1_active", "stub_aif1_sleep"),
 	SND_SOC_DAPM_PINCTRL("STUB_AIF2_PINCTRL", "stub_aif2_active", "stub_aif2_sleep"),
@@ -235,6 +244,14 @@ static const struct snd_soc_ops qcs9100_be_ops = {
 	.hw_params = qcs9100_snd_hw_params,
 	.hw_free = qcs9100_snd_hw_free,
 	.prepare = qcs9100_snd_prepare,
+};
+
+static struct snd_soc_card snd_soc_iq8_8275_evk_data = {
+	.name = "iq8-8275-evk",
+	.dapm_widgets = iq8_8275_evk_dapm_widgets,
+	.num_dapm_widgets = ARRAY_SIZE(iq8_8275_evk_dapm_widgets),
+	.dapm_routes = iq8_8275_evk_dapm_routes,
+	.num_dapm_routes = ARRAY_SIZE(iq8_8275_evk_dapm_routes),
 };
 
 static struct snd_soc_card snd_soc_qcs8300_data = {
@@ -321,6 +338,7 @@ static int qcs9100_platform_probe(struct platform_device *pdev)
 }
 
 static const struct of_device_id snd_qcs9100_dt_match[] = {
+	{.compatible = "qcom,iq8-8275-evk-sndcard", .data = &snd_soc_iq8_8275_evk_data},
 	{.compatible = "qcom,qcs8300-sndcard", .data = &snd_soc_qcs8300_data},
 	{.compatible = "qcom,qcs9100-sndcard", .data = &snd_soc_qcs9100_data},
 	{.compatible = "qcom,qcs9075-rb8-sndcard", .data = &snd_soc_qcs9075_rb8_data},
