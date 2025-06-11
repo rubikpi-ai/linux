@@ -471,6 +471,14 @@
 	status = "okay";
 };
 
+&ice {
+	status = "okay";
+};
+
+&ice_mmc {
+	status = "okay";
+};
+
 &iris {
 	status = "okay";
 };
