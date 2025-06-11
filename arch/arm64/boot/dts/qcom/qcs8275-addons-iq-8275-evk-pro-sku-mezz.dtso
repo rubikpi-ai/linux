@@ -1,0 +1,13 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ */
+
+/dts-v1/;
+/plugin/;
+
+&{/} {
+	model = "Qualcomm Technologies, Inc. Addons IQ8-8275-evk pro sku Mezzanine";
+	qcom,board-id = <0x00010020 3>, <0x00010019 3>;
+
+};
