@@ -7794,6 +7794,7 @@
 			iommus = <&apps_smmu 0x0 0x0>;
 
 			resets = <&gcc GCC_SDCC1_BCR>;
+			qcom,ice = <&ice_mmc>;
 
 			sdhc1_opp_table: opp-table {
 				compatible = "operating-points-v2";
@@ -7863,6 +7864,13 @@
 					opp-avg-kBps = <390000 0>;
 				};
 			};
+		};
+
+		ice_mmc: crypto@87c8000 {
+			compatible = "qcom,inline-crypto-engine";
+			reg = <0x0 0x87c8000 0x0 0x18000>;
+			qcom,ice-use-hwkm;
+			clocks = <&gcc GCC_SDCC1_ICE_CORE_CLK>;
 		};
 	};
 
