@@ -2892,6 +2892,26 @@
 				pins = "gpio11";
 				function = "wsa_swr_data";
 			};
+
+			mi2s5_data0: mi2s5-data0-state {
+				pins = "gpio12";
+				function = "i2s2_data";
+			};
+
+			mi2s5_data1: mi2s5-data1-state {
+				pins = "gpio13";
+				function = "i2s2_data";
+			};
+
+			mi2s5_sclk: mi2s5-sclk-state {
+				pins = "gpio10";
+				function = "i2s2_clk";
+			};
+
+			mi2s5_ws: mi2s5-ws-state {
+				pins = "gpio11";
+				function = "i2s2_ws";
+			};
 		};
 
 		gpu: gpu@3d00000 {
