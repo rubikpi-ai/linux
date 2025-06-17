@@ -641,13 +641,6 @@
 			  "USB2_PWR_EN",
 			  "USB2_FAULT";
 
-	usb2_en_state: usb2-en-state {
-		pins = "gpio9";
-		function = "normal";
-		output-high;
-		power-source = <0>;
-	};
-
 	wlan_en_state: wlan-en-state {
 		pins = "gpio7";
 		function = "normal";
@@ -659,6 +652,14 @@
 &pmm8654au_2_gpios {
 	usb0_intr_state: usb0-intr-state {
 		pins = "gpio5";
+		function = "normal";
+		input-enable;
+		bias-pull-up;
+		power-source = <0>;
+	};
+
+	usb2_id_det_default: usb2-id-det-default {
+		pins = "gpio11";
 		function = "normal";
 		input-enable;
 		bias-pull-up;
@@ -1180,6 +1181,25 @@
 		};
 	};
 
+	connector_usb2: connector-usb2 {
+		compatible = "gpio-usb-b-connector";
+		id-gpio = <&pmm8654au_2_gpios 11 GPIO_ACTIVE_HIGH>;
+		vbus-supply = <&vbus_supply_regulator_2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usb2_id_det_default>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				usb2_port_connector: endpoint {
+					remote-endpoint = <&usb2_port>;
+				};
+			};
+		};
+	};
+
 	vreg_sdc: regulator-sdc {
 		compatible = "regulator-gpio";
 
@@ -1210,6 +1230,16 @@
 		compatible = "regulator-fixed";
 		regulator-name = "vbus_supply_1";
 		gpio = <&expander1 3 GPIO_ACTIVE_HIGH>;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-boot-on;
+		enable-active-high;
+	};
+
+	vbus_supply_regulator_2: vbus-supply-regulator2 {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus_supply_2";
+		gpio = <&pmm8654au_1_gpios 9 GPIO_ACTIVE_HIGH>;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
 		regulator-boot-on;
@@ -1364,16 +1394,26 @@
 	phys = <&usb_2_hsphy>;
 	phy-names = "usb2-phy";
 
-	pinctrl-names = "default";
-	pinctrl-0 = <&usb2_en_state>;
-
 	dr_mode = "otg";
 	usb-role-switch;
-	role-switch-default-mode = "host";
 	qcom,enable-rt;
 	wakeup-source;
 
 	status = "okay";
+
+	ports {
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			usb2_port: endpoint {
+				remote-endpoint = <&usb2_port_connector>;
+			};
+		};
+
+	};
 };
 
 &usb_2_hsphy {
