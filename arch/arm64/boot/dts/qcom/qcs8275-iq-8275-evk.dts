@@ -442,11 +442,12 @@
 	status = "okay";
 };
 
-&pmm8650au_1_gpios {
-	usb2_en_state: usb2-en-state {
-		pins = "gpio7";
+&pmm8620au_0_gpios {
+	usb2_id_det_default: usb2-id-det-default {
+		pins = "gpio9";
 		function = "normal";
-		output-high;
+		input-enable;
+		bias-pull-up;
 		power-source = <0>;
 	};
 };
@@ -497,12 +498,41 @@
 };
 
 &soc {
+	connector_usb2: connector-usb2 {
+		compatible = "gpio-usb-b-connector";
+		id-gpio = <&pmm8620au_0_gpios 9 GPIO_ACTIVE_HIGH>;
+		vbus-supply = <&vbus_supply_regulator2>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usb2_id_det_default>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				usb2_port_connector: endpoint {
+					remote-endpoint = <&usb2_port>;
+				};
+			};
+		};
+	};
+
 	vbus_supply_regulator_0: vbus_supply_regulator_0 {
 		compatible = "regulator-fixed";
 		regulator-name = "vbus_supply_0";
 		gpio = <&expander1 2 GPIO_ACTIVE_HIGH>;
 		regulator-min-microvolt = <5000000>;
 		regulator-max-microvolt = <5000000>;
+		enable-active-high;
+	};
+
+	vbus_supply_regulator2: vbus-supply-regulator2 {
+		compatible = "regulator-fixed";
+		regulator-name = "vbus_supply_2";
+		gpio = <&pmm8650au_1_gpios 7 GPIO_ACTIVE_HIGH>;
+		regulator-min-microvolt = <5000000>;
+		regulator-max-microvolt = <5000000>;
+		regulator-boot-on;
 		enable-active-high;
 	};
 };
@@ -755,14 +785,24 @@
 
 	dr_mode = "otg";
 	usb-role-switch;
-	role-switch-default-mode = "host";
 	qcom,enable-rt;
 	wakeup-source;
 
-	pinctrl-names = "default";
-	pinctrl-0 = <&usb2_en_state>;
-
 	status = "okay";
+
+	ports {
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			usb2_port: endpoint {
+				remote-endpoint = <&usb2_port_connector>;
+			};
+		};
+
+	};
 };
 
 &usb_2_hsphy {
