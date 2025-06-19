@@ -16,6 +16,10 @@
 #define QCOM_SCM_SVC_INFO       0x06
 #define QCOM_SCM_INFO_IS_CALL_AVAIL 0x01
 #define QCOM_SCM_INFO_GET_FEAT_VERSION_CMD  0x03
+/* ID for Secure State*/
+#define QCOM_SCM_GET_SECURE_STATE           0x4
+/* IDs for QCOM_SCM_INFO_BW_PROF_ID */
+#define QCOM_SCM_INFO_BW_PROF_ID            0x07
 
 /* TOS Services and Function IDs */
 #define QCOM_SCM_SVC_QSEELOG            0x01
@@ -48,9 +52,6 @@
 /* IDs for SHE */
 #define QCOM_SCM_SVC_SHE                        0x21
 #define QCOM_SCM_SHE_ID                         0x1
-
-/* IDs for QCOM_SCM_INFO_BW_PROF_ID */
-#define QCOM_SCM_INFO_BW_PROF_ID	0x07
 
 /* IDs for CAMERA */
 #define QCOM_SCM_SVC_CAMERA			0x18
@@ -550,6 +551,27 @@ int qcom_scm_ddrbw_profiler(phys_addr_t in_buf, size_t in_buf_size,
 	return qcom_scm_call(__scm ? __scm->dev : NULL, &desc, NULL);
 }
 EXPORT_SYMBOL_GPL(qcom_scm_ddrbw_profiler);
+
+
+int qcom_scm_get_secure_state(u64 *res1)
+{
+	int ret;
+
+	struct qcom_scm_desc desc = {
+		.svc = QCOM_SCM_SVC_INFO,
+		.cmd = QCOM_SCM_GET_SECURE_STATE,
+		.owner = ARM_SMCCC_OWNER_SIP,
+	};
+	struct qcom_scm_res res;
+
+	ret = qcom_scm_call(__scm->dev, &desc, &res);
+	if (res1)
+		*res1 = res.result[0];
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(qcom_scm_get_secure_state);
+
 
 /**
  * qcom_scm_she_op() - request TZ SHE (Secure Hardware Extension) service
