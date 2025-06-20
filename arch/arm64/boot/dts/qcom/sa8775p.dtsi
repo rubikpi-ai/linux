@@ -2428,18 +2428,6 @@
 			interrupts-extended = <&pdc 11 IRQ_TYPE_LEVEL_HIGH>;
 
 			status = "disabled";
-
-			ports {
-				#address-cells = <1>;
-				#size-cells = <0>;
-
-				port@0 {
-					reg = <0>;
-					eud_ep: endpoint {
-					};
-				};
-			};
-
 		};
 
 		qupv3_id_0: geniqup@9c0000 {
@@ -6893,12 +6881,6 @@
 				snps,dis-u2-entry-quirk;
 
 				role-switch;
-
-				port {
-					usb0_role_switch: endpoint {
-						remote-endpoint = <&eud_ep>;
-					};
-				};
 			};
 		};
 
