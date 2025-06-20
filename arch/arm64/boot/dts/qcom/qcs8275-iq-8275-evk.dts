@@ -27,6 +27,22 @@
 	chosen {
 		stdout-path = "serial0:115200n8";
 	};
+
+	dummy_reg: regulator-dummy {
+		compatible = "regulator-fixed";
+		regulator-name = "dummy-supply";
+
+		regulator-min-microvolt = <2950000>;
+		regulator-max-microvolt = <2950000>;
+	};
+
+	dummy_s4a: regulator-dummy-s4a {
+		compatible = "regulator-fixed";
+		regulator-name = "dummy-supply-s4a";
+
+		regulator-min-microvolt = <2950000>;
+		regulator-max-microvolt = <2950000>;
+	};
 };
 
 &apps_rsc {
@@ -458,6 +474,23 @@
 	status = "okay";
 };
 
+&sdhc_2 {
+	vmmc-supply = <&dummy_reg>;
+	vqmmc-supply = <&dummy_s4a>;
+
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&sdc2_clk>, <&sdc2_cmd>, <&sdc2_data>, <&sd_cd>;
+	pinctrl-1 = <&sdc2_clk_sleep>, <&sdc2_cmd_sleep>, <&sdc2_data_sleep>, <&sd_cd>;
+
+	cap-sd-highspeed;
+
+	cd-gpios = <&tlmm 11 GPIO_ACTIVE_LOW>;
+
+	iommus = <&apps_smmu 0x0 0x0>;
+
+	status = "okay";
+};
+
 &serdes0 {
 	phy-supply = <&vreg_l5a>;
 	status = "okay";
@@ -566,6 +599,48 @@
 		pins = "gpio91", "gpio92";
 		function = "qup1_se7";
 		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	sdc2_clk: sdc2-clk-state {
+		pins = "sdc2_clk";
+		bias-disable;
+		drive-strength = <16>;
+	};
+
+	sdc2_cmd: sdc2-cmd-state {
+		pins = "sdc2_cmd";
+		bias-pull-up;
+		drive-strength = <10>;
+	};
+
+	sdc2_data: sdc2-data-state {
+		pins = "sdc2_data";
+		bias-pull-up;
+		drive-strength = <10>;
+	};
+
+	sdc2_clk_sleep: sdc2-clk-sleep-state {
+		pins = "sdc2_clk";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sdc2_cmd_sleep: sdc2-cmd-sleep-state {
+		pins = "sdc2_cmd";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sdc2_data_sleep: sdc2-data-sleep-state {
+		pins = "sdc2_data";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sd_cd: sd-cd-state {
+		pins = "gpio11";
+		function = "gpio";
 		bias-pull-up;
 	};
 };

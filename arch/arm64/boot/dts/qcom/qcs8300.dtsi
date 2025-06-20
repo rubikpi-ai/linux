@@ -47,6 +47,7 @@
 		i2c14 = &i2c14;
 		i2c15 = &i2c15;
 		mmc0 = &sdhc_1;
+		mmc1 = &sdhc_2; /* SDC2 SD card slot */
 		spi0 = &spi0;
 		spi1 = &spi1;
 		spi2 = &spi2;
@@ -7813,6 +7814,56 @@
 			};
 		};
 
+		sdhc_2: mmc@0x87c4000 {
+			compatible = "qcom,sdhci-msm-v5";
+			status = "disabled";
+
+			reg = <0x0 0x087C4000 0x0 0x1000>;
+
+			interrupts = <GIC_SPI 383 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 521 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "hc_irq", "pwr_irq";
+
+			clocks = <&gcc GCC_SDCC1_AHB_CLK>,
+				<&gcc GCC_SDCC1_APPS_CLK>;
+			clock-names = "iface", "core";
+
+			interconnects = <&aggre1_noc MASTER_SDC 0 &mc_virt SLAVE_EBI1 0>,
+					<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_SDC1 0>;
+			interconnect-names = "sdhc-ddr","cpu-sdhc";
+
+			power-domains = <&rpmhpd RPMHPD_CX>;
+			operating-points-v2 = <&sdhc2_opp_table>;
+
+			no-sdio;
+			no-mmc;
+
+			bus-width = <4>;
+			dma-coherent;
+
+			qcom,dll-config = <0x000F64EE>;
+			qcom,ddr-config = <0x80040868>;
+
+			resets = <&gcc GCC_SDCC1_BCR>;
+
+			sdhc2_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-100000000 {
+					opp-hz = /bits/ 64 <100000000>;
+					required-opps = <&rpmhpd_opp_low_svs>;
+					opp-peak-kBps = <1800000 400000>;
+					opp-avg-kBps = <100000 0>;
+				};
+
+				opp-384000000 {
+					opp-hz = /bits/ 64 <384000000>;
+					required-opps = <&rpmhpd_opp_nom>;
+					opp-peak-kBps = <5400000 1600000>;
+					opp-avg-kBps = <390000 0>;
+				};
+			};
+		};
 	};
 
 	lpass-stm {
