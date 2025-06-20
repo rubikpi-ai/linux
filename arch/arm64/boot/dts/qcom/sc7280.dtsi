@@ -5513,7 +5513,7 @@
 		};
 
 		eud: eud@88e0000 {
-			compatible = "qcom,eud";
+			compatible = "qcom,secure-eud";
 			reg = <0 0x88e0000 0 0x2000>,
 			      <0 0x88e2000 0 0x1000>;
 			interrupts-extended = <&pdc 11 IRQ_TYPE_LEVEL_HIGH>;
