@@ -484,6 +484,7 @@
 		reg = <0x67>;
 		interrupt-parent = <&pmm8654au_2_gpios>;
 		interrupts = < 5 IRQ_TYPE_EDGE_FALLING>;
+		wakeup-source;
 
 		connector@0 {
 			compatible = "usb-c-connector";
