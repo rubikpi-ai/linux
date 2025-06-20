@@ -1470,7 +1470,9 @@
 
 		pcie0: pci@400000000 {
 			compatible = "qcom,pcie-ecam-rc";
-			reg = <0x4 0x00000000 0x0 0x10000000>;
+			reg = <0x4 0x00000000 0x0 0x10000000>,
+			      <0x0 0x01c00000 0x0 0x3000>;
+			reg-names = "dbi", "parf";
 
 			device_type = "pci";
 
@@ -1493,7 +1495,11 @@
 				     <GIC_SPI 313 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 314 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 374 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>;
+				     <GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 306 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "msi0", "msi1", "msi2", "msi3",
+					  "msi4", "msi5", "msi6", "msi7",
+					  "global_int";
 			interrupt-parent = <&intc>;
 
 			iommus = <&pcie_smmu 0x00 0x7f>;
@@ -1507,7 +1513,9 @@
 
 		pcie1: pci@600000000 {
 			compatible = "qcom,pcie-ecam-rc";
-			reg = <0x6 0x00000000 0x0 0x10000000>;
+			reg = <0x6 0x00000000 0x0 0x10000000>,
+			      <0x0 0x01c10000 0x0 0x3000>;
+			reg-names = "dbi", "parf";
 
 			device_type = "pci";
 
@@ -1530,7 +1538,11 @@
 				     <GIC_SPI 143 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 144 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>;
+				     <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 518 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "msi0", "msi1", "msi2", "msi3",
+					  "msi4", "msi5", "msi6", "msi7",
+					  "global_int";
 			interrupt-parent = <&intc>;
 
 			iommus = <&pcie_smmu 0x80 0x7f>;
