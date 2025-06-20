@@ -3,7 +3,7 @@
  * sc7280 SoC device tree source
  *
  * Copyright (c) 2020-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 #include <dt-bindings/clock/qcom,camcc-sc7280.h>
 #include <dt-bindings/clock/qcom,dispcc-sc7280.h>
@@ -1048,6 +1048,7 @@
 			reg = <0x0 0x7C8000 0x0 0x10000>;
 			qcom,ice-use-hwkm;
 			clocks = <&gcc GCC_SDCC1_ICE_CORE_CLK>;
+			status = "okay";
 		};
 
 		gpi_dma0: dma-controller@900000 {
@@ -5210,6 +5211,7 @@
 			reg = <0x0 0x01d88000 0x0 0x10000>;
 			qcom,ice-use-hwkm;
 			clocks = <&gcc GCC_UFS_PHY_ICE_CORE_CLK>;
+			status = "okay";
 		};
 
 		usb_1_hsphy: phy@88e3000 {
