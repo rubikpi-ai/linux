@@ -79,7 +79,7 @@
 					reg = <0>;
 
 					pmic_glink_hs_in: endpoint {
-						remote-endpoint = <&usb_1_dwc3_hs>;
+						remote-endpoint = <&eud_con>;
 					};
 				};
 
@@ -518,6 +518,19 @@
 			regulator-max-microvolt = <3960000>;
 		};
 	};
+};
+
+&eud {
+	usb-role-switch;
+	status = "okay";
+};
+
+&eud_con {
+	remote-endpoint = <&pmic_glink_hs_in>;
+};
+
+&eud_ep {
+	remote-endpoint = <&usb_1_dwc3_hs>;
 };
 
 &mdss {
@@ -1150,7 +1163,7 @@
 };
 
 &usb_1_dwc3_hs {
-	remote-endpoint = <&pmic_glink_hs_in>;
+	remote-endpoint = <&eud_ep>;
 };
 
 &usb_1_hsphy {
