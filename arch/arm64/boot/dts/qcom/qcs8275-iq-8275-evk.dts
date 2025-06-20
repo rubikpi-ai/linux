@@ -299,6 +299,7 @@
 		compatible = "ti,hd3ss3220";
 		reg = <0x67>;
 		interrupts = < 45 IRQ_TYPE_EDGE_FALLING>;
+		wakeup-source;
 
 		connector@0 {
 			compatible = "usb-c-connector";
