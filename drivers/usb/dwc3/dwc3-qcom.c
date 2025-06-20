@@ -20,6 +20,7 @@
 #include <linux/usb/of.h>
 #include <linux/reset.h>
 #include <linux/iopoll.h>
+#include "../misc/qcom_eud.h"
 #include <linux/usb/hcd.h>
 #include <linux/usb.h>
 #include "core.h"
@@ -769,7 +770,24 @@ static int dwc3_xhci_event_notifier(struct notifier_block *nb,
 static int dwc3_qcom_handle_cable_disconnect(void *data)
 {
 	struct dwc3_qcom *qcom = (struct dwc3_qcom *)data;
+	struct dwc3 *dwc = &qcom->dwc;
+	struct usb_role_switch *sw;
 	int ret = 0;
+
+	/*
+	 * HW sequence mandates a Vbus toggle to be performed during eud
+	 * enable/disable when in HS mode. If disconnect is issued in eud
+	 * Vbus OFF context process it only when in HS mode. USB enumeration
+	 * should remain undisturbed in other speeds.
+	 */
+	sw = usb_role_switch_get(dwc->dev);
+	if (IS_REACHABLE(CONFIG_USB_QCOM_EUD)) {
+		if (qcom_eud_vbus_control(sw) && dwc->speed != DWC3_DSTS_HIGHSPEED) {
+			usb_role_switch_put(sw);
+			return 0;
+		}
+	}
+	usb_role_switch_put(sw);
 
 	/*
 	 * If we are in device mode and get a cable disconnect,
