@@ -11,6 +11,7 @@
 #include "msm_mdss.h"
 
 #include <drm/drm_file.h>
+#include <linux/soc/qcom/socinfo.h>
 
 #define DPU_FETCH_CONFIG_RESET_VALUE   0x00000087
 
@@ -212,6 +213,8 @@ static void dpu_hw_sspp_setup_format(struct dpu_sw_pipe *pipe,
 	u32 opmode = 0;
 	u32 fast_clear = 0;
 	u32 op_mode_off, unpack_pat_off, format_off;
+	u32 highest_bank_bit;
+	int ddr_type;
 
 	if (!ctx || !fmt)
 		return;
@@ -266,30 +269,39 @@ static void dpu_hw_sspp_setup_format(struct dpu_sw_pipe *pipe,
 		((fmt->bpp - 1) << 9);
 
 	if (fmt->fetch_mode != DPU_FETCH_LINEAR) {
+		ddr_type = mdss_get_ddr_type();
+
+		/* Setting default ddr type as LP4 */
+		if (ddr_type < 0)
+			ddr_type = DDR_TYPE_LP4;
+
+		highest_bank_bit = (ddr_type == DDR_TYPE_LP5) ?
+				ctx->ubwc->highest_bank_bit[1] : ctx->ubwc->highest_bank_bit[0];
+
 		if (DPU_FORMAT_IS_UBWC(fmt))
 			opmode |= MDSS_MDP_OP_BWC_EN;
 		src_format |= (fmt->fetch_mode & 3) << 30; /*FRAME_FORMAT */
 		DPU_REG_WRITE(c, SSPP_FETCH_CONFIG,
 			DPU_FETCH_CONFIG_RESET_VALUE |
-			ctx->ubwc->highest_bank_bit << 18);
+			highest_bank_bit << 18);
 		switch (ctx->ubwc->ubwc_enc_version) {
 		case UBWC_1_0:
 			fast_clear = fmt->alpha_enable ? BIT(31) : 0;
 			DPU_REG_WRITE(c, SSPP_UBWC_STATIC_CTRL,
 					fast_clear | (ctx->ubwc->ubwc_swizzle & 0x1) |
 					BIT(8) |
-					(ctx->ubwc->highest_bank_bit << 4));
+					(highest_bank_bit << 4));
 			break;
 		case UBWC_2_0:
 			fast_clear = fmt->alpha_enable ? BIT(31) : 0;
 			DPU_REG_WRITE(c, SSPP_UBWC_STATIC_CTRL,
 					fast_clear | (ctx->ubwc->ubwc_swizzle) |
-					(ctx->ubwc->highest_bank_bit << 4));
+					(highest_bank_bit << 4));
 			break;
 		case UBWC_3_0:
 			DPU_REG_WRITE(c, SSPP_UBWC_STATIC_CTRL,
 					BIT(30) | (ctx->ubwc->ubwc_swizzle) |
-					(ctx->ubwc->highest_bank_bit << 4));
+					(highest_bank_bit << 4));
 			break;
 		case UBWC_4_0:
 			DPU_REG_WRITE(c, SSPP_UBWC_STATIC_CTRL,
