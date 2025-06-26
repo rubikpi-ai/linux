@@ -338,12 +338,12 @@
 
 		camera_mem: camera-region@95200000 {
 			no-map;
-			reg = <0x0 0x95200000 0x0 0x500000>;
+			reg = <0x0 0x95200000 0x0 0x800000>;
 		};
 
-		mproc_umdpil_mem: mproc-umdpil-region@95700000 {
+		mproc_umdpil_mem: mproc-umdpil-region@95a00000 {
 			no-map;
-			reg = <0x0 0x95700000 0x0 0x500000>;
+			reg = <0x0 0x95a00000 0x0 0x200000>;
 		};
 
 		adsp_mem: adsp-region@95c00000 {
