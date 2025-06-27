@@ -40,6 +40,20 @@
 		stdout-path = "serial0:115200n8";
 	};
 
+	dp-connector {
+		compatible = "dp-connector";
+		label = "DP";
+		type = "mini";
+
+		hpd-gpios = <&tlmm 60 GPIO_ACTIVE_HIGH>;
+
+		port {
+			dp_connector_in: endpoint {
+				remote-endpoint = <&mdss_edp_out>;
+			};
+		};
+	};
+
 	gpio-keys {
 		compatible = "gpio-keys";
 		label = "gpio-keys";
@@ -785,6 +799,21 @@
 	status = "okay";
 };
 
+&mdss_edp {
+	status = "okay";
+};
+
+&mdss_edp_out {
+	data-lanes = <0 1 2 3>;
+	link-frequencies = /bits/ 64 <1620000000 2700000000 5400000000 8100000000>;
+
+	remote-endpoint = <&dp_connector_in>;
+};
+
+&mdss_edp_phy {
+	status = "okay";
+};
+
 &pcie1 {
 	perst-gpios = <&tlmm 2 GPIO_ACTIVE_LOW>;
 
@@ -809,6 +838,11 @@
 	vdda-pll-supply = <&vreg_l6b_1p2>;
 
 	status = "okay";
+};
+
+&edp_hot_plug_det {
+	function = "gpio";
+	bias-disable;
 };
 
 &pm7250b_gpios {
