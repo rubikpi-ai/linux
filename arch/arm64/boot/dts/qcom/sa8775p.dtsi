@@ -7569,28 +7569,8 @@
 
 			power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
 			power-domain-names = "top";
-			operating-points-v2 = <&camss_opp_table>;
 
 			status = "disabled";
-
-			camss_opp_table: opp-table {
-				compatible = "operating-points-v2";
-
-				opp-400000000 {
-					opp-hz = /bits/ 64 <400000000>;
-					required-opps = <&rpmhpd_opp_svs_l1>;
-				};
-
-				opp-480000000 {
-					opp-hz = /bits/ 64 <480000000>;
-					required-opps = <&rpmhpd_opp_svs_l1>;
-				};
-
-				opp-600000000 {
-					opp-hz = /bits/ 64 <600000000>;
-					required-opps = <&rpmhpd_opp_nom>;
-				};
-			};
 
 			ports {
 				#address-cells = <1>;
