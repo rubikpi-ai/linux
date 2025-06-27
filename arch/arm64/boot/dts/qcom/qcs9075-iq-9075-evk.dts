@@ -335,6 +335,7 @@
 	snps,mtl-rx-config = <&mtl_rx_setup>;
 	snps,mtl-tx-config = <&mtl_tx_setup>;
 	snps,ps-speed = <1000>;
+	eeprom-for-mac = <&eeprom0>;
 
 	status = "okay";
 
