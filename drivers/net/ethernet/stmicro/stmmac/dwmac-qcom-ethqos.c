@@ -8,9 +8,13 @@
 #include <linux/phy.h>
 #include <linux/phy/phy.h>
 #include <linux/pcs-xpcs-qcom.h>
+#include <linux/i2c.h>
 
 #include "stmmac.h"
 #include "stmmac_platform.h"
+
+#define EEPROM_STMMAC_READ_BYTE	18
+#define EEPROM_STMMAC_WRITE_OFFSET_BYTE	2
 
 #define RGMII_IO_MACRO_CONFIG		0x0
 #define SDCC_HC_REG_DLL_CONFIG		0x4
@@ -1053,6 +1057,72 @@ static void ethqos_xpcs_safety_stats(struct stmmac_priv *priv, unsigned long *pt
 		qcom_xpcs_get_err_stats(priv->hw->phylink_pcs, ptr);
 }
 
+static int ethqos_eeprom_readmac(struct plat_stmmacenet_data *plat_dat, struct device *dev,
+				 u8 *mac_addr)
+{
+	static u8 wr_data[EEPROM_STMMAC_WRITE_OFFSET_BYTE] = {0, 0};
+	static u8 rd_data[EEPROM_STMMAC_READ_BYTE];
+	char *temp_mac_addr = NULL, *mac_str = NULL;
+	char *token = NULL, *token_n = NULL;
+	struct i2c_adapter *adapter;
+	struct i2c_msg msg[2];
+	u8 addr[ETH_ALEN];
+	int j = 0, ret;
+	u8 mac_id = 0;
+
+	adapter = i2c_get_adapter(plat_dat->i2c_id);
+	if (!adapter) {
+		/* error, no such I2C adaptor. */
+		dev_err(dev, "Chip at i2c Invalid i2c adapter %d\n", plat_dat->i2c_id);
+		return -ENODEV;
+	}
+
+	msg[0].addr = plat_dat->eeprom_reg;
+	msg[0].len = EEPROM_STMMAC_WRITE_OFFSET_BYTE;
+	msg[0].flags = 0;
+	msg[0].buf = wr_data;
+
+	msg[1].addr = plat_dat->eeprom_reg;
+	msg[1].len = EEPROM_STMMAC_READ_BYTE;
+	msg[1].flags = I2C_M_RD;
+	msg[1].buf = rd_data;
+
+	ret = i2c_transfer(adapter, msg, 2);
+	if (ret != 2) {
+		dev_err(dev, "EEPROM I2C wrong response\n");
+		return ret;
+	}
+
+	mac_str = kmemdup(rd_data, EEPROM_STMMAC_READ_BYTE, GFP_KERNEL);
+	if (!mac_str)
+		return -ENOMEM;
+
+	temp_mac_addr = mac_str;
+
+	token_n = strsep(&temp_mac_addr, "\n");
+	if (!token_n) {
+		kfree(mac_str);
+		return 0;
+	}
+	token = strsep(&token_n, ":");
+	while (token) {
+		if (kstrtou8(token, 16, &mac_id)) {
+			kfree(mac_str);
+			return 0;
+		}
+		addr[j++] = mac_id;
+		token = strsep(&token_n, ":");
+	}
+
+	if (is_valid_ether_addr(addr))
+		memcpy(mac_addr, addr, ETH_ALEN);
+	else
+		dev_err(dev, "invalid mac address from EEPROM\n");
+
+	kfree(mac_str);
+	return 0;
+}
+
 static int qcom_ethqos_probe(struct platform_device *pdev)
 {
 	struct device_node *np = pdev->dev.of_node, *root;
@@ -1192,6 +1262,9 @@ static int qcom_ethqos_probe(struct platform_device *pdev)
 		plat_dat->serdes_powerup = qcom_ethqos_serdes_powerup;
 		plat_dat->serdes_powerdown  = qcom_ethqos_serdes_powerdown;
 	}
+
+	if (plat_dat->eeprom_reg)
+		ethqos_eeprom_readmac(plat_dat, dev, stmmac_res.mac);
 
 	/* Enable TSO on queue0 and enable TBS on rest of the queues */
 	for (i = 1; i < plat_dat->tx_queues_to_use; i++)

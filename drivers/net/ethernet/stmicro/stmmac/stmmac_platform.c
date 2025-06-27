@@ -422,6 +422,7 @@ stmmac_probe_config_dt(struct platform_device *pdev, u8 *mac)
 	int phy_mode;
 	void *ret;
 	int rc;
+	struct device_node *eeprom;
 
 	plat = devm_kzalloc(&pdev->dev, sizeof(*plat), GFP_KERNEL);
 	if (!plat)
@@ -499,6 +500,17 @@ stmmac_probe_config_dt(struct platform_device *pdev, u8 *mac)
 
 	/* Set default value for unicast filter entries */
 	plat->unicast_filter_entries = 1;
+
+	plat->eeprom_reg = 0;
+	plat->i2c_id = 0;
+	eeprom = of_parse_phandle(np, "eeprom-for-mac", 0);
+	if (eeprom) {
+		if (of_property_read_u32(eeprom, "reg", &plat->eeprom_reg))
+			dev_err(&pdev->dev, "Failed to read eeprom_reg\n");
+
+		if (of_property_read_u32(eeprom, "i2c_id", &plat->i2c_id))
+			dev_err(&pdev->dev, "Failed to read i2c_id\n");
+	}
 
 	/*
 	 * Currently only the properties needed on SPEAr600
