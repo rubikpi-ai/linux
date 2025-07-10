@@ -309,6 +309,21 @@
 	status = "okay";
 };
 
+&remoteproc_adsp {
+	firmware-name = "qcom/qcs8300/adsp.mbn";
+	status = "okay";
+};
+
+&remoteproc_cdsp {
+	firmware-name = "qcom/qcs8300/cdsp0.mbn";
+	status = "okay";
+};
+
+&remoteproc_gpdsp {
+	firmware-name = "qcom/qcs8300/gpdsp0.mbn";
+	status = "okay";
+};
+
 &sdhc_2 {
 	vmmc-supply = <&dummy_reg>;
 	vqmmc-supply = <&dummy_s4a>;
