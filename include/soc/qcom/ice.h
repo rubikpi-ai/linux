@@ -49,4 +49,6 @@ int qcom_ice_import_key(struct qcom_ice *ice,
 			u8 lt_key[BLK_CRYPTO_MAX_HW_WRAPPED_KEY_SIZE]);
 int qcom_ice_scale_clk(struct qcom_ice *ice, bool scale_up);
 struct qcom_ice *of_qcom_ice_get(struct device *dev);
+struct qcom_ice *devm_of_qcom_ice_get(struct device *dev);
+
 #endif /* __QCOM_ICE_H__ */

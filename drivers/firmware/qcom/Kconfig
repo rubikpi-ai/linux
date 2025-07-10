@@ -40,4 +40,6 @@ config QTI_TZ_LOG
 	  by the Secure code (Trust zone). These messages provide diagnostic information
 	  about TZ operations.
 
+source "drivers/firmware/qcom/si_core/Kconfig"
+
 endmenu

@@ -218,11 +218,17 @@ static const struct snd_soc_dapm_route qcs9100_dapm_routes[] = {
 
 static const struct snd_soc_dapm_widget qcs9075_dapm_widgets[] = {
 	SND_SOC_DAPM_PINCTRL("MI2S_OUT_PINCTRL", "mi2s_aud_out_active", "mi2s_aud_out_sleep"),
+	SND_SOC_DAPM_PINCTRL("STUB_AIF0_PINCTRL", "stub_aif0_active", "stub_aif0_sleep"),
+	SND_SOC_DAPM_PINCTRL("STUB_AIF1_PINCTRL", "stub_aif1_active", "stub_aif1_sleep"),
 };
 
 static const struct snd_soc_dapm_route qcs9075_dapm_routes[] = {
 	{"Speaker", NULL, "MI2S_OUT_PINCTRL"},
 	{"DMic", NULL, "MI2S_OUT_PINCTRL"},
+	{"STUB_AIF0_RX", NULL, "STUB_AIF0_PINCTRL"},
+	{"STUB_AIF0_TX", NULL, "STUB_AIF0_PINCTRL"},
+	{"STUB_AIF1_RX", NULL, "STUB_AIF1_PINCTRL"},
+	{"STUB_AIF1_TX", NULL, "STUB_AIF1_PINCTRL"},
 };
 
 static const struct snd_soc_ops qcs9100_be_ops = {

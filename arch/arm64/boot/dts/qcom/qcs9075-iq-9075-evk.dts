@@ -12,6 +12,8 @@
 #include "qcs9075-thermal.dtsi"
 #include "qcs9xxx-reserved-memory.dtsi"
 
+/delete-node/ &usb_2_dwc3;
+
 / {
 	model = "Qualcomm Technologies, Inc. IQ 9075 EVK";
 	compatible = "qcom,qcs9075-iq-9075-evk", "qcom,qcs9075", "qcom,sa8775p";
@@ -22,7 +24,10 @@
 		ethernet0 = &ethernet0;
 		serial0 = &uart10;
 		serial1 = &uart17;
+		serial2 = &uart0;
+		spi16 = &spi16;
 		ufshc1 = &ufs_mem_hc;
+		mmc0 = &sdhc_1; /* SDC1 SD card slot */
 	};
 
 	chosen {
@@ -77,6 +82,14 @@
 				regulator-name = "vreg_pmu_pcie_1p8";
 			};
 		};
+	};
+
+	dummy_reg: regulator-dummy {
+		compatible = "regulator-fixed";
+		regulator-name = "dummy-supply";
+
+		regulator-min-microvolt = <2950000>;
+		regulator-max-microvolt = <2950000>;
 	};
 };
 
@@ -466,6 +479,7 @@
 		reg = <0x67>;
 		interrupt-parent = <&pmm8654au_2_gpios>;
 		interrupts = < 5 IRQ_TYPE_EDGE_FALLING>;
+		wakeup-source;
 
 		connector@0 {
 			compatible = "usb-c-connector";
@@ -571,6 +585,14 @@
 &i2c19 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
+	pinctrl-0 = <&qup_i2c19_default>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	fan: fan@18 {
+		compatible = "ti,amc6821";
+		reg = <0x18>;
+	};
 };
 
 &llcc {
@@ -619,13 +641,6 @@
 			  "USB2_PWR_EN",
 			  "USB2_FAULT";
 
-	bt_en_state: bt-en-state {
-		pins = "gpio8";
-		function = "normal";
-		output-low;
-		bias-pull-down;
-	};
-
 	usb2_en_state: usb2-en-state {
 		pins = "gpio9";
 		function = "normal";
@@ -651,12 +666,40 @@
 	};
 };
 
+&qupv3_id_0 {
+	status = "okay";
+};
+
 &qupv3_id_1 {
 	status = "okay";
 };
 
 &qupv3_id_2 {
 	status = "okay";
+};
+
+&qup_uart0_tx {
+	bias-pull-up;
+};
+
+&qup_uart0_rx {
+	bias-pull-down;
+};
+
+&qup_uart17_cts {
+	bias-disable;
+};
+
+&qup_uart17_rts {
+	bias-pull-down;
+};
+
+&qup_uart17_tx {
+	bias-pull-up;
+};
+
+&qup_uart17_rx {
+	bias-pull-down;
 };
 
 &remoteproc_adsp {
@@ -784,14 +827,6 @@
 };
 
 &tlmm {
-	bt_bootstrap_default: bt_bootstrap_default {
-		pins = "gpio147";
-		function = "gpio";
-		input-enable;
-		bias-pull-up;
-		drive-strength = <2>;
-	};
-
 	dp_hot_plug_det: dp-hot-plug-det-state {
 		pins = "gpio101";
 		function = "edp0_hot";
@@ -817,37 +852,6 @@
 			function = "emac0_mdio";
 			drive-strength = <16>;
 			bias-pull-up;
-		};
-	};
-
-	qup_uart10_default: qup-uart10-state {
-		pins = "gpio46", "gpio47";
-		function = "qup1_se3";
-	};
-
-	qup_uart17_default: qup-uart17-state {
-		qup_uart17_cts: qup-uart17-cts-pins {
-			pins = "gpio91";
-			function = "qup2_se3";
-			bias-disable;
-		};
-
-		qup_uart17_rts: qup0-uart17-rts-pins {
-			pins = "gpio92";
-			function = "qup2_se3";
-			bias-pull-down;
-		};
-
-		qup_uart17_tx: qup0-uart17-tx-pins {
-			pins = "gpio93";
-			function = "qup2_se3";
-			bias-pull-up;
-		};
-
-		qup_uart17_rx: qup0-uart17-rx-pins {
-			pins = "gpio94";
-			function = "qup2_se3";
-			bias-pull-down;
 		};
 	};
 
@@ -910,6 +914,72 @@
 		drive-strength = <2>;
 		bias-pull-up;
 	};
+
+	qup_spi16_cs: qup-spi16-cs-state {
+		pins = "gpio89";
+		function = "qup2_se2";
+	};
+
+	qup_spi16_data_clk: qup-spi16-data-clk-state {
+		pins = "gpio86", "gpio87", "gpio88";
+		function = "qup2_se2";
+	};
+
+	qup_i2c19_default: qup-i2c19-state {
+		pins = "gpio99", "gpio100";
+		function = "qup2_se5";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	sdc1_clk: sdc1-clk-state {
+		pins = "sdc1_clk";
+		bias-disable;
+		drive-strength = <16>;
+	};
+
+	sdc1_cmd: sdc1-cmd-state {
+		pins = "sdc1_cmd";
+		bias-pull-up;
+		drive-strength = <10>;
+	};
+
+	sdc1_data: sdc1-data-state {
+		pins = "sdc1_data";
+		bias-pull-up;
+		drive-strength = <10>;
+	};
+
+	sdc1_clk_sleep: sdc1-clk-sleep-state {
+		pins = "sdc1_clk";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sdc1_cmd_sleep: sdc1-cmd-sleep-state {
+		pins = "sdc1_cmd";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sdc1_data_sleep: sdc1-data-sleep-state {
+		pins = "sdc1_data";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sd_cd: sd-cd-state {
+		pins = "gpio36";
+		function = "gpio";
+		bias-pull-up;
+	};
+
+	usb1_id_det_default: usb1-id-det-default {
+		pins = "gpio51";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
 };
 
 &pcie0 {
@@ -968,9 +1038,13 @@
 	status = "okay";
 };
 
+/delete-node/ &qup_uart0_rts;
+/delete-node/ &qup_uart0_cts;
+
 &uart0 {
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
+	status = "okay";
 };
 
 &uart1 {
@@ -1015,8 +1089,6 @@
 
 &uart10 {
 	compatible = "qcom,geni-debug-uart";
-	pinctrl-0 = <&qup_uart10_default>;
-	pinctrl-names = "default";
 	status = "okay";
 };
 
@@ -1046,8 +1118,6 @@
 };
 
 &uart17 {
-	pinctrl-0 = <&qup_uart17_default>;
-	pinctrl-names = "default";
 	qcom,load-firmware;
 	qcom,xfer-mode = <1>;
 	status = "okay";
@@ -1056,8 +1126,6 @@
 	bluetooth: bluetooth {
 		compatible = "qcom,wcn6855-bt";
 		pinctrl-names = "default";
-		pinctrl-0 = <&bt_en_state>, <&bt_bootstrap_default>;
-		enable-gpios = <&pmm8654au_1_gpios 8 GPIO_ACTIVE_HIGH>; /* BT_EN */
 		max-speed = <3200000>;
 	};
 };
@@ -1090,6 +1158,41 @@
 };
 
 &soc {
+	connector_usb1: connector-usb1 {
+		compatible = "gpio-usb-b-connector";
+		id-gpio = <&tlmm 51 GPIO_ACTIVE_HIGH>;
+		vbus-supply = <&vbus_supply_regulator_1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&usb1_id_det_default>;
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+				usb1_port_connector: endpoint {
+					remote-endpoint = <&usb1_port>;
+				};
+			};
+		};
+	};
+
+	vreg_sdc: regulator-sdc {
+		compatible = "regulator-gpio";
+
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <2950000>;
+		regulator-name = "vreg_sdc";
+		regulator-type = "voltage";
+
+		startup-delay-us = <100>;
+
+		gpios = <&expander1 7 GPIO_ACTIVE_HIGH>;
+
+		states = <1800000 0x1
+			  2950000 0x0>;
+	};
+
 	vbus_supply_regulator_0: vbus_supply_regulator_0 {
 		compatible = "regulator-fixed";
 		regulator-name = "vbus_supply_0";
@@ -1108,7 +1211,21 @@
 		regulator-max-microvolt = <5000000>;
 		regulator-boot-on;
 		enable-active-high;
-		regulator-always-on;
+	};
+};
+
+&spi16 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&qup_spi16_cs>, <&qup_spi16_data_clk>;
+	status = "okay";
+
+	st33htpm0: st33htpm@0 {
+		compatible = "st,st33htpm-spi";
+		reg = <0>;
+		spi-max-frequency = <20000000>;
+		#address-cells = <1>;
+		#size-cells = <0>;
+		status = "okay";
 	};
 };
 
@@ -1197,9 +1314,21 @@
 	maximum-speed = "super-speed";
 	dr_mode = "otg";
 	usb-role-switch;
-	role-switch-default-mode = "host";
-	vbus_dwc3-supply = <&vbus_supply_regulator_1>;
 	status = "okay";
+
+	ports {
+
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		port@0 {
+			reg = <0>;
+			usb1_port: endpoint {
+				remote-endpoint = <&usb1_port_connector>;
+			};
+		};
+
+	};
 };
 
 &usb_1_hsphy {
@@ -1218,14 +1347,30 @@
 };
 
 &usb_2 {
+	reg = <0x0 0x0a400000 0x0 0x200000>;
+	interrupts-extended = <&intc GIC_SPI 442 IRQ_TYPE_LEVEL_HIGH>,
+				<&intc GIC_SPI 444 IRQ_TYPE_LEVEL_HIGH>,
+				<&pdc 10 IRQ_TYPE_EDGE_BOTH>,
+				<&pdc 9 IRQ_TYPE_EDGE_BOTH>;
+	interrupt-names = "dwc_usb3",
+			"pwr_event",
+			"dp_hs_phy_irq",
+			"dm_hs_phy_irq";
+
+	iommus = <&apps_smmu 0x020 0x0>;
+	phys = <&usb_2_hsphy>;
+	phy-names = "usb2-phy";
+
 	pinctrl-names = "default";
 	pinctrl-0 = <&usb2_en_state>;
 
-	status = "okay";
-};
+	dr_mode = "otg";
+	usb-role-switch;
+	role-switch-default-mode = "host";
+	qcom,enable-rt;
+	wakeup-source;
 
-&usb_2_dwc3 {
-	dr_mode = "host";
+	status = "okay";
 };
 
 &usb_2_hsphy {
@@ -1238,4 +1383,19 @@
 
 &xo_board_clk {
 	clock-frequency = <38400000>;
+};
+
+&sdhc_1 {
+	vmmc-supply = <&dummy_reg>;
+	vqmmc-supply = <&vreg_sdc>;
+
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&sdc1_clk>, <&sdc1_cmd>, <&sdc1_data>, <&sd_cd>;
+	pinctrl-1 = <&sdc1_clk_sleep>, <&sdc1_cmd_sleep>, <&sdc1_data_sleep>, <&sd_cd>;
+
+	cd-gpios = <&tlmm 36 GPIO_ACTIVE_LOW>;
+
+	iommus = <&apps_smmu 0x0 0x0>;
+
+	status = "okay";
 };

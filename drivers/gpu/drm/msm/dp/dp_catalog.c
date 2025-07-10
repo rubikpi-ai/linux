@@ -77,8 +77,12 @@ struct dss_io_data {
 	struct dss_io_region ahb;
 	struct dss_io_region aux;
 	struct dss_io_region link;
+	struct dss_io_region mst2_link;
+	struct dss_io_region mst3_link;
 	struct dss_io_region p0;
 	struct dss_io_region p1;
+	struct dss_io_region p2;
+	struct dss_io_region p3;
 };
 
 struct msm_dp_catalog_private {
@@ -98,8 +102,14 @@ void msm_dp_catalog_snapshot(struct msm_dp_catalog *msm_dp_catalog, struct msm_d
 	msm_disp_snapshot_add_block(disp_state, dss->ahb.len, dss->ahb.base, "dp_ahb");
 	msm_disp_snapshot_add_block(disp_state, dss->aux.len, dss->aux.base, "dp_aux");
 	msm_disp_snapshot_add_block(disp_state, dss->link.len, dss->link.base, "dp_link");
+	msm_disp_snapshot_add_block(disp_state, dss->mst2_link.len, dss->mst2_link.base,
+				    "dp_mst2_link");
+	msm_disp_snapshot_add_block(disp_state, dss->mst3_link.len, dss->mst3_link.base,
+				    "dp_mst3_link");
 	msm_disp_snapshot_add_block(disp_state, dss->p0.len, dss->p0.base, "dp_p0");
-	msm_disp_snapshot_add_block(disp_state, dss->p1.len, dss->p0.base, "dp_p1");
+	msm_disp_snapshot_add_block(disp_state, dss->p1.len, dss->p1.base, "dp_p1");
+	msm_disp_snapshot_add_block(disp_state, dss->p2.len, dss->p2.base, "dp_p2");
+	msm_disp_snapshot_add_block(disp_state, dss->p3.len, dss->p3.base, "dp_p3");
 }
 
 static inline u32 msm_dp_read_aux(struct msm_dp_catalog_private *catalog, u32 offset)
@@ -172,6 +182,46 @@ static inline u32 msm_dp_read_p1(struct msm_dp_catalog_private *catalog,
 	return readl_relaxed(catalog->io.p1.base + offset);
 }
 
+static inline void msm_dp_write_p2(struct msm_dp_catalog_private *catalog,
+				   u32 offset, u32 data)
+{
+	/*
+	 * To make sure interface reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	writel(data, catalog->io.p2.base + offset);
+}
+
+static inline u32 msm_dp_read_p2(struct msm_dp_catalog_private *catalog,
+				 u32 offset)
+{
+	/*
+	 * To make sure interface reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	return readl_relaxed(catalog->io.p2.base + offset);
+}
+
+static inline void msm_dp_write_p3(struct msm_dp_catalog_private *catalog,
+				   u32 offset, u32 data)
+{
+	/*
+	 * To make sure interface reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	writel(data, catalog->io.p3.base + offset);
+}
+
+static inline u32 msm_dp_read_p3(struct msm_dp_catalog_private *catalog,
+				 u32 offset)
+{
+	/*
+	 * To make sure interface reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	return readl_relaxed(catalog->io.p3.base + offset);
+}
+
 static inline u32 msm_dp_read_link(struct msm_dp_catalog_private *catalog, u32 offset)
 {
 	return readl_relaxed(catalog->io.link.base + offset);
@@ -185,6 +235,36 @@ static inline void msm_dp_write_link(struct msm_dp_catalog_private *catalog,
 	 * this function uses writel() instread of writel_relaxed()
 	 */
 	writel(data, catalog->io.link.base + offset);
+}
+
+static inline u32 msm_dp_read_mst2_link(struct msm_dp_catalog_private *catalog, u32 offset)
+{
+	return readl_relaxed(catalog->io.mst2_link.base + offset);
+}
+
+static inline void msm_dp_write_mst2_link(struct msm_dp_catalog_private *catalog,
+					  u32 offset, u32 data)
+{
+	/*
+	 * To make sure link reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	writel(data, catalog->io.mst2_link.base + offset);
+}
+
+static inline u32 msm_dp_read_mst3_link(struct msm_dp_catalog_private *catalog, u32 offset)
+{
+	return readl_relaxed(catalog->io.mst3_link.base + offset);
+}
+
+static inline void msm_dp_write_mst3_link(struct msm_dp_catalog_private *catalog,
+					  u32 offset, u32 data)
+{
+	/*
+	 * To make sure link reg writes happens before any other operation,
+	 * this function uses writel() instread of writel_relaxed()
+	 */
+	writel(data, catalog->io.mst3_link.base + offset);
 }
 
 /* aux related catalog functions */
@@ -378,14 +458,40 @@ void msm_dp_catalog_ctrl_state_ctrl(struct msm_dp_catalog *msm_dp_catalog, u32 s
 	msm_dp_write_link(catalog, REG_DP_STATE_CTRL, state);
 }
 
-void msm_dp_catalog_ctrl_config_ctrl(struct msm_dp_catalog *msm_dp_catalog, u32 cfg)
+void msm_dp_catalog_ctrl_mst2_state_ctrl(struct msm_dp_catalog *msm_dp_catalog, u32 state)
 {
 	struct msm_dp_catalog_private *catalog = container_of(msm_dp_catalog,
 				struct msm_dp_catalog_private, msm_dp_catalog);
 
-	drm_dbg_dp(catalog->drm_dev, "DP_CONFIGURATION_CTRL=0x%x\n", cfg);
+	msm_dp_write_mst2_link(catalog, REG_DP_MST2_MST3_STATE_CTRL, state);
+}
 
-	msm_dp_write_link(catalog, REG_DP_CONFIGURATION_CTRL, cfg);
+void msm_dp_catalog_ctrl_mst3_state_ctrl(struct msm_dp_catalog *msm_dp_catalog, u32 state)
+{
+	struct msm_dp_catalog_private *catalog = container_of(msm_dp_catalog,
+				struct msm_dp_catalog_private, msm_dp_catalog);
+
+	msm_dp_write_mst3_link(catalog, REG_DP_MST2_MST3_STATE_CTRL, state);
+}
+
+void msm_dp_catalog_ctrl_config_ctrl(struct msm_dp_catalog *msm_dp_catalog, u32 cfg)
+{
+	struct msm_dp_catalog_private *catalog = container_of(msm_dp_catalog,
+				struct msm_dp_catalog_private, msm_dp_catalog);
+	u32 reg_offset = 0;
+
+	if (msm_dp_catalog->stream_id == DP_STREAM_1)
+		reg_offset = REG_DP1_CONFIGURATION_CTRL - REG_DP_CONFIGURATION_CTRL;
+
+	drm_dbg_dp(catalog->drm_dev, "stream_id:%d DP_CONFIGURATION_CTRL=0x%x\n",
+		msm_dp_catalog->stream_id, cfg);
+
+	if (msm_dp_catalog->stream_id == DP_STREAM_3)
+		msm_dp_write_mst3_link(catalog, REG_DP_MST2_MST3_CONFIGURATION_CTRL, cfg);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_2)
+		msm_dp_write_mst2_link(catalog, REG_DP_MST2_MST3_CONFIGURATION_CTRL, cfg);
+	else
+		msm_dp_write_link(catalog, REG_DP_CONFIGURATION_CTRL + reg_offset, cfg);
 }
 
 void msm_dp_catalog_ctrl_lane_mapping(struct msm_dp_catalog *msm_dp_catalog)
@@ -501,7 +607,12 @@ void msm_dp_catalog_ctrl_config_misc(struct msm_dp_catalog *msm_dp_catalog,
 	misc_val |= DP_MISC0_SYNCHRONOUS_CLK;
 
 	drm_dbg_dp(catalog->drm_dev, "misc settings = 0x%x\n", misc_val);
-	msm_dp_write_link(catalog, REG_DP_MISC1_MISC0 + reg_offset, misc_val);
+	if (msm_dp_catalog->stream_id == DP_STREAM_3)
+		msm_dp_write_mst3_link(catalog, REG_DP_MST2_MST3_MISC1_MISC0, misc_val);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_2)
+		msm_dp_write_mst2_link(catalog, REG_DP_MST2_MST3_MISC1_MISC0, misc_val);
+	else
+		msm_dp_write_link(catalog, REG_DP_MISC1_MISC0 + reg_offset, misc_val);
 }
 
 void msm_dp_catalog_setup_peripheral_flush(struct msm_dp_catalog *msm_dp_catalog)
@@ -588,13 +699,25 @@ void msm_dp_catalog_ctrl_config_msa(struct msm_dp_catalog *msm_dp_catalog,
 
 	drm_dbg_dp(catalog->drm_dev, "mvid=0x%x, nvid=0x%x\n", mvid, nvid);
 
-	msm_dp_write_link(catalog, REG_DP_SOFTWARE_MVID + mvid_reg_off, mvid);
-	msm_dp_write_link(catalog, REG_DP_SOFTWARE_NVID + nvid_reg_off, nvid);
+	if (msm_dp_catalog->stream_id == DP_STREAM_3) {
+		msm_dp_write_mst3_link(catalog, REG_MST2_MST3_SOFTWARE_MVID, mvid);
+		msm_dp_write_mst3_link(catalog, REG_MST2_MST3_SOFTWARE_NVID, nvid);
+	} else if (msm_dp_catalog->stream_id == DP_STREAM_2) {
+		msm_dp_write_mst2_link(catalog, REG_MST2_MST3_SOFTWARE_MVID, mvid);
+		msm_dp_write_mst2_link(catalog, REG_MST2_MST3_SOFTWARE_NVID, nvid);
+	} else {
+		msm_dp_write_link(catalog, REG_DP_SOFTWARE_MVID + mvid_reg_off, mvid);
+		msm_dp_write_link(catalog, REG_DP_SOFTWARE_NVID + nvid_reg_off, nvid);
+	}
 
 	if (msm_dp_catalog->stream_id == DP_STREAM_0)
 		msm_dp_write_p0(catalog, MMSS_DP_DSC_DTO, 0x0);
-	else
+	else if (msm_dp_catalog->stream_id == DP_STREAM_1)
 		msm_dp_write_p1(catalog, MMSS_DP_DSC_DTO, 0x0);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_2)
+		msm_dp_write_p2(catalog, MMSS_DP_DSC_DTO, 0x0);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_3)
+		msm_dp_write_p3(catalog, MMSS_DP_DSC_DTO, 0x0);
 }
 
 int msm_dp_catalog_ctrl_set_pattern_state_bit(struct msm_dp_catalog *msm_dp_catalog,
@@ -976,21 +1099,42 @@ int msm_dp_catalog_panel_timing_cfg(struct msm_dp_catalog *msm_dp_catalog, u32 t
 {
 	struct msm_dp_catalog_private *catalog = container_of(msm_dp_catalog,
 				struct msm_dp_catalog_private, msm_dp_catalog);
-	u32 reg;
+	u32 reg = 0;
 	u32 offset = 0;
 
 	if (msm_dp_catalog->stream_id == DP_STREAM_1)
 		offset = REG_DP1_TOTAL_HOR_VER - REG_DP_TOTAL_HOR_VER;
 
-	msm_dp_write_link(catalog, REG_DP_TOTAL_HOR_VER + offset, total);
-	msm_dp_write_link(catalog, REG_DP_START_HOR_VER_FROM_SYNC + offset, sync_start);
-	msm_dp_write_link(catalog, REG_DP_HSYNC_VSYNC_WIDTH_POLARITY + offset, width_blanking);
-	msm_dp_write_link(catalog, REG_DP_ACTIVE_HOR_VER + offset, msm_dp_active);
+	if (msm_dp_catalog->stream_id == DP_STREAM_3) {
+		msm_dp_write_mst3_link(catalog, REG_DP_MST2_MST3_TOTAL_HOR_VER, total);
+		msm_dp_write_mst3_link(catalog, REG_DP_MST2_MST3_START_HOR_VER_FROM_SYNC,
+				       sync_start);
+		msm_dp_write_mst3_link(catalog, REG_DP_MST2_MST3_HSYNC_VSYNC_WIDTH_POLARITY,
+				       width_blanking);
+		msm_dp_write_mst3_link(catalog, REG_DP_MST2_MST3_ACTIVE_HOR_VER, msm_dp_active);
+	} else if (msm_dp_catalog->stream_id == DP_STREAM_2) {
+		msm_dp_write_mst2_link(catalog, REG_DP_MST2_MST3_TOTAL_HOR_VER, total);
+		msm_dp_write_mst2_link(catalog, REG_DP_MST2_MST3_START_HOR_VER_FROM_SYNC,
+				       sync_start);
+		msm_dp_write_mst2_link(catalog, REG_DP_MST2_MST3_HSYNC_VSYNC_WIDTH_POLARITY,
+				       width_blanking);
+		msm_dp_write_mst2_link(catalog, REG_DP_MST2_MST3_ACTIVE_HOR_VER, msm_dp_active);
+	} else {
+		msm_dp_write_link(catalog, REG_DP_TOTAL_HOR_VER + offset, total);
+		msm_dp_write_link(catalog, REG_DP_START_HOR_VER_FROM_SYNC + offset, sync_start);
+		msm_dp_write_link(catalog, REG_DP_HSYNC_VSYNC_WIDTH_POLARITY + offset,
+				  width_blanking);
+		msm_dp_write_link(catalog, REG_DP_ACTIVE_HOR_VER + offset, msm_dp_active);
+	}
 
 	if (msm_dp_catalog->stream_id == DP_STREAM_0)
 		reg = msm_dp_read_p0(catalog, MMSS_DP_INTF_CONFIG);
-	else
+	else if (msm_dp_catalog->stream_id == DP_STREAM_1)
 		reg = msm_dp_read_p1(catalog, MMSS_DP_INTF_CONFIG);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_2)
+		reg = msm_dp_read_p2(catalog, MMSS_DP_INTF_CONFIG);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_3)
+		reg = msm_dp_read_p3(catalog, MMSS_DP_INTF_CONFIG);
 
 	if (msm_dp_catalog->wide_bus_en)
 		reg |= DP_INTF_CONFIG_DATABUS_WIDEN;
@@ -1002,8 +1146,12 @@ int msm_dp_catalog_panel_timing_cfg(struct msm_dp_catalog *msm_dp_catalog, u32 t
 
 	if (msm_dp_catalog->stream_id == DP_STREAM_0)
 		msm_dp_write_p0(catalog, MMSS_DP_INTF_CONFIG, reg);
-	else
+	else if (msm_dp_catalog->stream_id == DP_STREAM_1)
 		msm_dp_write_p1(catalog, MMSS_DP_INTF_CONFIG, reg);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_2)
+		msm_dp_write_p2(catalog, MMSS_DP_INTF_CONFIG, reg);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_3)
+		msm_dp_write_p3(catalog, MMSS_DP_INTF_CONFIG, reg);
 
 	return 0;
 }
@@ -1014,20 +1162,28 @@ int msm_dp_catalog_mst_async_fifo(struct msm_dp_catalog *msm_dp_catalog)
 							      struct msm_dp_catalog_private,
 							      msm_dp_catalog);
 
-	u32 reg;
+	u32 reg = 0;
 
 	if (msm_dp_catalog->stream_id == DP_STREAM_0)
 		reg = msm_dp_read_p0(catalog, MMSS_DP_ASYNC_FIFO_CONFIG);
-	else
+	else if (msm_dp_catalog->stream_id == DP_STREAM_1)
 		reg = msm_dp_read_p1(catalog, MMSS_DP_ASYNC_FIFO_CONFIG);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_2)
+		reg = msm_dp_read_p2(catalog, MMSS_DP_ASYNC_FIFO_CONFIG);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_3)
+		reg = msm_dp_read_p3(catalog, MMSS_DP_ASYNC_FIFO_CONFIG);
 
 	/* enable MST_FIFO_CONSTANT_FILL */
 	reg |= BIT(0);
 
 	if (msm_dp_catalog->stream_id == DP_STREAM_0)
 		msm_dp_write_p0(catalog, MMSS_DP_ASYNC_FIFO_CONFIG, reg);
-	else
+	else if (msm_dp_catalog->stream_id == DP_STREAM_1)
 		msm_dp_write_p1(catalog, MMSS_DP_ASYNC_FIFO_CONFIG, reg);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_2)
+		msm_dp_write_p2(catalog, MMSS_DP_ASYNC_FIFO_CONFIG, reg);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_3)
+		msm_dp_write_p3(catalog, MMSS_DP_ASYNC_FIFO_CONFIG, reg);
 
 	return 0;
 }
@@ -1047,13 +1203,28 @@ static void msm_dp_catalog_panel_send_vsc_sdp(struct msm_dp_catalog *msm_dp_cata
 
 	msm_dp_utils_pack_sdp_header(&vsc_sdp->sdp_header, header);
 
-	msm_dp_write_link(catalog, MMSS_DP_GENERIC0_0 + msm_dp_generic_offset, header[0]);
-	msm_dp_write_link(catalog, MMSS_DP_GENERIC0_1 + msm_dp_generic_offset, header[1]);
+	if (msm_dp_catalog->stream_id == DP_STREAM_3) {
+		msm_dp_write_mst3_link(catalog, MMSS_DP_MST2_MST3_GENERIC0_0, header[0]);
+		msm_dp_write_mst3_link(catalog, MMSS_DP_MST2_MST3_GENERIC0_1, header[1]);
+	} else if (msm_dp_catalog->stream_id == DP_STREAM_2) {
+		msm_dp_write_mst2_link(catalog, MMSS_DP_MST2_MST3_GENERIC0_0, header[0]);
+		msm_dp_write_mst2_link(catalog, MMSS_DP_MST2_MST3_GENERIC0_1, header[1]);
+	} else {
+		msm_dp_write_link(catalog, MMSS_DP_GENERIC0_0 + msm_dp_generic_offset, header[0]);
+		msm_dp_write_link(catalog, MMSS_DP_GENERIC0_1 + msm_dp_generic_offset, header[1]);
+	}
 
 	for (i = 0; i < sizeof(vsc_sdp->db); i += 4) {
 		val = ((vsc_sdp->db[i]) | (vsc_sdp->db[i + 1] << 8) | (vsc_sdp->db[i + 2] << 16) |
 		       (vsc_sdp->db[i + 3] << 24));
-		msm_dp_write_link(catalog, MMSS_DP_GENERIC0_2 + i + msm_dp_generic_offset, val);
+
+		if (msm_dp_catalog->stream_id == DP_STREAM_3)
+			msm_dp_write_mst3_link(catalog, MMSS_DP_MST2_MST3_GENERIC0_2 + i, val);
+		else if (msm_dp_catalog->stream_id == DP_STREAM_2)
+			msm_dp_write_mst2_link(catalog, MMSS_DP_MST2_MST3_GENERIC0_2 + i, val);
+		else
+			msm_dp_write_link(catalog, MMSS_DP_GENERIC0_2 + i + msm_dp_generic_offset,
+					  val);
 	}
 }
 
@@ -1070,8 +1241,16 @@ static void msm_dp_catalog_panel_update_sdp(struct msm_dp_catalog *msm_dp_catalo
 
 	hw_revision = msm_dp_catalog_hw_revision(msm_dp_catalog);
 	if (hw_revision < DP_HW_VERSION_1_2 && hw_revision >= DP_HW_VERSION_1_0) {
-		msm_dp_write_link(catalog, MMSS_DP_SDP_CFG3 + sdp_cfg3_offset, 0x01);
-		msm_dp_write_link(catalog, MMSS_DP_SDP_CFG3 + sdp_cfg3_offset, 0x00);
+		if (msm_dp_catalog->stream_id == DP_STREAM_3) {
+			msm_dp_write_mst3_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG3, 0x01);
+			msm_dp_write_mst3_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG3, 0x00);
+		} else if (msm_dp_catalog->stream_id == DP_STREAM_2) {
+			msm_dp_write_mst2_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG3, 0x01);
+			msm_dp_write_mst2_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG3, 0x00);
+		} else {
+			msm_dp_write_link(catalog, MMSS_DP_SDP_CFG3 + sdp_cfg3_offset, 0x01);
+			msm_dp_write_link(catalog, MMSS_DP_SDP_CFG3 + sdp_cfg3_offset, 0x00);
+		}
 	}
 }
 
@@ -1091,15 +1270,35 @@ void msm_dp_catalog_panel_enable_vsc_sdp(struct msm_dp_catalog *msm_dp_catalog, 
 		sdp_cfg2_offset = MMSS_DP1_SDP_CFG2 - MMSS_DP_SDP_CFG2;
 	}
 
-	cfg = msm_dp_read_link(catalog, MMSS_DP_SDP_CFG + sdp_cfg_offset);
-	cfg2 = msm_dp_read_link(catalog, MMSS_DP_SDP_CFG2 + sdp_cfg2_offset);
-	misc = msm_dp_read_link(catalog, REG_DP_MISC1_MISC0 + misc_reg_offset);
+	if (msm_dp_catalog->stream_id == DP_STREAM_3) {
+		cfg = msm_dp_read_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG);
+		cfg2 = msm_dp_read_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG2);
+		misc = msm_dp_read_link(catalog, REG_DP_MST2_MST3_MISC1_MISC0);
+	} else if (msm_dp_catalog->stream_id == DP_STREAM_2) {
+		cfg = msm_dp_read_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG);
+		cfg2 = msm_dp_read_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG2);
+		misc = msm_dp_read_link(catalog, REG_DP_MST2_MST3_MISC1_MISC0);
+	} else {
+		cfg = msm_dp_read_link(catalog, MMSS_DP_SDP_CFG + sdp_cfg_offset);
+		cfg2 = msm_dp_read_link(catalog, MMSS_DP_SDP_CFG2 + sdp_cfg2_offset);
+		misc = msm_dp_read_link(catalog, REG_DP_MISC1_MISC0 + misc_reg_offset);
+	}
 
 	cfg |= GEN0_SDP_EN;
-	msm_dp_write_link(catalog, MMSS_DP_SDP_CFG + sdp_cfg_offset, cfg);
+	if (msm_dp_catalog->stream_id == DP_STREAM_3)
+		msm_dp_write_mst3_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG, cfg);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_2)
+		msm_dp_write_mst2_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG, cfg);
+	else
+		msm_dp_write_link(catalog, MMSS_DP_SDP_CFG + sdp_cfg_offset, cfg);
 
 	cfg2 |= GENERIC0_SDPSIZE_VALID;
-	msm_dp_write_link(catalog, MMSS_DP_SDP_CFG2 + sdp_cfg2_offset, cfg2);
+	if (msm_dp_catalog->stream_id == DP_STREAM_3)
+		msm_dp_write_mst3_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG2, cfg);
+	else if (msm_dp_catalog->stream_id == DP_STREAM_2)
+		msm_dp_write_mst2_link(catalog, MMSS_DP_MST2_MST3_SDP_CFG2, cfg);
+	else
+		msm_dp_write_link(catalog, MMSS_DP_SDP_CFG2 + sdp_cfg2_offset, cfg2);
 
 	msm_dp_catalog_panel_send_vsc_sdp(msm_dp_catalog, vsc_sdp);
 
@@ -1208,11 +1407,19 @@ void msm_dp_catalog_mst_channel_alloc(struct msm_dp_catalog *msm_dp_catalog,
 		}
 	}
 
-	drm_dbg_dp(catalog->drm_dev, "ch:%d slot_reg_1:%d, slot_reg_2:%d\n", ch,
+	drm_dbg_dp(catalog->drm_dev, "ch:%d slot_reg_1:0x%04X, slot_reg_2:0x%04X\n", ch,
 		   slot_reg_1, slot_reg_2);
 
-	msm_dp_write_link(catalog, REG_DP_DP0_TIMESLOT_1_32 + reg_off, slot_reg_1);
-	msm_dp_write_link(catalog, REG_DP_DP0_TIMESLOT_33_63 + reg_off, slot_reg_2);
+	if (ch == DP_STREAM_3) {
+		msm_dp_write_mst3_link(catalog, REG_DP_DP2_DP3_TIMESLOT_1_32, slot_reg_1);
+		msm_dp_write_mst3_link(catalog, REG_DP_DP2_DP3_TIMESLOT_33_63, slot_reg_2);
+	} else if (ch == DP_STREAM_2) {
+		msm_dp_write_mst2_link(catalog, REG_DP_DP2_DP3_TIMESLOT_1_32, slot_reg_1);
+		msm_dp_write_mst2_link(catalog, REG_DP_DP2_DP3_TIMESLOT_33_63, slot_reg_2);
+	} else {
+		msm_dp_write_link(catalog, REG_DP_DP0_TIMESLOT_1_32 + reg_off, slot_reg_1);
+		msm_dp_write_link(catalog, REG_DP_DP0_TIMESLOT_33_63 + reg_off, slot_reg_2);
+	}
 }
 
 void msm_dp_catalog_ctrl_update_rg(struct msm_dp_catalog *msm_dp_catalog, u32 stream,
@@ -1238,7 +1445,12 @@ void msm_dp_catalog_ctrl_update_rg(struct msm_dp_catalog *msm_dp_catalog, u32 st
 	if (stream == DP_STREAM_1)
 		reg_off = REG_DP_DP1_RG - REG_DP_DP0_RG;
 
-	msm_dp_write_link(catalog, REG_DP_DP0_RG + reg_off, rg);
+	if (stream == DP_STREAM_3)
+		msm_dp_write_mst3_link(catalog, REG_DP_MST2_MST3_DP_RG, rg);
+	else if (stream == DP_STREAM_2)
+		msm_dp_write_mst2_link(catalog, REG_DP_MST2_MST3_DP_RG, rg);
+	else
+		msm_dp_write_link(catalog, REG_DP_DP0_RG + reg_off, rg);
 }
 
 void msm_dp_catalog_panel_tpg_enable(struct msm_dp_catalog *msm_dp_catalog,
@@ -1380,10 +1592,25 @@ static int msm_dp_catalog_get_io(struct msm_dp_catalog_private *catalog)
 		}
 
 		dss->p1.base = msm_dp_ioremap(pdev, 4, &dss->p1.len);
-		if (IS_ERR(dss->p1.base)) {
-			DRM_ERROR("unable to remap p1 region: %pe\n", dss->p1.base);
-			return PTR_ERR(dss->p1.base);
-		}
+		if (IS_ERR(dss->p1.base))
+			DRM_DEBUG("unable to remap p1 region: %pe\n", dss->p1.base);
+
+		dss->p2.base = msm_dp_ioremap(pdev, 5, &dss->p2.len);
+		if (IS_ERR(dss->p2.base))
+			DRM_DEBUG("unable to remap p2 region: %pe\n", dss->p2.base);
+
+		dss->p3.base = msm_dp_ioremap(pdev, 6, &dss->p3.len);
+		if (IS_ERR(dss->p3.base))
+			DRM_DEBUG("unable to remap p3 region: %pe\n", dss->p3.base);
+
+		dss->mst2_link.base = msm_dp_ioremap(pdev, 7, &dss->mst2_link.len);
+		if (IS_ERR(dss->mst2_link.base))
+			DRM_DEBUG("unable to remap mst2_link region: %pe\n", dss->mst2_link.base);
+
+		dss->mst3_link.base = msm_dp_ioremap(pdev, 8, &dss->mst3_link.len);
+		if (IS_ERR(dss->mst3_link.base))
+			DRM_DEBUG("unable to remap mst3_link region: %pe\n", dss->mst3_link.base);
+
 	}
 
 	return 0;

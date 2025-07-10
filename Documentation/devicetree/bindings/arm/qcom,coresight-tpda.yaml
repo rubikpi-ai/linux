@@ -61,8 +61,7 @@ properties:
       device is for.
 
   reg:
-    minItems: 1
-    maxItems: 2
+    maxItems: 1
 
   clocks:
     maxItems: 1
