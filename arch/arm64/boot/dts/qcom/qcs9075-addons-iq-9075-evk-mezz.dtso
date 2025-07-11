@@ -266,6 +266,7 @@
 };
 
 &usb_1 {
+	dr_mode = "host";
 	vbus_dwc3-supply = <&vbus_supply_regulator_1>;
 
 	ports {
