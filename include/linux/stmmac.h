@@ -344,5 +344,7 @@ struct plat_stmmacenet_data {
 	const struct dwmac4_addrs *dwmac4_addrs;
 	const struct dwxgmac_addrs *dwxgmac_addrs;
 	unsigned int flags;
+	u32 eeprom_reg;
+	u32 i2c_id;
 };
 #endif
