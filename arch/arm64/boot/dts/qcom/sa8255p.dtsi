@@ -1844,6 +1844,7 @@
 			bus-range = <0x00 0xff>;
 
 			dma-coherent;
+			safety-supported;
 
 			linux,pci-domain = <1>;
 
