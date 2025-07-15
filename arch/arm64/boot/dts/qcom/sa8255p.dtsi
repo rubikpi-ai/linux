@@ -1134,6 +1134,16 @@
 			qcom,ice-skip-clk;
 		};
 
+		ufs_mem_hc2: ufs2@1da4000 {
+			compatible = "qcom,sa8255p-ufshc", "qcom,ufshc", "jedec,ufs-2.0";
+			reg = <0x0 0x1da4000 0x0 0x3000>;
+			interrupts = <GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
+			lanes-per-direction = <2>;
+			iommus = <&apps_smmu 0x420 0x0>;
+			dma-coherent;
+			status = "disabled";
+		};
+
 		usb_0_hsphy: phy@88e4000 {
 			compatible = "qcom,sa8255p-usb-hs-phy",
 				     "qcom,usb-snps-hs-5nm-phy";
