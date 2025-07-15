@@ -2,7 +2,7 @@
 /*
  * qcm6490-addons-rb3gen2 device tree source include
  *
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  *
  */
 #include "qcm6490-addons.dtsi"
@@ -253,6 +253,8 @@
 };
 
 &sound {
+	compatible = "qcom,qcs6490-rb3gen2-sndcard";
+	model = "qcs6490-rb3gen2-snd-card";
 
 	pinctrl-names = "default", "stub_aif1_active", "stub_aif1_sleep";
 	pinctrl-0 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk_sleep>,
