@@ -25,6 +25,7 @@
 	aliases {
 		ethernet0 = &ethernet0;
 		serial0 = &uart7;
+		serial1 = &uart2;
 	};
 
 	chosen {
@@ -652,6 +653,18 @@
 		pins = "gpio11";
 		function = "gpio";
 		bias-pull-up;
+	};
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	status = "okay";
+
+	/* HS UART Instance */
+	bluetooth: bluetooth {
+		compatible = "qcom,wcn6855-bt";
+		pinctrl-names = "default";
+		max-speed = <3200000>;
 	};
 };
 
