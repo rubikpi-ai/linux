@@ -22,6 +22,7 @@
 	aliases {
 		serial0 = &uart7;
 		serial1 = &uart2;
+		spi10 = &spi10;
 	};
 
 	chosen {
