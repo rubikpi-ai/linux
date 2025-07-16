@@ -1,0 +1,48 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ */
+#include <dt-bindings/thermal/thermal.h>
+
+&soc {
+	msm_gpu: qcom,kgsl-3d0@3d00000 {
+		#cooling-cells = <2>;
+	};
+};
+
+&thermal_zones {
+	gpuss-0-thermal {
+		trips {
+			gpuss_0_passive: trip-point1 {
+				temperature = <115000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&gpuss_0_passive>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+
+	gpuss-1-thermal {
+		trips {
+			gpuss_1_passive: trip-point1 {
+				temperature = <115000>;
+				hysteresis = <5000>;
+				type = "passive";
+			};
+		};
+
+		cooling-maps {
+			map0 {
+				trip = <&gpuss_1_passive>;
+				cooling-device = <&msm_gpu THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+			};
+		};
+	};
+};
+
