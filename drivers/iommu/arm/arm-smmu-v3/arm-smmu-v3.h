@@ -13,6 +13,8 @@
 #include <linux/kernel.h>
 #include <linux/mmzone.h>
 #include <linux/sizes.h>
+#include <linux/virtio-iommu.h>
+#include <linux/platform_device.h>
 
 struct arm_smmu_device;
 
@@ -662,6 +664,7 @@ struct arm_smmu_device {
 #define ARM_SMMU_OPT_PAGE0_REGS_ONLY	(1 << 1)
 #define ARM_SMMU_OPT_MSIPOLL		(1 << 2)
 #define ARM_SMMU_OPT_CMDQ_FORCE_SYNC	(1 << 3)
+#define ARM_SMMU_OPT_VIRTIO		(1 << 4)
 	u32				options;
 
 	struct arm_smmu_cmdq		cmdq;
@@ -765,6 +768,10 @@ bool arm_smmu_free_asid(struct arm_smmu_ctx_desc *cd);
 int arm_smmu_atc_inv_domain(struct arm_smmu_domain *smmu_domain, int ssid,
 			    unsigned long iova, size_t size);
 
+
+int arm_smmu_device_dt_probe(struct platform_device *pdev,
+			     struct arm_smmu_device *smmu);
+
 #ifdef CONFIG_ARM_SMMU_V3_SVA
 bool arm_smmu_sva_supported(struct arm_smmu_device *smmu);
 bool arm_smmu_master_sva_supported(struct arm_smmu_master *master);
@@ -820,4 +827,13 @@ static inline void arm_smmu_sva_remove_dev_pasid(struct iommu_domain *domain,
 {
 }
 #endif /* CONFIG_ARM_SMMU_V3_SVA */
+
+#ifdef CONFIG_ARM_SMMU_V3_QCOM_VIRTIO
+int arm_smmu_qcom_virtio_init(void);
+void arm_smmu_qcom_virtio_exit(void);
+#else /* CONFIG_ARM_SMMU_V3_QCOM_VIRTIO */
+static inline int arm_smmu_qcom_virtio_init(void) {return 0; }
+static inline void arm_smmu_qcom_virtio_exit(void) {}
+#endif /* CONFIG_ARM_SMMU_V3_QCOM_VIRTIO */
+
 #endif /* _ARM_SMMU_V3_H */
