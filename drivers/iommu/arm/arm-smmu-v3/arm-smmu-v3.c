@@ -2562,8 +2562,21 @@ struct arm_smmu_device *arm_smmu_get_by_fwnode(struct fwnode_handle *fwnode)
 {
 	struct device *dev = driver_find_device_by_fwnode(&arm_smmu_driver.driver,
 							  fwnode);
+	if (dev) {
+		put_device(dev);
+		return dev_get_drvdata(dev);
+	}
+
+#ifdef CONFIG_ARM_SMMU_V3_QCOM_VIRTIO
+	dev = driver_find_device_by_fwnode(&arm_vsmmu_driver.driver, fwnode);
+#endif
+	if (!dev) {
+		pr_err("%s: Couldn't find device\n", __func__);
+		return NULL;
+	}
+
 	put_device(dev);
-	return dev ? dev_get_drvdata(dev) : NULL;
+	return dev_get_drvdata(dev);
 }
 
 static bool arm_smmu_sid_in_range(struct arm_smmu_device *smmu, u32 sid)

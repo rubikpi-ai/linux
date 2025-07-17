@@ -179,7 +179,7 @@ static void arm_vsmmu_device_remove(struct platform_device *pdev)
 	ida_destroy(&smmu->vmid_map);
 }
 
-static struct platform_driver arm_vsmmu_driver = {
+struct platform_driver arm_vsmmu_driver = {
 	.driver	= {
 		.name			= ARM_VSMMU_DRIVER_NAME,
 		.suppress_bind_attrs	= true,
