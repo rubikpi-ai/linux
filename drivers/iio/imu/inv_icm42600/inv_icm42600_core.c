@@ -18,6 +18,8 @@
 
 #include <linux/iio/iio.h>
 #include <linux/iio/common/inv_sensors_timestamp.h>
+#include <linux/iio/buffer.h>
+#include <linux/iio/trigger_consumer.h>
 
 #include "inv_icm42600.h"
 #include "inv_icm42600_buffer.h"
@@ -78,6 +80,22 @@ static const struct inv_icm42600_conf inv_icm42600_default_conf = {
 	.temp_en = false,
 };
 
+static const struct inv_icm42600_conf inv_icm42670_default_conf = {
+	.gyro = {
+		.mode = INV_ICM42600_SENSOR_MODE_LOW_NOISE,
+		.fs = INV_ICM42600_GYRO_FS_2000DPS,
+		.odr = INV_ICM42670_ODR_200HZ,
+		.filter = INV_ICM42600_FILTER_BW_ODR_DIV_2,
+	},
+	.accel = {
+		.mode = INV_ICM42600_SENSOR_MODE_LOW_NOISE,
+		.fs = INV_ICM42600_ACCEL_FS_16G,
+		.odr = INV_ICM42670_ODR_200HZ,
+		.filter = INV_ICM42600_FILTER_BW_ODR_DIV_2,
+	},
+	.temp_en = false,
+};
+
 static const struct inv_icm42600_hw inv_icm42600_hw[INV_CHIP_NB] = {
 	[INV_CHIP_ICM42600] = {
 		.whoami = INV_ICM42600_WHOAMI_ICM42600,
@@ -103,6 +121,11 @@ static const struct inv_icm42600_hw inv_icm42600_hw[INV_CHIP_NB] = {
 		.whoami = INV_ICM42600_WHOAMI_ICM42631,
 		.name = "icm42631",
 		.conf = &inv_icm42600_default_conf,
+	},
+	[INV_CHIP_ICM42670] = {
+		.whoami = INV_ICM42600_WHOAMI_ICM42670,
+		.name = "icm42670",
+		.conf = &inv_icm42670_default_conf,
 	},
 };
 
@@ -162,19 +185,15 @@ static int inv_icm42600_set_pwr_mgmt0(struct inv_icm42600_state *st,
 	unsigned int sleepval;
 	unsigned int val;
 	int ret;
-
 	/* if nothing changed, exit */
 	if (gyro == oldgyro && accel == oldaccel && temp == oldtemp)
 		return 0;
 
 	val = INV_ICM42600_PWR_MGMT0_GYRO(gyro) |
 	      INV_ICM42600_PWR_MGMT0_ACCEL(accel);
-	if (!temp)
-		val |= INV_ICM42600_PWR_MGMT0_TEMP_DIS;
-	ret = regmap_write(st->map, INV_ICM42600_REG_PWR_MGMT0, val);
+	ret = regmap_write(st->map, INV_ICM42670_REG_PWR_MGMT0, val);
 	if (ret)
 		return ret;
-
 	st->conf.gyro.mode = gyro;
 	st->conf.accel.mode = accel;
 	st->conf.temp_en = temp;
@@ -341,30 +360,21 @@ static int inv_icm42600_set_conf(struct inv_icm42600_state *st,
 	/* set PWR_MGMT0 register (gyro & accel sensor mode, temp enabled) */
 	val = INV_ICM42600_PWR_MGMT0_GYRO(conf->gyro.mode) |
 	      INV_ICM42600_PWR_MGMT0_ACCEL(conf->accel.mode);
-	if (!conf->temp_en)
-		val |= INV_ICM42600_PWR_MGMT0_TEMP_DIS;
-	ret = regmap_write(st->map, INV_ICM42600_REG_PWR_MGMT0, val);
+	ret = regmap_write(st->map, INV_ICM42670_REG_PWR_MGMT0, val);
 	if (ret)
 		return ret;
 
 	/* set GYRO_CONFIG0 register (gyro fullscale & odr) */
-	val = INV_ICM42600_GYRO_CONFIG0_FS(conf->gyro.fs) |
-	      INV_ICM42600_GYRO_CONFIG0_ODR(conf->gyro.odr);
-	ret = regmap_write(st->map, INV_ICM42600_REG_GYRO_CONFIG0, val);
+	val = INV_ICM42670_GYRO_CONFIG0_FS(conf->gyro.fs) |
+	      INV_ICM42670_GYRO_CONFIG0_ODR(conf->gyro.odr);
+	ret = regmap_write(st->map, INV_ICM42670_REG_GYRO_CONFIG0, val);
 	if (ret)
 		return ret;
 
 	/* set ACCEL_CONFIG0 register (accel fullscale & odr) */
-	val = INV_ICM42600_ACCEL_CONFIG0_FS(conf->accel.fs) |
-	      INV_ICM42600_ACCEL_CONFIG0_ODR(conf->accel.odr);
-	ret = regmap_write(st->map, INV_ICM42600_REG_ACCEL_CONFIG0, val);
-	if (ret)
-		return ret;
-
-	/* set GYRO_ACCEL_CONFIG0 register (gyro & accel filters) */
-	val = INV_ICM42600_GYRO_ACCEL_CONFIG0_ACCEL_FILT(conf->accel.filter) |
-	      INV_ICM42600_GYRO_ACCEL_CONFIG0_GYRO_FILT(conf->gyro.filter);
-	ret = regmap_write(st->map, INV_ICM42600_REG_GYRO_ACCEL_CONFIG0, val);
+	val = INV_ICM42670_ACCEL_CONFIG0_FS(conf->accel.fs) |
+	      INV_ICM42670_ACCEL_CONFIG0_ODR(conf->accel.odr);
+	ret = regmap_write(st->map, INV_ICM42670_REG_ACCEL_CONFIG0, val);
 	if (ret)
 		return ret;
 
@@ -401,29 +411,30 @@ static int inv_icm42600_setup(struct inv_icm42600_state *st,
 	st->name = hw->name;
 
 	/* reset to make sure previous state are not there */
-	ret = regmap_write(st->map, INV_ICM42600_REG_DEVICE_CONFIG,
-			   INV_ICM42600_DEVICE_CONFIG_SOFT_RESET);
+	ret = regmap_write(st->map, INV_ICM42670_REG_SIGNAL_PATH_RESET,
+			   INV_ICM42670_SIGNAL_PATH_RESET_SOFT_RESET_DEVICE_CONFIG);
 	if (ret)
 		return ret;
 	msleep(INV_ICM42600_RESET_TIME_MS);
 
-	ret = regmap_read(st->map, INV_ICM42600_REG_INT_STATUS, &val);
+	ret = regmap_read(st->map, INV_ICM42670_REG_INT_STATUS, &val);
 	if (ret)
 		return ret;
 	if (!(val & INV_ICM42600_INT_STATUS_RESET_DONE)) {
 		dev_err(dev, "reset error, reset done bit not set\n");
 		return -ENODEV;
 	}
+	/* it seems that next function configures I3C setting inside, which is not used.
+	 * see inv_icm42600_spi_bus_setup in inv_icm42600_spi.c
+	 */
+	// ret = bus_setup(st);
+	// if (ret)
+	// 	return ret;
 
-	/* set chip bus configuration */
-	ret = bus_setup(st);
-	if (ret)
-		return ret;
-
-	/* sensor data in big-endian (default) */
-	ret = regmap_update_bits(st->map, INV_ICM42600_REG_INTF_CONFIG0,
+	/* sensor data in little-endian */
+	ret = regmap_update_bits(st->map, INV_ICM42670_REG_INTF_CONFIG0,
 				 INV_ICM42600_INTF_CONFIG0_SENSOR_DATA_ENDIAN,
-				 INV_ICM42600_INTF_CONFIG0_SENSOR_DATA_ENDIAN);
+				 0x00);
 	if (ret)
 		return ret;
 
@@ -434,8 +445,8 @@ static irqreturn_t inv_icm42600_irq_timestamp(int irq, void *_data)
 {
 	struct inv_icm42600_state *st = _data;
 
-	st->timestamp.gyro = iio_get_time_ns(st->indio_gyro);
-	st->timestamp.accel = iio_get_time_ns(st->indio_accel);
+	st->timestamp.gyro = iio_get_time_ns(st->indio_dev);
+	st->timestamp.accel = iio_get_time_ns(st->indio_dev);
 
 	return IRQ_WAKE_THREAD;
 }
@@ -446,27 +457,49 @@ static irqreturn_t inv_icm42600_irq_handler(int irq, void *_data)
 	struct device *dev = regmap_get_device(st->map);
 	unsigned int status;
 	int ret;
+	u8 data[12];
+	int16_t accel_data[3], gyro_data[3];
+	struct iio_dev *indio_dev = st->indio_dev;
+	uint64_t timestamp = st->timestamp.accel;
 
 	mutex_lock(&st->lock);
 
-	ret = regmap_read(st->map, INV_ICM42600_REG_INT_STATUS, &status);
+	ret = regmap_read(st->map, INV_ICM42670_REG_INT_STATUS_DRDY, &status);
 	if (ret)
 		goto out_unlock;
 
-	/* FIFO full */
-	if (status & INV_ICM42600_INT_STATUS_FIFO_FULL)
-		dev_warn(dev, "FIFO full data lost!\n");
-
-	/* FIFO threshold reached */
-	if (status & INV_ICM42600_INT_STATUS_FIFO_THS) {
-		ret = inv_icm42600_buffer_fifo_read(st, 0);
+	/* DATA ready interrupt */
+	if (status) {
+		ret = regmap_bulk_read(st->map, INV_ICM42670_REG_ACCEL_DATA_X, data, sizeof(data));
 		if (ret) {
-			dev_err(dev, "FIFO read error %d\n", ret);
+			dev_err(dev, "Register read error %d\n", ret);
 			goto out_unlock;
 		}
-		ret = inv_icm42600_buffer_fifo_parse(st);
-		if (ret)
-			dev_err(dev, "FIFO parsing error %d\n", ret);
+
+		accel_data[0] = ((int16_t)data[0]) | (((int16_t)data[1]) << 8);
+		accel_data[1] = ((int16_t)data[2]) | (((int16_t)data[3]) << 8);
+		accel_data[2] = ((int16_t)data[4]) | (((int16_t)data[5]) << 8);
+
+		gyro_data[0] = ((int16_t)data[6]) | (((int16_t)data[7]) << 8);
+		gyro_data[1] = ((int16_t)data[8]) | (((int16_t)data[9]) << 8);
+		gyro_data[2] = ((int16_t)data[10]) | (((int16_t)data[11]) << 8);
+
+		if (indio_dev && iio_buffer_enabled(indio_dev)) {
+			struct {
+				int16_t channels[6];
+				int64_t ts __aligned(8);
+			} scan;
+
+			scan.channels[0] = accel_data[0];
+			scan.channels[1] = accel_data[1];
+			scan.channels[2] = accel_data[2];
+			scan.channels[3] = gyro_data[0];
+			scan.channels[4] = gyro_data[1];
+			scan.channels[5] = gyro_data[2];
+			scan.ts = timestamp;
+
+			iio_push_to_buffers(indio_dev, &scan);
+		}
 	}
 
 out_unlock:
@@ -513,7 +546,7 @@ static int inv_icm42600_irq_init(struct inv_icm42600_state *st, int irq,
 	if (!open_drain)
 		val |= INV_ICM42600_INT_CONFIG_INT1_PUSH_PULL;
 
-	ret = regmap_write(st->map, INV_ICM42600_REG_INT_CONFIG, val);
+	ret = regmap_write(st->map, INV_ICM42670_REG_INT_CONFIG, val);
 	if (ret)
 		return ret;
 
@@ -663,14 +696,11 @@ int inv_icm42600_core_probe(struct regmap *regmap, int chip, int irq,
 	ret = inv_icm42600_buffer_init(st);
 	if (ret)
 		return ret;
-
-	st->indio_gyro = inv_icm42600_gyro_init(st);
-	if (IS_ERR(st->indio_gyro))
-		return PTR_ERR(st->indio_gyro);
-
-	st->indio_accel = inv_icm42600_accel_init(st);
-	if (IS_ERR(st->indio_accel))
-		return PTR_ERR(st->indio_accel);
+	
+	/* Initialize the unified IMU device */
+	st->indio_dev = inv_icm42600_imu_init(st);
+	if (IS_ERR(st->indio_dev))
+		return PTR_ERR(st->indio_dev);
 
 	ret = inv_icm42600_irq_init(st, irq, irq_type, open_drain);
 	if (ret)
