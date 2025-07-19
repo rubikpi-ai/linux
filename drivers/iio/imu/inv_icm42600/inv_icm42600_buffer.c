@@ -288,8 +288,8 @@ static int inv_icm42600_buffer_preenable(struct iio_dev *indio_dev)
 }
 
 /*
- * update_scan_mode callback is turning sensors on and setting data FIFO enable
- * bits.
+ * update_scan_mode callback is turning sensors on and setting data ready interrupt
+ * enable bit.
  */
 static int inv_icm42600_buffer_postenable(struct iio_dev *indio_dev)
 {
@@ -298,38 +298,27 @@ static int inv_icm42600_buffer_postenable(struct iio_dev *indio_dev)
 
 	mutex_lock(&st->lock);
 
-	/* exit if FIFO is already on */
+	/* exit if data streaming is already on */
 	if (st->fifo.on) {
 		ret = 0;
 		goto out_on;
 	}
 
-	/* set FIFO threshold interrupt */
-	ret = regmap_update_bits(st->map, INV_ICM42600_REG_INT_SOURCE0,
-				 INV_ICM42600_INT_SOURCE0_FIFO_THS_INT1_EN,
-				 INV_ICM42600_INT_SOURCE0_FIFO_THS_INT1_EN);
+	/* set DATA_RDY interrupt */
+	ret = regmap_update_bits(st->map, INV_ICM42670_REG_INT_SOURCE0,
+				 INV_ICM42600_INT_SOURCE0_UI_DRDY_INT1_EN,
+				 INV_ICM42600_INT_SOURCE0_UI_DRDY_INT1_EN);
 	if (ret)
 		goto out_unlock;
 
-	/* flush FIFO data */
-	ret = regmap_write(st->map, INV_ICM42600_REG_SIGNAL_PATH_RESET,
-			   INV_ICM42600_SIGNAL_PATH_RESET_FIFO_FLUSH);
-	if (ret)
-		goto out_unlock;
-
-	/* set FIFO in streaming mode */
-	ret = regmap_write(st->map, INV_ICM42600_REG_FIFO_CONFIG,
-			   INV_ICM42600_FIFO_CONFIG_STREAM);
-	if (ret)
-		goto out_unlock;
-
-	/* workaround: first read of FIFO count after reset is always 0 */
-	ret = regmap_bulk_read(st->map, INV_ICM42600_REG_FIFO_COUNT, st->buffer, 2);
+	/* disable FIFO mode, set to bypass mode */
+	ret = regmap_write(st->map, INV_ICM42670_REG_FIFO_CONFIG1,
+			   INV_ICM42670_FIFO_CONFIG1_BYPASS);
 	if (ret)
 		goto out_unlock;
 
 out_on:
-	/* increase FIFO on counter */
+	/* increase data streaming on counter */
 	st->fifo.on++;
 out_unlock:
 	mutex_unlock(&st->lock);
@@ -343,32 +332,20 @@ static int inv_icm42600_buffer_predisable(struct iio_dev *indio_dev)
 
 	mutex_lock(&st->lock);
 
-	/* exit if there are several sensors using the FIFO */
+	/* exit if there are several sensors using the data streaming */
 	if (st->fifo.on > 1) {
 		ret = 0;
 		goto out_off;
 	}
 
-	/* set FIFO in bypass mode */
-	ret = regmap_write(st->map, INV_ICM42600_REG_FIFO_CONFIG,
-			   INV_ICM42600_FIFO_CONFIG_BYPASS);
-	if (ret)
-		goto out_unlock;
-
-	/* flush FIFO data */
-	ret = regmap_write(st->map, INV_ICM42600_REG_SIGNAL_PATH_RESET,
-			   INV_ICM42600_SIGNAL_PATH_RESET_FIFO_FLUSH);
-	if (ret)
-		goto out_unlock;
-
-	/* disable FIFO threshold interrupt */
-	ret = regmap_update_bits(st->map, INV_ICM42600_REG_INT_SOURCE0,
-				 INV_ICM42600_INT_SOURCE0_FIFO_THS_INT1_EN, 0);
+	/* disable DATA_RDY interrupt */
+	ret = regmap_update_bits(st->map, INV_ICM42670_REG_INT_SOURCE0,
+				 INV_ICM42600_INT_SOURCE0_UI_DRDY_INT1_EN, 0);
 	if (ret)
 		goto out_unlock;
 
 out_off:
-	/* decrease FIFO on counter */
+	/* decrease data streaming on counter */
 	st->fifo.on--;
 out_unlock:
 	mutex_unlock(&st->lock);
@@ -387,12 +364,10 @@ static int inv_icm42600_buffer_postdisable(struct iio_dev *indio_dev)
 	unsigned int sleep;
 	int ret;
 
-	if (indio_dev == st->indio_gyro) {
-		sensor = INV_ICM42600_SENSOR_GYRO;
-		watermark = &st->fifo.watermark.gyro;
-	} else if (indio_dev == st->indio_accel) {
-		sensor = INV_ICM42600_SENSOR_ACCEL;
-		watermark = &st->fifo.watermark.accel;
+	if (indio_dev == st->indio_dev) {
+		/* For unified IMU device, handle both accel and gyro */
+		sensor = INV_ICM42600_SENSOR_ACCEL | INV_ICM42600_SENSOR_GYRO;
+		watermark = &st->fifo.watermark.accel; /* Use accel watermark for simplicity */
 	} else {
 		return -EINVAL;
 	}
@@ -409,12 +384,25 @@ static int inv_icm42600_buffer_postdisable(struct iio_dev *indio_dev)
 		goto out_unlock;
 
 	conf.mode = INV_ICM42600_SENSOR_MODE_OFF;
-	if (sensor == INV_ICM42600_SENSOR_GYRO)
-		ret = inv_icm42600_set_gyro_conf(st, &conf, &sleep_sensor);
-	else
+	
+	/* For unified device, turn off both accel and gyro */
+	if (indio_dev == st->indio_dev) {
 		ret = inv_icm42600_set_accel_conf(st, &conf, &sleep_sensor);
-	if (ret)
-		goto out_unlock;
+		if (ret)
+			goto out_unlock;
+		
+		ret = inv_icm42600_set_gyro_conf(st, &conf, &sleep_sensor);
+		if (ret)
+			goto out_unlock;
+	} else if (sensor == INV_ICM42600_SENSOR_GYRO) {
+		ret = inv_icm42600_set_gyro_conf(st, &conf, &sleep_sensor);
+		if (ret)
+			goto out_unlock;
+	} else {
+		ret = inv_icm42600_set_accel_conf(st, &conf, &sleep_sensor);
+		if (ret)
+			goto out_unlock;
+	}
 
 	/* if FIFO is off, turn temperature off */
 	if (!st->fifo.on)
@@ -469,7 +457,7 @@ int inv_icm42600_buffer_fifo_read(struct inv_icm42600_state *st,
 
 	/* read FIFO count value */
 	raw_fifo_count = (__be16 *)st->buffer;
-	ret = regmap_bulk_read(st->map, INV_ICM42600_REG_FIFO_COUNT,
+	ret = regmap_bulk_read(st->map, INV_ICM42670_REG_FIFO_COUNT,
 			       raw_fifo_count, sizeof(*raw_fifo_count));
 	if (ret)
 		return ret;
@@ -480,9 +468,8 @@ int inv_icm42600_buffer_fifo_read(struct inv_icm42600_state *st,
 		return 0;
 	if (st->fifo.count > max_count)
 		st->fifo.count = max_count;
-
 	/* read all FIFO data in internal buffer */
-	ret = regmap_noinc_read(st->map, INV_ICM42600_REG_FIFO_DATA,
+	ret = regmap_noinc_read(st->map, INV_ICM42670_REG_FIFO_DATA,
 				st->fifo.data, st->fifo.count);
 	if (ret)
 		return ret;
@@ -510,27 +497,14 @@ int inv_icm42600_buffer_fifo_parse(struct inv_icm42600_state *st)
 
 	if (st->fifo.nb.total == 0)
 		return 0;
-
-	/* handle gyroscope timestamp and FIFO data parsing */
-	ts = iio_priv(st->indio_gyro);
+	/* Handle unified IMU device */
+	ts = iio_priv(st->indio_dev);
 	inv_sensors_timestamp_interrupt(ts, st->fifo.period, st->fifo.nb.total,
-					st->fifo.nb.gyro, st->timestamp.gyro);
-	if (st->fifo.nb.gyro > 0) {
-		ret = inv_icm42600_gyro_parse_fifo(st->indio_gyro);
-		if (ret)
-			return ret;
+					st->fifo.nb.total, st->timestamp.accel);
+	ret = inv_icm42600_imu_parse_fifo(st->indio_dev);
+	if (ret) {
+		return ret;
 	}
-
-	/* handle accelerometer timestamp and FIFO data parsing */
-	ts = iio_priv(st->indio_accel);
-	inv_sensors_timestamp_interrupt(ts, st->fifo.period, st->fifo.nb.total,
-					st->fifo.nb.accel, st->timestamp.accel);
-	if (st->fifo.nb.accel > 0) {
-		ret = inv_icm42600_accel_parse_fifo(st->indio_accel);
-		if (ret)
-			return ret;
-	}
-
 	return 0;
 }
 
@@ -538,11 +512,12 @@ int inv_icm42600_buffer_hwfifo_flush(struct inv_icm42600_state *st,
 				     unsigned int count)
 {
 	struct inv_sensors_timestamp *ts;
-	int64_t gyro_ts, accel_ts;
+	int64_t imu_ts = 0;
 	int ret;
 
-	gyro_ts = iio_get_time_ns(st->indio_gyro);
-	accel_ts = iio_get_time_ns(st->indio_accel);
+	/* Get current timestamps for all enabled devices */
+	if (st->indio_dev && iio_buffer_enabled(st->indio_dev))
+		imu_ts = iio_get_time_ns(st->indio_dev);
 
 	ret = inv_icm42600_buffer_fifo_read(st, count);
 	if (ret)
@@ -550,27 +525,15 @@ int inv_icm42600_buffer_hwfifo_flush(struct inv_icm42600_state *st,
 
 	if (st->fifo.nb.total == 0)
 		return 0;
-
-	if (st->fifo.nb.gyro > 0) {
-		ts = iio_priv(st->indio_gyro);
-		inv_sensors_timestamp_interrupt(ts, st->fifo.period,
-						st->fifo.nb.total, st->fifo.nb.gyro,
-						gyro_ts);
-		ret = inv_icm42600_gyro_parse_fifo(st->indio_gyro);
-		if (ret)
-			return ret;
+	/* Handle unified IMU device */
+	ts = iio_priv(st->indio_dev);
+	inv_sensors_timestamp_interrupt(ts, st->fifo.period,
+					st->fifo.nb.total, st->fifo.nb.total,
+					imu_ts);
+	ret = inv_icm42600_imu_parse_fifo(st->indio_dev);
+	if (ret) {
+		return ret;
 	}
-
-	if (st->fifo.nb.accel > 0) {
-		ts = iio_priv(st->indio_accel);
-		inv_sensors_timestamp_interrupt(ts, st->fifo.period,
-						st->fifo.nb.total, st->fifo.nb.accel,
-						accel_ts);
-		ret = inv_icm42600_accel_parse_fifo(st->indio_accel);
-		if (ret)
-			return ret;
-	}
-
 	return 0;
 }
 
@@ -580,23 +543,20 @@ int inv_icm42600_buffer_init(struct inv_icm42600_state *st)
 	int ret;
 
 	/*
-	 * Default FIFO configuration (bits 7 to 5)
-	 * - use invalid value
-	 * - FIFO count in bytes
-	 * - FIFO count in big endian
+	 * Default interface configuration (bits 6 to 4)
+	 * - sensor data in little endian
 	 */
-	val = INV_ICM42600_INTF_CONFIG0_FIFO_COUNT_ENDIAN;
-	ret = regmap_update_bits(st->map, INV_ICM42600_REG_INTF_CONFIG0,
-				 GENMASK(7, 5), val);
+	val = 0; // リトルエンディアン設定
+	ret = regmap_update_bits(st->map, INV_ICM42670_REG_INTF_CONFIG0,
+				 GENMASK(6, 4), val);
 	if (ret)
 		return ret;
 
-	/*
-	 * Enable FIFO partial read and continuous watermark interrupt.
-	 * Disable all FIFO EN bits.
-	 */
-	val = INV_ICM42600_FIFO_CONFIG1_RESUME_PARTIAL_RD |
-	      INV_ICM42600_FIFO_CONFIG1_WM_GT_TH;
-	return regmap_update_bits(st->map, INV_ICM42600_REG_FIFO_CONFIG1,
-				  GENMASK(6, 5) | GENMASK(3, 0), val);
+	/* disable FIFO, set to bypass mode */
+	ret = regmap_write(st->map, INV_ICM42600_REG_FIFO_CONFIG,
+			   INV_ICM42600_FIFO_CONFIG_BYPASS);
+	if (ret)
+		return ret;
+
+	return 0;
 }

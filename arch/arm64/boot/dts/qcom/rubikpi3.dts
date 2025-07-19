@@ -61,10 +61,19 @@
 };
 
 &spi12 {
-	status = "okay";
-	spidev@0 {
-		compatible = "qcom,spidev";
-		spi-max-frequency = <50000000>;
+        status = "okay";
+        icm42670: icm42670@0 {
+	        compatible = "invensense,icm42670";
 		reg = <0>;
-	};
+	        interrupt-parent = <&tlmm>;
+	        interrupts = <44 IRQ_TYPE_EDGE_RISING>;
+	        interrupt-names = "int1";
+	        vdd-supply = <&vreg_l4c_1p62>;
+	        vddio-supply = <&vreg_l5c_1p62>;
+	        pinctrl-names = "default";
+	        pinctrl-0 = <&gpio_44_pins>;
+	        spi-max-frequency = <5000000>;
+	        spi-cpha;
+	        spi-cpol;
+    };
 };

@@ -4,6 +4,7 @@ obj-$(CONFIG_INV_ICM42600) += inv-icm42600.o
 inv-icm42600-y += inv_icm42600_core.o
 inv-icm42600-y += inv_icm42600_gyro.o
 inv-icm42600-y += inv_icm42600_accel.o
+inv-icm42600-y += inv_icm42600_imu.o
 inv-icm42600-y += inv_icm42600_temp.o
 inv-icm42600-y += inv_icm42600_buffer.o
 

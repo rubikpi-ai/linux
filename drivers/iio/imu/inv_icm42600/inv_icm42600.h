@@ -23,6 +23,7 @@ enum inv_icm42600_chip {
 	INV_CHIP_ICM42605,
 	INV_CHIP_ICM42622,
 	INV_CHIP_ICM42631,
+	INV_CHIP_ICM42670,
 	INV_CHIP_NB,
 };
 
@@ -84,6 +85,17 @@ enum inv_icm42600_odr {
 	INV_ICM42600_ODR_NB,
 };
 
+enum inv_icm42670_odr {
+	INV_ICM42670_ODR_1_6KHZ = 5,
+	INV_ICM42670_ODR_800HZ,
+	INV_ICM42670_ODR_400HZ,
+	INV_ICM42670_ODR_200HZ,
+	INV_ICM42670_ODR_100HZ,
+	INV_ICM42670_ODR_50HZ,
+	INV_ICM42670_ODR_25HZ,
+	INV_ICM42670_ODR_12_5HZ,
+};
+
 enum inv_icm42600_filter {
 	/* Low-Noise mode sensor data filter (3rd order filter by default) */
 	INV_ICM42600_FILTER_BW_ODR_DIV_2,
@@ -124,8 +136,7 @@ struct inv_icm42600_suspended {
  *  @orientation:	sensor chip orientation relative to main hardware.
  *  @conf:		chip sensors configurations.
  *  @suspended:		suspended sensors configuration.
- *  @indio_gyro:	gyroscope IIO device.
- *  @indio_accel:	accelerometer IIO device.
+ *  @indio_dev:		unified IMU IIO device.
  *  @buffer:		data transfer buffer aligned for DMA.
  *  @fifo:		FIFO management structure.
  *  @timestamp:		interrupt timestamps.
@@ -140,8 +151,7 @@ struct inv_icm42600_state {
 	struct iio_mount_matrix orientation;
 	struct inv_icm42600_conf conf;
 	struct inv_icm42600_suspended suspended;
-	struct iio_dev *indio_gyro;
-	struct iio_dev *indio_accel;
+	struct iio_dev *indio_dev;
 	uint8_t buffer[2] __aligned(IIO_DMA_MINALIGN);
 	struct inv_icm42600_fifo fifo;
 	struct {
@@ -178,6 +188,8 @@ struct inv_icm42600_state {
 #define INV_ICM42600_INT_CONFIG_INT1_ACTIVE_HIGH	BIT(0)
 #define INV_ICM42600_INT_CONFIG_INT1_ACTIVE_LOW		0x00
 
+#define INV_ICM42670_REG_INT_CONFIG			0x0006
+
 #define INV_ICM42600_REG_FIFO_CONFIG			0x0016
 #define INV_ICM42600_FIFO_CONFIG_MASK			GENMASK(7, 6)
 #define INV_ICM42600_FIFO_CONFIG_BYPASS			\
@@ -186,6 +198,10 @@ struct inv_icm42600_state {
 		FIELD_PREP(INV_ICM42600_FIFO_CONFIG_MASK, 1)
 #define INV_ICM42600_FIFO_CONFIG_STOP_ON_FULL		\
 		FIELD_PREP(INV_ICM42600_FIFO_CONFIG_MASK, 2)
+
+#define INV_ICM42670_REG_FIFO_CONFIG1			0x0028
+#define INV_ICM42670_FIFO_CONFIG1_STREAM		0x00
+#define INV_ICM42670_FIFO_CONFIG1_BYPASS		0x01
 
 /* all sensor data are 16 bits (2 registers wide) in big-endian */
 #define INV_ICM42600_REG_TEMP_DATA			0x001D
@@ -197,6 +213,13 @@ struct inv_icm42600_state {
 #define INV_ICM42600_REG_GYRO_DATA_Z			0x0029
 #define INV_ICM42600_DATA_INVALID			-32768
 
+#define INV_ICM42670_REG_ACCEL_DATA_X			0x000B
+#define INV_ICM42670_REG_ACCEL_DATA_Y			0x000D
+#define INV_ICM42670_REG_ACCEL_DATA_Z			0x000F
+#define INV_ICM42670_REG_GYRO_DATA_X			0x0011
+#define INV_ICM42670_REG_GYRO_DATA_Y			0x0013
+#define INV_ICM42670_REG_GYRO_DATA_Z			0x0015
+
 #define INV_ICM42600_REG_INT_STATUS			0x002D
 #define INV_ICM42600_INT_STATUS_UI_FSYNC		BIT(6)
 #define INV_ICM42600_INT_STATUS_PLL_RDY			BIT(5)
@@ -206,6 +229,9 @@ struct inv_icm42600_state {
 #define INV_ICM42600_INT_STATUS_FIFO_FULL		BIT(1)
 #define INV_ICM42600_INT_STATUS_AGC_RDY			BIT(0)
 
+#define INV_ICM42670_REG_INT_STATUS			0x003A
+#define INV_ICM42670_REG_INT_STATUS_DRDY		0x0039
+
 /*
  * FIFO access registers
  * FIFO count is 16 bits (2 registers) big-endian
@@ -214,12 +240,19 @@ struct inv_icm42600_state {
 #define INV_ICM42600_REG_FIFO_COUNT			0x002E
 #define INV_ICM42600_REG_FIFO_DATA			0x0030
 
+#define INV_ICM42670_REG_FIFO_COUNT			0x003D
+#define INV_ICM42670_REG_FIFO_DATA			0x003F
+
 #define INV_ICM42600_REG_SIGNAL_PATH_RESET		0x004B
 #define INV_ICM42600_SIGNAL_PATH_RESET_DMP_INIT_EN	BIT(6)
 #define INV_ICM42600_SIGNAL_PATH_RESET_DMP_MEM_RESET	BIT(5)
 #define INV_ICM42600_SIGNAL_PATH_RESET_RESET		BIT(3)
 #define INV_ICM42600_SIGNAL_PATH_RESET_TMST_STROBE	BIT(2)
 #define INV_ICM42600_SIGNAL_PATH_RESET_FIFO_FLUSH	BIT(1)
+
+#define INV_ICM42670_REG_SIGNAL_PATH_RESET		0x0002
+#define INV_ICM42670_SIGNAL_PATH_RESET_FIFO_FLUSH	BIT(2)
+#define INV_ICM42670_SIGNAL_PATH_RESET_SOFT_RESET_DEVICE_CONFIG BIT(4)
 
 /* default configuration: all data big-endian and fifo count in bytes */
 #define INV_ICM42600_REG_INTF_CONFIG0			0x004C
@@ -233,6 +266,8 @@ struct inv_icm42600_state {
 #define INV_ICM42600_INTF_CONFIG0_UI_SIFS_CFG_I2C_DIS	\
 		FIELD_PREP(INV_ICM42600_INTF_CONFIG0_UI_SIFS_CFG_MASK, 3)
 
+#define INV_ICM42670_REG_INTF_CONFIG0			0x0035
+
 #define INV_ICM42600_REG_INTF_CONFIG1			0x004D
 #define INV_ICM42600_INTF_CONFIG1_ACCEL_LP_CLK_RC	BIT(3)
 
@@ -243,6 +278,8 @@ struct inv_icm42600_state {
 		FIELD_PREP(GENMASK(3, 2), (_mode))
 #define INV_ICM42600_PWR_MGMT0_ACCEL(_mode)		\
 		FIELD_PREP(GENMASK(1, 0), (_mode))
+
+#define INV_ICM42670_REG_PWR_MGMT0			0x001F
 
 #define INV_ICM42600_REG_GYRO_CONFIG0			0x004F
 #define INV_ICM42600_GYRO_CONFIG0_FS(_fs)		\
@@ -262,6 +299,18 @@ struct inv_icm42600_state {
 #define INV_ICM42600_GYRO_ACCEL_CONFIG0_GYRO_FILT(_f)	\
 		FIELD_PREP(GENMASK(3, 0), (_f))
 
+#define INV_ICM42670_REG_GYRO_CONFIG0			0x0020
+#define INV_ICM42670_GYRO_CONFIG0_FS(_fs)		\
+		FIELD_PREP(GENMASK(6, 5), (_fs))
+#define INV_ICM42670_GYRO_CONFIG0_ODR(_odr)		\
+		FIELD_PREP(GENMASK(3, 0), (_odr))
+
+#define INV_ICM42670_REG_ACCEL_CONFIG0			0x0021
+#define INV_ICM42670_ACCEL_CONFIG0_FS(_fs)		\
+		FIELD_PREP(GENMASK(6, 5), (_fs))
+#define INV_ICM42670_ACCEL_CONFIG0_ODR(_odr)		\
+		FIELD_PREP(GENMASK(3, 0), (_odr))
+
 #define INV_ICM42600_REG_TMST_CONFIG			0x0054
 #define INV_ICM42600_TMST_CONFIG_MASK			GENMASK(4, 0)
 #define INV_ICM42600_TMST_CONFIG_TMST_TO_REGS_EN	BIT(4)
@@ -277,6 +326,18 @@ struct inv_icm42600_state {
 #define INV_ICM42600_FIFO_CONFIG1_TEMP_EN		BIT(2)
 #define INV_ICM42600_FIFO_CONFIG1_GYRO_EN		BIT(1)
 #define INV_ICM42600_FIFO_CONFIG1_ACCEL_EN		BIT(0)
+
+#define INV_ICM42670_REG_FIFO_CONFIG2			0x0029
+#define INV_ICM42670_FIFO_CONFIG2_COUNT_1		0x0001
+
+#define INV_ICM42670_FIFO_CONFIG5			0x0001
+#define INV_ICM42670_FIFO_CONFIG5_ACCEL_EN		BIT(0)
+#define INV_ICM42670_FIFO_CONFIG5_GYRO_EN		BIT(1)
+#define INV_ICM42670_FIFO_CONFIG5_RESUME_PARTIAL_RD	BIT(4)
+#define INV_ICM42670_FIFO_CONFIG5_WM_GT_TH		BIT(5)
+
+#define INV_ICM42670_MADDR_W				0x007A
+#define INV_ICM42670_M_W				0x007B
 
 /* FIFO watermark is 16 bits (2 registers wide) in little-endian */
 #define INV_ICM42600_REG_FIFO_WATERMARK			0x0060
@@ -299,12 +360,15 @@ struct inv_icm42600_state {
 #define INV_ICM42600_INT_SOURCE0_FIFO_FULL_INT1_EN	BIT(1)
 #define INV_ICM42600_INT_SOURCE0_UI_AGC_RDY_INT1_EN	BIT(0)
 
+#define INV_ICM42670_REG_INT_SOURCE0			0x002B
+
 #define INV_ICM42600_REG_WHOAMI				0x0075
 #define INV_ICM42600_WHOAMI_ICM42600			0x40
 #define INV_ICM42600_WHOAMI_ICM42602			0x41
 #define INV_ICM42600_WHOAMI_ICM42605			0x42
 #define INV_ICM42600_WHOAMI_ICM42622			0x46
 #define INV_ICM42600_WHOAMI_ICM42631			0x5C
+#define INV_ICM42600_WHOAMI_ICM42670			0x67
 
 /* User bank 1 (MSB 0x10) */
 #define INV_ICM42600_REG_SENSOR_CONFIG0			0x1003
@@ -392,8 +456,62 @@ struct iio_dev *inv_icm42600_gyro_init(struct inv_icm42600_state *st);
 
 int inv_icm42600_gyro_parse_fifo(struct iio_dev *indio_dev);
 
+int inv_icm42600_gyro_read_scale(struct inv_icm42600_state *st, int *val, int *val2);
+
+int inv_icm42600_gyro_read_offset(struct inv_icm42600_state *st,
+				  struct iio_chan_spec const *chan,
+				  int *val, int *val2);
+
+int inv_icm42600_gyro_write_offset(struct inv_icm42600_state *st,
+				  struct iio_chan_spec const *chan,
+				  int val, int val2);
+
 struct iio_dev *inv_icm42600_accel_init(struct inv_icm42600_state *st);
 
 int inv_icm42600_accel_parse_fifo(struct iio_dev *indio_dev);
+
+int inv_icm42600_accel_read_scale(struct inv_icm42600_state *st, int *val, int *val2);
+
+int inv_icm42600_accel_read_odr(struct inv_icm42600_state *st, int *val, int *val2);
+
+int inv_icm42600_accel_write_odr(struct iio_dev *indio_dev, int val, int val2);
+
+int inv_icm42600_accel_write_scale(struct inv_icm42600_state *st, int val, int val2);
+
+int inv_icm42600_gyro_read_odr(struct inv_icm42600_state *st, int *val, int *val2);
+
+int inv_icm42600_gyro_write_odr(struct iio_dev *indio_dev, int val, int val2);
+
+int inv_icm42600_gyro_write_scale(struct inv_icm42600_state *st, int val, int val2);
+
+#define INV_ICM42600_ACCEL_SCALE_LEN 16
+#define INV_ICM42600_GYRO_SCALE_LEN 16
+#define INV_ICM42600_ACCEL_ODR_LEN 16
+#define INV_ICM42600_GYRO_ODR_LEN 16
+#define INV_ICM42600_ACCEL_ODR_CONV_LEN 8
+#define INV_ICM42600_GYRO_ODR_CONV_LEN 8
+#define INV_ICM42600_ACCEL_CALIBBIAS_LEN 6
+#define INV_ICM42600_GYRO_CALIBBIAS_LEN 6
+
+extern const int inv_icm42600_accel_scale[INV_ICM42600_ACCEL_SCALE_LEN];
+extern const int inv_icm42600_gyro_scale[INV_ICM42600_GYRO_SCALE_LEN];
+extern const int inv_icm42600_accel_odr[INV_ICM42600_ACCEL_ODR_LEN];
+extern const int inv_icm42600_gyro_odr[INV_ICM42600_GYRO_ODR_LEN];
+extern const int inv_icm42600_accel_odr_conv[INV_ICM42600_ACCEL_ODR_CONV_LEN];
+extern const int inv_icm42600_gyro_odr_conv[INV_ICM42600_GYRO_ODR_CONV_LEN];
+extern const int inv_icm42600_accel_calibbias[INV_ICM42600_ACCEL_CALIBBIAS_LEN];
+extern const int inv_icm42600_gyro_calibbias[INV_ICM42600_GYRO_CALIBBIAS_LEN];
+
+int inv_icm42600_accel_read_offset(struct inv_icm42600_state *st,
+				   struct iio_chan_spec const *chan,
+				   int *val, int *val2);
+
+int inv_icm42600_accel_write_offset(struct inv_icm42600_state *st,
+				   struct iio_chan_spec const *chan,
+				   int val, int val2);
+
+struct iio_dev *inv_icm42600_imu_init(struct inv_icm42600_state *st);
+
+int inv_icm42600_imu_parse_fifo(struct iio_dev *indio_dev);
 
 #endif

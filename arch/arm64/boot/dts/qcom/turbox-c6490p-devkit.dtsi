@@ -512,6 +512,14 @@
 		output-high;
 		bias-disable;
 	};
+
+	gpio_44_pins: gpio_44_pins {
+		pins = "gpio44";
+		pinctrl-single,pins = <44 0x1>;
+		function = "gpio";
+		drive-strength = <6>;
+		bias-pull-up;
+	};
 };
 
 &lpass_dmic01_clk {
