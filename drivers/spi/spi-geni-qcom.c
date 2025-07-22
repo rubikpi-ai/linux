@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2017-2018, The Linux foundation. All rights reserved.
-// Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2024-2025, Qualcomm Innovation Center, Inc. All rights reserved.
 
 #include <linux/clk.h>
 #include <linux/dmaengine.h>
@@ -696,11 +696,8 @@ static int spi_geni_init(struct spi_geni_master *mas)
 		}
 		spi_slv_setup(mas);
 	} else if (proto != GENI_SE_SPI) {
-		ret = geni_load_se_firmware(se, GENI_SE_SPI);
-		if (ret) {
-			dev_err(mas->dev, "Cannot load firmware from linux error: %d\n", ret);
-			goto out_pm;
-		}
+		dev_err(mas->dev, "Invalid proto %d\n", proto);
+		goto out_pm;
 	}
 	mas->tx_fifo_depth = geni_se_get_tx_fifo_depth(se);
 
