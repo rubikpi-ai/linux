@@ -254,7 +254,7 @@ static int viommu_add_req(struct viommu_dev *viommu, void *buf, size_t len)
  * Send a request and wait for it to complete. Return the request status (as an
  * errno)
  */
-static int viommu_send_req_sync(struct viommu_dev *viommu, void *buf,
+int viommu_send_req_sync(struct viommu_dev *viommu, void *buf,
 				size_t len)
 {
 	int ret;
@@ -279,6 +279,7 @@ out_unlock:
 	spin_unlock_irqrestore(&viommu->request_lock, flags);
 	return ret;
 }
+EXPORT_SYMBOL_GPL(viommu_send_req_sync);
 
 /*
  * viommu_add_mapping - add a mapping to the internal tree
@@ -581,6 +582,9 @@ static int viommu_fault_handler(struct viommu_dev *viommu,
 	else
 		dev_err_ratelimited(viommu->dev, "%s fault from EP %u\n",
 				    reason_str, endpoint);
+
+	if (viommu->fault_handler)
+		viommu->fault_handler(viommu, fault);
 	return 0;
 }
 

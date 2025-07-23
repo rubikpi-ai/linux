@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0 */
 /*
  * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 #ifndef _LINUX_VIRTIO_IOMMU_QCOM_H
 #define _LINUX_VIRTIO_IOMMU_QCOM_H
@@ -33,9 +34,13 @@ struct viommu_dev {
 	/* Supported MAP flags */
 	u32				map_flags;
 	u32				probe_size;
+
+	void				(*fault_handler)(struct viommu_dev *viommu,
+						struct virtio_iommu_fault *fault);
 };
 
 int viommu_probe_common(struct virtio_device *vdev);
+int viommu_send_req_sync(struct viommu_dev *viommu, void *buf,
+				size_t len);
 
 #endif /* _LINUX_VIRTIO_IOMMU_QCOM_H */
-
