@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 /dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
-#include <dt-bindings/spmi/spmi.h>
 
 #include "qcs8300.dtsi"
 #include "qcs8300-pmics.dtsi"
@@ -543,25 +543,6 @@
 	status = "okay";
 };
 
-&spmi_bus {
-	pmm8654au_2: pmic@2 {
-		compatible = "qcom,pmm8654au", "qcom,spmi-pmic";
-		reg = <2 SPMI_USID>;
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		pmm8654au_2_gpios: gpio@8800 {
-			compatible = "qcom,pmm8654au-gpio", "qcom,spmi-gpio";
-			reg = <0x8800>;
-			gpio-controller;
-			gpio-ranges = <&pmm8654au_2_gpios 0 0 12>;
-			#gpio-cells = <2>;
-			interrupt-controller;
-			#interrupt-cells = <2>;
-		};
-	};
-};
-
 &tlmm {
 	bt_en_state: bt-en-state {
 		pins = "gpio55";
@@ -761,7 +742,7 @@
 	status = "okay";
 };
 
-&pmm8654au_2_gpios {
+&pmm8650au_1_gpios {
 	usb1_en_state: usb1-en-state {
 		pins = "gpio7";
 		function = "normal";
