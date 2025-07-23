@@ -120,6 +120,7 @@ configure specific aspects of kernel behavior to your liking.
    perf-security
    pm/index
    pnp
+   qcom_minidump
    rapidio
    ras
    rtc

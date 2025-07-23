@@ -227,10 +227,12 @@ static int get_port_device_capability(struct pci_dev *dev)
 
 		/*
 		 * Disable hot-plug interrupts in case they have been enabled
-		 * by the BIOS and the hot-plug service driver is not loaded.
+		 * by the BIOS and the hot-plug service driver won't be loaded
+		 * to handle them.
 		 */
-		pcie_capability_clear_word(dev, PCI_EXP_SLTCTL,
-			  PCI_EXP_SLTCTL_CCIE | PCI_EXP_SLTCTL_HPIE);
+		if (!IS_ENABLED(CONFIG_HOTPLUG_PCI_PCIE))
+			pcie_capability_clear_word(dev, PCI_EXP_SLTCTL,
+				PCI_EXP_SLTCTL_CCIE | PCI_EXP_SLTCTL_HPIE);
 	}
 
 #ifdef CONFIG_PCIEAER
@@ -692,6 +694,10 @@ static int pcie_portdrv_probe(struct pci_dev *dev,
 	if (type == PCI_EXP_TYPE_RC_EC)
 		pcie_link_rcec(dev);
 
+	status = of_pci_setup_wake_irq(dev);
+	if (status)
+		return status;
+
 	status = pcie_port_device_register(dev);
 	if (status)
 		return status;
@@ -724,6 +730,8 @@ static void pcie_portdrv_remove(struct pci_dev *dev)
 		pm_runtime_get_noresume(&dev->dev);
 		pm_runtime_dont_use_autosuspend(&dev->dev);
 	}
+
+	of_pci_teardown_wake_irq(dev);
 
 	pcie_port_device_remove(dev);
 

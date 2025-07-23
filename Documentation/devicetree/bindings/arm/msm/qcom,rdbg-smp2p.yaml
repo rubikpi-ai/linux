@@ -34,6 +34,18 @@ properties:
                qcom,smp2p-interrupt-rdbg-12-in (inbound)
                qcom,smp2p-interrupt-rdbg-12-out (outbound)
 
+       - description: To communicate with gdsp0
+         items:
+           - enum:
+               qcom,smp2p-interrupt-rdbg-17-in (inbound)
+               qcom,smp2p-interrupt-rdbg-17-out (outbound)
+
+       - description: To communicate with gdsp1
+         items:
+           - enum:
+               qcom,smp2p-interrupt-rdbg-18-in (inbound)
+               qcom,smp2p-interrupt-rdbg-18-out (outbound)
+
 required:
    - compatible
 

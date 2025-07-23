@@ -145,6 +145,11 @@ enum dp_mst_intf {
 	INTF_MAX
 };
 
+static const unsigned int stream_intf_map_qcs8300[][DP_STREAM_MAX] = {
+	{INTF_0, INTF_3, INTF_6, INTF_7},
+	{}
+};
+
 static const unsigned int stream_intf_map_sa_8775p[][DP_STREAM_MAX] = {
 	{INTF_0, INTF_3},
 	{INTF_4, INTF_8},
@@ -153,7 +158,7 @@ static const unsigned int stream_intf_map_sa_8775p[][DP_STREAM_MAX] = {
 
 static const struct msm_dp_desc msm_dp_desc_qcs8300[] = {
 	{ .io_start = 0x0af54000, .id = MSM_DP_CONTROLLER_0, .wide_bus_supported = true,
-	  .max_streams = 2, .intf_map = stream_intf_map_sa_8775p[MSM_DP_CONTROLLER_0],
+	  .max_streams = 4, .intf_map = stream_intf_map_qcs8300[MSM_DP_CONTROLLER_0],
 	},
 	{}
 };

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
- * ​​​​Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * ​​​​Copyright (c) 2022-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/cdev.h>
@@ -17,7 +17,7 @@
 #include <linux/of_irq.h>
 #include <linux/of_platform.h>
 
-#define SMP2P_NUM_PROCS				16
+#define SMP2P_NUM_PROCS				32
 #define MAX_RETRIES				20
 
 #define SM_VERSION				1
@@ -157,7 +157,23 @@ static struct processor_specific_info proc_info[SMP2P_NUM_PROCS] = {
 		{"rdbg_cdsp1", SMEM_LC_DEBUGGER, 16*1024},		/*CDSP1*/
 		{NULL},	/*EMPTY*/
 		{NULL},	/*EMPTY*/
-		{NULL}	/*SMP2P_REMOTE_MOCK_PROC*/
+		{NULL},	/*SMP2P_REMOTE_MOCK_PROC*/
+		{NULL},	/*EMPTY*/
+		{"rdbg_gdsp0", SMEM_LC_DEBUGGER, 16*1024},		/*GDSP0*/
+		{"rdbg_gdsp1", SMEM_LC_DEBUGGER, 16*1024},		/*GDSP1*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL},	/*EMPTY*/
+		{NULL}	/*EMPTY*/
 };
 
 static int smq_blockmap_get(struct smq_block_map *block_map,
@@ -1098,6 +1114,10 @@ static const struct of_device_id rdbg_match_table[] = {
 	{ .compatible = "qcom,smp2p-interrupt-rdbg-5-in", },
 	{ .compatible = "qcom,smp2p-interrupt-rdbg-12-out", },
 	{ .compatible = "qcom,smp2p-interrupt-rdbg-12-in", },
+	{ .compatible = "qcom,smp2p-interrupt-rdbg-17-out", },
+	{ .compatible = "qcom,smp2p-interrupt-rdbg-17-in", },
+	{ .compatible = "qcom,smp2p-interrupt-rdbg-18-out", },
+	{ .compatible = "qcom,smp2p-interrupt-rdbg-18-in", },
 	{}
 };
 

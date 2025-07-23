@@ -98,7 +98,7 @@
 					reg = <0>;
 
 					pmic_glink_hs_in: endpoint {
-						remote-endpoint = <&usb_1_dwc3_hs>;
+						remote-endpoint = <&eud_con>;
 					};
 				};
 
@@ -472,6 +472,19 @@
 	};
 };
 
+&eud {
+	usb-role-switch;
+	status = "okay";
+};
+
+&eud_con {
+	remote-endpoint = <&pmic_glink_hs_in>;
+};
+
+&eud_ep {
+	remote-endpoint = <&usb_1_dwc3_hs>;
+};
+
 &gcc {
 	protected-clocks = <GCC_QSPI_CNOC_PERIPH_AHB_CLK>, <GCC_QSPI_CORE_CLK>,
 			<GCC_QSPI_CORE_CLK_SRC>, <GCC_CFG_NOC_LPASS_CLK>,
@@ -759,6 +772,15 @@
 
 &mdss {
 	status = "okay";
+};
+
+&mdss_dp {
+	status = "okay";
+};
+
+&mdss_dp_out {
+	data-lanes = <0 1>;
+	remote-endpoint = <&usb_1_qmpphy_dp_in>;
 };
 
 &mdss_dsi {
@@ -1126,7 +1148,7 @@
 };
 
 &usb_1_dwc3_hs {
-	remote-endpoint = <&pmic_glink_hs_in>;
+	remote-endpoint = <&eud_ep>;
 };
 
 &usb_1_hsphy {
@@ -1147,6 +1169,10 @@
 
 &usb_1_qmpphy_out {
 	remote-endpoint = <&redriver_ss_in>;
+};
+
+&usb_1_qmpphy_dp_in {
+	remote-endpoint = <&mdss_dp_out>;
 };
 
 &vreg_l7b_2p952 {

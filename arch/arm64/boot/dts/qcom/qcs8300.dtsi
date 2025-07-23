@@ -46,6 +46,8 @@
 		i2c13 = &i2c13;
 		i2c14 = &i2c14;
 		i2c15 = &i2c15;
+		mmc0 = &sdhc_1;
+		mmc1 = &sdhc_2; /* SDC2 SD card slot */
 		spi0 = &spi0;
 		spi1 = &spi1;
 		spi2 = &spi2;
@@ -940,11 +942,6 @@
 			no-map;
 		};
 
-		tzffi_mem: tzffi-region@91c00000 {
-			reg = <0x0 0x91c00000 0x0 0x1400000>;
-			no-map;
-		};
-
 		lpass_machine_learning_mem: lpass-machine-learning-region@93b00000 {
 			reg = <0x0 0x93b00000 0x0 0xf00000>;
 			no-map;
@@ -1012,11 +1009,6 @@
 
 		firmware_mem: firmware-region@b0000000 {
 			reg = <0x0 0xb0000000 0x0 0x800000>;
-			no-map;
-		};
-
-		hyptz_reserved_mem: hyptz-reserved@beb00000 {
-			reg = <0x0 0xbeb00000 0x0 0x11500000>;
 			no-map;
 		};
 
@@ -1271,9 +1263,14 @@
 
 		qfprom: efuse@784000 {
 			compatible = "qcom,qcs8300-qfprom", "qcom,qfprom";
-			reg = <0x0 0x00784000 0x0 0x11d0>;
+			reg = <0x0 0x00784000 0x0 0x2410>;
 			#address-cells = <1>;
 			#size-cells = <1>;
+
+			gpu_speed_bin: gpu_speed_bin@240c {
+				reg = <0x240c 0x1>;
+				bits = <0 8>;
+			};
 		};
 
 		gpi_dma0: qcom,gpi-dma@900000 {
@@ -2741,6 +2738,7 @@
 				 <&apps_smmu 0x481 0x00>;
 			interconnects = <&aggre2_noc MASTER_CRYPTO_CORE0 0 &mc_virt SLAVE_EBI1 0>;
 			interconnect-names = "memory";
+			qcom,icc_bw = <12473>;
 		};
 
 		remoteproc_adsp: remoteproc@3000000 {
@@ -2930,19 +2928,6 @@
 			interrupts-extended = <&pdc 11 IRQ_TYPE_LEVEL_HIGH>;
 
 			status = "disabled";
-
-			ports {
-				#address-cells = <1>;
-				#size-cells = <0>;
-
-				port@0 {
-					reg = <0>;
-
-					eud_ep: endpoint {
-						remote-endpoint = <&usb1_role_switch>;
-					};
-				};
-			};
 		};
 
 		pmu@9091000 {
@@ -3055,6 +3040,77 @@
 				    "llcc_broadcast_base";
 			interrupts = <GIC_SPI 582 IRQ_TYPE_LEVEL_HIGH>;
 			num-banks = <4>;
+		};
+
+		iris: video-codec@aa00000 {
+			compatible = "qcom,qcs8300-iris";
+
+			reg = <0x0 0x0aa00000 0x0 0xf0000>;
+			interrupts = <GIC_SPI 174 IRQ_TYPE_LEVEL_HIGH>;
+
+			power-domains = <&videocc VIDEO_CC_MVS0C_GDSC>,
+					<&videocc VIDEO_CC_MVS0_GDSC>,
+					<&rpmhpd RPMHPD_MX>,
+					<&rpmhpd RPMHPD_MMCX>;
+			power-domain-names = "venus",
+					     "vcodec0",
+					     "mxc",
+					     "mmcx";
+
+			operating-points-v2 = <&iris_opp_table>;
+
+			clocks = <&gcc GCC_VIDEO_AXI0_CLK>,
+				 <&videocc VIDEO_CC_MVS0C_CLK>,
+				 <&videocc VIDEO_CC_MVS0_CLK>;
+			clock-names = "iface",
+				      "core",
+				      "vcodec0_core";
+
+			interconnects = <&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ACTIVE_ONLY
+					 &config_noc SLAVE_VENUS_CFG QCOM_ICC_TAG_ACTIVE_ONLY>,
+					<&mmss_noc MASTER_VIDEO_P0 QCOM_ICC_TAG_ALWAYS
+					 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+			interconnect-names = "cpu-cfg",
+					     "video-mem";
+
+			memory-region = <&video_mem>;
+
+			resets = <&gcc GCC_VIDEO_AXI0_CLK_ARES>;
+			reset-names = "bus";
+
+			iommus = <&apps_smmu 0x0880 0x0400>,
+				 <&apps_smmu 0x0887 0x0400>;
+			dma-coherent;
+
+			status = "disabled";
+
+			iris_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-366000000 {
+					opp-hz = /bits/ 64 <366000000>;
+					required-opps = <&rpmhpd_opp_svs_l1>,
+							<&rpmhpd_opp_svs_l1>;
+				};
+
+				opp-444000000 {
+					opp-hz = /bits/ 64 <444000000>;
+					required-opps = <&rpmhpd_opp_nom>,
+							<&rpmhpd_opp_nom>;
+				};
+
+				opp-533333334 {
+					opp-hz = /bits/ 64 <533333334>;
+					required-opps = <&rpmhpd_opp_turbo>,
+							<&rpmhpd_opp_turbo>;
+				};
+
+				opp-560000000 {
+					opp-hz = /bits/ 64 <560000000>;
+					required-opps = <&rpmhpd_opp_turbo_l1>,
+							<&rpmhpd_opp_turbo_l1>;
+				};
+			};
 		};
 
 		videocc: clock-controller@abf0000 {
@@ -3502,7 +3558,12 @@
 					<0x0 0xaf54200 0x0 0x0c0>,
 					<0x0 0xaf55000 0x0 0x770>,
 					<0x0 0xaf56000 0x0 0x09c>,
-					<0x0 0xaf57000 0x0 0x09c>;
+					<0x0 0xaf57000 0x0 0x09c>,
+					<0x0 0xaf58000 0x0 0x09c>,
+					<0x0 0xaf59000 0x0 0x09c>,
+					<0x0 0xaf5a000 0x0 0x23c>,
+					<0x0 0xaf5b000 0x0 0x23c>;
+
 
 				interrupt-parent = <&mdss>;
 				interrupts = <12>;
@@ -3512,17 +3573,28 @@
 					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_LINK_CLK>,
 					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_LINK_INTF_CLK>,
 					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL0_CLK>,
-					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL1_CLK>;
+					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL1_CLK>,
+					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL2_CLK>,
+					 <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL3_CLK>;
+
 				clock-names = "core_iface",
 						"core_aux",
 						"ctrl_link",
 						"ctrl_link_iface",
 						"stream_pixel",
-						"stream_1_pixel";
+						"stream_1_pixel",
+						"stream_2_pixel",
+						"stream_3_pixel";
+
 				assigned-clocks = <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_LINK_CLK_SRC>,
 						  <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL0_CLK_SRC>,
-						  <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL1_CLK_SRC>;
+						  <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL1_CLK_SRC>,
+						  <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL2_CLK_SRC>,
+						  <&dispcc0 MDSS_DISP_CC_MDSS_DPTX0_PIXEL3_CLK_SRC>;
+
 				assigned-clock-parents = <&mdss_edp_phy 0>,
+							 <&mdss_edp_phy 1>,
+							 <&mdss_edp_phy 1>,
 							 <&mdss_edp_phy 1>,
 							 <&mdss_edp_phy 1>;
 				phys = <&mdss_edp_phy>;
@@ -4862,6 +4934,48 @@
 				pins = "gpio13";
 				function = "qup2_se0";
 			};
+
+			sdc1_clk: sdc1-clk-state {
+				pins = "sdc1_clk";
+
+			};
+
+			sdc1_cmd: sdc1-cmd-state {
+				pins = "sdc1_cmd";
+			};
+
+			sdc1_data: sdc1-data-state {
+				pins = "sdc1_data";
+			};
+
+			sdc1_rclk: sdc1-rclk-state {
+				pins = "sdc1_rclk";
+			};
+
+			sdc1_clk_sleep: sdc1-clk-sleep-state {
+				pins = "sdc1_clk";
+				drive-strength = <2>;
+				bias-bus-hold;
+			};
+
+			sdc1_cmd_sleep: sdc1-cmd-sleep-state {
+				pins = "sdc1_cmd";
+				drive-strength = <2>;
+				bias-bus-hold;
+			};
+
+			sdc1_data_sleep: sdc1-data-sleep-state {
+				pins = "sdc1_data";
+				drive-strength = <2>;
+				bias-bus-hold;
+			};
+
+			sdc1_rclk_sleep: sdc1-rclk-sleep-state {
+				pins = "sdc1_rclk";
+				drive-strength = <2>;
+				bias-bus-hold;
+			};
+
 		};
 
 		stm@4002000 {
@@ -7643,6 +7757,121 @@
 			clocks = <&aoss_qmp>;
 			clock-names = "apb_pclk";
 		};
+
+		sdhc_1: mmc@87C4000 {
+			compatible = "qcom,sdhci-msm-v5";
+			status = "disabled";
+
+			reg = <0x0 0x87C4000 0x0 0x1000>,
+				<0x0 0x87C5000 0x0 0x1000>;
+			reg-names = "hc", "cqhci";
+
+			interrupts = <GIC_SPI 383 IRQ_TYPE_LEVEL_HIGH>,
+					<GIC_SPI 521 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "hc_irq", "pwr_irq";
+
+			clocks = <&gcc GCC_SDCC1_AHB_CLK>,
+					<&gcc GCC_SDCC1_APPS_CLK>,
+					<&rpmhcc RPMH_CXO_CLK>;
+			clock-names = "iface", "core", "xo";
+			interconnects = <&aggre1_noc MASTER_SDC 0 &mc_virt SLAVE_EBI1 0>,
+					<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_SDC1 0>;
+			interconnect-names = "sdhc-ddr","cpu-sdhc";
+
+			operating-points-v2 = <&sdhc1_opp_table>;
+			bus-width = <8>;
+			supports-cqe;
+			dma-coherent;
+
+			qcom,dll-config = <0x000F64EE>;
+			qcom,ddr-config = <0x80040868>;
+
+			mmc-ddr-1_8v;
+			mmc-hs200-1_8v;
+			mmc-hs400-1_8v;
+			mmc-hs400-enhanced-strobe;
+
+			iommus = <&apps_smmu 0x0 0x0>;
+
+			resets = <&gcc GCC_SDCC1_BCR>;
+			qcom,ice = <&ice_mmc>;
+
+			sdhc1_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-100000000 {
+					opp-hz = /bits/ 64 <100000000>;
+					required-opps = <&rpmhpd_opp_low_svs>;
+					opp-peak-kBps = <1800000 400000>;
+					opp-avg-kBps = <100000 0>;
+				};
+
+				opp-384000000 {
+					opp-hz = /bits/ 64 <384000000>;
+					required-opps = <&rpmhpd_opp_nom>;
+					opp-peak-kBps = <5400000 1600000>;
+					opp-avg-kBps = <390000 0>;
+				};
+			};
+		};
+
+		sdhc_2: mmc@0x87c4000 {
+			compatible = "qcom,sdhci-msm-v5";
+			status = "disabled";
+
+			reg = <0x0 0x087C4000 0x0 0x1000>;
+
+			interrupts = <GIC_SPI 383 IRQ_TYPE_LEVEL_HIGH>,
+				<GIC_SPI 521 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "hc_irq", "pwr_irq";
+
+			clocks = <&gcc GCC_SDCC1_AHB_CLK>,
+				<&gcc GCC_SDCC1_APPS_CLK>;
+			clock-names = "iface", "core";
+
+			interconnects = <&aggre1_noc MASTER_SDC 0 &mc_virt SLAVE_EBI1 0>,
+					<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_SDC1 0>;
+			interconnect-names = "sdhc-ddr","cpu-sdhc";
+
+			power-domains = <&rpmhpd RPMHPD_CX>;
+			operating-points-v2 = <&sdhc2_opp_table>;
+
+			no-sdio;
+			no-mmc;
+
+			bus-width = <4>;
+			dma-coherent;
+
+			qcom,dll-config = <0x000F64EE>;
+			qcom,ddr-config = <0x80040868>;
+
+			resets = <&gcc GCC_SDCC1_BCR>;
+
+			sdhc2_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-100000000 {
+					opp-hz = /bits/ 64 <100000000>;
+					required-opps = <&rpmhpd_opp_low_svs>;
+					opp-peak-kBps = <1800000 400000>;
+					opp-avg-kBps = <100000 0>;
+				};
+
+				opp-384000000 {
+					opp-hz = /bits/ 64 <384000000>;
+					required-opps = <&rpmhpd_opp_nom>;
+					opp-peak-kBps = <5400000 1600000>;
+					opp-avg-kBps = <390000 0>;
+				};
+			};
+		};
+
+		ice_mmc: crypto@87c8000 {
+			compatible = "qcom,inline-crypto-engine";
+			reg = <0x0 0x87c8000 0x0 0x18000>;
+			qcom,ice-use-hwkm;
+			clocks = <&gcc GCC_SDCC1_ICE_CORE_CLK>;
+		};
 	};
 
 	lpass-stm {
@@ -7807,14 +8036,8 @@
 			snps,dis_enblslpm_quirk;
 			phys = <&usb_1_hsphy>, <&usb_qmpphy>;
 			phy-names = "usb2-phy", "usb3-phy";
-			maximum-speed = "super-speed";
+			maximum-speed = "super-speed-plus";
 			role-switch;
-
-			port {
-				usb1_role_switch: endpoint {
-					remote-endpoint = <&eud_ep>;
-				};
-			};
 		};
 	};
 
