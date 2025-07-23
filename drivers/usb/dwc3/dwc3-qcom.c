@@ -96,7 +96,6 @@ struct dwc3_qcom {
 	struct icc_path		*icc_path_ddr;
 	struct icc_path		*icc_path_apps;
 
-	bool			enable_rt;
 	enum usb_role		current_role;
 	struct notifier_block	xhci_nb;
 };
@@ -886,8 +885,14 @@ static int dwc3_qcom_probe_core(struct platform_device *pdev, struct dwc3_qcom *
 		.ignore_resets  = true,
 	};
 
-	ret = dwc3_probe(&qcom->dwc,
-			 qcom->enable_rt ? &qcom_glue_data : NULL);
+	/*
+	 * Always pass glue data to dwc3_probe as the runtime PM support is now
+	 * required for all platforms using the flattened implementation of this
+	 * driver. The conditional flag enable_rt was removed as it's no longer
+	 * needed.
+	 */
+
+	ret = dwc3_probe(&qcom->dwc, &qcom_glue_data);
 	if (ret)
 		return ret;
 
@@ -1117,8 +1122,6 @@ static int dwc3_qcom_probe(struct platform_device *pdev)
 	if (ignore_pipe_clk)
 		dwc3_qcom_select_utmi_clk(qcom);
 
-	qcom->enable_rt = device_property_read_bool(dev,
-				"qcom,enable-rt");
 	if (!legacy_binding) {
 		/*
 		 * If we are enabling runtime, then we are using flattened
