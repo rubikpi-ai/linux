@@ -21,6 +21,8 @@
 #include <linux/of.h>
 #include <linux/of_address.h>
 #include <linux/mm.h>
+#include <linux/mutex.h>
+#include <linux/notifier.h>
 
 #include "internal.h"
 #include "ram_internal.h"
@@ -100,6 +102,19 @@ struct ramoops_context {
 	unsigned int ftrace_read_cnt;
 	unsigned int pmsg_read_cnt;
 	struct pstore_info pstore;
+	struct blocking_notifier_head ramoops_notifiers;
+	bool ramoops_ready;
+	/*
+	 * Lock to serialize access to ramoops_ready and to not
+	 * miss any ongoing notifier registration while ramoops
+	 * probe is in progress.
+	 */
+	struct mutex lock;
+};
+
+struct ramoops_backend {
+	struct	notifier_block nb;
+	int	(*fn)(const char *name, int id, void *vaddr, phys_addr_t paddr, size_t size);
 };
 
 static struct platform_device *dummy;
@@ -447,6 +462,8 @@ static struct ramoops_context oops_cxt = {
 		.write_user	= ramoops_pstore_write_user,
 		.erase	= ramoops_pstore_erase,
 	},
+	.ramoops_notifiers = BLOCKING_NOTIFIER_INIT(oops_cxt.ramoops_notifiers),
+	.lock   = __MUTEX_INITIALIZER(oops_cxt.lock),
 };
 
 static void ramoops_free_przs(struct ramoops_context *cxt)
@@ -611,6 +628,98 @@ static int ramoops_init_prz(const char *name,
 
 	return 0;
 }
+
+static int __ramoops_info_notifier(struct ramoops_context *cxt, int (*fn)(const char *,
+				   int, void *, phys_addr_t, size_t))
+{
+	struct persistent_ram_zone *prz;
+	int ret;
+	int i;
+
+	for (i = 0; i < cxt->max_dump_cnt; i++) {
+		prz = cxt->dprzs[i];
+		ret = fn("dmesg", i, prz->vaddr, prz->paddr, prz->size);
+		if (ret < 0)
+			goto err;
+	}
+
+	if (cxt->console_size) {
+		prz = cxt->cprz;
+		ret = fn("console", 0, prz->vaddr, prz->paddr, prz->size);
+		if (ret < 0)
+			goto err;
+	}
+
+	for (i = 0; i < cxt->max_ftrace_cnt; i++) {
+		prz = cxt->fprzs[i];
+		ret = fn("ftrace", i, prz->vaddr, prz->paddr, prz->size);
+		if (ret < 0)
+			goto err;
+	}
+
+	if (cxt->pmsg_size) {
+		prz = cxt->mprz;
+		ret = fn("pmsg", 0, prz->vaddr, prz->paddr, prz->size);
+		if (ret < 0)
+			goto err;
+	}
+
+err:
+	return ret;
+}
+
+static int ramoops_info_notifier(struct notifier_block *nb, unsigned long event,
+				 void *data)
+{
+	struct ramoops_backend *b_info = container_of(nb, struct ramoops_backend, nb);
+	struct ramoops_context *cxt = data;
+
+	return __ramoops_info_notifier(cxt, b_info->fn);
+}
+
+void *register_ramoops_info_notifier(int (*fn)(const char *, int,
+				     void *, phys_addr_t, size_t))
+{
+	struct ramoops_context *cxt = &oops_cxt;
+	struct ramoops_backend *b_info;
+
+	mutex_lock(&cxt->lock);
+	/*
+	 * There is no need to register callback if ramoops probe
+	 * is already done instead, call the callback directly
+	 */
+	if (cxt->ramoops_ready) {
+		mutex_unlock(&cxt->lock);
+		__ramoops_info_notifier(cxt, fn);
+		return NULL;
+	}
+
+	b_info = kzalloc(sizeof(*b_info), GFP_KERNEL);
+	if (!b_info) {
+		b_info = ERR_PTR(-ENOMEM);
+		goto out;
+	}
+
+	b_info->fn = fn;
+	b_info->nb.notifier_call = ramoops_info_notifier;
+	blocking_notifier_chain_register(&cxt->ramoops_notifiers, &b_info->nb);
+
+out:
+	mutex_unlock(&cxt->lock);
+	return b_info;
+}
+EXPORT_SYMBOL_GPL(register_ramoops_info_notifier);
+
+void unregister_ramoops_info_notifier(void *b_info)
+{
+	struct ramoops_context *cxt = &oops_cxt;
+	struct ramoops_backend *tmp = b_info;
+
+	mutex_lock(&cxt->lock);
+	blocking_notifier_chain_unregister(&cxt->ramoops_notifiers, &tmp->nb);
+	mutex_unlock(&cxt->lock);
+}
+EXPORT_SYMBOL_GPL(unregister_ramoops_info_notifier);
 
 /* Read a u32 from a dt property and make sure it's safe for an int. */
 static int ramoops_parse_dt_u32(struct platform_device *pdev,
@@ -860,6 +969,11 @@ static int ramoops_probe(struct platform_device *pdev)
 	ramoops_console_size = pdata->console_size;
 	ramoops_pmsg_size = pdata->pmsg_size;
 	ramoops_ftrace_size = pdata->ftrace_size;
+
+	mutex_lock(&cxt->lock);
+	cxt->ramoops_ready = true;
+	mutex_unlock(&cxt->lock);
+	blocking_notifier_call_chain(&cxt->ramoops_notifiers, 0, cxt);
 
 	pr_info("using 0x%lx@0x%llx, ecc: %d\n",
 		cxt->size, (unsigned long long)cxt->phys_addr,

@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2022,2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2022,2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
  * Copyright (c) 2023, Linaro Limited
  */
 
@@ -1630,6 +1630,7 @@ MODULE_DEVICE_TABLE(of, sa8775p_pinctrl_of_match);
 static struct platform_driver sa8775p_pinctrl_driver = {
 	.driver = {
 		.name = "sa8775p-tlmm",
+		.pm = &msm_pinctrl_dev_pm_ops,
 		.of_match_table = sa8775p_pinctrl_of_match,
 	},
 	.probe = sa8775p_pinctrl_probe,

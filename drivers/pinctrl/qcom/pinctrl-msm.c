@@ -19,6 +19,7 @@
 #include <linux/seq_file.h>
 #include <linux/slab.h>
 #include <linux/spinlock.h>
+#include <linux/suspend.h>
 
 #include <linux/pinctrl/machine.h>
 #include <linux/pinctrl/pinconf-generic.h>
@@ -80,6 +81,7 @@ struct msm_pinctrl {
 	const struct msm_pinctrl_soc_data *soc;
 	void __iomem *regs[MAX_NR_TILES];
 	u32 phys_base[MAX_NR_TILES];
+	struct msm_gpio_regs *gpio_regs;
 };
 
 #define MSM_ACCESSOR(name) \
@@ -99,6 +101,13 @@ MSM_ACCESSOR(io)
 MSM_ACCESSOR(intr_cfg)
 MSM_ACCESSOR(intr_status)
 MSM_ACCESSOR(intr_target)
+
+struct msm_gpio_regs {
+	u32 ctl_reg;
+	u32 io_reg;
+	u32 intr_cfg_reg;
+	u32 intr_status_reg;
+};
 
 static void msm_ack_intr_status(struct msm_pinctrl *pctrl,
 				const struct msm_pingroup *g)
@@ -1040,8 +1049,7 @@ static int msm_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 	const struct msm_pingroup *g;
 	u32 intr_target_mask = GENMASK(2, 0);
 	unsigned long flags;
-	bool was_enabled;
-	u32 val;
+	u32 val, oldval;
 
 	if (msm_gpio_needs_dual_edge_parent_workaround(d, type)) {
 		set_bit(d->hwirq, pctrl->dual_edge_irqs);
@@ -1103,8 +1111,7 @@ static int msm_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 	 * internal circuitry of TLMM, toggling the RAW_STATUS
 	 * could cause the INTR_STATUS to be set for EDGE interrupts.
 	 */
-	val = msm_readl_intr_cfg(pctrl, g);
-	was_enabled = val & BIT(g->intr_raw_status_bit);
+	val = oldval = msm_readl_intr_cfg(pctrl, g);
 	val |= BIT(g->intr_raw_status_bit);
 	if (g->intr_detection_width == 2) {
 		val &= ~(3 << g->intr_detection_bit);
@@ -1157,9 +1164,11 @@ static int msm_gpio_irq_set_type(struct irq_data *d, unsigned int type)
 	/*
 	 * The first time we set RAW_STATUS_EN it could trigger an interrupt.
 	 * Clear the interrupt.  This is safe because we have
-	 * IRQCHIP_SET_TYPE_MASKED.
+	 * IRQCHIP_SET_TYPE_MASKED. When changing the interrupt type, we could
+	 * also still have a non-matching interrupt latched, so clear whenever
+	 * making changes to the interrupt configuration.
 	 */
-	if (!was_enabled)
+	if (val != oldval)
 		msm_ack_intr_status(pctrl, g);
 
 	if (test_bit(d->hwirq, pctrl->dual_edge_irqs))
@@ -1501,9 +1510,84 @@ static void msm_pinctrl_setup_pm_reset(struct msm_pinctrl *pctrl)
 		}
 }
 
+static int msm_pinctrl_save_hw_ctx(struct msm_pinctrl *pctrl)
+{
+	const struct msm_pingroup *pgroup;
+	const struct msm_pinctrl_soc_data *soc = pctrl->soc;
+	u32 i;
+
+	/* All normal gpios will have common registers, first save them */
+	for (i = 0; i < soc->ngpios; i++) {
+		pgroup = &soc->groups[i];
+
+		pctrl->gpio_regs[i].ctl_reg =
+				msm_readl_ctl(pctrl, pgroup);
+		pctrl->gpio_regs[i].io_reg =
+				msm_readl_io(pctrl, pgroup);
+		if (pgroup->intr_cfg_reg)
+			pctrl->gpio_regs[i].intr_cfg_reg =
+					msm_readl_intr_cfg(pctrl, pgroup);
+		if (pgroup->intr_status_reg)
+			pctrl->gpio_regs[i].intr_status_reg =
+					msm_readl_intr_status(pctrl, pgroup);
+	}
+
+	for ( ; i < soc->ngroups; i++) {
+		pgroup = &soc->groups[i];
+
+		if (pgroup->ctl_reg)
+			pctrl->gpio_regs[i].ctl_reg =
+					msm_readl_ctl(pctrl, pgroup);
+		if (pgroup->io_reg)
+			pctrl->gpio_regs[i].io_reg =
+					msm_readl_io(pctrl, pgroup);
+	}
+	return 0;
+}
+
+static int msm_pinctrl_restore_hw_ctx(struct msm_pinctrl *pctrl)
+{
+	u32 i;
+	const struct msm_pingroup *pgroup;
+	const struct msm_pinctrl_soc_data *soc = pctrl->soc;
+
+	if (!pctrl->gpio_regs)
+		return -EINVAL;
+
+	/* Restore normal gpios */
+	for (i = 0; i < soc->ngpios; i++) {
+		pgroup = &soc->groups[i];
+
+		msm_writel_ctl(pctrl->gpio_regs[i].ctl_reg, pctrl, pgroup);
+		msm_writel_io(pctrl->gpio_regs[i].io_reg, pctrl, pgroup);
+		if (pgroup->intr_cfg_reg)
+			msm_writel_intr_cfg(pctrl->gpio_regs[i].intr_cfg_reg,
+					    pctrl, pgroup);
+		if (pgroup->intr_status_reg)
+			msm_writel_intr_status(pctrl->gpio_regs[i].intr_status_reg,
+					       pctrl, pgroup);
+	}
+
+	for ( ; i < soc->ngroups; i++) {
+		pgroup = &soc->groups[i];
+
+		if (pgroup->ctl_reg)
+			msm_writel_ctl(pctrl->gpio_regs[i].ctl_reg,
+				       pctrl, pgroup);
+		if (pgroup->io_reg)
+			msm_writel_io(pctrl->gpio_regs[i].io_reg,
+				      pctrl, pgroup);
+	}
+	return 0;
+}
+
 static __maybe_unused int msm_pinctrl_suspend(struct device *dev)
 {
 	struct msm_pinctrl *pctrl = dev_get_drvdata(dev);
+
+	if (pm_suspend_target_state == PM_SUSPEND_MEM
+		|| pm_suspend_target_state == PM_SUSPEND_TO_IDLE)
+		return msm_pinctrl_save_hw_ctx(pctrl);
 
 	return pinctrl_force_sleep(pctrl->pctrl);
 }
@@ -1511,6 +1595,10 @@ static __maybe_unused int msm_pinctrl_suspend(struct device *dev)
 static __maybe_unused int msm_pinctrl_resume(struct device *dev)
 {
 	struct msm_pinctrl *pctrl = dev_get_drvdata(dev);
+
+	if (pm_suspend_target_state == PM_SUSPEND_MEM
+		|| pm_suspend_target_state == PM_SUSPEND_TO_IDLE)
+		return msm_pinctrl_restore_hw_ctx(pctrl);
 
 	return pinctrl_force_default(pctrl->pctrl);
 }
@@ -1581,6 +1669,11 @@ int msm_pinctrl_probe(struct platform_device *pdev,
 	if (ret)
 		return ret;
 
+	pctrl->gpio_regs = kcalloc(pctrl->soc->ngroups, sizeof(*pctrl->gpio_regs),
+				   GFP_KERNEL);
+	if (!pctrl->gpio_regs)
+		return -ENOMEM;
+
 	platform_set_drvdata(pdev, pctrl);
 
 	dev_dbg(&pdev->dev, "Probed Qualcomm pinctrl driver\n");
@@ -1594,6 +1687,8 @@ void msm_pinctrl_remove(struct platform_device *pdev)
 	struct msm_pinctrl *pctrl = platform_get_drvdata(pdev);
 
 	gpiochip_remove(&pctrl->chip);
+
+	kfree(pctrl->gpio_regs);
 
 	unregister_restart_handler(&pctrl->restart_nb);
 }

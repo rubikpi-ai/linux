@@ -1665,6 +1665,23 @@ static void qca_hw_error(struct hci_dev *hdev, u8 code)
 	}
 
 	clear_bit(QCA_HW_ERROR_EVENT, &qca->flags);
+
+	/*
+	 * If the SoC always enables the bt_en pin via hardware and the driver
+	 * cannot control the bt_en pin of the SoC chip, then during SSR,
+	 * the QCA_SSR_TRIGGERED and QCA_IBS_DISABLED bits cannot be cleared.
+	 * This leads to a reset command timeout failure.
+	 *
+	 * To address this, clear QCA_SSR_TRIGGERED and QCA_IBS_DISABLED bits
+	 * after the coredump collection is complete.
+	 * Also, add msleep delay to wait for controller to complete SSR.
+	 */
+	if (!test_bit(HCI_QUIRK_NON_PERSISTENT_SETUP, &hdev->quirks)) {
+		clear_bit(QCA_SSR_TRIGGERED, &qca->flags);
+		clear_bit(QCA_IBS_DISABLED, &qca->flags);
+		qca->tx_ibs_state = HCI_IBS_TX_AWAKE;
+		msleep(50);
+	}
 }
 
 static void qca_cmd_timeout(struct hci_dev *hdev)
@@ -2408,6 +2425,13 @@ static int qca_serdev_probe(struct serdev_device *serdev)
 	if (power_ctrl_enabled) {
 		set_bit(HCI_QUIRK_NON_PERSISTENT_SETUP, &hdev->quirks);
 		hdev->shutdown = qca_power_off;
+	} else {
+	/* host not respond to controller's IBS command
+	 * when BT close hci and no close uart,
+	 * causing controller to enter an abnormal state.
+	 * Therefore, disable HCI_AUTO_OFF
+	 */
+		hci_dev_clear_flag(hdev, HCI_AUTO_OFF);
 	}
 
 	if (data) {

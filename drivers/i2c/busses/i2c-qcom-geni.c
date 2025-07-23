@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
-// Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 #include <linux/acpi.h>
 #include <linux/clk.h>
@@ -838,6 +838,9 @@ static int geni_check_fw_validity(struct geni_i2c_dev *gi2c)
 	if (proto != GENI_SE_I2C) {
 		ret = geni_load_se_firmware(&gi2c->se, GENI_SE_I2C);
 		if (ret) {
+			if (ret == -ENOENT)
+				return -EPROBE_DEFER;
+
 			dev_err(dev, "Cannot load firmware from linux for i2c error: %d\n", ret);
 			return -ENXIO;
 		}
