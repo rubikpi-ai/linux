@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 /dts-v1/;
@@ -390,6 +391,7 @@
 		#gpio-cells = <2>;
 		gpio-controller;
 		reg = <0x3d>;
+		vcc-supply = <&vreg_s4a>;
 	};
 
 	expander6: pca953x@3e {
