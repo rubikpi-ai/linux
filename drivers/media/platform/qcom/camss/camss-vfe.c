@@ -339,6 +339,8 @@ static u32 vfe_src_pad_code(struct vfe_line *line, u32 sink_code,
 	case CAMSS_8250:
 	case CAMSS_8280XP:
 	case CAMSS_845:
+	case CAMSS_8775P:
+	case CAMSS_8300:
 		switch (sink_code) {
 		case MEDIA_BUS_FMT_YUYV8_1X16:
 		{
@@ -407,15 +409,17 @@ int vfe_reset(struct vfe_device *vfe)
 {
 	unsigned long time;
 
-	reinit_completion(&vfe->reset_complete);
+	if (vfe->res->hw_ops->global_reset) {
+		reinit_completion(&vfe->reset_complete);
 
-	vfe->res->hw_ops->global_reset(vfe);
+		vfe->res->hw_ops->global_reset(vfe);
 
-	time = wait_for_completion_timeout(&vfe->reset_complete,
-		msecs_to_jiffies(VFE_RESET_TIMEOUT_MS));
-	if (!time) {
-		dev_err(vfe->camss->dev, "VFE reset timeout\n");
-		return -EIO;
+		time = wait_for_completion_timeout(&vfe->reset_complete,
+			msecs_to_jiffies(VFE_RESET_TIMEOUT_MS));
+		if (!time) {
+			dev_err(vfe->camss->dev, "VFE reset timeout\n");
+			return -EIO;
+		}
 	}
 
 	return 0;
@@ -634,7 +638,8 @@ static int vfe_match_clock_names(struct vfe_device *vfe,
 
 	return (!strcmp(clock->name, vfe_name) ||
 		!strcmp(clock->name, vfe_lite_name) ||
-		!strcmp(clock->name, "vfe_lite"));
+		!strcmp(clock->name, "vfe_lite") ||
+		!strcmp(clock->name, "camnoc_axi"));
 }
 
 /*
@@ -792,6 +797,7 @@ int vfe_get(struct vfe_device *vfe)
 		if (ret < 0)
 			goto error_pm_domain;
 
+		dev_pm_genpd_set_performance_state(vfe->camss->dev, RPMP_PERF_STATE_NOM);
 		ret = pm_runtime_resume_and_get(vfe->camss->dev);
 		if (ret < 0)
 			goto error_domain_off;
@@ -853,7 +859,8 @@ void vfe_put(struct vfe_device *vfe)
 	} else if (vfe->power_count == 1) {
 		if (vfe->was_streaming) {
 			vfe->was_streaming = 0;
-			vfe->res->hw_ops->vfe_halt(vfe);
+			if (vfe->res->hw_ops->vfe_halt)
+				vfe->res->hw_ops->vfe_halt(vfe);
 		}
 		camss_disable_clocks(vfe->nclocks, vfe->clock);
 		pm_runtime_put_sync(vfe->camss->dev);
@@ -1542,11 +1549,13 @@ int msm_vfe_subdev_init(struct camss *camss, struct vfe_device *vfe,
 	vfe->irq = ret;
 	snprintf(vfe->irq_name, sizeof(vfe->irq_name), "%s_%s%d",
 		 dev_name(dev), MSM_VFE_NAME, id);
-	ret = devm_request_irq(dev, vfe->irq, vfe->res->hw_ops->isr,
-			       IRQF_TRIGGER_RISING, vfe->irq_name, vfe);
-	if (ret < 0) {
-		dev_err(dev, "request_irq failed: %d\n", ret);
-		return ret;
+	if (vfe->res->hw_ops->isr) {
+		ret = devm_request_irq(dev, vfe->irq, vfe->res->hw_ops->isr,
+				       IRQF_TRIGGER_RISING, vfe->irq_name, vfe);
+		if (ret < 0) {
+			dev_err(dev, "request_irq failed: %d\n", ret);
+			return ret;
+		}
 	}
 
 	/* Clocks */
@@ -1699,6 +1708,8 @@ static int vfe_bpl_align(struct vfe_device *vfe)
 	case CAMSS_8250:
 	case CAMSS_8280XP:
 	case CAMSS_845:
+	case CAMSS_8775P:
+	case CAMSS_8300:
 		ret = 16;
 		break;
 	default:

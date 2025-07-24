@@ -34,12 +34,22 @@ static const struct subsystem_data subsystems[] = {
 	{ "modem", 605, 1 },
 	{ "wpss", 605, 13 },
 	{ "adsp", 606, 2 },
+	{ "adsp1", 606, 66 },
+	{ "adsp2", 606, 130 },
 	{ "cdsp", 607, 5 },
+	{ "cdsp1", 607, 12 },
+	{ "nsp", 607, 5 },
+	{ "nsp1", 607, 69 },
+	{ "nsp2", 607, 133 },
+	{ "nsp3", 607, 197 },
+	{ "gpdsp0", 607, 17 },
+	{ "gpdsp1", 607, 18 },
 	{ "slpi", 608, 3 },
 	{ "gpu", 609, 0 },
 	{ "display", 610, 0 },
 	{ "adsp_island", 613, 2 },
 	{ "slpi_island", 613, 3 },
+	{ "apss", 631, QCOM_SMEM_HOST_ANY },
 };
 
 struct stats_config {

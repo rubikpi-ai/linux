@@ -32,7 +32,9 @@
 #define SDSP_DOMAIN_ID (2)
 #define CDSP_DOMAIN_ID (3)
 #define CDSP1_DOMAIN_ID (4)
-#define FASTRPC_DEV_MAX		5 /* adsp, mdsp, slpi, cdsp, cdsp1*/
+#define GDSP0_DOMAIN_ID (5)
+#define GDSP1_DOMAIN_ID (6)
+#define FASTRPC_DEV_MAX		7 /* adsp, mdsp, slpi, cdsp, cdsp1, gdsp0, gdsp1 */
 #define FASTRPC_MAX_SESSIONS	14
 #define FASTRPC_MAX_SPD		4
 #define FASTRPC_MAX_VMIDS	16
@@ -145,7 +147,9 @@ enum fastrpc_response_flags {
 };
 
 static const char *domains[FASTRPC_DEV_MAX] = { "adsp", "mdsp",
-						"sdsp", "cdsp", "cdsp1"};
+						"sdsp", "cdsp",
+						"cdsp1", "gdsp0",
+						"gdsp1"};
 
 struct fastrpc_invoke_v2 {
 	struct fastrpc_invoke inv;
@@ -1359,23 +1363,6 @@ static int fastrpc_get_spd_session(struct fastrpc_channel_ctx *cctx,
 	return session;
 }
 
-static int fastrpc_check_pd_status(struct fastrpc_user *fl,
-				char *servloc_name)
-{
-	int session = -1;
-
-	if (fl->servloc_name && servloc_name
-		&& !strcmp(fl->servloc_name, servloc_name)) {
-		session = fastrpc_get_spd_session(fl->cctx, servloc_name);
-		if (session < 0)
-			return -EUSERS;
-		if (atomic_read(&fl->cctx->spd[session].ispdup) == 0)
-			return -ENOTCONN;
-	}
-
-	return 0;
-}
-
 static void fastrpc_update_invoke_count(u32 handle, u64 *perf_counter,
 					struct timespec64 *invoket)
 {
@@ -1505,17 +1492,6 @@ static int fastrpc_internal_invoke(struct fastrpc_user *fl,
 	ctx = fastrpc_context_alloc(fl, kernel, sc, inv2);
 	if (IS_ERR(ctx))
 		return PTR_ERR(ctx);
-
-	if (fl->servloc_name) {
-		err = fastrpc_check_pd_status(fl,
-			AUDIO_PDR_SERVICE_LOCATION_CLIENT_NAME);
-		err |= fastrpc_check_pd_status(fl,
-			SENSORS_PDR_ADSP_SERVICE_LOCATION_CLIENT_NAME);
-		err |= fastrpc_check_pd_status(fl,
-			SENSORS_PDR_SLPI_SERVICE_LOCATION_CLIENT_NAME);
-		if (err)
-			goto bail;
-	}
 
 	PERF(ctx->perf_kernel, GET_COUNTER((u64 *)ctx->perf, PERF_GETARGS),
 	err = fastrpc_get_args(kernel, ctx);
@@ -2750,7 +2726,9 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int cmd,
 		err = fastrpc_req_mmap(fl, argp);
 		break;
 	case FASTRPC_IOCTL_MUNMAP:
+		mutex_lock(&fl->mutex);
 		err = fastrpc_req_munmap(fl, argp);
+		mutex_unlock(&fl->mutex);
 		break;
 	case FASTRPC_IOCTL_MEM_MAP:
 		err = fastrpc_req_mem_map(fl, argp);
@@ -3061,6 +3039,8 @@ static int fastrpc_rpmsg_probe(struct rpmsg_device *rpdev)
 		break;
 	case CDSP_DOMAIN_ID:
 	case CDSP1_DOMAIN_ID:
+	case GDSP0_DOMAIN_ID:
+	case GDSP1_DOMAIN_ID:
 		data->unsigned_support = true;
 		/* Create both device nodes so that we can allow both Signed and Unsigned PD */
 		err = fastrpc_device_register(rdev, data, true, domains[domain_id]);
@@ -3069,7 +3049,7 @@ static int fastrpc_rpmsg_probe(struct rpmsg_device *rpdev)
 
 		err = fastrpc_device_register(rdev, data, false, domains[domain_id]);
 		if (err)
-			goto fdev_error;
+			goto populate_error;
 		break;
 	default:
 		err = -EINVAL;

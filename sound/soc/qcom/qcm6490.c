@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 // Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+// Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 #include <linux/input.h>
 #include <linux/module.h>
@@ -19,8 +20,6 @@
 #include "sdw.h"
 
 #define DRIVER_NAME		"qcm6490"
-#define TDM_SLOTS_PER_FRAME	8
-#define TDM_SLOT_WIDTH		16
 #define WCN_CDC_SLIM_RX_CH_MAX	2
 #define WCN_CDC_SLIM_TX_CH_MAX	2
 #define NAME_SIZE	32
@@ -30,6 +29,7 @@
 #define MI2S_BCLK_RATE			1536000
 
 struct qcm6490_snd_data {
+	struct qcom_snd_common_data common_priv;
 	bool stream_prepared[AFE_PORT_MAX];
 	struct snd_soc_card *card;
 	uint32_t pri_mi2s_clk_count;
@@ -42,8 +42,6 @@ struct qcm6490_snd_data {
 	struct sdw_stream_runtime *sruntime[AFE_PORT_MAX];
 	struct snd_soc_jack jack;
 	bool jack_setup;
-	struct clk *macro;
-	struct clk *dcodec;
 	struct snd_soc_jack hdmi_jack[8];
 };
 
@@ -188,34 +186,32 @@ static int qcm6490_snd_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_pcm_runtime *rtd = substream->private_data;
 	struct snd_soc_dai *cpu_dai = asoc_rtd_to_cpu(rtd, 0);
 	struct qcm6490_snd_data *pdata = snd_soc_card_get_drvdata(rtd->card);
+	struct snd_soc_dai *codec_dai = NULL;
+	struct qcom_snd_dailink_data *link_priv = &pdata->common_priv.link_data[rtd->num];
+	unsigned int daifmt = 0;
+	u32 mclk_fs, mclk_rate, clk_dir;
 	int ret = 0;
+	int i;
 
-	switch (cpu_dai->id) {
-	case TERTIARY_MI2S_RX:
-	case TERTIARY_MI2S_TX:
-	case TERTIARY_TDM_RX_0:
-	case TERTIARY_TDM_TX_0:
-		/* clock setting is done for qcs9100 target to support high
-		 * speed i2s interface
-		 */
-		if (pdata->macro) {
-			ret = clk_prepare_enable(pdata->macro);
-			if (ret) {
-				dev_err(pdata->card->dev, "unable to prepare macro\n");
+	daifmt = rtd->dai_link->dai_fmt;
+	for_each_rtd_codec_dais(rtd, i, codec_dai) {
+		if (daifmt)
+			snd_soc_dai_set_fmt(codec_dai, daifmt);
+
+		mclk_fs = link_priv->mclk_fs;
+		clk_dir = link_priv->clk_direction;
+		if (mclk_fs) {
+			mclk_rate = params_rate(params) * mclk_fs;
+			ret = snd_soc_dai_set_sysclk(codec_dai, link_priv->mclk_id,
+						     mclk_rate, clk_dir);
+			if (ret < 0) {
+				dev_err(rtd->dev, "snd_soc_dai_set_sysclk err = %d\n",
+					ret);
 				return ret;
 			}
 		}
-		if (pdata->dcodec) {
-			ret = clk_prepare_enable(pdata->dcodec);
-			if (ret) {
-				dev_err(pdata->card->dev, "unable to prepare decode\n");
-				return ret;
-			}
-		}
-		break;
-	default:
-		break;
 	}
+
 	return qcom_snd_sdw_hw_params(substream, params, &pdata->sruntime[cpu_dai->id]);
 }
 
@@ -492,42 +488,6 @@ static const struct snd_soc_dapm_route qcs6490_rb3gen2_vision_dapm_routes[] = {
 	{"STUB_AIF1_TX", NULL, "STUB_AIF1_PINCTRL"},
 };
 
-static const struct snd_soc_dapm_widget qcs8300_dapm_widgets[] = {
-	SND_SOC_DAPM_PINCTRL("STUB_AIF1_PINCTRL", "stub_aif1_active", "stub_aif1_sleep"),
-	SND_SOC_DAPM_PINCTRL("STUB_AIF2_PINCTRL", "stub_aif2_active", "stub_aif2_sleep"),
-	SND_SOC_DAPM_PINCTRL("STUB_AIF3_PINCTRL", "stub_aif3_active", "stub_aif3_sleep"),
-	SND_SOC_DAPM_PINCTRL("STUB_AIF4_PINCTRL", "stub_aif4_active", "stub_aif4_sleep"),
-};
-
-static const struct snd_soc_dapm_route qcs8300_dapm_routes[] = {
-	{"STUB_AIF1_RX", NULL, "STUB_AIF1_PINCTRL"},
-	{"STUB_AIF1_TX", NULL, "STUB_AIF1_PINCTRL"},
-	{"STUB_AIF2_RX", NULL, "STUB_AIF2_PINCTRL"},
-	{"STUB_AIF2_TX", NULL, "STUB_AIF2_PINCTRL"},
-	{"STUB_AIF1_RX", NULL, "STUB_AIF3_PINCTRL"},
-	{"STUB_AIF1_TX", NULL, "STUB_AIF3_PINCTRL"},
-	{"STUB_AIF1_RX", NULL, "STUB_AIF4_PINCTRL"},
-	{"STUB_AIF1_TX", NULL, "STUB_AIF4_PINCTRL"},
-};
-
-static const struct snd_soc_dapm_widget qcs9100_dapm_widgets[] = {
-	SND_SOC_DAPM_PINCTRL("STUB_AIF0_PINCTRL", "stub_aif0_active", "stub_aif0_sleep"),
-	SND_SOC_DAPM_PINCTRL("STUB_AIF1_PINCTRL", "stub_aif1_active", "stub_aif1_sleep"),
-	SND_SOC_DAPM_PINCTRL("STUB_AIF2_PINCTRL", "stub_aif2_active", "stub_aif2_sleep"),
-	SND_SOC_DAPM_PINCTRL("STUB_AIF3_PINCTRL", "stub_aif3_active", "stub_aif3_sleep"),
-};
-
-static const struct snd_soc_dapm_route qcs9100_dapm_routes[] = {
-	{"STUB_AIF0_RX", NULL, "STUB_AIF0_PINCTRL"},
-	{"STUB_AIF0_TX", NULL, "STUB_AIF0_PINCTRL"},
-	{"STUB_AIF1_RX", NULL, "STUB_AIF1_PINCTRL"},
-	{"STUB_AIF1_TX", NULL, "STUB_AIF1_PINCTRL"},
-	{"STUB_AIF2_RX", NULL, "STUB_AIF2_PINCTRL"},
-	{"STUB_AIF2_TX", NULL, "STUB_AIF2_PINCTRL"},
-	{"STUB_AIF3_RX", NULL, "STUB_AIF3_PINCTRL"},
-	{"STUB_AIF3_TX", NULL, "STUB_AIF3_PINCTRL"},
-};
-
 static const struct snd_soc_ops qcm6490_be_ops = {
 	.hw_params = qcm6490_snd_hw_params,
 	.hw_free = qcm6490_snd_hw_free,
@@ -582,26 +542,6 @@ static struct snd_soc_card qcs6490_rb3gen2_vision_data = {
 	.num_dapm_routes = ARRAY_SIZE(qcs6490_rb3gen2_vision_dapm_routes),
 };
 
-static struct snd_soc_card snd_soc_qcs8300_data = {
-	.name = "qcs8300",
-	.dapm_widgets = qcs8300_dapm_widgets,
-	.num_dapm_widgets = ARRAY_SIZE(qcs8300_dapm_widgets),
-	.dapm_routes = qcs8300_dapm_routes,
-	.num_dapm_routes = ARRAY_SIZE(qcs8300_dapm_routes),
-};
-
-static struct snd_soc_card snd_soc_qcs9100_data = {
-	.name = "qcs9100",
-	.dapm_widgets = qcs9100_dapm_widgets,
-	.num_dapm_widgets = ARRAY_SIZE(qcs9100_dapm_widgets),
-	.dapm_routes = qcs9100_dapm_routes,
-	.num_dapm_routes = ARRAY_SIZE(qcs9100_dapm_routes),
-};
-
-static struct snd_soc_card snd_soc_qcs9075_rb8_data = {
-	.name = "qcs9075-rb8",
-};
-
 static void qcm6490_add_be_ops(struct snd_soc_card *card)
 {
 	struct snd_soc_dai_link *link;
@@ -638,22 +578,12 @@ static int qcm6490_platform_probe(struct platform_device *pdev)
 
 	dev_set_drvdata(dev, card);
 	snd_soc_card_set_drvdata(card, data);
-	ret = qcom_snd_parse_of(card);
+	ret = qcom_snd_parse_of_v2(card, &data->common_priv);
 	if (ret)
 		return ret;
 
 	card->driver_name = DRIVER_NAME;
 	qcm6490_add_be_ops(card);
-
-	/* get clock info to set clock for qcs9100 target to support high
-	 * speed i2s interface
-	 */
-	data->macro = devm_clk_get_optional(dev, "macro");
-	if (IS_ERR(data->macro))
-		dev_info(dev, "getting macro clock info FAILED\n");
-	data->dcodec = devm_clk_get_optional(dev, "dcodec");
-	if (IS_ERR(data->dcodec))
-		dev_info(dev, "getting decode clock info FAILED\n");
 
 	return devm_snd_soc_register_card(dev, card);
 }
@@ -665,9 +595,6 @@ static const struct of_device_id snd_qcm6490_dt_match[] = {
 	{.compatible = "qcom,qcs6490-rb3gen2-ptz-sndcard", .data = &qcs6490_rb3gen2_ptz_data},
 	{.compatible = "qcom,qcs6490-rb3gen2-video-sndcard", .data = &qcs6490_rb3gen2_video_data},
 	{.compatible = "qcom,qcs6490-rb3gen2-vision-sndcard", .data = &qcs6490_rb3gen2_vision_data},
-	{.compatible = "qcom,qcs8300-sndcard", .data = &snd_soc_qcs8300_data},
-	{.compatible = "qcom,qcs9100-sndcard", .data = &snd_soc_qcs9100_data},
-	{.compatible = "qcom,qcs9075-rb8-sndcard", .data = &snd_soc_qcs9075_rb8_data},
 	{}
 };
 

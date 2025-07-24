@@ -159,6 +159,7 @@ allOf:
         compatible:
           contains:
             enum:
+              - qcom,qcs8300-cpufreq-epss
               - qcom,sc7280-cpufreq-epss
               - qcom,sm8250-cpufreq-epss
               - qcom,sm8350-cpufreq-epss

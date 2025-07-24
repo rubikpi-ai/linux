@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
- * Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2024-2025, Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 / {
 	thermal-zones {
-		pmm8654au_0_thermal: pm8255-0-thermal {
+		pmm8654au_0_thermal: xo-thermal {
 			polling-delay-passive = <100>;
 			polling-delay = <0>;
 
@@ -24,7 +24,7 @@
 			};
 		};
 
-		pmm8654au_1_thermal: pm8255-1-thermal {
+		pmm8654au_1_thermal: ufs0-thermal {
 			polling-delay-passive = <100>;
 			polling-delay = <0>;
 
@@ -43,7 +43,7 @@
 			};
 		};
 
-		pmm8654au_2_thermal: pm8255-2-thermal {
+		pmm8654au_2_thermal: soc0-thermal {
 			polling-delay-passive = <100>;
 			polling-delay = <0>;
 
@@ -62,7 +62,7 @@
 			};
 		};
 
-		pmm8654au_3_thermal: pm8255-3-thermal {
+		pmm8654au_3_thermal: sdram0-thermal {
 			polling-delay-passive = <100>;
 			polling-delay = <0>;
 
