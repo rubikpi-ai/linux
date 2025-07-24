@@ -138,6 +138,8 @@ int mhi_ep_ring_add_element(struct mhi_ep_ring *ring, struct mhi_ring_element *e
 	buf_info.size = sizeof(*el);
 
 	ret = mhi_cntrl->write_sync(mhi_cntrl, &buf_info);
+	if (ret)
+		return ret;
 
 	mhi_ep_ring_inc_index(ring);
 
