@@ -377,6 +377,7 @@ struct trace_array {
 	unsigned char		trace_flags_index[TRACE_FLAGS_MAX_SIZE];
 	unsigned int		flags;
 	raw_spinlock_t		start_lock;
+	const char		*system_names;
 	struct list_head	err_log;
 	struct dentry		*dir;
 	struct dentry		*options;
@@ -644,9 +645,8 @@ void trace_buffer_unlock_commit_nostack(struct trace_buffer *buffer,
 
 bool trace_is_tracepoint_string(const char *str);
 const char *trace_event_format(struct trace_iterator *iter, const char *fmt);
-void trace_check_vprintf(struct trace_iterator *iter, const char *fmt,
-			 va_list ap) __printf(2, 0);
 char *trace_iter_expand_format(struct trace_iterator *iter);
+bool ignore_event(struct trace_iterator *iter);
 
 int trace_empty(struct trace_iterator *iter);
 
@@ -1323,7 +1323,8 @@ struct ftrace_event_field {
 	int			filter_type;
 	int			offset;
 	int			size;
-	int			is_signed;
+	unsigned int		is_signed:1;
+	unsigned int		needs_test:1;
 	int			len;
 };
 

@@ -45,3 +45,5 @@ obj-$(CONFIG_QCOM_SOC_DEBUG) += qcom_soc_debug.o
 obj-$(CONFIG_QCOM_SECURE_BUFFER) += secure_buffer.o
 usb_f_qdss-y			:= f_qdss.o
 obj-$(CONFIG_USB_F_QDSS)	+= usb_f_qdss.o
+obj-$(CONFIG_QCOM_RPROC_MINIDUMP)	+= qcom_rproc_minidump.o
+obj-$(CONFIG_QCOM_MINIDUMP)	  += qcom_minidump.o

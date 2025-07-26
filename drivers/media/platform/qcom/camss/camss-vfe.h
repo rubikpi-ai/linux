@@ -114,7 +114,12 @@ struct vfe_hw_ops {
 	int (*vfe_enable)(struct vfe_line *line);
 	int (*vfe_halt)(struct vfe_device *vfe);
 	void (*violation_read)(struct vfe_device *vfe);
+	void (*vfe_wm_start)(struct vfe_device *vfe, u8 wm,
+			     struct vfe_line *line);
 	void (*vfe_wm_stop)(struct vfe_device *vfe, u8 wm);
+	void (*vfe_buf_done)(struct vfe_device *vfe, int port_id);
+	void (*vfe_wm_update)(struct vfe_device *vfe, u8 wm, u32 addr,
+			      struct vfe_line *line);
 };
 
 struct vfe_isr_ops {
@@ -238,6 +243,7 @@ extern const struct vfe_hw_ops vfe_ops_4_7;
 extern const struct vfe_hw_ops vfe_ops_4_8;
 extern const struct vfe_hw_ops vfe_ops_170;
 extern const struct vfe_hw_ops vfe_ops_480;
+extern const struct vfe_hw_ops vfe_ops_690;
 
 int vfe_get(struct vfe_device *vfe);
 void vfe_put(struct vfe_device *vfe);

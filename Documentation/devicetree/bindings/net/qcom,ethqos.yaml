@@ -59,6 +59,7 @@ properties:
   compatible:
     enum:
       - qcom,qcs404-ethqos
+      - qcom,qcs615-ethqos
       - qcom,qcs8300-ethqos
       - qcom,sa8620p-ethqos
       - qcom,sa7255p-ethqos
@@ -112,6 +113,12 @@ properties:
 
   phy-names:
     description: phy name
+
+  qcom,rx-prog-swap:
+    type: boolean
+    description:
+      Swap the sampling occasion on the RX side. This can be used for
+      tuning when connected to a third-party PHY.
 
 required:
   - compatible

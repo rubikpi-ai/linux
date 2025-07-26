@@ -8,6 +8,7 @@
  */
 
 #include <linux/firmware.h>
+#include <linux/iommu.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/notifier.h>
@@ -17,7 +18,6 @@
 #include <linux/rpmsg/qcom_smd.h>
 #include <linux/slab.h>
 #include <linux/soc/qcom/mdt_loader.h>
-#include <linux/soc/qcom/smem.h>
 
 #include "remoteproc_internal.h"
 #include "qcom_common.h"
@@ -26,60 +26,7 @@
 #define to_smd_subdev(d) container_of(d, struct qcom_rproc_subdev, subdev)
 #define to_ssr_subdev(d) container_of(d, struct qcom_rproc_ssr, subdev)
 
-#define MAX_NUM_OF_SS           10
-#define MAX_REGION_NAME_LENGTH  16
-#define SBL_MINIDUMP_SMEM_ID	602
-#define MINIDUMP_REGION_VALID		('V' << 24 | 'A' << 16 | 'L' << 8 | 'I' << 0)
-#define MINIDUMP_SS_ENCR_DONE		('D' << 24 | 'O' << 16 | 'N' << 8 | 'E' << 0)
-#define MINIDUMP_SS_ENABLED		('E' << 24 | 'N' << 16 | 'B' << 8 | 'L' << 0)
-
-/**
- * struct minidump_region - Minidump region
- * @name		: Name of the region to be dumped
- * @seq_num:		: Use to differentiate regions with same name.
- * @valid		: This entry to be dumped (if set to 1)
- * @address		: Physical address of region to be dumped
- * @size		: Size of the region
- */
-struct minidump_region {
-	char	name[MAX_REGION_NAME_LENGTH];
-	__le32	seq_num;
-	__le32	valid;
-	__le64	address;
-	__le64	size;
-};
-
-/**
- * struct minidump_subsystem - Subsystem's SMEM Table of content
- * @status : Subsystem toc init status
- * @enabled : if set to 1, this region would be copied during coredump
- * @encryption_status: Encryption status for this subsystem
- * @encryption_required : Decides to encrypt the subsystem regions or not
- * @region_count : Number of regions added in this subsystem toc
- * @regions_baseptr : regions base pointer of the subsystem
- */
-struct minidump_subsystem {
-	__le32	status;
-	__le32	enabled;
-	__le32	encryption_status;
-	__le32	encryption_required;
-	__le32	region_count;
-	__le64	regions_baseptr;
-};
-
-/**
- * struct minidump_global_toc - Global Table of Content
- * @status : Global Minidump init status
- * @md_revision : Minidump revision
- * @enabled : Minidump enable status
- * @subsystems : Array of subsystems toc
- */
-struct minidump_global_toc {
-	__le32				status;
-	__le32				md_revision;
-	__le32				enabled;
-	struct minidump_subsystem	subsystems[MAX_NUM_OF_SS];
-};
+#define SID_MASK_DEFAULT	0xfUL
 
 struct qcom_ssr_subsystem {
 	const char *name;
@@ -89,110 +36,6 @@ struct qcom_ssr_subsystem {
 
 static LIST_HEAD(qcom_ssr_subsystem_list);
 static DEFINE_MUTEX(qcom_ssr_subsys_lock);
-
-static void qcom_minidump_cleanup(struct rproc *rproc)
-{
-	struct rproc_dump_segment *entry, *tmp;
-
-	list_for_each_entry_safe(entry, tmp, &rproc->dump_segments, node) {
-		list_del(&entry->node);
-		kfree(entry->priv);
-		kfree(entry);
-	}
-}
-
-static int qcom_add_minidump_segments(struct rproc *rproc, struct minidump_subsystem *subsystem,
-			void (*rproc_dumpfn_t)(struct rproc *rproc, struct rproc_dump_segment *segment,
-				void *dest, size_t offset, size_t size))
-{
-	struct minidump_region __iomem *ptr;
-	struct minidump_region region;
-	int seg_cnt, i;
-	dma_addr_t da;
-	size_t size;
-	char *name;
-
-	if (WARN_ON(!list_empty(&rproc->dump_segments))) {
-		dev_err(&rproc->dev, "dump segment list already populated\n");
-		return -EUCLEAN;
-	}
-
-	seg_cnt = le32_to_cpu(subsystem->region_count);
-	ptr = ioremap((unsigned long)le64_to_cpu(subsystem->regions_baseptr),
-		      seg_cnt * sizeof(struct minidump_region));
-	if (!ptr)
-		return -EFAULT;
-
-	for (i = 0; i < seg_cnt; i++) {
-		memcpy_fromio(&region, ptr + i, sizeof(region));
-		if (le32_to_cpu(region.valid) == MINIDUMP_REGION_VALID) {
-			name = kstrndup(region.name, MAX_REGION_NAME_LENGTH - 1, GFP_KERNEL);
-			if (!name) {
-				iounmap(ptr);
-				return -ENOMEM;
-			}
-			da = le64_to_cpu(region.address);
-			size = le64_to_cpu(region.size);
-			rproc_coredump_add_custom_segment(rproc, da, size, rproc_dumpfn_t, name);
-		}
-	}
-
-	iounmap(ptr);
-	return 0;
-}
-
-void qcom_minidump(struct rproc *rproc, unsigned int minidump_id,
-		void (*rproc_dumpfn_t)(struct rproc *rproc,
-		struct rproc_dump_segment *segment, void *dest, size_t offset,
-		size_t size))
-{
-	int ret;
-	struct minidump_subsystem *subsystem;
-	struct minidump_global_toc *toc;
-
-	/* Get Global minidump ToC*/
-	toc = qcom_smem_get(QCOM_SMEM_HOST_ANY, SBL_MINIDUMP_SMEM_ID, NULL);
-
-	/* check if global table pointer exists and init is set */
-	if (IS_ERR(toc) || !toc->status) {
-		dev_err(&rproc->dev, "Minidump TOC not found in SMEM\n");
-		return;
-	}
-
-	/* Get subsystem table of contents using the minidump id */
-	subsystem = &toc->subsystems[minidump_id];
-
-	/**
-	 * Collect minidump if SS ToC is valid and segment table
-	 * is initialized in memory and encryption status is set.
-	 */
-	if (subsystem->regions_baseptr == 0 ||
-	    le32_to_cpu(subsystem->status) != 1 ||
-	    le32_to_cpu(subsystem->enabled) != MINIDUMP_SS_ENABLED) {
-		return rproc_coredump(rproc);
-	}
-
-	if (le32_to_cpu(subsystem->encryption_status) != MINIDUMP_SS_ENCR_DONE) {
-		dev_err(&rproc->dev, "Minidump not ready, skipping\n");
-		return;
-	}
-
-	/**
-	 * Clear out the dump segments populated by parse_fw before
-	 * re-populating them with minidump segments.
-	 */
-	rproc_coredump_cleanup(rproc);
-
-	ret = qcom_add_minidump_segments(rproc, subsystem, rproc_dumpfn_t);
-	if (ret) {
-		dev_err(&rproc->dev, "Failed with error: %d while adding minidump entries\n", ret);
-		goto clean_minidump;
-	}
-	rproc_coredump_using_sections(rproc);
-clean_minidump:
-	qcom_minidump_cleanup(rproc);
-}
-EXPORT_SYMBOL_GPL(qcom_minidump);
 
 static int glink_subdev_start(struct rproc_subdev *subdev)
 {
@@ -518,6 +361,151 @@ void qcom_remove_ssr_subdev(struct rproc *rproc, struct qcom_rproc_ssr *ssr)
 	ssr->info = NULL;
 }
 EXPORT_SYMBOL_GPL(qcom_remove_ssr_subdev);
+
+/**
+ * qcom_map_unmap_carveout() - iommu map and unmap carveout region
+ *
+ * @rproc:	rproc handle
+ * @mem_phys:	starting physical address of carveout region
+ * @mem_size:	size of carveout region
+ * @map:	if true, map otherwise, unmap
+ * @use_sid:	decision to append sid to iova
+ * @sid:	SID value
+ */
+int qcom_map_unmap_carveout(struct rproc *rproc, phys_addr_t mem_phys, size_t mem_size,
+			    bool map, bool use_sid, unsigned long sid)
+{
+	unsigned long iova = mem_phys;
+	unsigned long sid_def_val;
+	int ret = 0;
+
+	if (!rproc->has_iommu)
+		return 0;
+
+	if (!rproc->domain)
+		return -EINVAL;
+
+	/*
+	 * Remote processor like ADSP supports up to 36 bit device
+	 * address space and some of its clients like fastrpc uses
+	 * upper 32-35 bits to keep lower 4 bits of its SID to use
+	 * larger address space. To keep this consistent across other
+	 * use cases add remoteproc SID configuration for firmware
+	 * to IOMMU for carveouts.
+	 */
+	if (use_sid && sid) {
+		sid_def_val = sid & SID_MASK_DEFAULT;
+		iova |= ((uint64_t)sid_def_val << 32);
+	}
+
+	if (map) {
+		ret = iommu_map(rproc->domain, iova, mem_phys, mem_size,
+				IOMMU_READ | IOMMU_WRITE, GFP_KERNEL);
+		if (ret)
+			dev_err(&rproc->dev, "Unable to map IOVA Memory, ret: %d\n", ret);
+	} else {
+		iommu_unmap(rproc->domain, iova, mem_size);
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(qcom_map_unmap_carveout);
+
+/**
+ * qcom_map_devmem() - Map the device memories needed by Remoteproc using IOMMU
+ *
+ * When Qualcomm EL2 hypervisor(QHEE) present, device memories needed for remoteproc
+ * processors is managed by it and Linux remoteproc drivers should not call
+ * this and its respective unmap function in such scenario. This function
+ * should only be called if remoteproc IOMMU translation need to be managed
+ * from Linux side.
+ *
+ * @rproc: rproc handle
+ * @devmem_table: list of devmem regions to map
+ * @use_sid: decision to append sid to iova
+ * @sid: SID value
+ */
+int qcom_map_devmem(struct rproc *rproc, struct qcom_devmem_table *devmem_table,
+		    bool use_sid, unsigned long sid)
+{
+	struct qcom_devmem_info *info;
+	unsigned long sid_def_val;
+	int ret;
+	int i;
+
+	if (!rproc->has_iommu)
+		return 0;
+
+	if (!rproc->domain)
+		return -EINVAL;
+
+	/* remoteproc may not have devmem data */
+	if (!devmem_table)
+		return 0;
+
+	if (use_sid && sid)
+		sid_def_val = sid & SID_MASK_DEFAULT;
+
+	info = &devmem_table->entries[0];
+	for (i = 0; i < devmem_table->num_entries; i++, info++) {
+		/*
+		 * Remote processor like ADSP supports up to 36 bit device
+		 * address space and some of its clients like fastrpc uses
+		 * upper 32-35 bits to keep lower 4 bits of its SID to use
+		 * larger address space. To keep this consistent across other
+		 * use cases add remoteproc SID configuration for firmware
+		 * to IOMMU for carveouts.
+		 */
+		if (use_sid)
+			info->da |= ((uint64_t)sid_def_val << 32);
+
+		ret = iommu_map(rproc->domain, info->da, info->pa, info->len, info->flags,
+				GFP_KERNEL);
+		if (ret) {
+			dev_err(&rproc->dev, "Unable to map devmem, ret: %d\n", ret);
+			if (use_sid)
+				info->da &= ~(SID_MASK_DEFAULT << 32);
+			goto undo_mapping;
+		}
+	}
+
+	return 0;
+
+undo_mapping:
+	for (i = i - 1; i >= 0; i--, info--) {
+		iommu_unmap(rproc->domain, info->da, info->len);
+		if (use_sid)
+			info->da &= ~(SID_MASK_DEFAULT << 32);
+	}
+
+	return ret;
+}
+EXPORT_SYMBOL_GPL(qcom_map_devmem);
+
+/**
+ * qcom_unmap_devmem() -  unmap the device memories needed by Remoteproc using IOMMU
+ *
+ * @rproc:		rproc handle
+ * @devmem_table:	list of devmem regions to unmap
+ * @use_sid:		decision to append sid to iova
+ */
+void qcom_unmap_devmem(struct rproc *rproc, struct qcom_devmem_table *devmem_table,
+		       bool use_sid)
+{
+	struct qcom_devmem_info *info;
+	int i;
+
+	if (!rproc->has_iommu || !rproc->domain || !devmem_table)
+		return;
+
+	info = &devmem_table->entries[0];
+	for (i = 0; i < devmem_table->num_entries; i++, info++) {
+		iommu_unmap(rproc->domain, info->da, info->len);
+		if (use_sid)
+			info->da &= ~(SID_MASK_DEFAULT << 32);
+	}
+}
+EXPORT_SYMBOL_GPL(qcom_unmap_devmem);
 
 MODULE_DESCRIPTION("Qualcomm Remoteproc helper driver");
 MODULE_LICENSE("GPL v2");

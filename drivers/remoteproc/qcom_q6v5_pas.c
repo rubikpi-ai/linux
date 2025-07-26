@@ -20,11 +20,13 @@
 #include <linux/pm_domain.h>
 #include <linux/pm_runtime.h>
 #include <linux/firmware/qcom/qcom_scm.h>
+#include <linux/firmware/qcom/qcom_tzmem.h>
 #include <linux/regulator/consumer.h>
 #include <linux/remoteproc.h>
 #include <linux/soc/qcom/mdt_loader.h>
 #include <linux/soc/qcom/smem.h>
 #include <linux/soc/qcom/smem_state.h>
+#include <soc/qcom/qcom_minidump.h>
 
 #include "qcom_common.h"
 #include "qcom_pil_info.h"
@@ -34,6 +36,7 @@
 #define ADSP_DECRYPT_SHUTDOWN_DELAY_MS	100
 
 #define MAX_ASSIGN_COUNT 3
+#define DEVMEM_ENTRY_SIZE 4
 
 struct adsp_data {
 	int crash_reason_smem;
@@ -112,6 +115,10 @@ struct qcom_adsp {
 
 	struct qcom_scm_pas_metadata pas_metadata;
 	struct qcom_scm_pas_metadata dtb_pas_metadata;
+
+	struct qcom_devmem_table *devmem;
+	struct qcom_tzmem_area *tzmem;
+	unsigned long sid;
 };
 
 static void adsp_segment_dump(struct rproc *rproc, struct rproc_dump_segment *segment,
@@ -139,7 +146,7 @@ static void adsp_minidump(struct rproc *rproc)
 	if (rproc->dump_conf == RPROC_COREDUMP_DISABLED)
 		return;
 
-	qcom_minidump(rproc, adsp->minidump_id, adsp_segment_dump);
+	qcom_rproc_minidump(rproc, adsp->minidump_id, adsp_segment_dump);
 }
 
 static int adsp_pds_enable(struct qcom_adsp *adsp, struct device **pds,
@@ -251,6 +258,43 @@ release_dtb_firmware:
 	return ret;
 }
 
+static int adsp_create_shmbridge(struct qcom_adsp *adsp)
+{
+	struct qcom_tzmem_area *rproc_tzmem;
+	struct rproc *rproc = adsp->rproc;
+	int ret;
+
+	if (!rproc->has_iommu)
+		return 0;
+
+	rproc_tzmem = devm_kzalloc(adsp->dev, sizeof(*rproc_tzmem), GFP_KERNEL);
+	if (!rproc_tzmem)
+		return -ENOMEM;
+
+	rproc_tzmem->size = PAGE_ALIGN(adsp->mem_size);
+	rproc_tzmem->paddr = adsp->mem_phys;
+	ret = qcom_tzmem_init_area(rproc_tzmem);
+	if (ret) {
+		dev_err(adsp->dev,
+			"failed to create shmbridge for carveout: %d\n", ret);
+		return ret;
+	}
+
+	adsp->tzmem = rproc_tzmem;
+
+	return ret;
+}
+
+static void adsp_delete_shmbridge(struct qcom_adsp *adsp)
+{
+	struct rproc *rproc = adsp->rproc;
+
+	if (!rproc->has_iommu)
+		return;
+
+	qcom_tzmem_cleanup_area(adsp->tzmem);
+}
+
 static int adsp_start(struct rproc *rproc)
 {
 	struct qcom_adsp *adsp = rproc->priv;
@@ -260,9 +304,21 @@ static int adsp_start(struct rproc *rproc)
 	if (ret)
 		return ret;
 
+	ret = qcom_map_unmap_carveout(rproc, adsp->mem_phys, adsp->mem_size, true, true, adsp->sid);
+	if (ret) {
+		dev_err(adsp->dev, "iommu mapping failed, ret: %d\n", ret);
+		goto disable_irqs;
+	}
+
+	ret = qcom_map_devmem(rproc, adsp->devmem, true, adsp->sid);
+	if (ret) {
+		dev_err(adsp->dev, "devmem iommu mapping failed, ret: %d\n", ret);
+		goto unmap_carveout;
+	}
+
 	ret = adsp_pds_enable(adsp, adsp->proxy_pds, adsp->proxy_pd_count);
 	if (ret < 0)
-		goto disable_irqs;
+		goto unmap_devmem;
 
 	ret = clk_prepare_enable(adsp->xo);
 	if (ret)
@@ -306,6 +362,10 @@ static int adsp_start(struct rproc *rproc)
 
 	qcom_pil_info_store(adsp->info_name, adsp->mem_phys, adsp->mem_size);
 
+	ret = adsp_create_shmbridge(adsp);
+	if (ret)
+		goto release_pas_metadata;
+
 	ret = qcom_scm_pas_auth_and_reset(adsp->pas_id);
 	if (ret) {
 		dev_err(adsp->dev,
@@ -313,6 +373,7 @@ static int adsp_start(struct rproc *rproc)
 		goto release_pas_metadata;
 	}
 
+	adsp_delete_shmbridge(adsp);
 	ret = qcom_q6v5_wait_for_start(&adsp->q6v5, msecs_to_jiffies(5000));
 	if (ret == -ETIMEDOUT) {
 		dev_err(adsp->dev, "start timed out\n");
@@ -345,6 +406,10 @@ disable_xo_clk:
 	clk_disable_unprepare(adsp->xo);
 disable_proxy_pds:
 	adsp_pds_disable(adsp, adsp->proxy_pds, adsp->proxy_pd_count);
+unmap_devmem:
+	qcom_unmap_devmem(rproc, adsp->devmem, adsp->sid);
+unmap_carveout:
+	qcom_map_unmap_carveout(rproc, adsp->mem_phys, adsp->mem_size, false, true, adsp->sid);
 disable_irqs:
 	qcom_q6v5_unprepare(&adsp->q6v5);
 
@@ -389,6 +454,9 @@ static int adsp_stop(struct rproc *rproc)
 		if (ret)
 			dev_err(adsp->dev, "failed to shutdown dtb: %d\n", ret);
 	}
+
+	qcom_unmap_devmem(rproc, adsp->devmem, adsp->sid);
+	qcom_map_unmap_carveout(rproc, adsp->mem_phys, adsp->mem_size, false, true, adsp->sid);
 
 	handover = qcom_q6v5_unprepare(&adsp->q6v5);
 	if (handover)
@@ -498,15 +566,15 @@ static int adsp_pds_attach(struct device *dev, struct device **devs,
 	if (!pd_names)
 		return 0;
 
+	while (pd_names[num_pds])
+		num_pds++;
+
 	/* Handle single power domain */
-	if (dev->pm_domain) {
+	if (num_pds == 1 && dev->pm_domain) {
 		devs[0] = dev;
 		pm_runtime_enable(dev);
 		return 1;
 	}
-
-	while (pd_names[num_pds])
-		num_pds++;
 
 	for (i = 0; i < num_pds; i++) {
 		devs[i] = dev_pm_domain_attach_by_name(dev, pd_names[i]);
@@ -532,7 +600,7 @@ static void adsp_pds_detach(struct qcom_adsp *adsp, struct device **pds,
 	int i;
 
 	/* Handle single power domain */
-	if (dev->pm_domain && pd_count) {
+	if (pd_count == 1 && dev->pm_domain) {
 		pm_runtime_disable(dev);
 		return;
 	}
@@ -672,6 +740,58 @@ static void adsp_unassign_memory_region(struct qcom_adsp *adsp)
 	}
 }
 
+static int adsp_devmem_init(struct qcom_adsp *adsp)
+{
+	unsigned int entry_size = DEVMEM_ENTRY_SIZE;
+	struct qcom_devmem_table *devmem_table;
+	struct rproc *rproc = adsp->rproc;
+	struct device *dev = adsp->dev;
+	struct qcom_devmem_info *info;
+	char *pname = "qcom,devmem";
+	size_t table_size;
+	int num_entries;
+	u32 i;
+
+	if (!rproc->has_iommu)
+		return 0;
+
+	/* devmem property is a set of n-tuple */
+	num_entries = of_property_count_u32_elems(dev->of_node, pname);
+	if (num_entries < 0) {
+		dev_err(adsp->dev, "No '%s' property present\n", pname);
+		return num_entries;
+	}
+
+	if (!num_entries || (num_entries % entry_size)) {
+		dev_err(adsp->dev, "All '%s' list entries need %d vals\n", pname,
+			entry_size);
+		return -EINVAL;
+	}
+
+	num_entries /= entry_size;
+	table_size = sizeof(*devmem_table) + sizeof(*info) * num_entries;
+	devmem_table = devm_kzalloc(dev, table_size, GFP_KERNEL);
+	if (!devmem_table)
+		return -ENOMEM;
+
+	devmem_table->num_entries = num_entries;
+	info = &devmem_table->entries[0];
+	for (i = 0; i < num_entries; i++, info++) {
+		of_property_read_u32_index(dev->of_node, pname,
+					   i * entry_size, (u32 *)&info->da);
+		of_property_read_u32_index(dev->of_node, pname,
+					   i * entry_size + 1, (u32 *)&info->pa);
+		of_property_read_u32_index(dev->of_node, pname,
+					   i * entry_size + 2, &info->len);
+		of_property_read_u32_index(dev->of_node, pname,
+					   i * entry_size + 3, &info->flags);
+	}
+
+	adsp->devmem = devmem_table;
+
+	return 0;
+}
+
 static int adsp_probe(struct platform_device *pdev)
 {
 	const struct adsp_data *desc;
@@ -731,6 +851,26 @@ static int adsp_probe(struct platform_device *pdev)
 		adsp->dtb_pas_id = desc->dtb_pas_id;
 	}
 	platform_set_drvdata(pdev, adsp);
+
+	if (of_property_present(pdev->dev.of_node, "iommus")) {
+		struct of_phandle_args args;
+
+		ret = of_parse_phandle_with_args(pdev->dev.of_node, "iommus", "#iommu-cells",
+						 0, &args);
+		if (ret < 0)
+			return ret;
+
+		rproc->has_iommu = true;
+		adsp->sid = args.args[0];
+		of_node_put(args.np);
+		ret = adsp_devmem_init(adsp);
+		if (ret)
+			return ret;
+
+		adsp->pas_metadata.shm_bridge_needed = true;
+	} else {
+		rproc->has_iommu = false;
+	}
 
 	ret = device_init_wakeup(adsp->dev, true);
 	if (ret)
@@ -914,6 +1054,7 @@ static const struct adsp_data sm8250_adsp_resource = {
 	.crash_reason_smem = 423,
 	.firmware_name = "adsp.mdt",
 	.pas_id = 1,
+	.minidump_id = 5,
 	.auto_boot = true,
 	.proxy_pd_names = (char*[]){
 		"lcx",
@@ -961,6 +1102,24 @@ static const struct adsp_data cdsp_resource_init = {
 	.firmware_name = "cdsp.mdt",
 	.pas_id = 18,
 	.auto_boot = true,
+	.ssr_name = "cdsp",
+	.sysmon_name = "cdsp",
+	.ssctl_id = 0x17,
+};
+
+static const struct adsp_data sa8775p_cdsp0_resource = {
+	.crash_reason_smem = 601,
+	.firmware_name = "cdsp0.mbn",
+	.pas_id = 18,
+	.minidump_id = 7,
+	.auto_boot = true,
+	.proxy_pd_names = (char*[]){
+		"cx",
+		"mxc",
+		"nsp0",
+		NULL
+	},
+	.load_state = "cdsp",
 	.ssr_name = "cdsp",
 	.sysmon_name = "cdsp",
 	.ssctl_id = 0x17,
@@ -1055,6 +1214,7 @@ static const struct adsp_data sm8350_cdsp_resource = {
 	.crash_reason_smem = 601,
 	.firmware_name = "cdsp.mdt",
 	.pas_id = 18,
+	.minidump_id = 7,
 	.auto_boot = true,
 	.proxy_pd_names = (char*[]){
 		"cx",
@@ -1065,6 +1225,40 @@ static const struct adsp_data sm8350_cdsp_resource = {
 	.ssr_name = "cdsp",
 	.sysmon_name = "cdsp",
 	.ssctl_id = 0x17,
+};
+
+static const struct adsp_data sa8775p_gpdsp0_resource = {
+	.crash_reason_smem = 640,
+	.firmware_name = "gpdsp0.mbn",
+	.pas_id = 39,
+	.minidump_id = 21,
+	.auto_boot = true,
+	.proxy_pd_names = (char*[]){
+		"cx",
+		"mxc",
+		NULL
+	},
+	.load_state = "gpdsp0",
+	.ssr_name = "gpdsp0",
+	.sysmon_name = "gpdsp0",
+	.ssctl_id = 0x21,
+};
+
+static const struct adsp_data sa8775p_gpdsp1_resource = {
+	.crash_reason_smem = 641,
+	.firmware_name = "gpdsp1.mbn",
+	.pas_id = 40,
+	.minidump_id = 22,
+	.auto_boot = true,
+	.proxy_pd_names = (char*[]){
+		"cx",
+		"mxc",
+		NULL
+	},
+	.load_state = "gpdsp1",
+	.ssr_name = "gpdsp1",
+	.sysmon_name = "gpdsp1",
+	.ssctl_id = 0x22,
 };
 
 static const struct adsp_data mpss_resource_init = {
@@ -1156,24 +1350,6 @@ static const struct adsp_data sa8775p_adsp_resource = {
 	.ssctl_id = 0x14,
 };
 
-static const struct adsp_data sa8775p_cdsp_resource = {
-	.crash_reason_smem = 601,
-	.firmware_name = "cdsp0.mdt",
-	.pas_id = 18,
-	.minidump_id = 7,
-	.auto_boot = true,
-	.proxy_pd_names = (char*[]){
-		"cx",
-		"mxc",
-		"nsp0",
-		NULL
-	},
-	.load_state = "cdsp",
-	.ssr_name = "cdsp",
-	.sysmon_name = "cdsp",
-	.ssctl_id = 0x17,
-};
-
 static const struct adsp_data sa8775p_cdsp1_resource = {
 	.crash_reason_smem = 633,
 	.firmware_name = "cdsp1.mdt",
@@ -1190,40 +1366,6 @@ static const struct adsp_data sa8775p_cdsp1_resource = {
 	.ssr_name = "cdsp1",
 	.sysmon_name = "cdsp1",
 	.ssctl_id = 0x20,
-};
-
-static const struct adsp_data sa8775p_gpdsp0_resource = {
-	.crash_reason_smem = 640,
-	.firmware_name = "gpdsp0.mdt",
-	.pas_id = 39,
-	.minidump_id = 21,
-	.auto_boot = true,
-	.proxy_pd_names = (char*[]){
-		"cx",
-		"mxc",
-		NULL
-	},
-	.load_state = "gpdsp0",
-	.ssr_name = "gpdsp0",
-	.sysmon_name = "gpdsp0",
-	.ssctl_id = 0x21,
-};
-
-static const struct adsp_data sa8775p_gpdsp1_resource = {
-	.crash_reason_smem = 641,
-	.firmware_name = "gpdsp1.mdt",
-	.pas_id = 40,
-	.minidump_id = 22,
-	.auto_boot = true,
-	.proxy_pd_names = (char*[]){
-		"cx",
-		"mxc",
-		NULL
-	},
-	.load_state = "gpdsp1",
-	.ssr_name = "gpdsp1",
-	.sysmon_name = "gpdsp1",
-	.ssctl_id = 0x22,
 };
 
 static const struct adsp_data sc7280_wpss_resource = {
@@ -1380,7 +1522,7 @@ static const struct adsp_data sm8650_mpss_resource = {
 };
 
 static const struct of_device_id adsp_of_match[] = {
-	{ .compatible = "qcom,msm8226-adsp-pil", .data = &adsp_resource_init},
+	{ .compatible = "qcom,msm8226-adsp-pil", .data = &msm8996_adsp_resource},
 	{ .compatible = "qcom,msm8953-adsp-pil", .data = &msm8996_adsp_resource},
 	{ .compatible = "qcom,msm8974-adsp-pil", .data = &adsp_resource_init},
 	{ .compatible = "qcom,msm8996-adsp-pil", .data = &msm8996_adsp_resource},
@@ -1393,11 +1535,13 @@ static const struct of_device_id adsp_of_match[] = {
 	{ .compatible = "qcom,qcs8300-adsp-pas", .data = &qcs8300_adsp_resource},
 	{ .compatible = "qcom,qcs8300-cdsp-pas", .data = &qcs8300_cdsp_resource},
 	{ .compatible = "qcom,qcs8300-gpdsp-pas", .data = &qcs8300_gpdsp_resource},
-	{.compatible = "qcom,sa8775p-adsp-pas", .data = &sa8775p_adsp_resource},
-	{.compatible = "qcom,sa8775p-cdsp-pas", .data = &sa8775p_cdsp_resource},
-	{.compatible = "qcom,sa8775p-cdsp1-pas", .data = &sa8775p_cdsp1_resource},
-	{.compatible = "qcom,sa8775p-gpdsp0-pas", .data = &sa8775p_gpdsp0_resource},
-	{.compatible = "qcom,sa8775p-gpdsp1-pas", .data = &sa8775p_gpdsp1_resource},
+	{ .compatible = "qcom,sa8775p-adsp-pas", .data = &sa8775p_adsp_resource},
+	{ .compatible = "qcom,sa8775p-cdsp0-pas", .data = &sa8775p_cdsp0_resource},
+	{ .compatible = "qcom,sa8775p-cdsp1-pas", .data = &sa8775p_cdsp1_resource},
+	{ .compatible = "qcom,sa8775p-gpdsp0-pas", .data = &sa8775p_gpdsp0_resource},
+	{ .compatible = "qcom,sa8775p-gpdsp1-pas", .data = &sa8775p_gpdsp1_resource},
+	{ .compatible = "qcom,sar2130p-adsp-pas", .data = &sm8350_adsp_resource},
+	{ .compatible = "qcom,sc7180-adsp-pas", .data = &sm8250_adsp_resource},
 	{ .compatible = "qcom,sc7180-mpss-pas", .data = &mpss_resource_init},
 	{ .compatible = "qcom,sc7280-adsp-pas", .data = &sdm845_adsp_resource_init},
 	{ .compatible = "qcom,sc7280-cdsp-pas", .data = &sdm845_cdsp_resource_init},

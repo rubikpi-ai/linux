@@ -109,6 +109,7 @@ void msm_csiphy_unregister_entity(struct csiphy_device *csiphy);
 
 extern const struct csiphy_formats csiphy_formats_8x16;
 extern const struct csiphy_formats csiphy_formats_8x96;
+extern const struct csiphy_formats csiphy_formats_sa8775p;
 extern const struct csiphy_formats csiphy_formats_sdm845;
 extern const struct csiphy_formats csiphy_formats_sc7280;
 

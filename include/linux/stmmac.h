@@ -15,9 +15,9 @@
 #include <linux/platform_device.h>
 #include <linux/phy.h>
 
-#define MTL_MAX_RX_QUEUES	8
-#define MTL_MAX_TX_QUEUES	8
-#define STMMAC_CH_MAX		8
+#define MTL_MAX_RX_QUEUES	12
+#define MTL_MAX_TX_QUEUES	12
+#define STMMAC_CH_MAX		12
 
 #define STMMAC_RX_COE_NONE	0
 #define STMMAC_RX_COE_TYPE1	1
@@ -96,10 +96,20 @@ struct stmmac_dma_cfg {
 	bool pblx8;
 	int fixed_burst;
 	int mixed_burst;
+	int owrq;
+	int orrq;
+	u32 tdps;
+	u32 rdps;
+	u32 txdcsz;
+	u32 rxdcsz;
 	bool aal;
 	bool eame;
 	bool multi_msi_en;
 	bool dche;
+	bool tx_pdma_custom_map;
+	bool rx_pdma_custom_map;
+	u8 tx_pdma_map[MTL_MAX_TX_QUEUES];
+	u8 rx_pdma_map[MTL_MAX_RX_QUEUES];
 };
 
 #define AXI_BLEN	7
@@ -117,7 +127,6 @@ struct stmmac_axi {
 
 #define EST_GCL		1024
 struct stmmac_est {
-	struct mutex lock;
 	int enable;
 	u32 btr_reserve[2];
 	u32 btr_offset[2];
@@ -208,6 +217,18 @@ struct dwmac4_addrs {
 	u32 mtl_low_cred_offset;
 };
 
+/* Addresses that may be customized by a platform */
+struct dwxgmac_addrs {
+	u32 dma_even_chan_base;
+	u32 dma_odd_chan_base;
+	u32 dma_chan_offset;
+	u32 mtl_chan_base;
+	u32 mtl_chan_offset;
+	u32 timestamp_base;
+	u32 pps_base;
+	u32 pps_offset;
+};
+
 #define STMMAC_FLAG_HAS_INTEGRATED_PCS		BIT(0)
 #define STMMAC_FLAG_SPH_DISABLE			BIT(1)
 #define STMMAC_FLAG_USE_PHY_WOL			BIT(2)
@@ -269,6 +290,8 @@ struct plat_stmmacenet_data {
 	u32 host_dma_width;
 	u32 rx_queues_to_use;
 	u32 tx_queues_to_use;
+	bool has_hdma;
+	bool insert_ts_pktid;
 	u8 rx_sched_algorithm;
 	u8 tx_sched_algorithm;
 	struct stmmac_rxq_cfg rx_queues_cfg[MTL_MAX_RX_QUEUES];
@@ -281,11 +304,15 @@ struct plat_stmmacenet_data {
 	void (*ptp_clk_freq_config)(struct stmmac_priv *priv);
 	int (*init)(struct platform_device *pdev, void *priv);
 	void (*exit)(struct platform_device *pdev, void *priv);
+	void (*safety_irq)(struct stmmac_priv *priv, bool en);
+	void (*safety_pcs_stats)(struct stmmac_priv *priv, unsigned long *ptr);
 	struct mac_device_info *(*setup)(void *priv);
 	int (*clks_config)(void *priv, bool enabled);
 	int (*crosststamp)(ktime_t *device, struct system_counterval_t *system,
 			   void *ctx);
 	void (*dump_debug_regs)(void *priv);
+	int (*pcs_init)(struct stmmac_priv *priv);
+	void (*pcs_exit)(struct stmmac_priv *priv);
 	void *bsp_priv;
 	struct clk *stmmac_clk;
 	struct clk *pclk;
@@ -315,6 +342,7 @@ struct plat_stmmacenet_data {
 	int msi_rx_base_vec;
 	int msi_tx_base_vec;
 	const struct dwmac4_addrs *dwmac4_addrs;
+	const struct dwxgmac_addrs *dwxgmac_addrs;
 	unsigned int flags;
 };
 #endif
