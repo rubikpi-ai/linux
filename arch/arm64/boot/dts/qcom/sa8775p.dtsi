@@ -2,6 +2,7 @@
 /*
  * Copyright (c) 2023, Linaro Limited
  * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <dt-bindings/interconnect/qcom,icc.h>
@@ -1850,13 +1851,13 @@
 
 		qfprom: efuse@784000 {
 			compatible = "qcom,qfprom";
-			reg = <0x0 0x00784000 0x0 0x11d0>;
+			reg = <0x0 0x00784000 0x0 0x2410>;
 			#address-cells = <1>;
 			#size-cells = <1>;
 
-			gpu_speed_bin: gpu-speed-bin@15c {
-				reg = <0x15c 0x1>;
-				bits = <5 3>;
+			gpu_speed_bin: gpu-speed-bin@240c {
+				reg = <0x240c 0x1>;
+				bits = <0 8>;
 			};
 		};
 
