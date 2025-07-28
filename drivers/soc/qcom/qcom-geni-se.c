@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
  *  Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
- *  Copyright (c) 2023-2025, Qualcomm Innovation Center, Inc. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 /* Disable MMIO tracing to prevent excessive logging of unwanted MMIO traces */
@@ -21,6 +21,8 @@
 #include <linux/soc/qcom/geni-se.h>
 #include <linux/soc/qcom/qup-fw-load.h>
 
+#define CREATE_TRACE_POINTS
+#include <trace/events/qup_buses_trace.h>
 /**
  * DOC: Overview
  *
