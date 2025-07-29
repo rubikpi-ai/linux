@@ -245,13 +245,13 @@ static inline uint32_t DSI_VID_CFG1_RGB_SWAP(enum dsi_rgb_swap val)
 }
 
 #define REG_DSI_ACTIVE_H					0x00000020
-#define DSI_ACTIVE_H_START__MASK				0x00000fff
+#define DSI_ACTIVE_H_START__MASK				0x0000ffff
 #define DSI_ACTIVE_H_START__SHIFT				0
 static inline uint32_t DSI_ACTIVE_H_START(uint32_t val)
 {
 	return ((val) << DSI_ACTIVE_H_START__SHIFT) & DSI_ACTIVE_H_START__MASK;
 }
-#define DSI_ACTIVE_H_END__MASK					0x0fff0000
+#define DSI_ACTIVE_H_END__MASK					0xffff0000
 #define DSI_ACTIVE_H_END__SHIFT					16
 static inline uint32_t DSI_ACTIVE_H_END(uint32_t val)
 {
@@ -259,13 +259,13 @@ static inline uint32_t DSI_ACTIVE_H_END(uint32_t val)
 }
 
 #define REG_DSI_ACTIVE_V					0x00000024
-#define DSI_ACTIVE_V_START__MASK				0x00000fff
+#define DSI_ACTIVE_V_START__MASK				0x0000ffff
 #define DSI_ACTIVE_V_START__SHIFT				0
 static inline uint32_t DSI_ACTIVE_V_START(uint32_t val)
 {
 	return ((val) << DSI_ACTIVE_V_START__SHIFT) & DSI_ACTIVE_V_START__MASK;
 }
-#define DSI_ACTIVE_V_END__MASK					0x0fff0000
+#define DSI_ACTIVE_V_END__MASK					0xffff0000
 #define DSI_ACTIVE_V_END__SHIFT					16
 static inline uint32_t DSI_ACTIVE_V_END(uint32_t val)
 {
@@ -273,13 +273,13 @@ static inline uint32_t DSI_ACTIVE_V_END(uint32_t val)
 }
 
 #define REG_DSI_TOTAL						0x00000028
-#define DSI_TOTAL_H_TOTAL__MASK					0x00000fff
+#define DSI_TOTAL_H_TOTAL__MASK					0x0000ffff
 #define DSI_TOTAL_H_TOTAL__SHIFT				0
 static inline uint32_t DSI_TOTAL_H_TOTAL(uint32_t val)
 {
 	return ((val) << DSI_TOTAL_H_TOTAL__SHIFT) & DSI_TOTAL_H_TOTAL__MASK;
 }
-#define DSI_TOTAL_V_TOTAL__MASK					0x0fff0000
+#define DSI_TOTAL_V_TOTAL__MASK					0xffff0000
 #define DSI_TOTAL_V_TOTAL__SHIFT				16
 static inline uint32_t DSI_TOTAL_V_TOTAL(uint32_t val)
 {
@@ -287,13 +287,13 @@ static inline uint32_t DSI_TOTAL_V_TOTAL(uint32_t val)
 }
 
 #define REG_DSI_ACTIVE_HSYNC					0x0000002c
-#define DSI_ACTIVE_HSYNC_START__MASK				0x00000fff
+#define DSI_ACTIVE_HSYNC_START__MASK				0x0000ffff
 #define DSI_ACTIVE_HSYNC_START__SHIFT				0
 static inline uint32_t DSI_ACTIVE_HSYNC_START(uint32_t val)
 {
 	return ((val) << DSI_ACTIVE_HSYNC_START__SHIFT) & DSI_ACTIVE_HSYNC_START__MASK;
 }
-#define DSI_ACTIVE_HSYNC_END__MASK				0x0fff0000
+#define DSI_ACTIVE_HSYNC_END__MASK				0xffff0000
 #define DSI_ACTIVE_HSYNC_END__SHIFT				16
 static inline uint32_t DSI_ACTIVE_HSYNC_END(uint32_t val)
 {
@@ -301,13 +301,13 @@ static inline uint32_t DSI_ACTIVE_HSYNC_END(uint32_t val)
 }
 
 #define REG_DSI_ACTIVE_VSYNC_HPOS				0x00000030
-#define DSI_ACTIVE_VSYNC_HPOS_START__MASK			0x00000fff
+#define DSI_ACTIVE_VSYNC_HPOS_START__MASK			0x0000ffff
 #define DSI_ACTIVE_VSYNC_HPOS_START__SHIFT			0
 static inline uint32_t DSI_ACTIVE_VSYNC_HPOS_START(uint32_t val)
 {
 	return ((val) << DSI_ACTIVE_VSYNC_HPOS_START__SHIFT) & DSI_ACTIVE_VSYNC_HPOS_START__MASK;
 }
-#define DSI_ACTIVE_VSYNC_HPOS_END__MASK				0x0fff0000
+#define DSI_ACTIVE_VSYNC_HPOS_END__MASK				0xffff0000
 #define DSI_ACTIVE_VSYNC_HPOS_END__SHIFT			16
 static inline uint32_t DSI_ACTIVE_VSYNC_HPOS_END(uint32_t val)
 {
@@ -315,13 +315,13 @@ static inline uint32_t DSI_ACTIVE_VSYNC_HPOS_END(uint32_t val)
 }
 
 #define REG_DSI_ACTIVE_VSYNC_VPOS				0x00000034
-#define DSI_ACTIVE_VSYNC_VPOS_START__MASK			0x00000fff
+#define DSI_ACTIVE_VSYNC_VPOS_START__MASK			0x0000ffff
 #define DSI_ACTIVE_VSYNC_VPOS_START__SHIFT			0
 static inline uint32_t DSI_ACTIVE_VSYNC_VPOS_START(uint32_t val)
 {
 	return ((val) << DSI_ACTIVE_VSYNC_VPOS_START__SHIFT) & DSI_ACTIVE_VSYNC_VPOS_START__MASK;
 }
-#define DSI_ACTIVE_VSYNC_VPOS_END__MASK				0x0fff0000
+#define DSI_ACTIVE_VSYNC_VPOS_END__MASK				0xffff0000
 #define DSI_ACTIVE_VSYNC_VPOS_END__SHIFT			16
 static inline uint32_t DSI_ACTIVE_VSYNC_VPOS_END(uint32_t val)
 {
@@ -396,13 +396,13 @@ static inline uint32_t DSI_CMD_MDP_STREAM0_CTRL_WORD_COUNT(uint32_t val)
 }
 
 #define REG_DSI_CMD_MDP_STREAM0_TOTAL				0x00000058
-#define DSI_CMD_MDP_STREAM0_TOTAL_H_TOTAL__MASK			0x00000fff
+#define DSI_CMD_MDP_STREAM0_TOTAL_H_TOTAL__MASK			0x0000ffff
 #define DSI_CMD_MDP_STREAM0_TOTAL_H_TOTAL__SHIFT		0
 static inline uint32_t DSI_CMD_MDP_STREAM0_TOTAL_H_TOTAL(uint32_t val)
 {
 	return ((val) << DSI_CMD_MDP_STREAM0_TOTAL_H_TOTAL__SHIFT) & DSI_CMD_MDP_STREAM0_TOTAL_H_TOTAL__MASK;
 }
-#define DSI_CMD_MDP_STREAM0_TOTAL_V_TOTAL__MASK			0x0fff0000
+#define DSI_CMD_MDP_STREAM0_TOTAL_V_TOTAL__MASK			0xffff0000
 #define DSI_CMD_MDP_STREAM0_TOTAL_V_TOTAL__SHIFT		16
 static inline uint32_t DSI_CMD_MDP_STREAM0_TOTAL_V_TOTAL(uint32_t val)
 {
