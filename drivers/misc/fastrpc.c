@@ -3152,16 +3152,17 @@ static int fastrpc_rpmsg_callback(struct rpmsg_device *rpdev, void *data,
 
 	spin_lock_irqsave(&cctx->lock, flags);
 	ctx = idr_find(&cctx->ctx_idr, ctxid);
-	spin_unlock_irqrestore(&cctx->lock, flags);
 
 	if (!ctx) {
 		dev_dbg(&rpdev->dev, "No context ID matches response\n");
+		spin_unlock_irqrestore(&cctx->lock, flags);
 		return 0;
 	}
 
 	ctx->retval = rsp->retval;
 	ctx->is_work_done = true;
 	complete(&ctx->work);
+	spin_unlock_irqrestore(&cctx->lock, flags);
 
 	return 0;
 }
