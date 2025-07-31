@@ -808,6 +808,8 @@ int arm_smmu_device_hw_probe(struct arm_smmu_device *smmu);
 int arm_smmu_init_structures(struct arm_smmu_device *smmu);
 __le64 *arm_smmu_get_step_for_sid(struct arm_smmu_device *smmu, u32 sid);
 extern struct iommu_ops arm_smmu_ops;
+struct arm_smmu_master *
+arm_smmu_find_master(struct arm_smmu_device *smmu, u32 sid);
 
 #ifdef CONFIG_ARM_SMMU_V3_SVA
 bool arm_smmu_sva_supported(struct arm_smmu_device *smmu);
