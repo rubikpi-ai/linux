@@ -3,7 +3,7 @@
  * qcm6490-addons device tree source
  *
  * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
- *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 /{
@@ -1102,7 +1102,7 @@
 		cooling-maps {
 			map0 {
 				trip = <&camera0_alert1>;
-				cooling-device = <&cdsp_sw 4 4>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 
 			map1 {
@@ -1772,7 +1772,7 @@
 		cooling-maps {
 			map0 {
 				trip = <&nspss0_alert1>;
-				cooling-device = <&cdsp_sw 4 4>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 
 			map1 {
@@ -1811,7 +1811,7 @@
 		cooling-maps {
 			map0 {
 				trip = <&nspss1_alert1>;
-				cooling-device = <&cdsp_sw 4 4>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 
 			map1 {
@@ -1862,7 +1862,7 @@
 
 			map4 {
 				trip = <&c_bcl_lvl0>;
-				cooling-device = <&cdsp_sw 2 2>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 
 			map5 {
@@ -1898,7 +1898,7 @@
 
 			map1 {
 				trip = <&c_bcl_lvl1>;
-				cooling-device = <&cdsp_sw 4 4>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 
 			map2 {
@@ -1924,7 +1924,7 @@
 		cooling-maps {
 			map0 {
 				trip = <&c_bcl_lvl2>;
-				cooling-device = <&cdsp_sw 5 5>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 		};
 	};
@@ -1953,7 +1953,7 @@
 		cooling-maps {
 			map0 {
 				trip = <&video_alert1>;
-				cooling-device = <&cdsp_sw 4 4>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 
 			map1 {
