@@ -49,6 +49,18 @@
 			compatible = "fixed-layout";
 			#address-cells = <1>;
 			#size-cells = <1>;
+
+			mac_addr1: mac-addr@0 {
+				reg = <0x0 0x6>;
+			};
+
+			mac_addr2: mac-addr@6 {
+				reg = <0x6 0x6>;
+			};
+
+			mac_addr3: mac-addr@c {
+				reg = <0xc 0x6>;
+			};
 		};
 	};
 };
@@ -105,6 +117,8 @@
 				/* BDF 5.0.0 */
 				pcie0_bus5_dev0_fn0: pcie0_qps_eth0 {
 					reg = <0x0 0x0 0x0 0x0 0x0>;
+					nvmem-cells = <&mac_addr2>;
+					nvmem-cell-names = "mac-address";
 					pinctrl-names = "default";
 					pinctrl-0 = <&aqr_intn_wol_sig>;
 					phy-rst-som-gpios = <&tlmm 28 GPIO_ACTIVE_HIGH>;
@@ -128,6 +142,8 @@
 				/* BDF 5.0.1 */
 				pcie0_bus5_dev0_fn1: pcie0_qps_eth1 {
 					reg = <0x100 0x0 0x0 0x0 0x0>;
+					nvmem-cells = <&mac_addr3>;
+					nvmem-cell-names = "mac-address";
 					pinctrl-names = "default";
 					pinctrl-0 = <&napa_intn_wol_sig>;
 					phy-rst-som-gpios = <&pmm8654au_3_gpios 8 GPIO_ACTIVE_HIGH>;
@@ -158,6 +174,8 @@
 	snps,mtl-rx-config = <&mtl_rx_setup1>;
 	snps,mtl-tx-config = <&mtl_tx_setup1>;
 	snps,ps-speed = <1000>;
+	nvmem-cells = <&mac_addr1>;
+	nvmem-cell-names = "mac-address";
 
 	status = "okay";
 
