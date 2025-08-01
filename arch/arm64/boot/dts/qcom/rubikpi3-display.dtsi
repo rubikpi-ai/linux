@@ -52,10 +52,10 @@
 	status = "okay";
 
 	lt9611_codec: hdmi-bridge@39 {
-		compatible = "lt,lt9611";
+		compatible = "lontium,lt9611";
 		reg = <0x39>;
 
-		interrupts-extended = <&tlmm 20 2>;
+		interrupts-extended = <&tlmm 20 IRQ_TYPE_EDGE_BOTH>;
 		reset-gpios = <&tlmm 21 0>;
 		enable-gpios = <&tlmm 40 0>;
 		ocb-gpios = <&tlmm 41 0>;
