@@ -24,6 +24,7 @@
 
 	aliases {
 		ethernet0 = &ethernet0;
+		i2c1 = &i2c1;
 		serial0 = &uart7;
 	};
 
@@ -317,6 +318,27 @@
 	};
 };
 
+&i2c1 {
+	pinctrl-0 = <&qup_i2c1_default>;
+	pinctrl-names = "default";
+	status = "okay";
+
+	eeprom0: eeprom@50 {
+		compatible = "atmel,24c256";
+		reg = <0x50>;
+		pagesize = <64>;
+
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		nvmem-layout {
+			compatible = "fixed-layout";
+			#address-cells = <1>;
+			#size-cells = <1>;
+		};
+	};
+};
+
 &i2c15 {
 	pinctrl-0 = <&qup_i2c15_default>;
 	pinctrl-names = "default";
@@ -601,6 +623,13 @@
 	qup_i2c0_default: qup-i2c0-state {
 		pins = "gpio17", "gpio18";
 		function = "qup0_se0";
+		drive-strength = <2>;
+		bias-pull-up;
+	};
+
+	qup_i2c1_default: qup-i2c1-state {
+		pins = "gpio19", "gpio20";
+		function = "qup0_se1";
 		drive-strength = <2>;
 		bias-pull-up;
 	};
