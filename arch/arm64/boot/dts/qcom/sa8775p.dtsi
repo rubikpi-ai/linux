@@ -3595,8 +3595,8 @@
 			status = "disabled";
 		};
 
-		sdhc_1: mmc@0x087C4000 {
-			compatible = "qcom,sdhci-msm-v5";
+		sdhc_2: sdhci@0x87c4000 {
+			compatible = "qcom,sa8775-sdhci","qcom,sdhci-msm-v5";
 			status = "disabled";
 
 			reg = <0x0 0x087C4000 0x0 0x1000>;
@@ -3614,12 +3614,7 @@
 			interconnect-names = "sdhc-ddr","cpu-sdhc";
 
 			power-domains = <&rpmhpd RPMHPD_CX>;
-			operating-points-v2 = <&sdhc1_opp_table>;
-
-			qcom,iommu-dma = "fastmap";
-
-			qcom,iommu-dma-addr-pool = <0x40000000 0x10000000>;
-			qcom,iommu-geometry = <0x40000000 0x10000000>;
+			operating-points-v2 = <&sdhc2_opp_table>;
 
 			no-sdio;
 			no-mmc;
@@ -3627,10 +3622,11 @@
 			bus-width = <4>;
 			dma-coherent;
 			qcom,dll-config = <0x0007642C>;
+			qcom,ddr-config = <0x80040868>;
 
 			resets = <&gcc GCC_SDCC1_BCR>;
 
-			sdhc1_opp_table: opp-table {
+			sdhc2_opp_table: opp-table {
 				compatible = "operating-points-v2";
 
 				opp-100000000 {
