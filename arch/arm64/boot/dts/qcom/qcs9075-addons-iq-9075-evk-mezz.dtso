@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 /dts-v1/;
@@ -37,6 +38,19 @@
         status = "okay";
 	};
 
+	eeprom1: eeprom@52 {
+		compatible = "atmel,24c256";
+		reg = <0x52>;
+		pagesize = <64>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		nvmem-layout {
+			compatible = "fixed-layout";
+			#address-cells = <1>;
+			#size-cells = <1>;
+		};
+	};
 };
 
 &pcie0 {
