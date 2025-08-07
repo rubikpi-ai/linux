@@ -336,7 +336,8 @@
 	snps,mtl-rx-config = <&mtl_rx_setup>;
 	snps,mtl-tx-config = <&mtl_tx_setup>;
 	snps,ps-speed = <1000>;
-	eeprom-for-mac = <&eeprom0>;
+	nvmem-cells = <&mac_addr0>;
+	nvmem-cell-names = "mac-address";
 
 	status = "okay";
 
@@ -596,6 +597,10 @@
 			compatible = "fixed-layout";
 			#address-cells = <1>;
 			#size-cells = <1>;
+
+			mac_addr0: mac-addr@0 {
+				reg = <0x0 0x6>;
+			};
 		};
 	};
 };
