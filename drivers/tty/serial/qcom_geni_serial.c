@@ -26,7 +26,6 @@
 #include <linux/tty_flip.h>
 #include <dt-bindings/interconnect/qcom,icc.h>
 
-#define CREATE_TRACE_POINTS
 #include <trace/events/qup_buses_trace.h>
 
 void serial_trace_log(struct device *dev, const char *fmt, ...)

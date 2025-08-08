@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0
-// Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
-// Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+/*
+ *  Copyright (c) 2017-2018, The Linux Foundation. All rights reserved.
+ *  Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
+ */
 
 #include <linux/acpi.h>
 #include <linux/clk.h>
@@ -18,7 +20,6 @@
 #include <linux/soc/qcom/geni-se.h>
 #include <linux/spinlock.h>
 
-#define CREATE_TRACE_POINTS
 #include <trace/events/qup_buses_trace.h>
 
 void i2c_trace_log(struct device *dev, const char *fmt, ...)
