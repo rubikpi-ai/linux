@@ -314,4 +314,9 @@
 		qcom,blk-size = <1>;
 		qcom,timestamp-support;
 	};
+
+	qcom,secure-buffer {
+		compatible = "qcom,secure-buffer";
+		qcom,vmid-cp-camera-preview-ro;
+	};
 };
