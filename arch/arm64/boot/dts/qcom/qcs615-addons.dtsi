@@ -2,9 +2,12 @@
 /*
  * qcs615-addons device tree source
  *
- * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *
  */
+
+#include "qcs615-dma-heaps.dtsi"
+
 / {
 	reserved-memory {
 		dump_mem: mem_dump_region {
