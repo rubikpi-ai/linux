@@ -24,6 +24,7 @@
 	aliases {
 		ethernet0 = &ethernet0;
 		i2c18 = &i2c18;
+		mmc0 = &sdhc_1; /* SDC1 eMMC slot */
 		mmc1 = &sdhc_2; /* SDC2 SD card slot */
 		serial0 = &uart10;
 		serial1 = &uart17;

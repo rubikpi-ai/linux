@@ -23,6 +23,22 @@
 	        enable-active-high;
 	        regulator-enable-ramp-delay = <10000>;
 	};
+
+	dummy_l8c: dummy-l8c {
+		compatible = "regulator-fixed";
+		regulator-name = "dummy-l8c";
+
+		regulator-min-microvolt = <2960000>;
+		regulator-max-microvolt = <2960000>;
+	};
+
+	dummy_s4a: dummy-s4a {
+		compatible = "regulator-fixed";
+		regulator-name = "dummy-s4a";
+
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+	};
 };
 
 &connector_usb1 {
@@ -254,6 +270,25 @@
 	};
 };
 
+&sdhc_1 {
+	vmmc-supply = <&dummy_l8c>;
+	vqmmc-supply = <&dummy_s4a>;
+
+	no-sd;
+	no-sdio;
+
+	non-removable;
+
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&sdc1_clk>, <&sdc1_cmd>, <&sdc1_data>, <&sdc1_rclk>;
+	pinctrl-1 = <&sdc1_clk_sleep>, <&sdc1_cmd_sleep>, <&sdc1_data_sleep>, <&sdc1_rclk_sleep>;
+	status = "okay";
+};
+
+&sdhc_2 {
+	status = "disabled";
+};
+
 &serdes1 {
 	phy-supply = <&vreg_l5a>;
 	status = "okay";
@@ -291,6 +326,54 @@
 				bias-disable;
 		};
 	};
+
+	sdc1_clk: sdc1-clk-state {
+		pins = "sdc1_clk";
+		bias-disable;
+		drive-strength = <16>;
+	};
+
+	sdc1_cmd: sdc1-cmd-state {
+		pins = "sdc1_cmd";
+		bias-pull-up;
+		drive-strength = <10>;
+	};
+
+	sdc1_data: sdc1-data-state {
+		pins = "sdc1_data";
+		bias-pull-up;
+		drive-strength = <10>;
+	};
+
+	sdc1_rclk: sdc1-rclk-state {
+		pins = "sdc1_rclk";
+		bias-pull-down;
+	};
+
+	sdc1_clk_sleep: sdc1-clk-sleep-state {
+		pins = "sdc1_clk";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sdc1_cmd_sleep: sdc1-cmd-sleep-state {
+		pins = "sdc1_cmd";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sdc1_data_sleep: sdc1-data-sleep-state {
+		pins = "sdc1_data";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
+	sdc1_rclk_sleep: sdc1-rclk-sleep-state {
+		pins = "sdc1_rclk";
+		drive-strength = <2>;
+		bias-bus-hold;
+	};
+
 };
 
 &usb1_id_det_default {

@@ -3595,6 +3595,45 @@
 			status = "disabled";
 		};
 
+		sdhc_1: mmc@0x87c4000 {
+			compatible = "qcom,sdhci-msm-v5";
+			status = "disabled";
+
+			reg = <0x0 0x87C4000 0x0 0x1000>,
+				<0x0 0x87C5000 0x0 0x1000>;
+			reg-names = "hc", "cqhci";
+
+			interrupts = <GIC_SPI 383 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 521 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "hc_irq",
+					  "pwr_irq";
+
+			clocks = <&gcc GCC_SDCC1_AHB_CLK>,
+				 <&gcc GCC_SDCC1_APPS_CLK>,
+				 <&rpmhcc RPMH_CXO_CLK>;
+			clock-names = "iface",
+				      "core",
+				      "xo";
+
+			interconnects = <&aggre1_noc MASTER_SDC 0 &mc_virt SLAVE_EBI1 0>,
+					<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_SDC1 0>;
+			interconnect-names = "sdhc-ddr",
+					     "cpu-sdhc";
+
+			bus-width = <8>;
+			supports-cqe;
+			dma-coherent;
+
+			qcom,dll-config = <0x000F64EC>;
+			qcom,ddr-config = <0x80040868>;
+
+			max-frequency = <50000000>;
+
+			iommus = <&apps_smmu 0x0 0x0>;
+
+			resets = <&gcc GCC_SDCC1_BCR>;
+		};
+
 		sdhc_2: sdhci@0x87c4000 {
 			compatible = "qcom,sa8775-sdhci","qcom,sdhci-msm-v5";
 			status = "disabled";
