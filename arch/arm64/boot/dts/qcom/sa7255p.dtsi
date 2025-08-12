@@ -975,6 +975,37 @@
 				     <GIC_SPI 687 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
+		sdhc_1: mmc@87c4000 {
+			compatible = "qcom,sa7255-sdhci";
+
+			reg = <0x0 0x87c4000 0x0 0x1000>,
+			      <0x0 0x87c5000 0x0 0x1000>;
+			reg-names = "hc", "cqhci";
+
+			iommus = <&apps_smmu 0x0 0x0>;
+
+			interrupts = <GIC_SPI 383 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 521 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "hc_irq", "pwr_irq";
+
+			bus-width = <8>;
+			supports-cqe;
+			dma-coherent;
+			non-removable;
+
+			no-sd;
+			no-sdio;
+
+			qcom,dll-config = <0x000F64EE>;
+			qcom,ddr-config = <0x80040868>;
+
+			mmc-ddr-1_8v;
+			mmc-hs200-1_8v;
+			mmc-hs400-1_8v;
+			mmc-hs400-enhanced-strobe;
+			status = "disabled";
+		};
+
 		usb_0_hsphy: phy@8904000 {
 			compatible = "qcom,sa7255p-usb-hs-phy",
 				     "qcom,usb-snps-hs-5nm-phy";
