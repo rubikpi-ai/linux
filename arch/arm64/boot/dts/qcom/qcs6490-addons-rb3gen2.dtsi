@@ -3,7 +3,7 @@
  * qcm6490-addons-rb3gen2 device tree source include
  *
  * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
- *
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 #include "qcm6490-addons.dtsi"
 
@@ -500,7 +500,7 @@
 
 			map4 {
 				trip = <&b_bcl_lvl0>;
-				cooling-device = <&cdsp_sw 2 2>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 
 			map5 {
@@ -536,7 +536,7 @@
 
 			map1 {
 				trip = <&b_bcl_lvl1>;
-				cooling-device = <&cdsp_sw 4 4>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 
 			map2 {
@@ -562,7 +562,7 @@
 		cooling-maps {
 			map0 {
 				trip = <&b_bcl_lvl2>;
-				cooling-device = <&cdsp_sw 5 5>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 		};
 	};
