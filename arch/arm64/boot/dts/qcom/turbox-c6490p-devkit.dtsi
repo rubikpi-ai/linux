@@ -746,10 +746,10 @@
 	};
 };
 
-&i2c2 {
-	clock-frequency = <100000>;
-	status = "okay";
-};
+// &i2c2 {
+// 	clock-frequency = <100000>;
+// 	status = "okay";
+// };
 
 &i2c12 {
 	status = "disabled";
