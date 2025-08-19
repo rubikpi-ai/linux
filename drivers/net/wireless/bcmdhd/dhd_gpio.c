@@ -9,20 +9,6 @@
 #include <linux/platform_device.h>
 #endif
 
-#include <linux/init.h>
-#include <linux/module.h>
-#include <linux/fs.h>
-#include <linux/slab.h>
-#include <linux/crypto.h>
-#include <linux/scatterlist.h>
-#include <linux/uaccess.h>
-#include <crypto/hash.h>
-#include <crypto/kpp.h>
-#include <crypto/dh.h>
-#include <crypto/kdf_sp800108.h>
-#include <linux/string.h>
-#include <linux/skbuff.h>
-
 #ifdef BCMDHD_DTS
 /* This is sample code in dts file.
 bcmdhd_wlan {
@@ -50,104 +36,6 @@ extern void *dhd_wlan_mem_prealloc(int section, unsigned long size);
 #if defined(BCMPCIE) && defined(PCIE_ATU_FIXUP)
 extern void pcie_power_on_atu_fixup(void);
 #endif
-
-#define CONFIG_TXT "/usr/lib/firmware/config.txt"
-#define NVRAM_TXT "/usr/lib/firmware/nvram.txt"
-#define SHA256_HASH_SIZE 32
-
-const unsigned char sha256_config[] = {
-    0xbb, 0x35, 0xf2, 0xeb, 0x32, 0x81, 0x59, 0x7b,
-    0x28, 0x43, 0x1b, 0x04, 0xc1, 0xc7, 0xf2, 0xbc,
-    0x22, 0x38, 0xbb, 0x0d, 0xa7, 0xfc, 0xd6, 0x89,
-    0x5b, 0xec, 0x47, 0x8e, 0x56, 0x6f, 0x5b, 0xf6
-};
-
-const unsigned char sha256_nvram[] = {
-    0x58, 0x84, 0x30, 0xb4, 0xc2, 0xc1, 0x67, 0xca,
-    0x03, 0x5f, 0x17, 0xda, 0x74, 0x78, 0xbe, 0xc3,
-    0xd4, 0x92, 0x24, 0x87, 0x15, 0x26, 0x10, 0xd3,
-    0x85, 0xd5, 0xcc, 0xb8, 0xf7, 0xc0, 0xa7, 0x5f
-};
-
-static long calculate_sha256(const char *filename, unsigned char *output) {
-
-    struct file *file;
-    struct shash_desc *sdesc;
-    struct crypto_shash *tfm;
-    unsigned char *buffer;
-    size_t len;
-    long rc;
-
-    file = filp_open(filename, O_RDONLY, 0);
-    if (IS_ERR(file)) {
-        pr_err("Failed to open file: %ld\n", PTR_ERR(file));
-        return PTR_ERR(file);
-    }
-
-    buffer = kmalloc(PAGE_SIZE, GFP_KERNEL);
-    if (!buffer) {
-        filp_close(file, NULL);
-        return -ENOMEM;
-    }
-
-    len = kernel_read(file, buffer, PAGE_SIZE, &file->f_pos);
-    if (len < 0) {
-        pr_err("Failed to read file: %ld\n", len);
-        kfree(buffer);
-        filp_close(file, NULL);
-        return len;
-    }
-
-    tfm = crypto_alloc_shash("sha256", 0, 0);
-    if (IS_ERR(tfm)) {
-        pr_err("Failed to allocate SHA256 hash context\n");
-        kfree(buffer);
-        filp_close(file, NULL);
-        return PTR_ERR(tfm);
-    }
-
-    sdesc = kmalloc(sizeof(*sdesc) + crypto_shash_descsize(tfm), GFP_KERNEL);
-    if (!sdesc) {
-        pr_err("Failed to allocate shash_desc\n");
-        crypto_free_shash(tfm);
-        kfree(buffer);
-        filp_close(file, NULL);
-        return -ENOMEM;
-    }
-
-    sdesc->tfm = tfm;
-
-    rc = crypto_shash_init(sdesc);
-    if (rc) {
-        pr_err("SHA256 init failed\n");
-        kfree(sdesc);
-        crypto_free_shash(tfm);
-        kfree(buffer);
-        filp_close(file, NULL);
-        return rc;
-    }
-
-    rc = crypto_shash_update(sdesc, buffer, len);
-    if (rc) {
-        pr_err("SHA256 update failed\n");
-        kfree(sdesc);
-        crypto_free_shash(tfm);
-        kfree(buffer);
-        filp_close(file, NULL);
-        return rc;
-    }
-
-    rc = crypto_shash_final(sdesc, output);
-    if (rc) {
-        pr_err("SHA256 final failed\n");
-    }
-
-    kfree(sdesc);
-    crypto_free_shash(tfm);
-    kfree(buffer);
-    filp_close(file, NULL);
-    return rc;
-}
 
 static int
 dhd_wlan_set_power(wifi_adapter_info_t *adapter, int on)
@@ -336,26 +224,6 @@ struct wifi_platform_data dhd_wlan_control = {
 static int
 dhd_wlan_init_gpio(wifi_adapter_info_t *adapter)
 {
-
-	unsigned char sha256_config_out[SHA256_HASH_SIZE];
-	unsigned char sha256_nvram_out[SHA256_HASH_SIZE];
-
-	if (calculate_sha256(CONFIG_TXT, sha256_config_out) != 0) {
-		return -EFAULT;
-	}
-
-	if (memcmp(sha256_config_out, sha256_config, sizeof(sha256_config_out)) != 0) {
-		return -EFAULT;
-	}
-
-	if (calculate_sha256(NVRAM_TXT, sha256_nvram_out) != 0) {
-		return -EFAULT;
-	}
-
-	if (memcmp(sha256_nvram_out, sha256_nvram, sizeof(sha256_nvram_out)) != 0) {
-		return -EFAULT;
-	}
-
 #ifdef BCMDHD_DTS
 	char wlan_node[32];
 	struct device_node *root_node = NULL;
