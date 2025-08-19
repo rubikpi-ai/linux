@@ -594,6 +594,10 @@ struct tsens_priv {
 	const struct reg_field		*fields;
 	const struct tsens_ops		*ops;
 
+	int				uplow_irq;
+	int				crit_irq;
+	int				combined_irq;
+
 	struct dentry			*debug_root;
 	struct dentry			*debug;
 
@@ -648,8 +652,10 @@ int get_temp_tsens_valid(const struct tsens_sensor *s, int *temp);
 int get_temp_common(const struct tsens_sensor *s, int *temp);
 #ifdef CONFIG_SUSPEND
 int tsens_resume_common(struct tsens_priv *priv);
+int tsens_suspend_common(struct tsens_priv *priv);
 #else
 #define tsens_resume_common            NULL
+#define tsens_suspend_common            NULL
 #endif
 
 /* TSENS target */
