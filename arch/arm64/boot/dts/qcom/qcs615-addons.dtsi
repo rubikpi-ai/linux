@@ -2,9 +2,12 @@
 /*
  * qcs615-addons device tree source
  *
- * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  *
  */
+
+#include "qcs615-dma-heaps.dtsi"
+
 / {
 	reserved-memory {
 		dump_mem: mem_dump_region {
@@ -310,5 +313,20 @@
 
 		qcom,blk-size = <1>;
 		qcom,timestamp-support;
+	};
+
+	qcom,mem-buf {
+		compatible = "qcom,mem-buf";
+		qcom,mem-buf-capabilities = "supplier";
+		qcom,vmid = <3>;
+	};
+
+	qcom,mem-buf-msgq {
+		compatible = "qcom,mem-buf-msgq";
+	};
+
+	qcom,secure-buffer {
+		compatible = "qcom,secure-buffer";
+		qcom,vmid-cp-camera-preview-ro;
 	};
 };
