@@ -2,6 +2,7 @@
 /*
  * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 /dts-v1/;
@@ -242,11 +243,6 @@
 			regulator-max-microvolt = <2040000>;
 		};
 
-		vreg_s2b_0p876: smps2 {
-			regulator-min-microvolt = <570070>;
-			regulator-max-microvolt = <1050000>;
-		};
-
 		vreg_s7b_0p972: smps7 {
 			regulator-min-microvolt = <535000>;
 			regulator-max-microvolt = <1120000>;
@@ -271,24 +267,12 @@
 
 		vreg_l3b_0p504: ldo3 {
 			regulator-min-microvolt = <312000>;
-			regulator-max-microvolt = <910000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l4b_0p752: ldo4 {
-			regulator-min-microvolt = <752000>;
-			regulator-max-microvolt = <820000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l5b_0p752: ldo5 {
-			regulator-min-microvolt = <552000>;
-			regulator-max-microvolt = <832000>;
+			regulator-max-microvolt = <650000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
 		vreg_l6b_1p2: ldo6 {
-			regulator-min-microvolt = <1140000>;
+			regulator-min-microvolt = <1200000>;
 			regulator-max-microvolt = <1260000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
@@ -312,7 +296,7 @@
 		};
 
 		vreg_l11b_1p504: ldo11 {
-			regulator-min-microvolt = <1504000>;
+			regulator-min-microvolt = <1776000>;
 			regulator-max-microvolt = <2000000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
@@ -330,7 +314,7 @@
 		};
 
 		vreg_l14b_1p08: ldo14 {
-			regulator-min-microvolt = <1080000>;
+			regulator-min-microvolt = <1200000>;
 			regulator-max-microvolt = <1304000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
@@ -342,13 +326,13 @@
 		};
 
 		vreg_l16b_1p1: ldo16 {
-			regulator-min-microvolt = <1100000>;
+			regulator-min-microvolt = <1200000>;
 			regulator-max-microvolt = <1300000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
 
 		vreg_l17b_1p7: ldo17 {
-			regulator-min-microvolt = <1700000>;
+			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <1900000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
@@ -371,33 +355,13 @@
 		qcom,pmic-id = "c";
 
 		vreg_s1c_2p19: smps1 {
-			regulator-min-microvolt = <2190000>;
-			regulator-max-microvolt = <2210000>;
-		};
-
-		vreg_s2c_0p752: smps2 {
-			regulator-min-microvolt = <750000>;
-			regulator-max-microvolt = <800000>;
-		};
-
-		vreg_s5c_0p752: smps5 {
-			regulator-min-microvolt = <465000>;
-			regulator-max-microvolt = <1050000>;
-		};
-
-		vreg_s7c_0p752: smps7 {
-			regulator-min-microvolt = <465000>;
-			regulator-max-microvolt = <800000>;
+			regulator-min-microvolt = <2200000>;
+			regulator-max-microvolt = <2208000>;
 		};
 
 		vreg_s9c_1p084: smps9 {
 			regulator-min-microvolt = <1010000>;
 			regulator-max-microvolt = <1170000>;
-		};
-
-		vreg_s10c_0p752:smps10 {
-			regulator-min-microvolt = <752000>;
-			regulator-max-microvolt = <800000>;
 		};
 
 		vreg_l1c_1p8: ldo1 {
@@ -443,7 +407,7 @@
 		};
 
 		vreg_l8c_1p62: ldo8 {
-			regulator-min-microvolt = <1620000>;
+			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <2000000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
@@ -467,7 +431,7 @@
 		};
 
 		vreg_l12c_1p65: ldo12 {
-			regulator-min-microvolt = <1650000>;
+			regulator-min-microvolt = <1800000>;
 			regulator-max-microvolt = <2000000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
