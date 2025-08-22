@@ -48,6 +48,15 @@
 		regulator-min-microvolt = <2950000>;
 		regulator-max-microvolt = <2950000>;
 	};
+
+	vreg_s4a: vreg-s4a {
+		compatible = "regulator-fixed";
+		regulator-name = "vreg-s4a";
+
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+	};
+
 };
 
 &apps_rsc {
@@ -506,6 +515,39 @@
 	status = "okay";
 };
 
+&sdc1_clk {
+	bias-disable;
+	drive-strength = <16>;
+};
+
+&sdc1_cmd {
+	bias-pull-up;
+	drive-strength = <10>;
+};
+
+&sdc1_data {
+	bias-pull-up;
+	drive-strength = <10>;
+};
+
+&sdc1_rclk {
+	bias-pull-down;
+};
+
+&sdhc_1 {
+	vmmc-supply = <&vreg_l8a>;
+	vqmmc-supply = <&vreg_s4a>;
+
+	no-sd;
+	no-sdio;
+	non-removable;
+
+	pinctrl-names = "default", "sleep";
+	pinctrl-0 = <&sdc1_clk>, <&sdc1_cmd>, <&sdc1_data>;
+	pinctrl-1 = <&sdc1_clk_sleep>, <&sdc1_cmd_sleep>, <&sdc1_data_sleep>;
+	status = "disabled";
+};
+
 &sdhc_2 {
 	vmmc-supply = <&dummy_reg>;
 	vqmmc-supply = <&dummy_s4a>;
@@ -835,6 +877,5 @@
 	vdda-pll-supply = <&vreg_l7a>;
 	vdda18-supply = <&vreg_l7c>;
 	vdda33-supply = <&vreg_l9a>;
-
 	status = "okay";
 };

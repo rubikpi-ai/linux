@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <dt-bindings/clock/qcom,qcs8300-gcc.h>
@@ -7983,7 +7984,7 @@
 			clock-names = "apb_pclk";
 		};
 
-		sdhc_1: mmc@87C4000 {
+		sdhc_1: mmc@0x87c4000 {
 			compatible = "qcom,sdhci-msm-v5";
 			status = "disabled";
 
@@ -8040,7 +8041,7 @@
 			};
 		};
 
-		sdhc_2: mmc@0x87c4000 {
+		sdhc_2: sdhci@0x87c4000 {
 			compatible = "qcom,sdhci-msm-v5";
 			status = "disabled";
 
