@@ -1012,7 +1012,6 @@
 
 &pcie0 {
 	perst-gpios = <&tlmm 2 GPIO_ACTIVE_LOW>;
-	wake-gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie0_default_state>;
@@ -1022,7 +1021,6 @@
 
 &pcie1 {
 	perst-gpios = <&tlmm 4 GPIO_ACTIVE_LOW>;
-	wake-gpios = <&tlmm 5 GPIO_ACTIVE_HIGH>;
 
 	pinctrl-names = "default";
 	pinctrl-0 = <&pcie1_default_state>;
@@ -1045,6 +1043,9 @@
 };
 
 &pcieport0 {
+
+	wake-gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>;
+
 	wifi@0 {
 		compatible = "qcom,wcn6855-wifi";
 		reg = <0x10000 0x0 0x0 0x0 0x0>;
@@ -1059,6 +1060,10 @@
 		vddpcie0p9-supply = <&vreg_pmu_pcie_0p9>;
 		vddpcie1p8-supply = <&vreg_pmu_pcie_1p8>;
 	};
+};
+
+&pcieport1 {
+	wake-gpios = <&tlmm 5 GPIO_ACTIVE_HIGH>;
 };
 
 &pmm8654au_0_pon_resin {

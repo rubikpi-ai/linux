@@ -41,7 +41,6 @@
 
 &pcie0 {
 	dummy-supply = <&qps615_switch>;
-	max-link-speed = <2>;
 	iommu-map = <0x0 &apps_smmu 0x0000 0x1>,
 	            <0x100 &pcie_smmu 0x0001 0x1>,
 	            <0x208 &pcie_smmu 0x0002 0x1>,
@@ -57,6 +56,8 @@
 		reg = <0x0 0x0 0x0 0x0 0x0>;
 		#address-cells = <5>;
 		#size-cells = <0>;
+
+		wake-gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>;
 
 		/* BDF 1.0.0 */
 		pcie0_bus1_dev0_fn0: pcie0_bus1_dev0_fn0 {

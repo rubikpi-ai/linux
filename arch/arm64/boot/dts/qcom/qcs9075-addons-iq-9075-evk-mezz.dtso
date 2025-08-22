@@ -99,6 +99,8 @@
 		#address-cells = <5>;
 		#size-cells = <0>;
 
+		wake-gpios = <&tlmm 0 GPIO_ACTIVE_HIGH>;
+
 		/* BDF 1.0.0 */
 		pcie0_bus1_dev0_fn0: pcie0_bus1_dev0_fn0 {
 			reg = <0 0 0 0 0>;
