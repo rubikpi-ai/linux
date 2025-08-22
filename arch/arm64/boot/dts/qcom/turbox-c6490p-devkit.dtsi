@@ -1394,6 +1394,9 @@
 };
 
 &pm8350c_pwm {
+	/delete-property/ pinctrl-0;
+	/delete-property/ pinctrl-names;
+
 	led@2 {
 		reg = <2>;
 		color = <LED_COLOR_ID_GREEN>;

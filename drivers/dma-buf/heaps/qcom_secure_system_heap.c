@@ -484,8 +484,8 @@ static struct page *alloc_largest_available(struct dynamic_page_pool **pools,
 
 static struct dma_buf *system_heap_allocate(struct dma_heap *heap,
 					       unsigned long len,
-					       unsigned long fd_flags,
-					       unsigned long heap_flags)
+					       u32 fd_flags,
+					       u64 heap_flags)
 {
 	struct qcom_secure_system_heap *sys_heap;
 	struct qcom_sg_buffer *buffer;

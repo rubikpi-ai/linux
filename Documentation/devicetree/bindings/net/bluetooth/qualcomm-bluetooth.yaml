@@ -90,7 +90,10 @@ properties:
     description: see Documentation/devicetree/bindings/serial/serial.yaml
 
   firmware-name:
-    description: specify the name of nvm firmware to load
+    minItems: 1
+    items:
+      - description: specify the name of nvm firmware to load
+      - description: specify the name of rampatch firmware to load
 
   local-bd-address: true
 

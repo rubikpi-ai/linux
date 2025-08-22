@@ -1,9 +1,11 @@
 // SPDX-License-Identifier: GPL-2.0
 // Copyright (c) 2018, Linaro Limited.
 // Copyright (c) 2018, The Linux Foundation. All rights reserved.
+// Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
 
 #include <linux/module.h>
 #include <sound/jack.h>
+#include <sound/simple_card_utils.h>
 #include <linux/input-event-codes.h>
 #include "qdsp6/q6afe.h"
 #include "common.h"
@@ -174,6 +176,184 @@ err_put_np:
 }
 EXPORT_SYMBOL_GPL(qcom_snd_parse_of);
 
+int qcom_snd_parse_of_v2(struct snd_soc_card *card, struct qcom_snd_common_data *priv)
+{
+	struct device_node *np;
+	struct device_node *codec = NULL;
+	struct device_node *platform = NULL;
+	struct device_node *cpu = NULL;
+	struct device *dev = card->dev;
+	struct snd_soc_dai_link *link;
+	struct of_phandle_args args;
+	struct snd_soc_dai_link_component *dlc;
+	int ret, num_links;
+	const char *dai_format;
+	struct qcom_snd_dailink_data *link_priv;
+
+	ret = snd_soc_of_parse_card_name(card, "model");
+	if (ret == 0 && !card->name)
+		/* Deprecated, only for compatibility with old device trees */
+		ret = snd_soc_of_parse_card_name(card, "qcom,model");
+	if (ret) {
+		dev_err(dev, "Error parsing card name: %d\n", ret);
+		return ret;
+	}
+
+	if (of_property_read_bool(dev->of_node, "widgets")) {
+		ret = snd_soc_of_parse_audio_simple_widgets(card, "widgets");
+		if (ret)
+			return ret;
+	}
+
+	/* DAPM routes */
+	if (of_property_read_bool(dev->of_node, "audio-routing")) {
+		ret = snd_soc_of_parse_audio_routing(card, "audio-routing");
+		if (ret)
+			return ret;
+	}
+	/* Deprecated, only for compatibility with old device trees */
+	if (of_property_read_bool(dev->of_node, "qcom,audio-routing")) {
+		ret = snd_soc_of_parse_audio_routing(card, "qcom,audio-routing");
+		if (ret)
+			return ret;
+	}
+
+	ret = snd_soc_of_parse_pin_switches(card, "pin-switches");
+	if (ret)
+		return ret;
+
+	ret = snd_soc_of_parse_aux_devs(card, "aux-devs");
+	if (ret)
+		return ret;
+
+	/* Populate links */
+	num_links = of_get_available_child_count(dev->of_node);
+
+	/* Allocate the DAI link array */
+	card->dai_link = devm_kcalloc(dev, num_links, sizeof(*link), GFP_KERNEL);
+	if (!card->dai_link)
+		return -ENOMEM;
+
+	priv->link_data = devm_kcalloc(dev, num_links,
+				       sizeof(struct qcom_snd_dailink_data), GFP_KERNEL);
+	if (!priv->link_data)
+		return -ENOMEM;
+
+	card->num_links = num_links;
+	link = card->dai_link;
+	link_priv = priv->link_data;
+
+	for_each_available_child_of_node(dev->of_node, np) {
+		dlc = devm_kzalloc(dev, 2 * sizeof(*dlc), GFP_KERNEL);
+		if (!dlc) {
+			ret = -ENOMEM;
+			goto err_put_np;
+		}
+
+		link->cpus	= &dlc[0];
+		link->platforms	= &dlc[1];
+
+		link->num_cpus		= 1;
+		link->num_platforms	= 1;
+
+		ret = of_property_read_string(np, "link-name", &link->name);
+		if (ret) {
+			dev_err(card->dev, "error getting codec dai_link name\n");
+			goto err_put_np;
+		}
+
+		cpu = of_get_child_by_name(np, "cpu");
+		platform = of_get_child_by_name(np, "platform");
+		codec = of_get_child_by_name(np, "codec");
+
+		if (!cpu) {
+			dev_err(dev, "%s: Can't find cpu DT node\n", link->name);
+			ret = -EINVAL;
+			goto err;
+		}
+
+		ret = snd_soc_of_get_dlc(cpu, &args, link->cpus, 0);
+		if (ret) {
+			dev_err_probe(card->dev, ret,
+				      "%s: error getting cpu dai name\n", link->name);
+			goto err;
+		}
+
+		link->id = args.args[0];
+
+		if (platform) {
+			link->platforms->of_node = of_parse_phandle(platform,
+								    "sound-dai", 0);
+			if (!link->platforms->of_node) {
+				dev_err(card->dev, "%s: platform dai not found\n", link->name);
+				ret = -EINVAL;
+				goto err;
+			}
+		} else {
+			link->platforms->of_node = link->cpus->of_node;
+		}
+
+		if (codec) {
+			ret = snd_soc_of_get_dai_link_codecs(dev, codec, link);
+			if (ret < 0) {
+				dev_err_probe(card->dev, ret,
+					      "%s: codec dai not found\n", link->name);
+				goto err;
+			}
+
+			if (platform) {
+				/* DPCM backend */
+				link->no_pcm = 1;
+				link->ignore_pmdown_time = 1;
+			}
+		} else {
+			/* DPCM frontend */
+			link->codecs	 = &asoc_dummy_dlc;
+			link->num_codecs = 1;
+			link->dynamic = 1;
+		}
+
+		if (platform || !codec) {
+			/* DPCM */
+			snd_soc_dai_link_set_capabilities(link);
+			link->ignore_suspend = 1;
+			link->nonatomic = 1;
+		}
+
+		if (!of_property_read_string(np, "dai-format", &dai_format))
+			asoc_simple_parse_daifmt(dev, np, codec, NULL, &link->dai_fmt);
+
+		of_property_read_u32(np, "mclk-fs", &link_priv->mclk_fs);
+		of_property_read_u32(np, "mclk-id", &link_priv->mclk_id);
+
+		if (of_property_read_bool(np, "mclk-direction-out"))
+			link_priv->clk_direction = SND_SOC_CLOCK_OUT;
+
+		link->stream_name = link->name;
+		link++;
+		link_priv++;
+
+		of_node_put(cpu);
+		of_node_put(codec);
+		of_node_put(platform);
+	}
+
+	if (!card->dapm_widgets) {
+		card->dapm_widgets = qcom_jack_snd_widgets;
+		card->num_dapm_widgets = ARRAY_SIZE(qcom_jack_snd_widgets);
+	}
+
+	return 0;
+err:
+	of_node_put(cpu);
+	of_node_put(codec);
+	of_node_put(platform);
+err_put_np:
+	of_node_put(np);
+	return ret;
+}
+EXPORT_SYMBOL_GPL(qcom_snd_parse_of_v2);
+
 static struct snd_soc_jack_pin qcom_headset_jack_pins[] = {
 	/* Headset */
 	{
@@ -239,4 +419,4 @@ int qcom_snd_wcd_jack_setup(struct snd_soc_pcm_runtime *rtd,
 	return 0;
 }
 EXPORT_SYMBOL_GPL(qcom_snd_wcd_jack_setup);
-MODULE_LICENSE("GPL v2");
+MODULE_LICENSE("GPL");

@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * qcs615-addons ride device tree source
+ *
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ */
+
+/dts-v1/;
+
+#include "qcs615-ride.dts"
+#include "qcs615-addons.dtsi"
+
+/ {
+	model = "Qualcomm Technologies, Inc. QCS615-addons RIDE";
+	compatible = "qcom,qcs615-addons-ride", "qcom,qcs615";
+};

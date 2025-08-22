@@ -1,0 +1,274 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
+
+/dts-v1/;
+/plugin/;
+
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/interrupt-controller/irq.h>
+
+&{/} {
+	model = "Qualcomm Technologies, Inc. IQ-9075-evk Addons Mezzanine";
+	qcom,board-id = <0x00010020 1>, <0x00010019 1>;
+
+	qps615_rsex_vreg: qps615-rsex-vreg {
+	        compatible = "regulator-fixed";
+	        regulator-name = "qps615_rsex_vreg";
+	        gpio = <&tlmm 140 GPIO_ACTIVE_HIGH>;
+	        regulator-min-microvolt = <1800000>;
+	        regulator-max-microvolt = <1800000>;
+	        enable-active-high;
+	        regulator-enable-ramp-delay = <10000>;
+	};
+};
+
+&connector_usb1 {
+	status = "disabled";
+};
+
+&i2c18 {
+    qps615_switch: pcie-switch@77 {
+        compatible = "qcom,switch-i2c";
+        reg = <0x77>;
+        vdda-supply = <&qps615_rsex_vreg>;
+
+        status = "okay";
+	};
+
+};
+
+&pcie0 {
+	dummy-supply = <&qps615_switch>;
+	iommu-map = <0x0 &apps_smmu 0x0000 0x1>,
+		<0x100 &pcie_smmu 0x0001 0x1>,
+		<0x208 &pcie_smmu 0x0002 0x1>,
+		<0x210 &pcie_smmu 0x0003 0x1>,
+		<0x218 &pcie_smmu 0x0004 0x1>,
+		<0x300 &pcie_smmu 0x0005 0x1>,
+		<0x400 &pcie_smmu 0x0006 0x1>,
+		<0x500 &pcie_smmu 0x0007 0x1>,
+		<0x501 &pcie_smmu 0x0008 0x1>;
+
+	pcieport0: pcie@0 {
+		device_type = "pci";
+		reg = <0x0 0x0 0x0 0x0 0x0>;
+		#address-cells = <5>;
+		#size-cells = <0>;
+
+		/* BDF 1.0.0 */
+		pcie0_bus1_dev0_fn0: pcie0_bus1_dev0_fn0 {
+			reg = <0 0 0 0 0>;
+
+			/* BDF 2.1.0 */
+			pcie0_bus2_dev1_fn0: pcie0_bus2_dev1_fn0 {
+				reg = <0x800 0x0 0x0 0x0 0x0>;
+
+				/* BDF 3.0.0 */
+				pcie0_bus3_dev0_fn0: pcie0_bus3_dev0_fn0 {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+				};
+			};
+
+			/* BDF 2.2.0 */
+			pcie0_bus2_dev2_fn0: pcie0_bus2_dev2_fn0 {
+				reg = <0x1000 0x0 0x0 0x0 0x0>;
+
+				/* BDF 4.0.0 */
+				pcie0_bus4_dev0_fn0: pcie0_bus4_dev0_fn0 {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+				};
+			};
+
+			/* BDF 2.3.0 */
+			pcie0_bus2_dev3_fn0: pcie0_bus2_dev3_fn0 {
+				reg = <0x1800 0x0 0x0 0x0 0x0>;
+				qps615_eth0,qps615_eth0@pcie0_rp {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+				};
+
+				/* BDF 5.0.0 */
+				pcie0_bus5_dev0_fn0: pcie0_qps_eth0 {
+					reg = <0x0 0x0 0x0 0x0 0x0>;
+					pinctrl-names = "default";
+					pinctrl-0 = <&aqr_intn_wol_sig>;
+					phy-rst-som-gpios = <&tlmm 28 GPIO_ACTIVE_HIGH>;
+					interrupts-extended = <&tlmm 56 IRQ_TYPE_EDGE_FALLING>;
+					interrupt-names = "wol_irq";
+					qcom,always-on-supply;
+					qcom,phy-rst-delay-us = <221000>;
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					qcom,iommu-group = <&eth0_pci_iommu_group>;
+					eth0_pci_iommu_group: eth0_pci_iommu_group {
+						qcom,iommu-dma = "atomic";
+					};
+				};
+
+				qps615_eth1,qps615_eth1@pcie0_rp {
+					reg = <0x100 0x0 0x0 0x0 0x0>;
+				};
+
+				/* BDF 5.0.1 */
+				pcie0_bus5_dev0_fn1: pcie0_qps_eth1 {
+					reg = <0x100 0x0 0x0 0x0 0x0>;
+					pinctrl-names = "default";
+					pinctrl-0 = <&napa_intn_wol_sig>;
+					phy-rst-som-gpios = <&pmm8654au_3_gpios 8 GPIO_ACTIVE_HIGH>;
+					interrupts-extended = <&tlmm 57 IRQ_TYPE_EDGE_FALLING>;
+					interrupt-names = "wol_irq";
+					qcom,always-on-supply;
+					qcom,phy-rst-delay-us = <20000>;
+					#address-cells = <1>;
+					#size-cells = <1>;
+
+					qcom,iommu-group = <&eth1_pci_iommu_group>;
+					eth1_pci_iommu_group: eth1_pci_iommu_group {
+						qcom,iommu-dma = "atomic";
+					};
+				};
+			};
+		};
+	};
+};
+
+&ethernet1 {
+	phy-handle = <&sgmii_phy1>;
+	phy-mode = "sgmii";
+
+	pinctrl-0 = <&ethernet1_default>;
+	pinctrl-names = "default";
+
+	snps,mtl-rx-config = <&mtl_rx_setup1>;
+	snps,mtl-tx-config = <&mtl_tx_setup1>;
+	snps,ps-speed = <1000>;
+
+	status = "okay";
+
+	mdio1 {
+		compatible = "snps,dwmac-mdio";
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		sgmii_phy1: phy@18 {
+			compatible = "ethernet-phy-id004d.d101";
+			reg = <0x18>;
+			device_type = "ethernet-phy";
+			reset-gpios = <&pmm8654au_2_gpios 9 GPIO_ACTIVE_LOW>;
+			reset-assert-us = <11000>;
+			reset-deassert-us = <70000>;
+		};
+	};
+
+	mtl_rx_setup1: rx-queues-config {
+		snps,rx-queues-to-use = <4>;
+		snps,rx-sched-sp;
+
+		queue0 {
+			snps,dcb-algorithm;
+			snps,map-to-dma-channel = <0x0>;
+			snps,route-up;
+			snps,priority = <0x1>;
+		};
+
+		queue1 {
+			snps,dcb-algorithm;
+			snps,map-to-dma-channel = <0x1>;
+			snps,route-ptp;
+		};
+
+		queue2 {
+			snps,avb-algorithm;
+			snps,map-to-dma-channel = <0x2>;
+			snps,route-avcp;
+		};
+
+		queue3 {
+			snps,avb-algorithm;
+			snps,map-to-dma-channel = <0x3>;
+			snps,priority = <0xc>;
+		};
+	};
+
+	mtl_tx_setup1: tx-queues-config {
+		snps,tx-queues-to-use = <4>;
+		snps,tx-sched-sp;
+
+		queue0 {
+			snps,dcb-algorithm;
+		};
+
+		queue1 {
+			snps,dcb-algorithm;
+		};
+
+		queue2 {
+			snps,avb-algorithm;
+			snps,send_slope = <0x1000>;
+			snps,idle_slope = <0x1000>;
+			snps,high_credit = <0x3e800>;
+			snps,low_credit = <0xffc18000>;
+		};
+
+		queue3 {
+			snps,avb-algorithm;
+			snps,send_slope = <0x1000>;
+			snps,idle_slope = <0x1000>;
+			snps,high_credit = <0x3e800>;
+			snps,low_credit = <0xffc18000>;
+		};
+	};
+};
+
+&serdes1 {
+	phy-supply = <&vreg_l5a>;
+	status = "okay";
+};
+
+&tlmm {
+	ethernet1_default: ethernet1-default-state {
+		ethernet1_mdc: ethernet1-mdc-pins {
+			pins = "gpio20";
+			function = "emac1_mdc";
+			drive-strength = <16>;
+			bias-pull-up;
+		};
+
+		ethernet1_mdio: ethernet1-mdio-pins {
+			pins = "gpio21";
+			function = "emac1_mdio";
+			drive-strength = <16>;
+			bias-pull-up;
+		};
+	};
+
+	qps615_intn_wol {
+		aqr_intn_wol_sig: aqr-intn-wol-sig {
+				pins = "gpio56";
+				function = "gpio";
+				input-enable;
+				bias-disable;
+		};
+
+		napa_intn_wol_sig: napa-intn-wol-sig {
+				pins = "gpio57";
+				function = "gpio";
+				input-enable;
+				bias-disable;
+		};
+	};
+};
+
+&usb1_id_det_default {
+	status = "disabled";
+};
+
+&usb_1 {
+	vbus_dwc3-supply = <&vbus_supply_regulator_1>;
+
+	ports {
+		status = "disabled";
+	};
+};

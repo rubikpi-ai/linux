@@ -112,19 +112,47 @@ dtb-$(CONFIG_ARCH_QCOM) += qcs6490-addons-rb3gen2-vision-mezz-hsp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs6490-rb3gen2.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs404-evb-1000.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs404-evb-4000.dtb
+dtb-$(CONFIG_ARCH_QCOM) += qcs615-addons-ride.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs615-ride.dtb
+
+qcs8275-addons-iq-8275-evk-dtbs:= qcs8275-iq-8275-evk.dtb qcs8275-addons-iq-8275-evk.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-addons-iq-8275-evk.dtb
+
+qcs8275-addons-iq-8275-evk-mezz-dtbs:= qcs8275-addons-iq-8275-evk.dtb qcs8275-addons-iq-8275-evk-mezz.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-addons-iq-8275-evk-mezz.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-iq-8275-evk.dtb
+
+qcs8275-addons-iq-8275-evk-pro-sku-dtbs:= qcs8275-iq-8275-evk-pro-sku.dtb qcs8275-addons-iq-8275-evk-pro-sku.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-addons-iq-8275-evk-pro-sku.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs8275-iq-8275-evk-pro-sku.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8300-addons-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8300-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8550-addons-aim300-aiot.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8550-aim300-aiot.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs8550-rb5gen2-hdk.dtb
-dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-addons-rb8.dtb
+
+qcs9075-addons-iq-9075-evk-mezz-dtbs:= qcs9075-addons-iq-9075-evk.dtb qcs9075-addons-iq-9075-evk-mezz.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-addons-iq-9075-evk-mezz.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-addons-iq-9075-evk.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-addons-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-addons-ride-r3.dtb
-dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-rb8.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-iq-9075-evk.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9075-ride-r3.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9100-addons-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qcs9100-addons-ride-r3.dtb
+
+qcs9100-addons-ride-el2-dtbs:= qcs9100-addons-ride.dtb sa8775p-el2.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM) += qcs9100-addons-ride-el2.dtb
+
+qcs9100-addons-ride-r3-el2-dtbs:= qcs9100-addons-ride-r3.dtb sa8775p-el2.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM) += qcs9100-addons-ride-r3-el2.dtb
 dtb-$(CONFIG_ARCH_QCOM) += qcs9100-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM) += qcs9100-ride-r3.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= qdu1000-idp.dtb
@@ -140,6 +168,14 @@ dtb-$(CONFIG_ARCH_QCOM)	+= sa8295p-adp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sa8540p-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sa8775p-addons-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sa8775p-addons-ride-r3.dtb
+
+sa8775p-addons-ride-el2-dtbs:= sa8775p-addons-ride.dtb sa8775p-el2.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM) += sa8775p-addons-ride-el2.dtb
+
+sa8775p-addons-ride-r3-el2-dtbs:= sa8775p-addons-ride-r3.dtb sa8775p-el2.dtbo
+
+dtb-$(CONFIG_ARCH_QCOM) += sa8775p-addons-ride-r3-el2.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sa8775p-ride.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sa8775p-ride-r3.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sc7180-acer-aspire1.dtb
@@ -220,6 +256,9 @@ dtb-$(CONFIG_ARCH_QCOM)	+= sdm845-cheza-r1.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sdm845-cheza-r2.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sdm845-cheza-r3.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sdm845-db845c.dtb
+
+sdm845-db845c-navigation-mezzanine-dtbs	:= sdm845-db845c.dtb sdm845-db845c-navigation-mezzanine.dtbo
+
 dtb-$(CONFIG_ARCH_QCOM)	+= sdm845-db845c-navigation-mezzanine.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sdm845-lg-judyln.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= sdm845-lg-judyp.dtb
