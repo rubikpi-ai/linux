@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <dt-bindings/clock/qcom,qcs8300-gcc.h>
@@ -31,38 +32,8 @@
 	chosen { };
 
 	aliases {
-		i2c0 = &i2c0;
-		i2c1 = &i2c1;
-		i2c2 = &i2c2;
-		i2c3 = &i2c3;
-		i2c4 = &i2c4;
-		i2c5 = &i2c5;
-		i2c6 = &i2c6;
-		i2c8 = &i2c8;
-		i2c9 = &i2c9;
-		i2c10 = &i2c10;
-		i2c11 = &i2c11;
-		i2c12 = &i2c12;
-		i2c13 = &i2c13;
-		i2c14 = &i2c14;
-		i2c15 = &i2c15;
 		mmc0 = &sdhc_1;
 		mmc1 = &sdhc_2; /* SDC2 SD card slot */
-		spi0 = &spi0;
-		spi1 = &spi1;
-		spi2 = &spi2;
-		spi3 = &spi3;
-		spi4 = &spi4;
-		spi5 = &spi5;
-		spi6 = &spi6;
-		spi8 = &spi8;
-		spi9 = &spi9;
-		spi10 = &spi10;
-		spi12 = &spi12;
-		spi13 = &spi13;
-		spi14 = &spi14;
-		spi15 = &spi15;
-		serial0 = &uart7;
 	};
 
 	audio-etm0 {
@@ -1273,10 +1244,10 @@
 			};
 		};
 
-		gpi_dma0: qcom,gpi-dma@900000 {
-			compatible = "qcom,sm6350-gpi-dma";
-			#dma-cells = <3>;
+		gpi_dma0: dma-controller@900000 {
+			compatible = "qcom,qcs8300-gpi-dma", "qcom,sm6350-gpi-dma";
 			reg = <0x0 0x900000 0x0 0x60000>;
+			#dma-cells = <3>;
 			interrupts = <GIC_SPI 244 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 245 IRQ_TYPE_LEVEL_HIGH>,
 				<GIC_SPI 246 IRQ_TYPE_LEVEL_HIGH>,
@@ -1293,7 +1264,7 @@
 			dma-channels = <12>;
 			dma-channel-mask = <0xfff>;
 			dma-coherent;
-			status = "ok";
+			status = "disabled";
 		};
 
 		qupv3_id_0: geniqup@9c0000 {
@@ -1302,7 +1273,8 @@
 			ranges;
 			clocks = <&gcc GCC_QUPV3_WRAP_0_M_AHB_CLK>,
 				 <&gcc GCC_QUPV3_WRAP_0_S_AHB_CLK>;
-			clock-names = "m-ahb", "s-ahb";
+			clock-names = "m-ahb",
+				      "s-ahb";
 			#address-cells = <2>;
 			#size-cells = <2>;
 			iommus = <&apps_smmu 0x403 0x0>;
@@ -1314,21 +1286,26 @@
 				reg = <0x0 0x980000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S0_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c0_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 550 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>,
-				<&aggre2_noc MASTER_QUP_0 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_0 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma0 0 0 QCOM_GPI_I2C>,
-					<&gpi_dma0 1 0 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 0 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1337,20 +1314,23 @@
 				reg = <0x0 0x980000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S0_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi0_data_clk>, <&qup_spi0_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 550 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma0 0 0 QCOM_GPI_SPI>,
-					<&gpi_dma0 1 0 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 0 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1359,15 +1339,17 @@
 				reg = <0x0 0x980000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S0_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart0_cts>, <&qup_uart0_rts>,
 					    <&qup_uart0_tx>, <&qup_uart0_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 550 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -1377,21 +1359,26 @@
 				reg = <0x0 0x984000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S1_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c1_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 551 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>,
-				<&aggre2_noc MASTER_QUP_0 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_0 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma0 0 1 QCOM_GPI_I2C>,
-					<&gpi_dma0 1 1 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 1 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1400,20 +1387,23 @@
 				reg = <0x0 0x984000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S1_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi1_data_clk>, <&qup_spi1_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 551 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma0 0 1 QCOM_GPI_SPI>,
-					<&gpi_dma0 1 1 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 1 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1422,15 +1412,17 @@
 				reg = <0x0 0x984000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S1_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart1_cts>, <&qup_uart1_rts>,
 					    <&qup_uart1_tx>, <&qup_uart1_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 551 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects =	<&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -1440,21 +1432,26 @@
 				reg = <0x0 0x988000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S2_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c2_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 529 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>,
-				<&aggre2_noc MASTER_QUP_0 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_0 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma0 0 2 QCOM_GPI_I2C>,
-					<&gpi_dma0 1 2 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 2 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1463,20 +1460,23 @@
 				reg = <0x0 0x988000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S2_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi2_data_clk>, <&qup_spi2_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 529 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma0 0 2 QCOM_GPI_SPI>,
-					<&gpi_dma0 1 2 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 2 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1485,15 +1485,17 @@
 				reg = <0x0 0x988000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S2_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart2_cts>, <&qup_uart2_rts>,
 					    <&qup_uart2_tx>, <&qup_uart2_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 529 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -1503,21 +1505,26 @@
 				reg = <0x0 0x98c000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S3_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c3_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 530 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>,
-				<&aggre2_noc MASTER_QUP_0 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_0 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma0 0 3 QCOM_GPI_I2C>,
-					<&gpi_dma0 1 3 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 3 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1526,20 +1533,23 @@
 				reg = <0x0 0x98c000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S3_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi3_data_clk>, <&qup_spi3_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 530 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma0 0 3 QCOM_GPI_SPI>,
-					<&gpi_dma0 1 3 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 3 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1548,15 +1558,17 @@
 				reg = <0x0 0x98c000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S3_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart3_cts>, <&qup_uart3_rts>,
 					    <&qup_uart3_tx>, <&qup_uart3_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 530 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -1566,21 +1578,26 @@
 				reg = <0x0 0x990000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S4_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c4_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 531 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>,
-				<&aggre2_noc MASTER_QUP_0 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects =	<&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_0 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma0 0 4 QCOM_GPI_I2C>,
-					<&gpi_dma0 1 4 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 4 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1589,20 +1606,23 @@
 				reg = <0x0 0x990000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S4_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi4_data_clk>, <&qup_spi4_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 531 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma0 0 4 QCOM_GPI_SPI>,
-					<&gpi_dma0 1 4 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 4 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1611,15 +1631,17 @@
 				reg = <0x0 0x990000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S4_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart4_cts>, <&qup_uart4_rts>,
 					    <&qup_uart4_tx>, <&qup_uart4_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 531 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -1629,21 +1651,26 @@
 				reg = <0x0 0x994000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S5_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c5_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 535 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>,
-				<&aggre2_noc MASTER_QUP_0 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects =	<&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_0 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma0 0 5 QCOM_GPI_I2C>,
-					<&gpi_dma0 1 5 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 5 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1652,20 +1679,23 @@
 				reg = <0x0 0x994000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S5_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi5_data_clk>, <&qup_spi5_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 535 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma0 0 5 QCOM_GPI_SPI>,
-					<&gpi_dma0 1 5 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 5 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1674,15 +1704,17 @@
 				reg = <0x0 0x994000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S5_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart5_cts>, <&qup_uart5_rts>,
 					    <&qup_uart5_tx>, <&qup_uart5_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 535 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -1692,21 +1724,26 @@
 				reg = <0x0 0x998000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S6_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c6_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 536 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>,
-				<&aggre2_noc MASTER_QUP_0 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects =	<&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_0 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma0 0 6 QCOM_GPI_I2C>,
-					<&gpi_dma0 1 6 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 6 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1715,20 +1752,23 @@
 				reg = <0x0 0x998000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S6_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi6_data_clk>, <&qup_spi6_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 536 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma0 0 6 QCOM_GPI_SPI>,
-					<&gpi_dma0 1 6 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma0 1 6 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1737,15 +1777,17 @@
 				reg = <0x0 0x998000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S6_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart6_cts>, <&qup_uart6_rts>,
 					    <&qup_uart6_tx>, <&qup_uart6_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 536 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -1755,40 +1797,42 @@
 				reg = <0x0 0x0099c000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP0_S7_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart7_tx>, <&qup_uart7_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 126 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_0 0 &clk_virt SLAVE_QUP_CORE_0 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_0 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_0 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_0 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
 		};
 
-		gpi_dma1: qcom,gpi-dma@a00000 {
-			compatible = "qcom,sm6350-gpi-dma";
-			#dma-cells = <3>;
+		gpi_dma1: dma-controller@a00000 {
+			compatible = "qcom,qcs8300-gpi-dma", "qcom,sm6350-gpi-dma";
 			reg = <0x0 0xa00000 0x0 0x60000>;
+			#dma-cells = <3>;
 			interrupts = <GIC_SPI 279 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 280 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 281 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 282 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 283 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 284 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 293 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 294 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 295 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 296 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 297 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 298 IRQ_TYPE_LEVEL_HIGH>;
+				     <GIC_SPI 280 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 281 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 282 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 283 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 284 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 293 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 294 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 295 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 296 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 297 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 298 IRQ_TYPE_LEVEL_HIGH>;
 			iommus = <&apps_smmu 0x456 0x0>;
 			dma-channels = <12>;
 			dma-channel-mask = <0xfff>;
 			dma-coherent;
-			status = "ok";
+			status = "disabled";
 		};
 
 		qupv3_id_1: geniqup@ac0000 {
@@ -1797,7 +1841,8 @@
 			ranges;
 			clocks = <&gcc GCC_QUPV3_WRAP_1_M_AHB_CLK>,
 				 <&gcc GCC_QUPV3_WRAP_1_S_AHB_CLK>;
-			clock-names = "m-ahb", "s-ahb";
+			clock-names = "m-ahb",
+				      "s-ahb";
 			#address-cells = <2>;
 			#size-cells = <2>;
 			iommus = <&apps_smmu 0x443 0x0>;
@@ -1809,19 +1854,26 @@
 				reg = <0x0 0xa80000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S0_CLK>;
 				clock-names = "se";
+				pinctrl-0 = <&qup_i2c8_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 353 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>,
-				<&aggre2_noc MASTER_QUP_1 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_1 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma1 0 0 QCOM_GPI_I2C>,
-					<&gpi_dma1 1 0 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 0 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1830,20 +1882,23 @@
 				reg = <0x0 0xa80000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S0_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi8_data_clk>, <&qup_spi8_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 353 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma1 0 0 QCOM_GPI_SPI>,
-					<&gpi_dma1 1 0 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 0 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1852,15 +1907,17 @@
 				reg = <0x0 0xa80000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S0_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart8_cts>, <&qup_uart8_rts>,
 					    <&qup_uart8_tx>, <&qup_uart8_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 353 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -1870,21 +1927,26 @@
 				reg = <0x0 0xa84000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S1_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c9_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 354 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>,
-				<&aggre2_noc MASTER_QUP_1 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_1 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma1 0 1 QCOM_GPI_I2C>,
-					<&gpi_dma1 1 1 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 1 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1893,20 +1955,23 @@
 				reg = <0x0 0xa84000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S1_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi9_data_clk>, <&qup_spi9_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 354 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma1 0 1 QCOM_GPI_SPI>,
-					<&gpi_dma1 1 1 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 1 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1915,15 +1980,17 @@
 				reg = <0x0 0xa84000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S1_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart9_cts>, <&qup_uart9_rts>,
 					    <&qup_uart9_tx>, <&qup_uart9_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 354 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -1933,21 +2000,26 @@
 				reg = <0x0 0xa88000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S2_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c10_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 355 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>,
-				<&aggre2_noc MASTER_QUP_1 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_1 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma1 0 2 QCOM_GPI_I2C>,
-					<&gpi_dma1 1 2 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 2 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1956,20 +2028,23 @@
 				reg = <0x0 0xa88000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S2_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi10_data_clk>, <&qup_spi10_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 355 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma1 0 2 QCOM_GPI_SPI>,
-					<&gpi_dma1 1 2 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 2 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -1978,15 +2053,17 @@
 				reg = <0x0 0xa88000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S2_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart10_cts>, <&qup_uart10_rts>,
 					    <&qup_uart10_tx>, <&qup_uart10_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 355 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -1996,21 +2073,26 @@
 				reg = <0x0 0xa8c000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S3_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c11_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 356 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>,
-				<&aggre2_noc MASTER_QUP_1 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_1 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma1 0 3 QCOM_GPI_I2C>,
-					<&gpi_dma1 1 3 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 3 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2019,14 +2101,16 @@
 				reg = <0x0 0xa8c000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S3_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart11_tx>, <&qup_uart11_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 356 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -2036,21 +2120,26 @@
 				reg = <0x0 0xa90000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S4_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c12_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 357 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>,
-				<&aggre2_noc MASTER_QUP_1 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_1 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma1 0 4 QCOM_GPI_I2C>,
-					<&gpi_dma1 1 4 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 4 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2059,20 +2148,23 @@
 				reg = <0x0 0xa90000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S4_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi12_data_clk>, <&qup_spi12_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 357 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma1 0 4 QCOM_GPI_SPI>,
-					<&gpi_dma1 1 4 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 4 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2081,15 +2173,17 @@
 				reg = <0x0 0xa90000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S4_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart12_cts>, <&qup_uart12_rts>,
 					    <&qup_uart12_tx>, <&qup_uart12_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 357 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -2099,21 +2193,26 @@
 				reg = <0x0 0xa94000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S5_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c13_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 358 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>,
-				<&aggre2_noc MASTER_QUP_1 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_1 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma1 0 5 QCOM_GPI_I2C>,
-					<&gpi_dma1 1 5 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 5 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2122,20 +2221,23 @@
 				reg = <0x0 0xa94000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S5_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi13_data_clk>, <&qup_spi13_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 358 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma1 0 5 QCOM_GPI_SPI>,
-					<&gpi_dma1 1 5 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 5 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2144,15 +2246,17 @@
 				reg = <0x0 0xa94000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S5_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart13_cts>, <&qup_uart13_rts>,
 					    <&qup_uart13_tx>, <&qup_uart13_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 358 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -2162,21 +2266,26 @@
 				reg = <0x0 0xa98000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S6_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c14_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 835 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>,
-				<&aggre2_noc MASTER_QUP_1 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_1 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma1 0 6 QCOM_GPI_I2C>,
-					<&gpi_dma1 1 6 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 6 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2185,20 +2294,23 @@
 				reg = <0x0 0xa98000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S6_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi14_data_clk>, <&qup_spi14_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 835 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma1 0 6 QCOM_GPI_SPI>,
-					<&gpi_dma1 1 6 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 6 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2207,15 +2319,17 @@
 				reg = <0x0 0xa98000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S6_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart14_cts>, <&qup_uart14_rts>,
 					    <&qup_uart14_tx>, <&qup_uart14_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 835 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -2225,21 +2339,26 @@
 				reg = <0x0 0xa9c000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S7_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c15_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>,
-				<&aggre2_noc MASTER_QUP_1 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_1 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma1 0 7 QCOM_GPI_I2C>,
-					<&gpi_dma1 1 7 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 7 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2248,20 +2367,23 @@
 				reg = <0x0 0xa9c000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S7_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi15_data_clk>, <&qup_spi15_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma1 0 7 QCOM_GPI_SPI>,
-					<&gpi_dma1 1 7 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma1 1 7 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2270,33 +2392,35 @@
 				reg = <0x0 0xa9c000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP1_S7_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart15_cts>, <&qup_uart15_rts>,
 					    <&qup_uart15_tx>, <&qup_uart15_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 125 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_1 0 &clk_virt SLAVE_QUP_CORE_1 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_1 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
 		};
 
-		gpi_dma3: qcom,gpi-dma@b00000 {
-			compatible = "qcom,sm6350-gpi-dma";
-			#dma-cells = <3>;
+		gpi_dma3: dma-controller@b00000 {
+			compatible = "qcom,qcs8300-gpi-dma", "qcom,sm6350-gpi-dma";
 			reg = <0x0 0xb00000 0x0 0x60000>;
+			#dma-cells = <3>;
 			interrupts = <GIC_SPI 368 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 369 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 527 IRQ_TYPE_LEVEL_HIGH>,
-				<GIC_SPI 528 IRQ_TYPE_LEVEL_HIGH>;
+				     <GIC_SPI 369 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 527 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 528 IRQ_TYPE_LEVEL_HIGH>;
 			iommus = <&apps_smmu 0x56 0x0>;
 			dma-channels = <4>;
 			dma-channel-mask = <0xf>;
 			dma-coherent;
-			status = "ok";
+			status = "disabled";
 		};
 
 		qupv3_id_3: geniqup@bc0000 {
@@ -2305,7 +2429,8 @@
 			ranges;
 			clocks = <&gcc GCC_QUPV3_WRAP_3_M_AHB_CLK>,
 				 <&gcc GCC_QUPV3_WRAP_3_S_AHB_CLK>;
-			clock-names = "m-ahb", "s-ahb";
+			clock-names = "m-ahb",
+				      "s-ahb";
 			#address-cells = <2>;
 			#size-cells = <2>;
 			iommus = <&apps_smmu 0x43 0x0>;
@@ -2317,21 +2442,26 @@
 				reg = <0x0 0xb80000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP3_S0_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_i2c16_data_clk>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 830 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config", "qup-memory";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_3 0 &clk_virt SLAVE_QUP_CORE_3 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_3 0>,
-				<&aggre2_noc MASTER_QUP_3 0 &mc_virt SLAVE_EBI1 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_3 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_3 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_3 QCOM_ICC_TAG_ALWAYS>,
+						<&aggre2_noc MASTER_QUP_3 QCOM_ICC_TAG_ALWAYS
+						 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config",
+						     "qup-memory";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				required-opps = <&rpmhpd_opp_low_svs>;
 				dmas = <&gpi_dma3 0 0 QCOM_GPI_I2C>,
-					<&gpi_dma3 1 0 QCOM_GPI_I2C>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma3 1 0 QCOM_GPI_I2C>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2340,20 +2470,23 @@
 				reg = <0x0 0xb80000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP3_S0_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_spi16_data_clk>, <&qup_spi16_cs>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 830 IRQ_TYPE_LEVEL_HIGH>;
 				#address-cells = <1>;
 				#size-cells = <0>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_3 0 &clk_virt SLAVE_QUP_CORE_3 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_3 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_3 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_3 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_3 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				dmas = <&gpi_dma3 0 0 QCOM_GPI_SPI>,
-					<&gpi_dma3 1 0 QCOM_GPI_SPI>;
-				dma-names = "tx", "rx";
+				       <&gpi_dma3 1 0 QCOM_GPI_SPI>;
+				dma-names = "tx",
+					    "rx";
 				status = "disabled";
 			};
 
@@ -2362,15 +2495,17 @@
 				reg = <0x0 0xb80000 0x0 0x4000>;
 				clocks = <&gcc GCC_QUPV3_WRAP3_S0_CLK>;
 				clock-names = "se";
-				pinctrl-names = "default";
 				pinctrl-0 = <&qup_uart16_cts>, <&qup_uart16_rts>,
 					    <&qup_uart16_tx>, <&qup_uart16_rx>;
+				pinctrl-names = "default";
 				interrupts = <GIC_SPI 830 IRQ_TYPE_LEVEL_HIGH>;
-				interconnect-names = "qup-core", "qup-config";
-				interconnects =
-				<&clk_virt MASTER_QUP_CORE_3 0 &clk_virt SLAVE_QUP_CORE_3 0>,
-				<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_QUP_3 0>;
-				power-domains = <&rpmhpd QCS8300_CX>;
+				interconnects = <&clk_virt MASTER_QUP_CORE_3 QCOM_ICC_TAG_ALWAYS
+						 &clk_virt SLAVE_QUP_CORE_3 QCOM_ICC_TAG_ALWAYS>,
+						<&gem_noc MASTER_APPSS_PROC QCOM_ICC_TAG_ALWAYS
+						 &config_noc SLAVE_QUP_3 QCOM_ICC_TAG_ALWAYS>;
+				interconnect-names = "qup-core",
+						     "qup-config";
+				power-domains = <&rpmhpd RPMHPD_CX>;
 				operating-points-v2 = <&qup_opp_table>;
 				status = "disabled";
 			};
@@ -2606,6 +2741,15 @@
 			phy-names = "pciephy";
 
 			status = "disabled";
+
+			pcieport1: pcie@1 {
+				device_type = "pci";
+				reg = <0x0 0x0 0x0 0x0 0x0>;
+				#address-cells = <3>;
+				#size-cells = <2>;
+				ranges;
+				bus-range = <0x01 0xff>;
+			};
 		};
 
 		pcie1_phy: phy@1c14000 {
@@ -2851,6 +2995,97 @@
 						reg = <GPR_VCPM_MODULE_IID>;
 						qcom,audiopkt-ch-name = "apr_audio_svc";
 					};
+				};
+			};
+		};
+
+		gpu: gpu@3d00000 {
+			compatible = "qcom,adreno-623.0", "qcom,adreno";
+			reg = <0x0 0x03d00000 0x0 0x40000>,
+			      <0x0 0x03d9e000 0x0 0x1000>,
+			      <0x0 0x03d61000 0x0 0x800>;
+			reg-names = "kgsl_3d0_reg_memory",
+				    "cx_mem",
+				    "cx_dbgc";
+			interrupts = <GIC_SPI 300 IRQ_TYPE_LEVEL_HIGH>;
+			iommus = <&adreno_smmu 0 0xc00>,
+				 <&adreno_smmu 1 0xc00>;
+			operating-points-v2 = <&gpu_opp_table>;
+			qcom,gmu = <&gmu>;
+			interconnects = <&gem_noc MASTER_GFX3D QCOM_ICC_TAG_ALWAYS
+					 &mc_virt SLAVE_EBI1 QCOM_ICC_TAG_ALWAYS>;
+			interconnect-names = "gfx-mem";
+			#cooling-cells = <2>;
+
+			status = "disabled";
+
+			gpu_zap_shader: zap-shader {
+				memory-region = <&gpu_microcode_mem>;
+			};
+
+			gpu_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-877000000 {
+					opp-hz = /bits/ 64 <877000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_TURBO_L1>;
+					opp-peak-kBps = <12484375>;
+				};
+
+				opp-780000000 {
+					opp-hz = /bits/ 64 <780000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_TURBO>;
+					opp-peak-kBps = <10687500>;
+				};
+
+				opp-599000000 {
+					opp-hz = /bits/ 64 <599000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_NOM>;
+					opp-peak-kBps = <8171875>;
+				};
+
+				opp-479000000 {
+					opp-hz = /bits/ 64 <479000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_SVS_L1>;
+					opp-peak-kBps = <5285156>;
+				};
+			};
+		};
+
+		gmu: gmu@3d6a000 {
+			compatible = "qcom,adreno-gmu-623.0", "qcom,adreno-gmu";
+			reg = <0x0 0x03d6a000 0x0 0x34000>,
+			      <0x0 0x03de0000 0x0 0x10000>,
+			      <0x0 0x0b290000 0x0 0x10000>;
+			reg-names = "gmu", "rscc", "gmu_pdc";
+			interrupts = <GIC_SPI 304 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 305 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "hfi", "gmu";
+			clocks = <&gpucc GPU_CC_CX_GMU_CLK>,
+				 <&gpucc GPU_CC_CXO_CLK>,
+				 <&gcc GCC_DDRSS_GPU_AXI_CLK>,
+				 <&gcc GCC_GPU_MEMNOC_GFX_CLK>,
+				 <&gpucc GPU_CC_AHB_CLK>,
+				 <&gpucc GPU_CC_HUB_CX_INT_CLK>;
+			clock-names = "gmu",
+				      "cxo",
+				      "axi",
+				      "memnoc",
+				      "ahb",
+				      "hub";
+			power-domains = <&gpucc GPU_CC_CX_GDSC>,
+					<&gpucc GPU_CC_GX_GDSC>;
+			power-domain-names = "cx",
+					     "gx";
+			iommus = <&adreno_smmu 5 0xc00>;
+			operating-points-v2 = <&gmu_opp_table>;
+
+			gmu_opp_table: opp-table {
+				compatible = "operating-points-v2";
+
+				opp-500000000 {
+					opp-hz = /bits/ 64 <500000000>;
+					opp-level = <RPMH_REGULATOR_LEVEL_SVS>;
 				};
 			};
 		};
@@ -7758,7 +7993,7 @@
 			clock-names = "apb_pclk";
 		};
 
-		sdhc_1: mmc@87C4000 {
+		sdhc_1: mmc@0x87c4000 {
 			compatible = "qcom,sdhci-msm-v5";
 			status = "disabled";
 
@@ -7815,7 +8050,7 @@
 			};
 		};
 
-		sdhc_2: mmc@0x87c4000 {
+		sdhc_2: sdhci@0x87c4000 {
 			compatible = "qcom,sdhci-msm-v5";
 			status = "disabled";
 
@@ -7871,6 +8106,50 @@
 			reg = <0x0 0x87c8000 0x0 0x18000>;
 			qcom,ice-use-hwkm;
 			clocks = <&gcc GCC_SDCC1_ICE_CORE_CLK>;
+		};
+
+		tsens2: thermal-sensor@c251000 {
+			compatible = "qcom,qcs8300-tsens", "qcom,tsens-v2";
+			reg = <0x0 0x0c251000 0x0 0x1ff>,
+			      <0x0 0x0c224000 0x0 0x8>;
+			interrupts = <GIC_SPI 572 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 609 IRQ_TYPE_LEVEL_HIGH>;
+			#qcom,sensors = <10>;
+			interrupt-names = "uplow", "critical";
+			#thermal-sensor-cells = <1>;
+		};
+
+		tsens3: thermal-sensor@c252000 {
+			compatible = "qcom,qcs8300-tsens", "qcom,tsens-v2";
+			reg = <0x0 0x0c252000 0x0 0x1ff>,
+			      <0x0 0x0c225000 0x0 0x8>;
+			interrupts = <GIC_SPI 573 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 610 IRQ_TYPE_LEVEL_HIGH>;
+			#qcom,sensors = <10>;
+			interrupt-names = "uplow", "critical";
+			#thermal-sensor-cells = <1>;
+		};
+
+		tsens0: thermal-sensor@c263000 {
+			compatible = "qcom,qcs8300-tsens", "qcom,tsens-v2";
+			reg = <0x0 0x0c263000 0x0 0x1ff>,
+			      <0x0 0x0c222000 0x0 0x8>;
+			interrupts = <GIC_SPI 506 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 508 IRQ_TYPE_LEVEL_HIGH>;
+			#qcom,sensors = <10>;
+			interrupt-names = "uplow", "critical";
+			#thermal-sensor-cells = <1>;
+		};
+
+		tsens1: thermal-sensor@c265000 {
+			compatible = "qcom,qcs8300-tsens", "qcom,tsens-v2";
+			reg = <0x0 0x0c265000 0x0 0x1ff>,
+			      <0x0 0x0c223000 0x0 0x8>;
+			interrupts = <GIC_SPI 507 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 509 IRQ_TYPE_LEVEL_HIGH>;
+			#qcom,sensors = <10>;
+			interrupt-names = "uplow", "critical";
+			#thermal-sensor-cells = <1>;
 		};
 	};
 
@@ -8091,6 +8370,920 @@
 			phys = <&usb_2_hsphy>;
 			phy-names = "usb2-phy";
 			maximum-speed = "high-speed";
+		};
+	};
+
+	thermal_zones: thermal-zones {
+		aoss-0-thermal {
+			thermal-sensors = <&tsens0 0>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-0-0-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens0 1>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_0_0_0_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-0-1-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens0 2>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_0_1_0_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-0-2-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens0 3>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_0_2_0_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-0-3-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens0 4>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_0_3_0_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		gpuss-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens0 5>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <115000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		audio-thermal {
+			thermal-sensors = <&tsens0 6>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		camss-0-thermal {
+			thermal-sensors = <&tsens0 7>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		pcie-0-thermal {
+			thermal-sensors = <&tsens0 8>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpuss-0-0-thermal {
+			thermal-sensors = <&tsens0 9>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		aoss-1-thermal {
+			thermal-sensors = <&tsens1 0>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-0-0-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens1 1>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_0_0_1_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-0-1-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens1 2>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_0_1_1_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-0-2-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens1 3>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_0_2_1_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-0-3-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens1 4>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_0_3_1_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		gpuss-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens1 5>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <115000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		video-thermal {
+			thermal-sensors = <&tsens1 6>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		camss-1-thermal {
+			thermal-sensors = <&tsens1 7>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		pcie-1-thermal {
+			thermal-sensors = <&tsens1 8>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpuss-0-1-thermal {
+			thermal-sensors = <&tsens1 9>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		aoss-2-thermal {
+			thermal-sensors = <&tsens2 0>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-1-0-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens2 1>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_1_0_0_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-1-1-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens2 2>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_1_1_0_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-1-2-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens2 3>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_1_2_0_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-1-3-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens2 4>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_1_3_0_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		nsp-0-0-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens2 5>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <115000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		nsp-0-1-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens2 6>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <115000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		nsp-0-2-0-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens2 7>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <115000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		ddrss-0-thermal {
+			thermal-sensors = <&tsens2 8>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpuss-1-0-thermal {
+			thermal-sensors = <&tsens2 9>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		aoss-3-thermal {
+			thermal-sensors = <&tsens3 0>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-1-0-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens3 1>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_1_0_1_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-1-1-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens3 2>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_1_1_1_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-1-2-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens3 3>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_1_2_1_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpu-1-3-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens3 4>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				cpu_1_3_1_alert1: trip-point1 {
+					temperature = <126000>;
+					hysteresis = <3000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		nsp-0-0-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens3 5>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <115000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		nsp-0-1-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens3 6>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <115000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		nsp-0-2-1-thermal {
+			polling-delay-passive = <10>;
+
+			thermal-sensors = <&tsens3 7>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <115000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+
+				trip-point2 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		ddrss-1-thermal {
+			thermal-sensors = <&tsens3 8>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
+		};
+
+		cpuss-1-1-thermal {
+			thermal-sensors = <&tsens3 9>;
+
+			trips {
+				trip-point0 {
+					temperature = <135000>;
+					hysteresis = <1000>;
+					type = "passive";
+				};
+
+				trip-point1 {
+					temperature = <130000>;
+					hysteresis = <5000>;
+					type = "passive";
+				};
+			};
 		};
 	};
 

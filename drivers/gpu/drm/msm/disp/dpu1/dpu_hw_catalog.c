@@ -109,7 +109,7 @@
 
 #define DEFAULT_PIXEL_RAM_SIZE		(50 * 1024)
 #define DEFAULT_DPU_LINE_WIDTH		2048
-#define DEFAULT_DPU_OUTPUT_LINE_WIDTH	2560
+#define DEFAULT_DPU_OUTPUT_LINE_WIDTH	5120
 
 #define MAX_HORZ_DECIMATION	4
 #define MAX_VERT_DECIMATION	4
@@ -680,6 +680,7 @@ static const struct dpu_qos_lut_entry sc7180_qos_nrt[] = {
 
 #include "catalog/dpu_5_0_sm8150.h"
 #include "catalog/dpu_5_1_sc8180x.h"
+#include "catalog/dpu_5_3_sm6150.h"
 #include "catalog/dpu_5_4_sm6125.h"
 
 #include "catalog/dpu_6_0_sm8250.h"

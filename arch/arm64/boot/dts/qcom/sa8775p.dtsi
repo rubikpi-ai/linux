@@ -2,6 +2,7 @@
 /*
  * Copyright (c) 2023, Linaro Limited
  * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <dt-bindings/interconnect/qcom,icc.h>
@@ -904,8 +905,8 @@
 				      <&smp2p_cdsp_in 1 IRQ_TYPE_EDGE_RISING>,
 				      <&smp2p_cdsp_in 2 IRQ_TYPE_EDGE_RISING>,
 				      <&smp2p_cdsp_in 3 IRQ_TYPE_EDGE_RISING>;
-		interrupt-names = "wdog", "fatal", "handover",
-				  "ready", "stop-ack";
+		interrupt-names = "wdog", "fatal", "ready",
+				  "handover", "stop-ack";
 
 		clocks = <&rpmhcc RPMH_CXO_CLK>;
 		clock-names = "xo";
@@ -1036,8 +1037,8 @@
 				      <&smp2p_cdsp1_in 1 IRQ_TYPE_EDGE_RISING>,
 				      <&smp2p_cdsp1_in 2 IRQ_TYPE_EDGE_RISING>,
 				      <&smp2p_cdsp1_in 3 IRQ_TYPE_EDGE_RISING>;
-		interrupt-names = "wdog", "fatal", "handover",
-				  "ready", "stop-ack";
+		interrupt-names = "wdog", "fatal", "ready",
+				  "handover", "stop-ack";
 
 		clocks = <&rpmhcc RPMH_CXO_CLK>;
 		clock-names = "xo";
@@ -1850,13 +1851,13 @@
 
 		qfprom: efuse@784000 {
 			compatible = "qcom,qfprom";
-			reg = <0x0 0x00784000 0x0 0x11d0>;
+			reg = <0x0 0x00784000 0x0 0x2410>;
 			#address-cells = <1>;
 			#size-cells = <1>;
 
-			gpu_speed_bin: gpu-speed-bin@15c {
-				reg = <0x15c 0x1>;
-				bits = <5 3>;
+			gpu_speed_bin: gpu-speed-bin@240c {
+				reg = <0x240c 0x1>;
+				bits = <0 8>;
 			};
 		};
 
@@ -3594,8 +3595,47 @@
 			status = "disabled";
 		};
 
-		sdhc_1: mmc@0x087C4000 {
+		sdhc_1: mmc@0x87c4000 {
 			compatible = "qcom,sdhci-msm-v5";
+			status = "disabled";
+
+			reg = <0x0 0x87C4000 0x0 0x1000>,
+				<0x0 0x87C5000 0x0 0x1000>;
+			reg-names = "hc", "cqhci";
+
+			interrupts = <GIC_SPI 383 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 521 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "hc_irq",
+					  "pwr_irq";
+
+			clocks = <&gcc GCC_SDCC1_AHB_CLK>,
+				 <&gcc GCC_SDCC1_APPS_CLK>,
+				 <&rpmhcc RPMH_CXO_CLK>;
+			clock-names = "iface",
+				      "core",
+				      "xo";
+
+			interconnects = <&aggre1_noc MASTER_SDC 0 &mc_virt SLAVE_EBI1 0>,
+					<&gem_noc MASTER_APPSS_PROC 0 &config_noc SLAVE_SDC1 0>;
+			interconnect-names = "sdhc-ddr",
+					     "cpu-sdhc";
+
+			bus-width = <8>;
+			supports-cqe;
+			dma-coherent;
+
+			qcom,dll-config = <0x000F64EC>;
+			qcom,ddr-config = <0x80040868>;
+
+			max-frequency = <50000000>;
+
+			iommus = <&apps_smmu 0x0 0x0>;
+
+			resets = <&gcc GCC_SDCC1_BCR>;
+		};
+
+		sdhc_2: sdhci@0x87c4000 {
+			compatible = "qcom,sa8775-sdhci","qcom,sdhci-msm-v5";
 			status = "disabled";
 
 			reg = <0x0 0x087C4000 0x0 0x1000>;
@@ -3613,12 +3653,7 @@
 			interconnect-names = "sdhc-ddr","cpu-sdhc";
 
 			power-domains = <&rpmhpd RPMHPD_CX>;
-			operating-points-v2 = <&sdhc1_opp_table>;
-
-			qcom,iommu-dma = "fastmap";
-
-			qcom,iommu-dma-addr-pool = <0x40000000 0x10000000>;
-			qcom,iommu-geometry = <0x40000000 0x10000000>;
+			operating-points-v2 = <&sdhc2_opp_table>;
 
 			no-sdio;
 			no-mmc;
@@ -3626,10 +3661,11 @@
 			bus-width = <4>;
 			dma-coherent;
 			qcom,dll-config = <0x0007642C>;
+			qcom,ddr-config = <0x80040868>;
 
 			resets = <&gcc GCC_SDCC1_BCR>;
 
-			sdhc1_opp_table: opp-table {
+			sdhc2_opp_table: opp-table {
 				compatible = "operating-points-v2";
 
 				opp-100000000 {
@@ -7569,28 +7605,8 @@
 
 			power-domains = <&camcc CAM_CC_TITAN_TOP_GDSC>;
 			power-domain-names = "top";
-			operating-points-v2 = <&camss_opp_table>;
 
 			status = "disabled";
-
-			camss_opp_table: opp-table {
-				compatible = "operating-points-v2";
-
-				opp-400000000 {
-					opp-hz = /bits/ 64 <400000000>;
-					required-opps = <&rpmhpd_opp_svs_l1>;
-				};
-
-				opp-480000000 {
-					opp-hz = /bits/ 64 <480000000>;
-					required-opps = <&rpmhpd_opp_svs_l1>;
-				};
-
-				opp-600000000 {
-					opp-hz = /bits/ 64 <600000000>;
-					required-opps = <&rpmhpd_opp_nom>;
-				};
-			};
 
 			ports {
 				#address-cells = <1>;
@@ -10635,9 +10651,17 @@
 			     <GIC_SPI 313 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 314 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 374 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "msi0", "msi1", "msi2", "msi3",
-				  "msi4", "msi5", "msi6", "msi7";
+			     <GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 306 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "msi0",
+				  "msi1",
+				  "msi2",
+				  "msi3",
+				  "msi4",
+				  "msi5",
+				  "msi6",
+				  "msi7",
+				  "global";
 		#interrupt-cells = <1>;
 		interrupt-map-mask = <0 0 0 0x7>;
 		interrupt-map = <0 0 0 1 &intc GIC_SPI 434 IRQ_TYPE_LEVEL_HIGH>,
@@ -10748,9 +10772,17 @@
 			     <GIC_SPI 143 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 144 IRQ_TYPE_LEVEL_HIGH>,
 			     <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>,
-			     <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>;
-		interrupt-names = "msi0", "msi1", "msi2", "msi3",
-				  "msi4", "msi5", "msi6", "msi7";
+			     <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SPI 518 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "msi0",
+				  "msi1",
+				  "msi2",
+				  "msi3",
+				  "msi4",
+				  "msi5",
+				  "msi6",
+				  "msi7",
+				  "global";
 		#interrupt-cells = <1>;
 		interrupt-map-mask = <0 0 0 0x7>;
 		interrupt-map = <0 0 0 1 &intc GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>,
@@ -10792,6 +10824,15 @@
 		eq-presets-16gts = /bits/ 8 <0x55 0x55 0x55 0x55 0x55 0x55 0x55 0x55>;
 
 		status = "disabled";
+
+		pcieport1: pcie@1 {
+			device_type = "pci";
+			reg = <0x0 0x0 0x0 0x0 0x0>;
+			#address-cells = <3>;
+			#size-cells = <2>;
+			ranges;
+			bus-range = <0x01 0xff>;
+		};
 	};
 
 	pcie1_phy: phy@1c14000 {

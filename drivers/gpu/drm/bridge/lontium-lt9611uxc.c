@@ -98,6 +98,7 @@ struct lt9611uxc_mode {
  * Enumerate them here to check whether the mode is supported.
  */
 static struct lt9611uxc_mode lt9611uxc_modes[] = {
+	{ 3840, 4400, 2160, 2250, 30 },
 	{ 1920, 2200, 1080, 1125, 60 },
 	{ 1920, 2200, 1080, 1125, 30 },
 	{ 1920, 2640, 1080, 1125, 25 },
@@ -966,7 +967,11 @@ retry:
 		}
 	}
 
-	return lt9611uxc_audio_init(dev, lt9611uxc);
+	ret = lt9611uxc_audio_init(dev, lt9611uxc);
+	if (ret)
+		goto err_remove_bridge;
+
+	return 0;
 
 err_remove_bridge:
 	free_irq(client->irq, lt9611uxc);
