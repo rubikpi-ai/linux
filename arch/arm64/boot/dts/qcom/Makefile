@@ -317,4 +317,4 @@ dtb-$(CONFIG_ARCH_QCOM)	+= x1e80100-addons-qcp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= x1e80100-qcp.dtb
 
 # rubikpi
-dtb-$(CONFIG_ARCH_QCOM)	+= rubikpi3.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs6490-thundercomm-rubikpi3.dtb
