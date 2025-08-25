@@ -1,4 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0
+ifdef RUBIKPI_DTB_BUILD_ALL
 dtb-$(CONFIG_ARCH_QCOM)	+= apq8016-sbc.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= apq8016-sbc-d3-camera-mezzanine.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= apq8039-t2.dtb
@@ -315,6 +316,7 @@ dtb-$(CONFIG_ARCH_QCOM)	+= x1e80100-addons-crd.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= x1e80100-crd.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= x1e80100-addons-qcp.dtb
 dtb-$(CONFIG_ARCH_QCOM)	+= x1e80100-qcp.dtb
+endif
 
 # rubikpi
-dtb-$(CONFIG_ARCH_QCOM)	+= rubikpi3.dtb
+dtb-$(CONFIG_ARCH_QCOM)	+= qcs6490-thundercomm-rubikpi3.dtb
