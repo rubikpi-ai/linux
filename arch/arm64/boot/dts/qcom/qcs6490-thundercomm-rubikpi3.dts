@@ -1,0 +1,17 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2024, Thundercomm All rights reserved.
+ */
+
+/dts-v1/;
+
+#include "qcs6490-thundercomm-rubikpi3.dtsi"
+
+/ {
+	model = "Thundercomm, Inc. RUBIK Pi 3";
+	compatible = "qcom,qcm6490-addons-idp","qcom,sc7280";
+
+	/* This will be deprecated soon */
+	qcom,msm-id = <497 0x10000>, <498 0x10000>, <475 0x10000>, <515 0x10000>;
+	qcom,board-id = <32 0xb>, <32 0x60b>;
+};
