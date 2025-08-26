@@ -43,6 +43,19 @@ struct es8316_priv {
 	unsigned int allowed_rates[NR_SUPPORTED_MCLK_LRCK_RATIOS];
 	struct snd_pcm_hw_constraint_list sysclk_constraints;
 	bool jd_inverted;
+	int use_init_regs;
+	int use_pop_regs;
+	struct delayed_work pcm_pop_work;
+};
+
+static struct snd_soc_jack es8316_jack;
+
+/* Headset jack detection DAPM pins */
+static struct snd_soc_jack_pin es8316_headset_pins[] = {
+	{
+		.pin = "Headset",
+		.mask = SND_JACK_HEADSET,
+	},
 };
 
 /*
@@ -360,6 +373,73 @@ static const struct snd_soc_dapm_route es8316_dapm_routes[] = {
 	{"HPOR", NULL, "Headphone Out"},
 };
 
+/* Get and write the device's register configuration from dtsi. When (reg == 0xFFFF &&
+ * value == 0xFFFF), the snd_soc_component_update_bits() function will be called for the
+ * next set of registers.
+ */
+static int es8316_parse_regs(struct snd_soc_component *component, const char *property_name)
+{
+	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
+
+	struct device *dev = component->dev;
+	u32 *init_regs;
+	int num_regs, i, ret;
+
+	num_regs = of_property_count_u32_elems(dev->of_node, property_name);
+	if (num_regs <= 0 || num_regs % 3 != 0) {
+		dev_err(dev, "Invalid or missing %s property\n", property_name);
+		return -EINVAL;
+	}
+
+	init_regs = kcalloc(num_regs, sizeof(u32), GFP_KERNEL);
+	if (!init_regs)
+		return -ENOMEM;
+
+	ret = of_property_read_u32_array(dev->of_node, property_name, init_regs, num_regs);
+	if (ret) {
+		dev_err(dev, "Failed to read %s property: %d\n", property_name, ret);
+		kfree(init_regs);
+		return ret;
+	}
+
+	for (i = 0; i < num_regs; i += 3) {
+		u32 reg = init_regs[i];
+		u32 value = init_regs[i + 1];
+		u32 delay_ms = init_regs[i + 2];
+
+		if (reg == 0xFFFF && value == 0xFFFF) {
+			if (i + 3 < num_regs)
+				i += 3;
+			else
+				break;
+
+			ret = snd_soc_component_update_bits(component, init_regs[i],
+				 init_regs[i + 1], init_regs[i + 2]);
+			if (ret < 0) {
+				dev_err(dev, "Failed to update register 0x%02x: %d\n",
+				 init_regs[i], ret);
+				break;
+			}
+
+			if (delay_ms > 0)
+				msleep(delay_ms);
+			continue;
+		}
+
+		ret = snd_soc_component_write(component, reg, value);
+		if (ret < 0) {
+			dev_err(dev, "Failed to write register 0x%02x: %d\n", reg, ret);
+			break;
+		}
+
+		if (delay_ms > 0)
+			msleep(delay_ms);
+	}
+
+	kfree(init_regs);
+	return ret;
+}
+
 static int es8316_set_dai_sysclk(struct snd_soc_dai *codec_dai,
 				 int clk_id, unsigned int freq, int dir)
 {
@@ -470,6 +550,42 @@ static int es8316_pcm_hw_params(struct snd_pcm_substream *substream,
 	u8 bclk_divider;
 	u16 lrck_divider;
 	int i;
+
+	if (es8316->use_init_regs) {
+		switch (params_format(params)) {
+		case SNDRV_PCM_FORMAT_S16_LE:
+			wordlen = ES8316_SERDATA2_LEN_16;
+			break;
+		case SNDRV_PCM_FORMAT_S20_3LE:
+			wordlen = ES8316_SERDATA2_LEN_20;
+			break;
+		case SNDRV_PCM_FORMAT_S24_LE:
+			wordlen = ES8316_SERDATA2_LEN_24;
+			break;
+		case SNDRV_PCM_FORMAT_S32_LE:
+			wordlen = ES8316_SERDATA2_LEN_32;
+			break;
+		default:
+			return -EINVAL;
+		}
+
+		snd_soc_component_update_bits(component, ES8316_SERDATA_DAC,
+					ES8316_SERDATA2_LEN_MASK, wordlen);
+		snd_soc_component_update_bits(component, ES8316_SERDATA_ADC,
+					ES8316_SERDATA2_LEN_MASK, wordlen);
+		snd_soc_component_write(component, ES8316_CLKMGR_CLKSW, 0x7f);
+		snd_soc_component_write(component, ES8316_CLKMGR_CLKSEL, 0x09);
+		snd_soc_component_update_bits(component, ES8316_ADC_PDN_LINSEL, 0xcf, 0x00);
+		snd_soc_component_write(component, ES8316_SERDATA_ADC, 0x00);
+		snd_soc_component_write(component, ES8316_SYS_PDN, 0x00);
+
+		if (es8316->use_pop_regs == 1) {
+			queue_delayed_work(system_wq, &es8316->pcm_pop_work,
+						 msecs_to_jiffies(20));
+		}
+
+		return 0;
+	}
 
 	/* Validate supported sample rates that are autodetected from MCLK */
 	for (i = 0; i < NR_SUPPORTED_MCLK_LRCK_RATIOS; i++) {
@@ -723,6 +839,17 @@ static int es8316_set_jack(struct snd_soc_component *component,
 	return 0;
 }
 
+static void pcm_pop_work_events(struct work_struct *work)
+{
+	struct es8316_priv *es8316 = container_of(work, struct es8316_priv,
+								pcm_pop_work.work);
+	struct snd_soc_component *component = es8316->component;
+
+	/*oepn dac output here*/
+	es8316_parse_regs(component, "pop-regs");
+	es8316->use_pop_regs = 0;
+}
+
 static int es8316_probe(struct snd_soc_component *component)
 {
 	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
@@ -742,6 +869,34 @@ static int es8316_probe(struct snd_soc_component *component)
 	if (ret) {
 		dev_err(component->dev, "unable to enable mclk\n");
 		return ret;
+	}
+
+	if (es8316->irq > 0) {
+		ret = snd_soc_card_jack_new_pins(component->card, "Headset",
+					SND_JACK_HEADSET | SND_JACK_BTN_0,
+					&es8316_jack,
+					es8316_headset_pins,
+					ARRAY_SIZE(es8316_headset_pins));
+		if (ret)
+			dev_warn(component->dev, "new a jack failed\n");
+		else
+			snd_soc_component_set_jack(component, &es8316_jack, NULL);
+	}
+
+	INIT_DELAYED_WORK(&es8316->pcm_pop_work, pcm_pop_work_events);
+
+	if (es8316->use_init_regs) {
+		ret = snd_soc_component_read(component, ES8316_CLKMGR_ADCDIV2);
+		if (!ret) {
+			snd_soc_component_write(component, ES8316_RESET, 0x3F);
+			usleep_range(5000, 5500);
+			snd_soc_component_write(component, ES8316_RESET, 0x03);
+			ret = snd_soc_component_read(component, ES8316_CLKMGR_ADCDIV2);
+			if (!ret) {
+				es8316_parse_regs(component, "init-regs");
+				return 0;
+			}
+		}
 	}
 
 	/* Reset codec and enable current state machine */
@@ -848,6 +1003,16 @@ static int es8316_i2c_probe(struct i2c_client *i2c_client)
 
 	es8316->irq = i2c_client->irq;
 	mutex_init(&es8316->lock);
+
+	if (of_property_present(dev->of_node, "init-regs")) {
+		dev_info(dev, "init-regs provided.\n");
+		es8316->use_init_regs = 1;
+	}
+
+	if (of_property_present(dev->of_node, "pop-regs")) {
+		dev_info(dev, "pop-regs provided.\n");
+		es8316->use_pop_regs = 1;
+	}
 
 	if (es8316->irq > 0) {
 		ret = devm_request_threaded_irq(dev, es8316->irq, NULL, es8316_irq,
