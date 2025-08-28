@@ -90,7 +90,8 @@
 					<&lpass_qua_mi2s_data3_sleep>, <&lpass_lpi_i2s1_clk_sleep>,
 					<&lpass_lpi_i2s1_ws_sleep>, <&lpass_lpi_i2s1_data0_sleep>,
 					<&lpass_lpi_i2s1_data1_sleep>, <&mi2s2_sclk_sleep>,
-					<&mi2s2_ws_sleep>, <&mi2s2_data0_sleep>, <&mi2s2_data1_sleep>;
+					<&mi2s2_ws_sleep>, <&mi2s2_data0_sleep>, <&mi2s2_data1_sleep>,
+					<&mi2s2_mclk>;
 		pinctrl-1 = <&mi2s0_data0>, <&mi2s0_data1>, <&mi2s0_mclk>,
 					<&mi2s0_sclk>, <&mi2s0_ws>,
 					<&lpass_ext_mas_clk1_a>, <&lpass_qua_mi2s_sclk>,
@@ -99,7 +100,7 @@
 					<&lpass_qua_mi2s_data3>, <&lpass_lpi_i2s1_clk>,
 					<&lpass_lpi_i2s1_ws>, <&lpass_lpi_i2s1_data0>,
 					<&lpass_lpi_i2s1_data1>, <&mi2s2_sclk>,
-					<&mi2s2_ws>, <&mi2s2_data0>, <&mi2s2_data1>;
+					<&mi2s2_ws>, <&mi2s2_data0>, <&mi2s2_data1>, <&mi2s2_mclk>;
 		pinctrl-2 = <&mi2s0_data0_sleep>, <&mi2s0_data1_sleep>, <&mi2s0_mclk>,
 					<&mi2s0_sclk_sleep>, <&mi2s0_ws_sleep>,
 					<&lpass_ext_mas_clk1_a_sleep>, <&lpass_qua_mi2s_sclk_sleep>,
@@ -108,7 +109,8 @@
 					<&lpass_qua_mi2s_data3_sleep>, <&lpass_lpi_i2s1_clk_sleep>,
 					<&lpass_lpi_i2s1_ws_sleep>, <&lpass_lpi_i2s1_data0_sleep>,
 					<&lpass_lpi_i2s1_data1_sleep>, <&mi2s2_sclk_sleep>,
-					<&mi2s2_ws_sleep>, <&mi2s2_data0_sleep>, <&mi2s2_data1_sleep>;
+					<&mi2s2_ws_sleep>, <&mi2s2_data0_sleep>, <&mi2s2_data1_sleep>,
+					<&mi2s2_mclk>;
 
 		tdm-capture-dai-link {
 			link-name = "TDM-LPAIF-TX-PRIMARY";
@@ -195,7 +197,7 @@
 		};
 
 		tert-mi2s-playback-dai-link {
-			link-name = "MI2S-LPAIF_AUD-RX-SECONDARY";
+			link-name = "MI2S-LPAIF-RX-TERTIARY";
 			cpu {
 				sound-dai = <&q6apmbedai TERTIARY_MI2S_RX>;
 			};
@@ -205,7 +207,7 @@
 		};
 
 		tert-mi2s-capture-dai-link {
-			link-name = "MI2S-LPAIF_AUD-TX-SECONDARY";
+			link-name = "MI2S-LPAIF-TX-TERTIARY";
 			cpu {
 				sound-dai = <&q6apmbedai TERTIARY_MI2S_TX>;
 			};
@@ -1347,24 +1349,49 @@
 		bias-pull-up;
 	};
 
+	mi2s2_mclk: mi2s2-mclk-state {
+		pins = "gpio105";
+		function = "sec_mi2s";
+		drive-strength = <8>;
+		bias-disable;
+	};
+
 	mi2s2_data0: mi2s2-data0-state {
 		pins = "gpio102";
 		function = "mi2s2_data0";
+		drive-strength = <8>;
+		bias-disable;
 	};
 
 	mi2s2_data1: mi2s2-data1-state {
 		pins = "gpio104";
 		function = "mi2s2_data1";
+		drive-strength = <8>;
+		bias-disable;
 	};
 
 	mi2s2_sclk: mi2s2-sclk-state {
 		pins = "gpio101";
 		function = "mi2s2_sck";
+		drive-strength = <8>;
+		bias-disable;
+		output-high;
 	};
 
 	mi2s2_ws: mi2s2-ws-state {
 		pins = "gpio103";
 		function = "mi2s2_ws";
+		drive-strength = <8>;
+		bias-disable;
+		output-high;
+	};
+
+	mi2s2_mclk_sleep: mi2s2-mclk-sleep {
+		pins = "gpio105";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-pull-down;
+		input-enable;
 	};
 
 	mi2s2_data0_sleep: mi2s2-data0-sleep {
@@ -1399,63 +1426,18 @@
 		input-enable;
 	};
 
-	mi2s1_data0_sleep: mi2s1-data0-sleep {
-		pins = "gpio107";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-pull-down;
-		input-enable;
-	};
-
-	mi2s1_data1_sleep: mi2s1-data1-sleep {
-		pins = "gpio105";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-pull-down;
-		input-enable;
-	};
-
-	mi2s1_sclk_sleep: mi2s1-sclk-sleep {
-		pins = "gpio106";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-pull-down;
-		input-enable;
-	};
-
-	mi2s1_ws_sleep: mi2s1-ws-sleep {
-		pins = "gpio108";
-		function = "gpio";
-		drive-strength = <2>;
-		bias-pull-down;
-		input-enable;
-	};
-
-	mi2s1_data0: mi2s1-data0-state {
-		pins = "gpio107";
-		function = "mi2s1_data0";
-	};
-
-	mi2s1_data1: mi2s1-data1-state {
-		pins = "gpio105";
-		function = "mi2s1_data1";
-	};
-
-	mi2s1_sclk: mi2s1-sclk-state {
-		pins = "gpio106";
-		function = "mi2s1_sck";
-	};
-
-	mi2s1_ws: mi2s1-ws-state {
-		pins = "gpio108";
-		function = "mi2s1_ws";
-	};
-
 	es8316_power_on: es8316_power_on {
 		pins = "gpio117";
 		function = "gpio";
 		drive-strength = <2>;
 		bias-pull-down;
+	};
+
+	forty_pin_enable: forty-pin-enable {
+		pins = "gpio14";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
 	};
 };
 
@@ -1640,6 +1622,16 @@
 		pinctrl-names = "default";
 		pinctrl-0 = <&es8316_power_on>;
 		gpio = <&tlmm 117 GPIO_ACTIVE_HIGH>;
+		enable-active-high;
+		regulator-always-on;
+	};
+
+	forty_pin_enable_vreg: forty_pin_enable_vreg {
+		compatible = "regulator-fixed";
+		regulator-name = "forty_pin_enable_vreg";
+		pinctrl-names = "default";
+		pinctrl-0 = <&forty_pin_enable>;
+		gpio = <&tlmm 14 GPIO_ACTIVE_HIGH>;
 		enable-active-high;
 		regulator-always-on;
 	};
