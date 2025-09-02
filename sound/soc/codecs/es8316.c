@@ -373,6 +373,73 @@ static const struct snd_soc_dapm_route es8316_dapm_routes[] = {
 	{"HPOR", NULL, "Headphone Out"},
 };
 
+static const struct snd_soc_dapm_route es8316_init_dapm_routes[] = {
+	/* Recording */
+	{"MIC1", NULL, "Mic Bias"},
+	{"MIC2", NULL, "Mic Bias"},
+	{"MIC1", NULL, "Bias"},
+	{"MIC2", NULL, "Bias"},
+	{"MIC1", NULL, "Analog power"},
+	{"MIC2", NULL, "Analog power"},
+
+	{"Differential Mux", "lin1-rin1", "MIC1"},
+	{"Differential Mux", "lin2-rin2", "MIC2"},
+	{"Line input PGA", NULL, "Differential Mux"},
+
+	{"Mono ADC", NULL, "ADC Clock"},
+	{"Mono ADC", NULL, "ADC Vref"},
+	{"Mono ADC", NULL, "ADC bias"},
+	{"Mono ADC", NULL, "Line input PGA"},
+
+	{"Digital Mic Mux", "dmic disable", "Mono ADC"},
+
+	{"I2S OUT", NULL, "Digital Mic Mux"},
+
+	/* Playback */
+	{"DAC Source Mux", "LDATA TO LDAC, RDATA TO RDAC", "I2S IN"},
+
+	{"Left DAC", NULL, "DAC Vref"},
+	{"Right DAC", NULL, "DAC Vref"},
+
+	{"Left DAC", NULL, "DAC Source Mux"},
+	{"Right DAC", NULL, "DAC Source Mux"},
+
+	{"Left Headphone Mux", "lin-rin with Boost and PGA", "Line input PGA"},
+	{"Right Headphone Mux", "lin-rin with Boost and PGA", "Line input PGA"},
+
+	{"Left Headphone Mixer", "LLIN Switch", "Left Headphone Mux"},
+	{"Left Headphone Mixer", "Left DAC Switch", "Left DAC"},
+
+	{"Right Headphone Mixer", "RLIN Switch", "Right Headphone Mux"},
+	{"Right Headphone Mixer", "Right DAC Switch", "Right DAC"},
+
+	{"Left Headphone Mixer Out", NULL, "Left Headphone Mixer"},
+	{"Right Headphone Mixer Out", NULL, "Right Headphone Mixer"},
+
+	{"Left Headphone Charge Pump", NULL, "Left Headphone Mixer Out"},
+	{"Right Headphone Charge Pump", NULL, "Right Headphone Mixer Out"},
+
+	{"Left Headphone Charge Pump", NULL, "Headphone Charge Pump"},
+	{"Right Headphone Charge Pump", NULL, "Headphone Charge Pump"},
+
+	{"Left Headphone Charge Pump", NULL, "Headphone Charge Pump Clock"},
+	{"Right Headphone Charge Pump", NULL, "Headphone Charge Pump Clock"},
+
+	{"Left Headphone Driver", NULL, "Left Headphone Charge Pump"},
+	{"Right Headphone Driver", NULL, "Right Headphone Charge Pump"},
+
+	{"HPOL", NULL, "Left Headphone Driver"},
+	{"HPOR", NULL, "Right Headphone Driver"},
+
+	{"HPOL", NULL, "Left Headphone ical"},
+	{"HPOR", NULL, "Right Headphone ical"},
+
+	{"Headphone Out", NULL, "Bias"},
+	{"Headphone Out", NULL, "Analog power"},
+	{"HPOL", NULL, "Headphone Out"},
+	{"HPOR", NULL, "Headphone Out"},
+};
+
 /* Get and write the device's register configuration from dtsi. When (reg == 0xFFFF &&
  * value == 0xFFFF), the snd_soc_component_update_bits() function will be called for the
  * next set of registers.
@@ -566,14 +633,13 @@ static int es8316_pcm_hw_params(struct snd_pcm_substream *substream,
 			wordlen = ES8316_SERDATA2_LEN_32;
 			break;
 		default:
-			return -EINVAL;
+			wordlen = ES8316_SERDATA2_LEN_16;
 		}
 
 		snd_soc_component_update_bits(component, ES8316_SERDATA_DAC,
 					ES8316_SERDATA2_LEN_MASK, wordlen);
 		snd_soc_component_update_bits(component, ES8316_SERDATA_ADC,
 					ES8316_SERDATA2_LEN_MASK, wordlen);
-		snd_soc_component_write(component, ES8316_CLKMGR_CLKSW, 0x7f);
 		snd_soc_component_write(component, ES8316_CLKMGR_CLKSEL, 0x09);
 		snd_soc_component_update_bits(component, ES8316_ADC_PDN_LINSEL, 0xcf, 0x00);
 		snd_soc_component_write(component, ES8316_SERDATA_ADC, 0x00);
@@ -636,6 +702,20 @@ static int es8316_pcm_hw_params(struct snd_pcm_substream *substream,
 
 static int es8316_mute(struct snd_soc_dai *dai, int mute, int direction)
 {
+	struct snd_soc_component *component = dai->component;
+	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
+
+	if (es8316->use_init_regs) {
+		if (mute) {
+			snd_soc_component_update_bits(dai->component, ES8316_DAC_SET1, 0x20, 0x20);
+		} else {
+			snd_soc_component_write(dai->component, ES8316_CLKMGR_CLKSW, 0x7f);
+			snd_soc_component_write(dai->component, ES8316_HPMIX_PDN, 0x00);
+			snd_soc_component_update_bits(dai->component, ES8316_DAC_SET1, 0x20, 0x00);
+		}
+		return 0;
+	}
+
 	snd_soc_component_update_bits(dai->component, ES8316_DAC_SET1, 0x20,
 			    mute ? 0x20 : 0);
 	return 0;
@@ -964,6 +1044,23 @@ static const struct snd_soc_component_driver soc_component_dev_es8316 = {
 	.endianness		= 1,
 };
 
+
+static const struct snd_soc_component_driver soc_component_dev_es8316_init = {
+	.probe			= es8316_probe,
+	.remove			= es8316_remove,
+	.resume			= es8316_resume,
+	.suspend		= es8316_suspend,
+	.set_jack		= es8316_set_jack,
+	.controls		= es8316_snd_controls,
+	.num_controls		= ARRAY_SIZE(es8316_snd_controls),
+	.dapm_widgets		= es8316_dapm_widgets,
+	.num_dapm_widgets	= ARRAY_SIZE(es8316_dapm_widgets),
+	.dapm_routes		= es8316_init_dapm_routes,
+	.num_dapm_routes	= ARRAY_SIZE(es8316_init_dapm_routes),
+	.use_pmdown_time	= 1,
+	.endianness		= 1,
+};
+
 static bool es8316_volatile_reg(struct device *dev, unsigned int reg)
 {
 	switch (reg) {
@@ -1024,7 +1121,12 @@ static int es8316_i2c_probe(struct i2c_client *i2c_client)
 		}
 	}
 
-	return devm_snd_soc_register_component(&i2c_client->dev,
+	if (es8316->use_init_regs)
+		return devm_snd_soc_register_component(&i2c_client->dev,
+				      &soc_component_dev_es8316_init,
+				      &es8316_dai, 1);
+	else
+		return devm_snd_soc_register_component(&i2c_client->dev,
 				      &soc_component_dev_es8316,
 				      &es8316_dai, 1);
 }
