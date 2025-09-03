@@ -566,60 +566,6 @@
 	status = "disabled";
 };
 
-&lpass_dmic01_clk {
-	drive-strength = <8>;
-	bias-disable;
-};
-
-&lpass_dmic01_data {
-	bias-pull-down;
-};
-
-&lpass_dmic23_clk {
-	drive-strength = <8>;
-	bias-disable;
-};
-
-&lpass_dmic23_data {
-	bias-pull-down;
-};
-
-&lpass_rx_swr_clk {
-	drive-strength = <2>;
-	slew-rate = <1>;
-	bias-disable;
-};
-
-&lpass_rx_swr_data {
-	drive-strength = <2>;
-	slew-rate = <1>;
-	bias-bus-hold;
-};
-
-&lpass_tx_swr_clk {
-	drive-strength = <2>;
-	slew-rate = <1>;
-	bias-disable;
-};
-
-&lpass_tx_swr_data {
-	drive-strength = <2>;
-	slew-rate = <1>;
-	bias-bus-hold;
-};
-
-&lpass_wsa_swr_clk {
-	drive-strength = <2>;
-	slew-rate = <1>;
-	bias-disable;
-};
-
-&lpass_wsa_swr_data {
-	drive-strength = <2>;
-	slew-rate = <1>;
-	bias-bus-hold;
-};
-
 &pm7325_gpios {
 	key_vol_up_default: key-vol-up-state {
 		pins = "gpio6";
@@ -784,56 +730,6 @@
 	status = "okay";
 };
 
-&remoteproc_adsp {
-	firmware-name = "qcom/qcm6490/adsp.mdt";
-	status = "okay";
-};
-
-&remoteproc_cdsp {
-	firmware-name = "qcom/qcm6490/cdsp.mdt";
-	status = "okay";
-};
-
-&remoteproc_mpss {
-	firmware-name = "qcom/qcm6490/modem.mdt";
-	status = "okay";
-};
-
-&remoteproc_wpss {
-	firmware-name = "qcom/qcm6490/wpss.mdt";
-	status = "okay";
-};
-
-&sdc1_clk {
-	bias-disable;
-	drive-strength = <16>;
-};
-
-&sdc1_cmd {
-	bias-pull-up;
-	drive-strength = <10>;
-};
-
-&sdc1_data {
-	bias-pull-up;
-	drive-strength = <10>;
-};
-
-&sdc1_rclk {
-	bias-pull-down;
-};
-
-&sdhc_1 {
-	non-removable;
-	no-sd;
-	no-sdio;
-
-	vmmc-supply = <&vreg_l7b_2p952>;
-	vqmmc-supply = <&vreg_l19b_1p8>;
-
-	status = "okay";
-};
-
 &sdc2_clk {
 	bias-disable;
 	drive-strength = <16>;
@@ -944,6 +840,8 @@
 	phys = <&usb_1_hsphy>, <&usb_1_qmpphy QMP_USB43DP_USB3_PHY>;
 	phy-names = "usb2-phy", "usb3-phy";
 	maximum-speed = "super-speed";
+	snps,dis-u2-entry-quirk;
+	snps,dis-u1-entry-quirk;
 
 	dr_mode = "otg";
 	usb-role-switch;
@@ -1014,6 +912,7 @@
 	status = "okay";
 
 	pm8008i_chip: pm8008i@8 {
+		status = "disabled";
 		compatible = "qcom,i2c-pmic";
 		reg = <0x8>;
 		#address-cells = <1>;
@@ -1033,6 +932,7 @@
 	};
 
 	pm8008i_ldo: pm8008i@9 {
+		status = "disabled";
 		compatible = "qcom,i2c-pmic";
 		reg = <0x9>;
 		#address-cells = <1>;
@@ -1111,6 +1011,7 @@
 	};
 
 	pm8008j_chip: pm8008j@c {
+		status = "disabled";
 		compatible = "qcom,i2c-pmic";
 		reg = <0xc>;
 		#address-cells = <1>;
@@ -1130,6 +1031,7 @@
 	};
 
 	pm8008j_ldo: pm8008j@d {
+		status = "disabled";
 		compatible = "qcom,i2c-pmic";
 		reg = <0xd>;
 		#address-cells = <1>;
@@ -1441,26 +1343,7 @@
 	};
 };
 
-&lpass_dmic01_clk {
-	status = "disabled";
-};
-
-&lpass_dmic01_data {
-	status = "disabled";
-};
-
-&lpass_dmic23_clk {
-	status = "disabled";
-};
-
-&lpass_dmic23_data {
-	status = "disabled";
-};
-
 &lpass_tlmm {
-	/delete-node/ dmic45-data-state;
-	/delete-node/ dmic45-clk-state;
-
 	lpass_ext_mas_clk1_a: ext-master-clk1-a-state {
 		pins = "gpio13";
 		function = "ext_mas_clk1_a";
@@ -1718,37 +1601,6 @@
 	};
 };
 
-&i2c1 {
-	clock-frequency = <100000>;
-	pinctrl-names = "default";
-	pinctrl-0 = <&qup_i2c1_data_clk>;
-
-	typec-mux@42 {
-		status = "disabled";
-	};
-
-	pm8008i@8 {
-		status = "disabled";
-	};
-
-	pm8008i@9 {
-		status = "disabled";
-	};
-
-	pm8008j@c {
-		status = "disabled";
-	};
-
-	pm8008j@d {
-		status = "disabled";
-	};
-};
-
-&i2c2 {
-	clock-frequency = <100000>;
-	status = "okay";
-};
-
 &i2c15 {
 	status = "ok";
 	husb238@8 {
@@ -1774,27 +1626,9 @@
 			regulator-max-microvolt = <3544000>;
 			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
 		};
-
-		vreg_l6b_1p2: ldo6 {
-			regulator-min-microvolt = <1140000>;
-			regulator-max-microvolt = <1260000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
 	};
 
 	regulators-1 {
-		vreg_l1c_1p8: ldo1 {
-			regulator-min-microvolt = <1800000>;
-			regulator-max-microvolt = <1980000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
-		vreg_l10c_0p88:ldo10 {
-			regulator-min-microvolt = <880000>;
-			regulator-max-microvolt = <1050000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-
 		vreg_l9c_2p96: ldo9 {
 			regulator-min-microvolt = <2700000>;
 			regulator-max-microvolt = <3544000>;
@@ -1919,11 +1753,6 @@
 	qcom,refclk-always-on;
 };
 
-&lpass_va_macro {
-	pinctrl-0 = <&lpass_dmic01_clk>, <&lpass_dmic01_data>,
-		    <&lpass_dmic23_clk>, <&lpass_dmic23_data>;
-};
-
 &lpass_rx_macro {
 	status = "disabled";
 };
@@ -1970,11 +1799,6 @@
 &remoteproc_wpss {
 	firmware-name = "qcom/qcs6490/wpss.mdt";
 	status = "okay";
-};
-
-&usb_1 {
-	snps,dis-u2-entry-quirk;
-	snps,dis-u1-entry-quirk;
 };
 
 &sdc2_clk {
@@ -2278,24 +2102,6 @@
 		regulator-max-microvolt = <3300000>;
 		enable-active-high;
 		regulator-enable-ramp-delay = <10000>;
-	};
-};
-
-&apps_rsc {
-	regulators-0 {
-		vreg_l6b_1p2: ldo6 {
-			regulator-min-microvolt = <1140000>;
-			regulator-max-microvolt = <1260000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
-	};
-
-	regulators-1 {
-		vreg_l10c_0p88: ldo10 {
-			regulator-min-microvolt = <880000>;
-			regulator-max-microvolt = <1050000>;
-			regulator-initial-mode = <RPMH_REGULATOR_MODE_HPM>;
-		};
 	};
 };
 
