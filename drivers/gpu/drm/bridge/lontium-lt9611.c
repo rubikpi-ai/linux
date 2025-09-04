@@ -59,6 +59,13 @@ struct lt9611 {
 	enum drm_connector_status status;
 
 	u8 edid_buf[EDID_SEG_SIZE];
+
+	struct reg_sequence *mipi_digi_regs;
+	int num_mipi_digi_regs;
+	struct reg_sequence *sleep_regs;
+	int num_sleep_regs;
+
+	bool cts_n_normal;
 };
 
 #define LT9611_PAGE_CONTROL	0xff
@@ -87,6 +94,52 @@ static const struct regmap_config lt9611_regmap_config = {
 static struct lt9611 *bridge_to_lt9611(struct drm_bridge *bridge)
 {
 	return container_of(bridge, struct lt9611, bridge);
+}
+
+static int lt9611_parse_reg_cfg(struct lt9611 *lt9611,
+				     const char *property_name,
+				     struct reg_sequence **reg_seq,
+				     int *num_regs)
+{
+	struct device *dev = &lt9611->client->dev;
+	struct device_node *np = dev->of_node;
+	int len, i, ret;
+	u32 *reg_data;
+
+	len = of_property_count_u32_elems(np, property_name);
+	if (len <= 0 || len % 2 != 0) {
+		dev_err(dev, "Invalid %s property\n", property_name);
+		return -EINVAL;
+	}
+
+	*num_regs = len / 2;
+
+	reg_data = kmalloc_array(len, sizeof(u32), GFP_KERNEL);
+	if (!reg_data)
+		return -ENOMEM;
+
+	ret = of_property_read_u32_array(np, property_name, reg_data, len);
+	if (ret) {
+		dev_err(dev, "Failed to read %s property\n", property_name);
+		kfree(reg_data);
+		return ret;
+	}
+
+	*reg_seq = devm_kzalloc(dev, (*num_regs) * sizeof(struct reg_sequence), GFP_KERNEL);
+	if (!*reg_seq) {
+		kfree(reg_data);
+		return -ENOMEM;
+	}
+
+	for (i = 0; i < *num_regs; i++) {
+		(*reg_seq)[i].reg = reg_data[2 * i];
+		(*reg_seq)[i].def = reg_data[2 * i + 1];
+		(*reg_seq)[i].delay_us = 0;
+	}
+
+	kfree(reg_data);
+
+	return ret;
 }
 
 static int lt9611_mipi_input_analog(struct lt9611 *lt9611)
@@ -121,7 +174,11 @@ static int lt9611_mipi_input_digital(struct lt9611 *lt9611,
 	if (lt9611->dsi1_node)
 		reg_cfg[1].def = 0x03;
 
-	return regmap_multi_reg_write(lt9611->regmap, reg_cfg, ARRAY_SIZE(reg_cfg));
+	if (lt9611->mipi_digi_regs && lt9611->num_mipi_digi_regs > 0)
+		return regmap_multi_reg_write(lt9611->regmap, lt9611->mipi_digi_regs,
+					     lt9611->num_mipi_digi_regs);
+	else
+		return regmap_multi_reg_write(lt9611->regmap, reg_cfg, ARRAY_SIZE(reg_cfg));
 }
 
 static void lt9611_mipi_video_setup(struct lt9611 *lt9611,
@@ -476,8 +533,12 @@ static void lt9611_sleep_setup(struct lt9611 *lt9611)
 		{ 0x8011, 0x0a },
 	};
 
-	regmap_multi_reg_write(lt9611->regmap,
-			       sleep_setup, ARRAY_SIZE(sleep_setup));
+	if (lt9611->sleep_regs && lt9611->num_sleep_regs > 0)
+		regmap_multi_reg_write(lt9611->regmap, lt9611->sleep_regs,
+				       lt9611->num_sleep_regs);
+	else
+		regmap_multi_reg_write(lt9611->regmap,
+				       sleep_setup, ARRAY_SIZE(sleep_setup));
 	lt9611->sleep = true;
 }
 
@@ -745,7 +806,7 @@ lt9611_bridge_atomic_disable(struct drm_bridge *bridge,
 	}
 
 	if (lt9611_power_off(lt9611)) {
-		dev_err(lt9611->dev, "power on failed\n");
+		dev_err(lt9611->dev, "power off failed\n");
 		return;
 	}
 }
@@ -908,6 +969,8 @@ static const struct drm_bridge_funcs lt9611_bridge_funcs = {
 static int lt9611_parse_dt(struct device *dev,
 			   struct lt9611 *lt9611)
 {
+	int ret;
+
 	lt9611->dsi0_node = of_graph_get_remote_node(dev->of_node, 0, -1);
 	if (!lt9611->dsi0_node) {
 		dev_err(lt9611->dev, "failed to get remote node for primary dsi\n");
@@ -917,6 +980,24 @@ static int lt9611_parse_dt(struct device *dev,
 	lt9611->dsi1_node = of_graph_get_remote_node(dev->of_node, 1, -1);
 
 	lt9611->ac_mode = of_property_read_bool(dev->of_node, "lt,ac-mode");
+
+	if (of_property_present(dev->of_node, "mipi-digi-regs")) {
+		ret = lt9611_parse_reg_cfg(lt9611, "mipi-digi-regs",
+					 &lt9611->mipi_digi_regs,
+					 &lt9611->num_mipi_digi_regs);
+		if (ret)
+			dev_err(lt9611->dev, "Failed to parse mipi-digi-regs: %d\n", ret);
+	}
+
+	if (of_property_present(dev->of_node, "sleep-regs")) {
+		ret = lt9611_parse_reg_cfg(lt9611, "sleep-regs",
+					 &lt9611->sleep_regs,
+					 &lt9611->num_sleep_regs);
+		if (ret)
+			dev_err(lt9611->dev, "Failed to parse sleep-regs: %d\n", ret);
+	}
+
+	lt9611->cts_n_normal = of_property_read_bool(dev->of_node, "lt,cts_n_normal");
 
 	return drm_of_find_panel_or_bridge(dev->of_node, 2, -1, NULL, &lt9611->next_bridge);
 }
@@ -986,7 +1067,10 @@ static int lt9611_audio_startup(struct device *dev, void *data)
 	regmap_write(lt9611->regmap, 0x8406, 0x08);
 	regmap_write(lt9611->regmap, 0x8407, 0x10);
 
-	regmap_write(lt9611->regmap, 0x8434, 0xd5);
+	if (lt9611->cts_n_normal)
+		regmap_write(lt9611->regmap, 0x8434, 0xd4);
+	else
+		regmap_write(lt9611->regmap, 0x8434, 0xd5);
 
 	return 0;
 }
