@@ -81,6 +81,10 @@
 	};
 };
 
+&ice_mmc {
+	status = "okay";
+};
+
 &pcie0 {
 	dummy-supply = <&qps615_switch>;
 	iommu-map = <0x0 &apps_smmu 0x0000 0x1>,
