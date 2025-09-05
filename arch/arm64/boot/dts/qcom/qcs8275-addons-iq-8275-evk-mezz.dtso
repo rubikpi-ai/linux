@@ -29,6 +29,18 @@
 
 	status = "okay";
 
+	eeprom1: eeprom@52 {
+		compatible = "atmel,24c256";
+		reg = <0x52>;
+		pagesize = <64>;
+
+		nvmem-layout {
+			compatible = "fixed-layout";
+			#address-cells = <1>;
+			#size-cells = <1>;
+		};
+	};
+
 	qps615_switch: pcie-switch@77 {
 		compatible = "qcom,switch-i2c";
 		reg = <0x77>;

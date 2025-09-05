@@ -25,6 +25,7 @@
 	aliases {
 		ethernet0 = &ethernet0;
 		i2c1 = &i2c1;
+		i2c15 = &i2c15;
 		serial0 = &uart7;
 		serial1 = &uart2;
 	};
