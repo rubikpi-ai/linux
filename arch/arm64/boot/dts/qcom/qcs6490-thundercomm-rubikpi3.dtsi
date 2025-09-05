@@ -2148,6 +2148,7 @@
 
 		lt,cts_n_normal;
 
+		min-vblank = /bits/ 16 <0x19>;
 		ports {
 			#address-cells = <1>;
 			#size-cells = <0>;
