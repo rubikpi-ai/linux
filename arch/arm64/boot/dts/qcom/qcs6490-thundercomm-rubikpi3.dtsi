@@ -162,7 +162,7 @@
 				sound-dai = <&q6apmbedai QUATERNARY_MI2S_RX>;
 			};
 			codec {
-				sound-dai = <&msm_stub_codec 0>;
+				sound-dai = <&msm_stub_codec 0>, <&lt9611_codec>;
 			};
 		};
 
@@ -2093,15 +2093,26 @@
 	};
 };
 
-&soc {
-	vreg_lt9611_3p3: lt9611-3p3-vreg {
-		compatible = "regulator-fixed";
-		regulator-name = "vreg_lt9611_3p3";
-		gpio = <&tlmm 83 0>;
-		regulator-min-microvolt = <3300000>;
-		regulator-max-microvolt = <3300000>;
-		enable-active-high;
-		regulator-enable-ramp-delay = <10000>;
+&tlmm {
+	lt9611_irq_pin: lt9611-irq-state {
+		pins = "gpio20";
+		function = "gpio";
+		drive-strength = <2>;
+		bias-disable;
+	};
+
+	lt9611_rst_pin: lt9611-rst-state {
+		pins = "gpio21";
+		function = "gpio";
+		output-high;
+		input-disable;
+	};
+
+	lt9611_enable_pin: lt9611-enable-pin {
+		pins = "gpio83";
+		function = "gpio";
+		output-high;
+		input-disable;
 	};
 };
 
@@ -2110,13 +2121,33 @@
 	lt9611_codec: hdmi-bridge@39 {
 		compatible = "lontium,lt9611";
 		reg = <0x39>;
-		interrupts-extended = <&tlmm 20 IRQ_TYPE_EDGE_BOTH>;
-		reset-gpios = <&tlmm 21 0>;
-		enable-gpios = <&tlmm 40 0>;
-		ocb-gpios = <&tlmm 41 0>;
-		vcc-supply = <&vreg_lt9611_3p3>;
-		config-mode = "edidAdaptiveResolution";
-		min-vblank = /bits/ 16 <0x19>;
+		interrupts-extended = <&tlmm 20 IRQ_TYPE_EDGE_FALLING>;
+		reset-gpios = <&tlmm 21 GPIO_ACTIVE_HIGH>;
+		enable-gpios = <&tlmm 83 GPIO_ACTIVE_HIGH>;
+
+		pinctrl-names = "default";
+		pinctrl-0 = <&lt9611_irq_pin &lt9611_rst_pin &lt9611_enable_pin>;
+		#sound-dai-cells = <0>;
+
+		mipi-digi-regs = <
+			0x8300 0x00
+			0x830a 0x00
+			0x824f 0x80
+			0x8250 0x14
+			0x8303 0x40
+			0x8302 0x0a
+			0x8306 0x0a
+		>;
+
+		sleep-regs = <
+			0x8102 0x48
+			0x8123 0x80
+			0x8130 0x00
+			0x8011 0x0a
+		>;
+
+		lt,cts_n_normal;
+
 		ports {
 			#address-cells = <1>;
 			#size-cells = <0>;
