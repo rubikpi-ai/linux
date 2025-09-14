@@ -37,6 +37,14 @@
 		stdout-path = "serial0:115200n8";
 	};
 
+	vreg_cam1_1p8: vreg_cam1_1p8 {
+		compatible = "regulator-fixed";
+		regulator-name = "vreg_cam1_1p8";
+		startup-delay-us = <10000>;
+		enable-active-high;
+		gpio = <&pmm8654au_0_gpios 8 GPIO_ACTIVE_HIGH>;
+	};
+
 	wcn6855-pmu {
 		compatible = "qcom,wcn6855-pmu";
 
