@@ -161,7 +161,6 @@ allOf:
         compatible:
           contains:
             enum:
-              - qcom,sa8775p-cci
               - qcom,sc7280-cci
               - qcom,sm8250-cci
               - qcom,sm8450-cci
@@ -177,6 +176,23 @@ allOf:
             - const: cpas_ahb
             - const: cci
             - const: cci_src
+
+  - if:
+      properties:
+        compatible:
+          contains:
+            enum:
+              - qcom,sa8775p-cci
+    then:
+      properties:
+        clocks:
+          minItems: 3
+          maxItems: 3
+        clock-names:
+          items:
+            - const: camnoc_axi
+            - const: cpas_ahb
+            - const: cci
 
 additionalProperties: false
 
