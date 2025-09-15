@@ -69,6 +69,16 @@ static const uint32_t qcom_compressed_supported_formats[] = {
 	DRM_FORMAT_P010,
 };
 
+static const uint32_t qcom_compressed_supported_formats_sc7280[] = {
+	DRM_FORMAT_ABGR8888,
+	DRM_FORMAT_XBGR8888,
+	DRM_FORMAT_ARGB2101010,
+	DRM_FORMAT_BGR565,
+
+	DRM_FORMAT_NV12,
+	DRM_FORMAT_P010,
+};
+
 /*
  * struct dpu_plane - local dpu plane structure
  * @aspace: address space pointer
@@ -1352,9 +1362,10 @@ static bool dpu_plane_format_mod_supported(struct drm_plane *plane,
 	if (modifier == DRM_FORMAT_MOD_LINEAR)
 		return true;
 
-	if (modifier == DRM_FORMAT_MOD_QCOM_COMPRESSED)
-		return dpu_find_format(format, qcom_compressed_supported_formats,
-				ARRAY_SIZE(qcom_compressed_supported_formats));
+	if (modifier == DRM_FORMAT_MOD_QCOM_COMPRESSED) {
+			return dpu_find_format(format, qcom_compressed_supported_formats_sc7280,
+					ARRAY_SIZE(qcom_compressed_supported_formats_sc7280));
+	}
 
 	return false;
 }
