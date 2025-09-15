@@ -67,6 +67,7 @@ struct lt9611 {
 
 	bool cts_n_normal;
 	u16 min_vblank;
+	bool uhd;
 };
 
 #define LT9611_PAGE_CONTROL	0xff
@@ -949,6 +950,9 @@ static enum drm_mode_status lt9611_bridge_mode_valid(struct drm_bridge *bridge,
 	    drm_mode_vrefresh(mode) > 30)
 		return MODE_CLOCK_HIGH;
 
+	if (lt9611->uhd)
+		return MODE_OK;
+
 	if (mode->hdisplay > 2000 && !lt9611->dsi1_node)
 		return MODE_PANEL;
 	else
@@ -1073,6 +1077,8 @@ static int lt9611_parse_dt(struct device *dev,
 		if (ret)
 			dev_err(lt9611->dev, "Failed to parse sleep-regs: %d\n", ret);
 	}
+
+	lt9611->uhd = of_property_read_bool(dev->of_node, "UHD-support");
 
 	lt9611->cts_n_normal = of_property_read_bool(dev->of_node, "lt,cts_n_normal");
 
