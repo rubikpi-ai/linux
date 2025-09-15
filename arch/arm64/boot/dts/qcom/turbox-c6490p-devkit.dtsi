@@ -5,6 +5,7 @@
 		display_bootargs = "";
 		enable_logo_Partition = "splash";
 		stdout-path = "serial0:115200n8";
+		just-test;
 	};
 
 	aliases {
