@@ -2147,7 +2147,7 @@
 		>;
 
 		lt,cts_n_normal;
-
+		UHD-support;
 		min-vblank = /bits/ 16 <0x19>;
 		ports {
 			#address-cells = <1>;
