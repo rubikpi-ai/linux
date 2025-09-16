@@ -2858,6 +2858,7 @@
 			reg = <0x0 0x01d88000 0x0 0x10000>;
 			qcom,ice-use-hwkm;
 			clocks = <&gcc GCC_UFS_PHY_ICE_CORE_CLK>;
+			status = "disabled";
 		};
 
 		cryptobam: dma-controller@1dc4000 {
@@ -8106,6 +8107,7 @@
 			reg = <0x0 0x87c8000 0x0 0x18000>;
 			qcom,ice-use-hwkm;
 			clocks = <&gcc GCC_SDCC1_ICE_CORE_CLK>;
+			status = "disabled";
 		};
 
 		tsens2: thermal-sensor@c251000 {

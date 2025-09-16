@@ -427,6 +427,14 @@
 
 };
 
+&ice {
+	status = "okay";
+};
+
+&ice_mmc {
+	status = "okay";
+};
+
 &mdss {
 	status = "okay";
 };
