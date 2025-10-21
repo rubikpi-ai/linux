@@ -1939,6 +1939,11 @@ static const struct hid_device_id mt_devices[] = {
 		MT_USB_DEVICE(USB_VENDOR_ID_USB2IIC_CTP_CONTROL,
 			USB_DEVICE_ID_USB2IIC_CTP_CONTROL) },
 
+	/* CKTouch multitouch devices */
+	{ .driver_data = MT_CLS_NSMU,
+		MT_USB_DEVICE(USB_VENDOR_ID_SK9020_keyboard,
+			USB_DEVICE_ID_SK9020_keyboard) },
+
 	/* CJTouch panels */
 	{ .driver_data = MT_CLS_NSMU,
 		MT_USB_DEVICE(USB_VENDOR_ID_CJTOUCH,
