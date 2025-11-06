@@ -43,6 +43,7 @@ struct qcm6490_snd_data {
 	struct snd_soc_jack jack;
 	bool jack_setup;
 	struct snd_soc_jack hdmi_jack[8];
+	bool tert_formats_high_bit;
 };
 
 static int qcm6490_slim_dai_init(struct snd_soc_pcm_runtime *rtd)
@@ -276,9 +277,14 @@ static int qcm6490_snd_startup(struct snd_pcm_substream *substream)
 	case TERTIARY_MI2S_TX:
 		codec_dai_fmt |= SND_SOC_DAIFMT_NB_NF | SND_SOC_DAIFMT_I2S;
 		if (++(data->tert_mi2s_clk_count) == 1) {
-			snd_soc_dai_set_sysclk(cpu_dai,
-				Q6AFE_LPASS_CLK_ID_TER_MI2S_IBIT,
-				MI2S_BCLK_RATE, SNDRV_PCM_STREAM_PLAYBACK);
+			if (data->tert_formats_high_bit)
+				snd_soc_dai_set_sysclk(cpu_dai,
+					Q6AFE_LPASS_CLK_ID_TER_MI2S_IBIT,
+					MI2S_BCLK_RATE * 2, SNDRV_PCM_STREAM_PLAYBACK);
+			else
+				snd_soc_dai_set_sysclk(cpu_dai,
+					Q6AFE_LPASS_CLK_ID_TER_MI2S_IBIT,
+					MI2S_BCLK_RATE, SNDRV_PCM_STREAM_PLAYBACK);
 		}
 		snd_soc_dai_set_fmt(cpu_dai, fmt);
 		snd_soc_dai_set_fmt(codec_dai, codec_dai_fmt);
@@ -584,6 +590,8 @@ static int qcm6490_platform_probe(struct platform_device *pdev)
 
 	card->driver_name = DRIVER_NAME;
 	qcm6490_add_be_ops(card);
+
+	data->tert_formats_high_bit = of_property_read_bool(dev->of_node, "tert-formats-high-bit");
 
 	return devm_snd_soc_register_card(dev, card);
 }
