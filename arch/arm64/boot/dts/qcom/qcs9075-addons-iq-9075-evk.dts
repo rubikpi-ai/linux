@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2024-2025, Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 /dts-v1/;
 
@@ -130,6 +131,14 @@
 	};
 };
 
+&camss {
+	status = "disabled";
+};
+
+&cci1 {
+	status = "disabled";
+};
+
 &lpass_tlmm {
 	lpass_i2s1_data: i2s1-data-state {
 			pins = "gpio8", "gpio9";
@@ -163,7 +172,7 @@
 
 	lpass_quad_clk_sleep: quad-clk-sleep-state {
 			pins = "gpio0";
-			function = "gpio";
+			function = "qua_mi2s_sclk";
 			drive-strength = <2>;
 			bias-pull-down;
 			input-enable;
@@ -179,7 +188,7 @@
 
 	lpass_quad_data_sleep: quad-data-sleep-state {
 			pins = "gpio2", "gpio3", "gpio4", "gpio5";
-			function = "gpio";
+			function = "qua_mi2s_data";
 			drive-strength = <2>;
 			bias-pull-down;
 			input-enable;
@@ -194,7 +203,7 @@
 
 	lpass_quad_ws_sleep: quad-ws-sleep-state {
 			pins = "gpio1";
-			function = "gpio";
+			function = "qua_mi2s_ws";
 			drive-strength = <2>;
 			bias-pull-down;
 			input-enable;

@@ -191,7 +191,6 @@ source "drivers/iommu/iommufd/Kconfig"
 config IRQ_REMAP
 	bool "Support for Interrupt Remapping"
 	depends on X86_64 && X86_IO_APIC && PCI_MSI && ACPI
-	select DMAR_TABLE if INTEL_IOMMU
 	help
 	  Supports Interrupt remapping for IO-APIC and MSI devices.
 	  To use x2apic mode in the CPU's which support x2APIC enhancements or
@@ -420,6 +419,16 @@ config ARM_SMMU_V3_SVA
 
 	  Say Y here if your system supports SVA extensions such as PCIe PASID
 	  and PRI.
+
+config ARM_SMMU_V3_QCOM_VIRTIO
+	bool "Virtio-Iommu ARM-SMMU-V3 acceleration"
+	depends on ARM_SMMU_V3 && VIRTIO_IOMMU
+	help
+	  The virtio-iommu attach-table extension allows the VM to program
+	  S1 pagetables directly, reducing the number of host-to-VM
+	  transitions. Enable awareness of arm-smmu-v3 register settings,
+	  pagetable formats, and tlb maintenance operations by virtio-iommu.
+	  If unsure, say N here.
 
 config S390_IOMMU
 	def_bool y if S390 && PCI

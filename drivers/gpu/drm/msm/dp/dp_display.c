@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  * Copyright (c) 2024, Qualcomm Innovation Center, Inc. All rights reserved.
  * Copyright (c) 2017-2020, The Linux Foundation. All rights reserved.
  */
@@ -667,7 +668,9 @@ static int msm_dp_display_usbpd_attention_cb(struct device *dev)
 		}
 	}
 
-	msm_dp_mst_display_hpd_irq(&dp->msm_dp_display);
+	/* let MST specific IRQ events be handled by its callback */
+	if (msm_dp_display->mst_active)
+		msm_dp_mst_display_hpd_irq(&dp->msm_dp_display);
 	return rc;
 }
 

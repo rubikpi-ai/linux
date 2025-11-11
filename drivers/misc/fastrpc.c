@@ -1378,7 +1378,7 @@ static void fastrpc_update_invoke_count(u32 handle, u64 *perf_counter,
 
 	count = GET_COUNTER(perf_counter, PERF_COUNT);
 	if (count)
-		*count++;
+		(*count)++;
 }
 
 static int poll_for_remote_response(struct fastrpc_invoke_ctx *ctx, u64 timeout)
@@ -2123,7 +2123,7 @@ static int fastrpc_copy_args(struct fastrpc_invoke *inv)
 			return -EFAULT;
 		}
 	}
-	inv->args = args;
+	inv->args = (u64)args;
 
 	return 0;
 }
@@ -2132,7 +2132,6 @@ static int fastrpc_invoke(struct fastrpc_user *fl, char __user *argp)
 {
 	struct fastrpc_invoke_v2 ioctl = {0};
 	struct fastrpc_invoke inv;
-	u32 nscalars;
 	int err;
 
 	if (copy_from_user(&inv, argp, sizeof(inv)))
@@ -2144,7 +2143,7 @@ static int fastrpc_invoke(struct fastrpc_user *fl, char __user *argp)
 
 	ioctl.inv = inv;
 	err = fastrpc_internal_invoke(fl, false, &ioctl);
-	kfree(inv.args);
+	kfree((void *)inv.args);
 
 	return err;
 }
@@ -2162,7 +2161,7 @@ static int fastrpc_invokev2(struct fastrpc_user *fl, char __user *argp)
 		return err;
 
 	err = fastrpc_internal_invoke(fl, false, &inv2);
-	kfree(inv2.inv.args);
+	kfree((void *)inv2.inv.args);
 
 	return err;
 }
@@ -3153,16 +3152,17 @@ static int fastrpc_rpmsg_callback(struct rpmsg_device *rpdev, void *data,
 
 	spin_lock_irqsave(&cctx->lock, flags);
 	ctx = idr_find(&cctx->ctx_idr, ctxid);
-	spin_unlock_irqrestore(&cctx->lock, flags);
 
 	if (!ctx) {
 		dev_dbg(&rpdev->dev, "No context ID matches response\n");
+		spin_unlock_irqrestore(&cctx->lock, flags);
 		return 0;
 	}
 
 	ctx->retval = rsp->retval;
 	ctx->is_work_done = true;
 	complete(&ctx->work);
+	spin_unlock_irqrestore(&cctx->lock, flags);
 
 	return 0;
 }

@@ -13,6 +13,11 @@
 #include <linux/kernel.h>
 #include <linux/mmzone.h>
 #include <linux/sizes.h>
+#include <linux/platform_device.h>
+#include <linux/virtio-iommu.h>
+#include <linux/platform_device.h>
+
+struct arm_smmu_device;
 
 /* MMIO registers */
 #define ARM_SMMU_IDR0			0x0
@@ -620,9 +625,30 @@ struct arm_smmu_strtab_cfg {
 	u32				strtab_base_cfg;
 };
 
+struct arm_smmu_domain;
+struct arm_smmu_master;
+
+struct arm_smmu_impl_ops {
+	int (*device_reset)(struct arm_smmu_device *smmu);
+	void (*device_remove)(struct arm_smmu_device *smmu);
+	struct arm_smmu_cmdq *(*get_secondary_cmdq)(struct arm_smmu_device *smmu);
+	int (*probe_device)(struct arm_smmu_device *smmu, struct device *dev);
+	u32 (*read_idr)(struct arm_smmu_device *smmu, u32 offset);
+	int (*install_ste)(struct arm_smmu_master *master, struct arm_smmu_domain *new,
+			struct arm_smmu_domain *old);
+	int (*cmdq_issue_cmdlist)(struct arm_smmu_device *smmu, u64 *cmds, int nr, bool sync);
+	void (*sync_cd)(struct arm_smmu_domain *domain, int ssid, bool leaf);
+	void (*tlb_inv_context)(struct arm_smmu_device *smmu, struct arm_smmu_domain *smmu_domain);
+	void (*tlb_inv_range)(struct arm_smmu_device *smmu, struct arm_smmu_domain *smmu_domain,
+				unsigned long iova, size_t size, size_t granule,
+				bool leaf, u16 asid);
+};
+
 /* An SMMUv3 instance */
 struct arm_smmu_device {
 	struct device			*dev;
+	const struct arm_smmu_impl_ops	*impl_ops;
+
 	void __iomem			*base;
 	void __iomem			*page1;
 
@@ -652,6 +678,7 @@ struct arm_smmu_device {
 #define ARM_SMMU_OPT_PAGE0_REGS_ONLY	(1 << 1)
 #define ARM_SMMU_OPT_MSIPOLL		(1 << 2)
 #define ARM_SMMU_OPT_CMDQ_FORCE_SYNC	(1 << 3)
+#define ARM_SMMU_OPT_VIRTIO		(1 << 4)
 	u32				options;
 
 	struct arm_smmu_cmdq		cmdq;
@@ -714,6 +741,23 @@ enum arm_smmu_domain_stage {
 	ARM_SMMU_DOMAIN_BYPASS,
 };
 
+/*
+ * VIRTIO_IOMMU_ATTACH_TABLE associates @id with a set of sids. @refs is the
+ * number of stream-ids in this set.
+ * These fields are protected by @lock, which must be held when issueing virtio_iommu
+ * commands using @id.
+ * @id
+ * IDs less than ARM_SMMU_MIN_VIRTIO_ID are not valid.
+ * The arm-smmu-qcom-virtio cbs will no-op any calls made with an invalid id.
+ * This can occur during arm_smmu_attach_dev(), as the CD is setup/invalidated
+ * before to the STE is setup.
+ */
+struct arm_smmu_domain_virtio {
+	spinlock_t	lock;
+	u32		id;
+	refcount_t	refs;
+};
+
 struct arm_smmu_domain {
 	struct arm_smmu_device		*smmu;
 	struct mutex			init_mutex; /* Protects smmu pointer */
@@ -734,6 +778,8 @@ struct arm_smmu_domain {
 	spinlock_t			devices_lock;
 
 	struct list_head		mmu_notifiers;
+
+	struct arm_smmu_domain_virtio	virtio;
 };
 
 static inline struct arm_smmu_domain *to_smmu_domain(struct iommu_domain *dom)
@@ -754,6 +800,16 @@ void arm_smmu_tlb_inv_range_asid(unsigned long iova, size_t size, int asid,
 bool arm_smmu_free_asid(struct arm_smmu_ctx_desc *cd);
 int arm_smmu_atc_inv_domain(struct arm_smmu_domain *smmu_domain, int ssid,
 			    unsigned long iova, size_t size);
+
+
+int arm_smmu_device_dt_probe(struct platform_device *pdev,
+			     struct arm_smmu_device *smmu);
+int arm_smmu_device_hw_probe(struct arm_smmu_device *smmu);
+int arm_smmu_init_structures(struct arm_smmu_device *smmu);
+__le64 *arm_smmu_get_step_for_sid(struct arm_smmu_device *smmu, u32 sid);
+extern struct iommu_ops arm_smmu_ops;
+struct arm_smmu_master *
+arm_smmu_find_master(struct arm_smmu_device *smmu, u32 sid);
 
 #ifdef CONFIG_ARM_SMMU_V3_SVA
 bool arm_smmu_sva_supported(struct arm_smmu_device *smmu);
@@ -810,4 +866,14 @@ static inline void arm_smmu_sva_remove_dev_pasid(struct iommu_domain *domain,
 {
 }
 #endif /* CONFIG_ARM_SMMU_V3_SVA */
+
+#ifdef CONFIG_ARM_SMMU_V3_QCOM_VIRTIO
+extern struct platform_driver arm_vsmmu_driver;
+int arm_smmu_qcom_virtio_init(void);
+void arm_smmu_qcom_virtio_exit(void);
+#else /* CONFIG_ARM_SMMU_V3_QCOM_VIRTIO */
+static inline int arm_smmu_qcom_virtio_init(void) {return 0; }
+static inline void arm_smmu_qcom_virtio_exit(void) {}
+#endif /* CONFIG_ARM_SMMU_V3_QCOM_VIRTIO */
+
 #endif /* _ARM_SMMU_V3_H */

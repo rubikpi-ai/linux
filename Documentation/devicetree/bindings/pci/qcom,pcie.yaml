@@ -28,6 +28,7 @@ properties:
           - qcom,pcie-ipq8074-gen3
           - qcom,pcie-msm8996
           - qcom,pcie-qcs404
+          - qcom,pcie-qcs615
           - qcom,pcie-qcs8300
           - qcom,pcie-sa8540p
           - qcom,pcie-sa8775p
@@ -532,6 +533,7 @@ allOf:
         compatible:
           contains:
             enum:
+              - qcom,pcie-qcs615
               - qcom,pcie-sc8180x
               - qcom,pcie-sm8150
               - qcom,pcie-sm8250
@@ -825,6 +827,7 @@ allOf:
           contains:
             enum:
               - qcom,pcie-msm8996
+              - qcom,pcie-qcs615
               - qcom,pcie-qcs8300
               - qcom,pcie-sa8775p
               - qcom,pcie-sc7280

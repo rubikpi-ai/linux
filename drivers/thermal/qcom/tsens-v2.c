@@ -108,6 +108,7 @@ static const struct tsens_ops ops_generic_v2 = {
 	.init		= init_common,
 	.get_temp	= get_temp_tsens_valid,
 	.resume		= tsens_resume_common,
+	.suspend	= tsens_suspend_common,
 };
 
 struct tsens_plat_data data_tsens_v2 = {
