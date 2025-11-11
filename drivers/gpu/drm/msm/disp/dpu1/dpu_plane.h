@@ -50,6 +50,26 @@ struct dpu_plane_state {
 	unsigned int rotation;
 };
 
+/*
+ * struct dpu_plane - local dpu plane structure
+ * @aspace: address space pointer
+ * @csc_ptr: Points to dpu_csc_cfg structure to use for current
+ * @catalog: Points to dpu catalog structure
+ * @revalidate: force revalidation of all the plane properties
+ */
+struct dpu_plane {
+	struct drm_plane base;
+
+	struct mutex lock;
+
+	enum dpu_sspp pipe;
+
+	uint32_t color_fill;
+	bool is_error;
+	bool is_rt_pipe;
+	const struct dpu_mdss_cfg *catalog;
+};
+
 #define to_dpu_plane_state(x) \
 	container_of(x, struct dpu_plane_state, base)
 

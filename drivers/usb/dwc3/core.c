@@ -1986,10 +1986,12 @@ int dwc3_probe(struct dwc3 *dwc,
 	if (IS_ERR(dwc->usb_psy))
 		return dev_err_probe(dev, PTR_ERR(dwc->usb_psy), "couldn't get usb power supply\n");
 
-	dwc->reset = devm_reset_control_array_get_optional_shared(dev);
-	if (IS_ERR(dwc->reset)) {
-		ret = PTR_ERR(dwc->reset);
-		goto err_put_psy;
+	if (glue_data && (!glue_data->ignore_resets)) {
+		dwc->reset = devm_reset_control_array_get_optional_shared(dev);
+		if (IS_ERR(dwc->reset)) {
+			ret = PTR_ERR(dwc->reset);
+			goto err_put_psy;
+		}
 	}
 
 	ret = dwc3_get_clocks(dwc);
@@ -2002,7 +2004,7 @@ int dwc3_probe(struct dwc3 *dwc,
 
 	ret = dwc3_clk_enable(dwc);
 	if (ret)
-		goto err_put_psy;
+		goto err_assert_reset;
 
 	if (!dwc3_core_is_valid(dwc)) {
 		dev_err(dwc->dev, "this is not a DesignWare USB3 DRD Core\n");
@@ -2082,6 +2084,8 @@ err_allow_rpm:
 	pm_runtime_put_noidle(dev);
 err_disable_clks:
 	dwc3_clk_disable(dwc);
+err_assert_reset:
+	reset_control_assert(dwc->reset);
 err_put_psy:
 	if (dwc->usb_psy)
 		power_supply_put(dwc->usb_psy);

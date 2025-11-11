@@ -172,10 +172,33 @@ static int make_shm_bridge_single(struct mem_object *mo)
 
 	if (ret) {
 
-		/* If 'p_addr' is not zero, then the memory object is already mapped. */
+		/* If 'shm_bridge_handle' is not zero, then the memory object is already mapped. */
 
 		mo->mapping_info.p_addr = 0;
 		mo->mapping_info.p_addr_len = 0;
+		// SCM driver touch this value even an failure so set to 0
+		mo->shm_bridge_handle = 0;
+	}
+
+	return ret;
+}
+
+static int make_shm_bridge_single_kernel(struct mem_object *mo)
+{
+	int ret;
+
+	/* TODO: Add and fetch vmid from DTSI */
+	u32 vmid_list = QCOM_SCM_VMID_HLOS;
+	u32 perms_list = QCOM_SCM_PERM_RW;
+	u32 nelems = 1;
+
+	ret = qcom_tzmem_register(mo->mapping_info.p_addr, mo->mapping_info.p_addr_len,
+		&vmid_list, &perms_list, nelems, mo->mapping_info.perms,
+		&mo->shm_bridge_handle);
+
+	if (ret) {
+
+		/* If 'shm_bridge_handle' is not zero, then the memory object is already mapped. */
 		// SCM driver touch this value even an failure so set to 0
 		mo->shm_bridge_handle = 0;
 	}
@@ -253,12 +276,15 @@ static int map_memory_obj(struct mem_object *mo, int advisory)
 			si_object_name(&mo->object));
 
 	mutex_lock(&mo->map.lock);
-	if (mo->mapping_info.p_addr == 0) {
-
+	if (mo->shm_bridge_handle == 0) {
 		/* 'mo' has not been mapped before. Do it now. */
-
-		ret = init_tz_shared_memory(mo);
-
+		if (mo->mapping_info.p_addr == 0) {
+			/* 'mo' from user-space */
+			ret = init_tz_shared_memory(mo);
+		} else {
+			/* 'mo' from kernel-space */
+			ret = make_shm_bridge_single_kernel(mo);
+		}
 	} else {
 
 		/* 'mo' is already mapped. Just return. */
@@ -325,9 +351,10 @@ static void mo_shm_bridge_release(struct si_object *object)
 	if (mo->release)
 		mo->release(mo->private);
 
-	/* Put a dam-buf copy obtained in 'init_si_mem_object_user'.*/
+	/* Put a dma-buf copy obtained in 'init_si_mem_object_user'.*/
 
-	dma_buf_put(mo->dma_buf);
+	if (mo->dma_buf)
+		dma_buf_put(mo->dma_buf);
 
 	mutex_lock(&mo_list_mutex);
 	list_del(&mo->node);
@@ -456,6 +483,45 @@ struct si_object *init_si_mem_object_user(struct dma_buf *dma_buf,
 	return &mo->object;
 }
 EXPORT_SYMBOL_GPL(init_si_mem_object_user);
+
+struct si_object *init_si_mem_object(phys_addr_t paddr, size_t size,
+	void (*release)(void *), void *private)
+{
+	struct mem_object *mo;
+
+	if (size != ALIGN(size, PAGE_SIZE)) {
+		pr_err("size = %zu is not page aligned\n", size);
+		return NULL_SI_OBJECT;
+	}
+
+	if (!mem_ops.release) {
+		pr_err("memory object type is unknown.\n");
+		return NULL_SI_OBJECT;
+	}
+
+	mo = kzalloc(sizeof(*mo), GFP_KERNEL);
+	if (!mo)
+		return NULL_SI_OBJECT;
+
+	mutex_init(&mo->map.lock);
+
+	mo->private = private;
+	mo->release = release;
+
+	mo->mapping_info.p_addr = paddr;
+	mo->mapping_info.p_addr_len = size;
+	mo->mapping_info.perms = QCOM_SCM_PERM_RW;
+
+	init_si_object_user(&mo->object, SI_OT_CB_OBJECT, &mem_ops,
+		"kernel-mem-object-%pa", &paddr);
+
+	mutex_lock(&mo_list_mutex);
+	list_add_tail(&mo->node, &mo_list);
+	mutex_unlock(&mo_list_mutex);
+
+	return &mo->object;
+}
+EXPORT_SYMBOL_GPL(init_si_mem_object);
 
 struct dma_buf *mem_object_to_dma_buf(struct si_object *object)
 {

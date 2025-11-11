@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <linux/amba/bus.h>
@@ -27,6 +27,19 @@ static bool coresight_device_is_tpdm(struct coresight_device *csdev)
 	return (csdev->type == CORESIGHT_DEV_TYPE_SOURCE) &&
 	       (csdev->subtype.source_subtype ==
 			CORESIGHT_DEV_SUBTYPE_SOURCE_TPDM);
+}
+
+static bool is_static_tpdm(struct coresight_device *csdev)
+{
+	const char *compatible;
+	bool ret = false;
+
+	if (!fwnode_property_read_string(dev_fwnode(csdev->dev.parent),
+						    "compatible", &compatible)) {
+		if (!strcmp(compatible, "qcom,coresight-static-tpdm"))
+			ret = true;
+	}
+	return ret;
 }
 
 static void tpda_clear_element_size(struct coresight_device *csdev)
@@ -74,6 +87,13 @@ static int tpdm_read_element_size(struct tpda_drvdata *drvdata,
 	}
 	if (tpdm_has_cmb_dataset(tpdm_data)) {
 		rc = fwnode_property_read_u32(dev_fwnode(csdev->dev.parent),
+				"qcom,cmb-element-bits", &drvdata->cmb_esize);
+	}
+
+	if (is_static_tpdm(csdev)) {
+		rc = fwnode_property_read_u32(dev_fwnode(csdev->dev.parent),
+				"qcom,dsb-element-bits", &drvdata->dsb_esize);
+		rc &= fwnode_property_read_u32(dev_fwnode(csdev->dev.parent),
 				"qcom,cmb-element-bits", &drvdata->cmb_esize);
 	}
 

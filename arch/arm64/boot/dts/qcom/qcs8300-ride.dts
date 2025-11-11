@@ -1,13 +1,13 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 /dts-v1/;
 
 #include <dt-bindings/gpio/gpio.h>
 #include <dt-bindings/regulator/qcom,rpmh-regulator.h>
-#include <dt-bindings/spmi/spmi.h>
 
 #include "qcs8300.dtsi"
 #include "qcs8300-pmics.dtsi"
@@ -20,8 +20,10 @@
 	qcom,board-id = <0x00010019 0>, <0x01010019 1>;
 
 	aliases {
+		i2c15 = &i2c15;
 		serial0 = &uart7;
 		serial1 = &uart2;
+		spi10 = &spi10;
 	};
 
 	chosen {
@@ -113,6 +115,16 @@
 				regulator-name = "vreg_pmu_pcie_1p8";
 			};
 		};
+	};
+
+	regulator-usb2-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "USB2_VBUS";
+		gpio = <&pmm8650au_1_gpios 7 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&usb1_en_state>;
+		pinctrl-names = "default";
+		enable-active-high;
+		regulator-always-on;
 	};
 };
 
@@ -386,6 +398,14 @@
 	status = "okay";
 };
 
+&gpu {
+	status = "okay";
+};
+
+&gpu_zap_shader {
+	firmware-name = "qcom/qcs8300/a623_zap.mbn";
+};
+
 &i2c8 {
 	clock-frequency = <400000>;
 	pinctrl-0 = <&qup_i2c8_data_clk
@@ -540,25 +560,6 @@
 
 &mdss_edp_phy {
 	status = "okay";
-};
-
-&spmi_bus {
-	pmm8654au_2: pmic@2 {
-		compatible = "qcom,pmm8654au", "qcom,spmi-pmic";
-		reg = <2 SPMI_USID>;
-		#address-cells = <1>;
-		#size-cells = <0>;
-
-		pmm8654au_2_gpios: gpio@8800 {
-			compatible = "qcom,pmm8654au-gpio", "qcom,spmi-gpio";
-			reg = <0x8800>;
-			gpio-controller;
-			gpio-ranges = <&pmm8654au_2_gpios 0 0 12>;
-			#gpio-cells = <2>;
-			interrupt-controller;
-			#interrupt-cells = <2>;
-		};
-	};
 };
 
 &tlmm {
@@ -760,7 +761,7 @@
 	status = "okay";
 };
 
-&pmm8654au_2_gpios {
+&pmm8650au_1_gpios {
 	usb1_en_state: usb1-en-state {
 		pins = "gpio7";
 		function = "normal";
@@ -806,8 +807,6 @@
 };
 
 &usb_2 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&usb1_en_state>;
 	status = "okay";
 };
 

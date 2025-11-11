@@ -20,6 +20,9 @@
 #include <linux/power_supply.h>
 #include <linux/regulator/consumer.h>
 #include <linux/usb/role.h>
+#include <linux/idr.h>
+
+static DEFINE_IDA(usb_conn_ida);
 
 #define USB_GPIO_DEB_MS		20	/* ms */
 #define USB_GPIO_DEB_US		((USB_GPIO_DEB_MS) * 1000)	/* us */
@@ -27,8 +30,11 @@
 #define USB_CONN_IRQF	\
 	(IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING | IRQF_ONESHOT)
 
+static atomic_t device_counter = ATOMIC_INIT(0);
+
 struct usb_conn_info {
 	struct device *dev;
+	int conn_id; /* store the IDA-allocated ID */
 	struct usb_role_switch *role_sw;
 	enum usb_role last_role;
 	struct regulator *vbus;
@@ -60,7 +66,7 @@ struct usb_conn_info {
  *
  * In case we have only one of these signals:
  * - VBUS only - we want to distinguish between [1] and [2], so ID is always 1
- * - ID only - we want to distinguish between [1] and [4], so VBUS = ID
+ * - ID only - we want to distinguish between [2] and [3], so VBUS = !ID
  */
 static void usb_conn_detect_cable(struct work_struct *work)
 {
@@ -75,7 +81,7 @@ static void usb_conn_detect_cable(struct work_struct *work)
 	id = info->id_gpiod ?
 		gpiod_get_value_cansleep(info->id_gpiod) : 1;
 	vbus = info->vbus_gpiod ?
-		gpiod_get_value_cansleep(info->vbus_gpiod) : id;
+		gpiod_get_value_cansleep(info->vbus_gpiod) : !id;
 
 	if (!id)
 		role = USB_ROLE_HOST;
@@ -160,7 +166,20 @@ static int usb_conn_psy_register(struct usb_conn_info *info)
 		.of_node = dev->of_node,
 	};
 
-	desc->name = "usb-charger";
+	desc->name = devm_kmalloc(dev, sizeof(*desc), GFP_KERNEL);
+	snprintf((char *)desc->name, sizeof(*desc), "usb-charger%d", atomic_read(&device_counter));
+	atomic_inc(&device_counter);
+	info->conn_id = ida_alloc(&usb_conn_ida, GFP_KERNEL);
+	if (info->conn_id < 0)
+		return info->conn_id;
+
+	desc->name = devm_kasprintf(dev, GFP_KERNEL, "usb-charger-%d",
+				    info->conn_id);
+	if (!desc->name) {
+		ida_free(&usb_conn_ida, info->conn_id);
+		return -ENOMEM;
+	}
+
 	desc->properties = usb_charger_properties;
 	desc->num_properties = ARRAY_SIZE(usb_charger_properties);
 	desc->get_property = usb_charger_get_property;
@@ -168,8 +187,10 @@ static int usb_conn_psy_register(struct usb_conn_info *info)
 	cfg.drv_data = info;
 
 	info->charger = devm_power_supply_register(dev, desc, &cfg);
-	if (IS_ERR(info->charger))
-		dev_err(dev, "Unable to register charger\n");
+	if (IS_ERR(info->charger)) {
+		dev_err(dev, "Unable to register charger %d\n", info->conn_id);
+		ida_free(&usb_conn_ida, info->conn_id);
+	}
 
 	return PTR_ERR_OR_ZERO(info->charger);
 }
@@ -276,6 +297,9 @@ static void usb_conn_remove(struct platform_device *pdev)
 	struct usb_conn_info *info = platform_get_drvdata(pdev);
 
 	cancel_delayed_work_sync(&info->dw_det);
+
+	if (info->charger)
+		ida_free(&usb_conn_ida, info->conn_id);
 
 	if (info->last_role == USB_ROLE_HOST && info->vbus)
 		regulator_disable(info->vbus);

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 /dts-v1/;
@@ -9,6 +10,7 @@
 
 #include "sa7255p.dtsi"
 #include "sa7255p-scmi.dtsi"
+#include "sa8255p-pmics.dtsi"
 
 / {
 	model = "Qualcomm Technologies, Inc. SA7255P Ride";
@@ -19,11 +21,12 @@
 	aliases {
 		i2c8 = &i2c8;
 		i2c15 = &i2c15;
+		mmc0 = &sdhc_1;
 		serial0 = &uart7;
 		serial1 = &uart12;
+		serial2 = &uart2;
 		spi10 = &spi10;
 		scmichannels = &scmichannels;
-		ufshc1 = &ufs_mem_hc;
 	};
 
 	chosen {
@@ -103,6 +106,22 @@
 	status = "disabled";
 };
 
+&pmm8654au_0_thermal {
+	thermal-sensors = <&scmi23_sensor 0>;
+};
+
+&pmm8654au_1_thermal {
+	thermal-sensors = <&scmi23_sensor 1>;
+};
+
+&pmm8654au_2_thermal {
+	thermal-sensors = <&scmi23_sensor 2>;
+};
+
+&pmm8654au_3_thermal {
+	thermal-sensors = <&scmi23_sensor 3>;
+};
+
 &tlmm {
 		pcie0_ep_perst_default: pcie-ep-perst-default-state {
 			pins = "gpio2";
@@ -167,10 +186,6 @@
 	status = "okay";
 };
 
-&scmi3 {
-	status = "okay";
-};
-
 &scmi5 {
 	status = "okay";
 };
@@ -203,12 +218,34 @@
 	status = "okay";
 };
 
+&scmi23 {
+	status = "okay";
+};
+
+&scmi34 {
+	status = "okay";
+};
+
+&sdhc_1 {
+	power-domains = <&scmi34_pd 0>, <&scmi34_dvfs 0>;
+	power-domain-names = "power", "perf";
+
+	status = "okay";
+};
+
 &sleep_clk {
 	clock-frequency = <32000>;
 };
 
 &spi10 {
 	power-domains = <&scmi10_pd 10>, <&scmi10_dvfs 10>;
+	power-domain-names = "power", "perf";
+
+	status = "okay";
+};
+
+&uart2 {
+	power-domains = <&scmi11_pd 2>, <&scmi11_dvfs 2>;
 	power-domain-names = "power", "perf";
 
 	status = "okay";
@@ -224,13 +261,6 @@
 &uart12 {
 	power-domains = <&scmi11_pd 12>, <&scmi11_dvfs 12>;
 	power-domain-names = "power", "perf";
-
-	status = "okay";
-};
-
-&ufs_mem_hc {
-	reset-gpios = <&tlmm 133 GPIO_ACTIVE_LOW>;
-	power-domains = <&scmi3_pd 0>;
 
 	status = "okay";
 };

@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2024-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
@@ -338,12 +339,12 @@
 
 		camera_mem: camera-region@95200000 {
 			no-map;
-			reg = <0x0 0x95200000 0x0 0x500000>;
+			reg = <0x0 0x95200000 0x0 0x800000>;
 		};
 
-		mproc_umdpil_mem: mproc-umdpil-region@95700000 {
+		mproc_umdpil_mem: mproc-umdpil-region@95a00000 {
 			no-map;
-			reg = <0x0 0x95700000 0x0 0x500000>;
+			reg = <0x0 0x95a00000 0x0 0x200000>;
 		};
 
 		adsp_mem: adsp-region@95c00000 {
@@ -974,6 +975,37 @@
 				     <GIC_SPI 687 IRQ_TYPE_LEVEL_HIGH>;
 		};
 
+		sdhc_1: mmc@87c4000 {
+			compatible = "qcom,sa7255-sdhci";
+
+			reg = <0x0 0x87c4000 0x0 0x1000>,
+			      <0x0 0x87c5000 0x0 0x1000>;
+			reg-names = "hc", "cqhci";
+
+			iommus = <&apps_smmu 0x0 0x0>;
+
+			interrupts = <GIC_SPI 383 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 521 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "hc_irq", "pwr_irq";
+
+			bus-width = <8>;
+			supports-cqe;
+			dma-coherent;
+			non-removable;
+
+			no-sd;
+			no-sdio;
+
+			qcom,dll-config = <0x000F64EE>;
+			qcom,ddr-config = <0x80040868>;
+
+			mmc-ddr-1_8v;
+			mmc-hs200-1_8v;
+			mmc-hs400-1_8v;
+			mmc-hs400-enhanced-strobe;
+			status = "disabled";
+		};
+
 		usb_0_hsphy: phy@8904000 {
 			compatible = "qcom,sa7255p-usb-hs-phy",
 				     "qcom,usb-snps-hs-5nm-phy";
@@ -1379,6 +1411,8 @@
 			reg = <0x0 0x17a00000 0x0 0x10000>,	/* GICD */
 			      <0x0 0x17a60000 0x0 0x100000>;	/* GICR * 8 */
 			interrupt-controller;
+			#address-cells = <2>;
+			#size-cells = <2>;
 			#interrupt-cells = <3>;
 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
 			#redistributor-regions = <1>;
@@ -1470,7 +1504,9 @@
 
 		pcie0: pci@400000000 {
 			compatible = "qcom,pcie-ecam-rc";
-			reg = <0x4 0x00000000 0x0 0x10000000>;
+			reg = <0x4 0x00000000 0x0 0x10000000>,
+			      <0x0 0x01c00000 0x0 0x3000>;
+			reg-names = "dbi", "parf";
 
 			device_type = "pci";
 
@@ -1493,8 +1529,19 @@
 				     <GIC_SPI 313 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 314 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 374 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>;
+				     <GIC_SPI 375 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 306 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "msi0", "msi1", "msi2", "msi3",
+					  "msi4", "msi5", "msi6", "msi7",
+					  "global_int";
 			interrupt-parent = <&intc>;
+
+			#interrupt-cells = <1>;
+			interrupt-map-mask = <0 0 0 0x7>;
+			interrupt-map = <0 0 0 1 &intc 0 0 GIC_SPI 434 IRQ_TYPE_LEVEL_HIGH>, //INTa
+					<0 0 0 2 &intc 0 0 GIC_SPI 435 IRQ_TYPE_LEVEL_HIGH>, //INTb
+					<0 0 0 3 &intc 0 0 GIC_SPI 438 IRQ_TYPE_LEVEL_HIGH>, //INTc
+					<0 0 0 4 &intc 0 0 GIC_SPI 439 IRQ_TYPE_LEVEL_HIGH>; //INTd
 
 			iommus = <&pcie_smmu 0x00 0x7f>;
 			iommu-map = <0x0 &pcie_smmu 0x0000 0x1>,
@@ -1503,11 +1550,22 @@
 				    <0x300 &pcie_smmu 0x0003 0x1>;
 
 			status = "disabled";
+
+			pcie0_port0: pcie@0 {
+				device_type = "pci";
+				reg = <0x0 0x0 0x0 0x0 0x0>;
+				bus-range = <0x01 0xff>;
+				#address-cells = <3>;
+				#size-cells = <2>;
+				ranges;
+			};
 		};
 
 		pcie1: pci@600000000 {
 			compatible = "qcom,pcie-ecam-rc";
-			reg = <0x6 0x00000000 0x0 0x10000000>;
+			reg = <0x6 0x00000000 0x0 0x10000000>,
+			      <0x0 0x01c10000 0x0 0x3000>;
+			reg-names = "dbi", "parf";
 
 			device_type = "pci";
 
@@ -1530,8 +1588,19 @@
 				     <GIC_SPI 143 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 144 IRQ_TYPE_LEVEL_HIGH>,
 				     <GIC_SPI 145 IRQ_TYPE_LEVEL_HIGH>,
-				     <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>;
+				     <GIC_SPI 146 IRQ_TYPE_LEVEL_HIGH>,
+				     <GIC_SPI 518 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-names = "msi0", "msi1", "msi2", "msi3",
+					  "msi4", "msi5", "msi6", "msi7",
+					  "global_int";
 			interrupt-parent = <&intc>;
+
+			#interrupt-cells = <1>;
+			interrupt-map-mask = <0 0 0 0x7>;
+			interrupt-map = <0 0 0 1 &intc 0 0 GIC_SPI 148 IRQ_TYPE_LEVEL_HIGH>, //INTa
+					<0 0 0 2 &intc 0 0 GIC_SPI 149 IRQ_TYPE_LEVEL_HIGH>, //INTb
+					<0 0 0 3 &intc 0 0 GIC_SPI 150 IRQ_TYPE_LEVEL_HIGH>, //INTc
+					<0 0 0 4 &intc 0 0 GIC_SPI 151 IRQ_TYPE_LEVEL_HIGH>; //INTd
 
 			iommus = <&pcie_smmu 0x80 0x7f>;
 			iommu-map = <0x0 &pcie_smmu 0x0080 0x1>,
@@ -1543,6 +1612,15 @@
 				    <0xab00 &pcie_smmu 0x0086 0x1>;
 
 			status = "disabled";
+
+			pcie1_port0: pcie@1 {
+				device_type = "pci";
+				reg = <0x0 0x0 0x0 0x0 0x0>;
+				bus-range = <0x01 0xff>;
+				#address-cells = <3>;
+				#size-cells = <2>;
+				ranges;
+			};
 		};
 
 	};

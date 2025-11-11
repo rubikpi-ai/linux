@@ -20,38 +20,13 @@
 #include <linux/virtio_ids.h>
 #include <linux/wait.h>
 
+#include <linux/virtio-iommu.h>
 #include <uapi/linux/virtio_iommu.h>
 
 #include "dma-iommu.h"
 
 #define MSI_IOVA_BASE			0x8000000
 #define MSI_IOVA_LENGTH			0x100000
-
-#define VIOMMU_REQUEST_VQ		0
-#define VIOMMU_EVENT_VQ			1
-#define VIOMMU_NR_VQS			2
-
-struct viommu_dev {
-	struct iommu_device		iommu;
-	struct device			*dev;
-	struct virtio_device		*vdev;
-
-	struct ida			domain_ids;
-
-	struct virtqueue		*vqs[VIOMMU_NR_VQS];
-	spinlock_t			request_lock;
-	struct list_head		requests;
-	void				*evts;
-
-	/* Device configuration */
-	struct iommu_domain_geometry	geometry;
-	u64				pgsize_bitmap;
-	u32				first_domain;
-	u32				last_domain;
-	/* Supported MAP flags */
-	u32				map_flags;
-	u32				probe_size;
-};
 
 struct viommu_mapping {
 	phys_addr_t			paddr;
@@ -279,7 +254,7 @@ static int viommu_add_req(struct viommu_dev *viommu, void *buf, size_t len)
  * Send a request and wait for it to complete. Return the request status (as an
  * errno)
  */
-static int viommu_send_req_sync(struct viommu_dev *viommu, void *buf,
+int viommu_send_req_sync(struct viommu_dev *viommu, void *buf,
 				size_t len)
 {
 	int ret;
@@ -304,6 +279,7 @@ out_unlock:
 	spin_unlock_irqrestore(&viommu->request_lock, flags);
 	return ret;
 }
+EXPORT_SYMBOL_GPL(viommu_send_req_sync);
 
 /*
  * viommu_add_mapping - add a mapping to the internal tree
@@ -606,6 +582,9 @@ static int viommu_fault_handler(struct viommu_dev *viommu,
 	else
 		dev_err_ratelimited(viommu->dev, "%s fault from EP %u\n",
 				    reason_str, endpoint);
+
+	if (viommu->fault_handler)
+		viommu->fault_handler(viommu, fault);
 	return 0;
 }
 
@@ -1095,18 +1074,13 @@ static int viommu_fill_evtq(struct viommu_dev *viommu)
 	return 0;
 }
 
-static int viommu_probe(struct virtio_device *vdev)
+int viommu_probe_common(struct virtio_device *vdev)
 {
-	struct device *parent_dev = vdev->dev.parent;
 	struct viommu_dev *viommu = NULL;
 	struct device *dev = &vdev->dev;
 	u64 input_start = 0;
 	u64 input_end = -1UL;
 	int ret;
-
-	if (!virtio_has_feature(vdev, VIRTIO_F_VERSION_1) ||
-	    !virtio_has_feature(vdev, VIRTIO_IOMMU_F_MAP_UNMAP))
-		return -ENODEV;
 
 	viommu = devm_kzalloc(dev, sizeof(*viommu), GFP_KERNEL);
 	if (!viommu)
@@ -1172,13 +1146,6 @@ static int viommu_probe(struct virtio_device *vdev)
 	if (ret)
 		goto err_free_vqs;
 
-	ret = iommu_device_sysfs_add(&viommu->iommu, dev, NULL, "%s",
-				     virtio_bus_name(vdev));
-	if (ret)
-		goto err_free_vqs;
-
-	iommu_device_register(&viommu->iommu, &viommu_ops, parent_dev);
-
 	vdev->priv = viommu;
 
 	dev_info(dev, "input address: %u bits\n",
@@ -1190,6 +1157,34 @@ static int viommu_probe(struct virtio_device *vdev)
 err_free_vqs:
 	vdev->config->del_vqs(vdev);
 
+	return ret;
+}
+
+static int viommu_probe(struct virtio_device *vdev)
+{
+	struct viommu_dev *viommu;
+	int ret;
+
+	if (!virtio_has_feature(vdev, VIRTIO_F_VERSION_1) ||
+	    !virtio_has_feature(vdev, VIRTIO_IOMMU_F_MAP_UNMAP))
+		return -ENODEV;
+
+	ret = viommu_probe_common(vdev);
+	if (ret)
+		return ret;
+
+	viommu = (struct viommu_dev *)vdev->priv;
+	ret = iommu_device_sysfs_add(&viommu->iommu, &vdev->dev, NULL, "%s",
+				     virtio_bus_name(vdev));
+	if (ret)
+		goto err;
+
+	iommu_device_register(&viommu->iommu, &viommu_ops, vdev->dev.parent);
+	return 0;
+
+err:
+	virtio_reset_device(vdev);
+	vdev->config->del_vqs(vdev);
 	return ret;
 }
 

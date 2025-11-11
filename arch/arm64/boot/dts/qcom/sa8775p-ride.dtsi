@@ -123,6 +123,16 @@
 			};
 		};
 	};
+
+	regulator-usb2-vbus {
+		compatible = "regulator-fixed";
+		regulator-name = "USB2_VBUS";
+		gpio = <&pmm8654au_2_gpios 10 GPIO_ACTIVE_HIGH>;
+		pinctrl-0 = <&usb1_en_state>;
+		pinctrl-names = "default";
+		enable-active-high;
+		regulator-always-on;
+	};
 };
 
 &apps_rsc {
@@ -652,6 +662,10 @@
 			};
 		};
 	};
+};
+
+&ice {
+	status = "okay";
 };
 
 &iris {
@@ -1226,9 +1240,6 @@
 };
 
 &usb_1 {
-	pinctrl-names = "default";
-	pinctrl-0 = <&usb1_en_state>;
-
 	status = "okay";
 };
 

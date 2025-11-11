@@ -79,26 +79,6 @@ static const uint32_t qcom_compressed_supported_formats_sc7280[] = {
 	DRM_FORMAT_P010,
 };
 
-/*
- * struct dpu_plane - local dpu plane structure
- * @aspace: address space pointer
- * @csc_ptr: Points to dpu_csc_cfg structure to use for current
- * @catalog: Points to dpu catalog structure
- * @revalidate: force revalidation of all the plane properties
- */
-struct dpu_plane {
-	struct drm_plane base;
-
-	struct mutex lock;
-
-	enum dpu_sspp pipe;
-
-	uint32_t color_fill;
-	bool is_error;
-	bool is_rt_pipe;
-	const struct dpu_mdss_cfg *catalog;
-};
-
 static const uint64_t supported_format_modifiers[] = {
 	DRM_FORMAT_MOD_QCOM_COMPRESSED,
 	DRM_FORMAT_MOD_LINEAR,
@@ -1359,12 +1339,20 @@ void dpu_plane_danger_signal_ctrl(struct drm_plane *plane, bool enable)
 static bool dpu_plane_format_mod_supported(struct drm_plane *plane,
 		uint32_t format, uint64_t modifier)
 {
+	struct dpu_plane *pdpu = to_dpu_plane(plane);
+
 	if (modifier == DRM_FORMAT_MOD_LINEAR)
 		return true;
 
 	if (modifier == DRM_FORMAT_MOD_QCOM_COMPRESSED) {
+		if (pdpu && pdpu->catalog && pdpu->catalog->mdss_ver &&
+			pdpu->catalog->mdss_ver->core_major_ver == 7 &&
+			pdpu->catalog->mdss_ver->core_minor_ver == 2)
 			return dpu_find_format(format, qcom_compressed_supported_formats_sc7280,
 					ARRAY_SIZE(qcom_compressed_supported_formats_sc7280));
+		else
+			return dpu_find_format(format, qcom_compressed_supported_formats,
+					ARRAY_SIZE(qcom_compressed_supported_formats));
 	}
 
 	return false;
@@ -1425,13 +1413,13 @@ struct drm_plane *dpu_plane_init(struct drm_device *dev,
 	format_list = pipe_hw->cap->sblk->format_list;
 	num_formats = pipe_hw->cap->sblk->num_formats;
 
+	pdpu->catalog = kms->catalog;
 	ret = drm_universal_plane_init(dev, plane, 0xff, &dpu_plane_funcs,
 				format_list, num_formats,
 				supported_format_modifiers, type, NULL);
 	if (ret)
 		goto clean_plane;
 
-	pdpu->catalog = kms->catalog;
 
 	ret = drm_plane_create_zpos_property(plane, 0, 0, DPU_ZPOS_MAX);
 	if (ret)

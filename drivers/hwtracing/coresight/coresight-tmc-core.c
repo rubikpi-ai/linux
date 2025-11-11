@@ -3,7 +3,7 @@
  *
  * Description: CoreSight Trace Memory Controller driver
  *
- * Copyright (c) 2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <linux/kernel.h>
@@ -406,16 +406,46 @@ static ssize_t out_mode_store(struct device *dev,
 }
 static DEVICE_ATTR_RW(out_mode);
 
+static ssize_t stop_on_flush_show(struct device *dev,
+				  struct device_attribute *attr, char *buf)
+{
+	struct tmc_drvdata *drvdata = dev_get_drvdata(dev->parent);
+
+	return snprintf(buf, PAGE_SIZE, "%#x\n", drvdata->stop_on_flush);
+}
+
+static ssize_t stop_on_flush_store(struct device *dev,
+				   struct device_attribute *attr,
+				   const char *buf, size_t size)
+{
+	int ret;
+	u8 val;
+	struct tmc_drvdata *drvdata = dev_get_drvdata(dev->parent);
+
+	ret = kstrtou8(buf, 0, &val);
+	if (ret)
+		return ret;
+	if (val)
+		drvdata->stop_on_flush = true;
+	else
+		drvdata->stop_on_flush = false;
+
+	return size;
+}
+static DEVICE_ATTR_RW(stop_on_flush);
+
 static struct attribute *coresight_tmc_etr_attrs[] = {
 	&dev_attr_trigger_cntr.attr,
 	&dev_attr_buffer_size.attr,
 	&dev_attr_block_size.attr,
 	&dev_attr_out_mode.attr,
+	&dev_attr_stop_on_flush.attr,
 	NULL,
 };
 
 static struct attribute *coresight_tmc_etf_attrs[] = {
 	&dev_attr_trigger_cntr.attr,
+	&dev_attr_stop_on_flush.attr,
 	NULL,
 };
 

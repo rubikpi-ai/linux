@@ -1,0 +1,198 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * dtb metadata device tree source
+ *
+ * Copyright (c) 2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ *
+ */
+
+
+/dts-v1/;
+
+/ {
+	description = "Image with compressed metadata blob";
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	soc {
+		qcm6490 {
+			msm-id = <0x000001f1 0x1>;
+		};
+
+		qcm6490v2 {
+			msm-id = <0x000001f1 0x2>;
+		};
+
+		qcs6490 {
+			msm-id = <0x000001f2 0x1>;
+		};
+
+		qcs6490v2 {
+			msm-id = <0x000001f2 0x2>;
+		};
+
+		qcs9100 {
+			msm-id = <0x0000029B 0x1>;
+		};
+
+		qcs9100v2 {
+			msm-id = <0x0000029B 0x2>;
+		};
+
+		qcs9075 {
+			msm-id = <0x000002a4 0x1>;
+		};
+
+		qcs9075v2 {
+			msm-id = <0x000002a4 0x2>;
+		};
+
+		sa8775p {
+			msm-id = <0x00000215 0x1>;
+		};
+
+		sa8775pv2 {
+			msm-id = <0x00000215 0x2>;
+		};
+
+		qcs8300 {
+			msm-id = <0x000002A2 0x1>;
+		};
+
+		qcs8300v2 {
+			msm-id = <0x000002A2 0x2>;
+		};
+
+	};
+
+	soc-sku {
+		sku0 {
+			msm-id = <0x00030000>;
+		};
+
+	};
+
+	board {
+		idp {
+			board-id = <0x00000022>;
+		};
+
+		cdp {
+			board-id = <0x00000001>;
+		};
+
+		rb {
+			board-id = <0x00000020>;
+		};
+
+		atp {
+			board-id = <0x00000021>;
+		};
+
+		ride {
+			board-id = <0x00000025>;
+		};
+
+		aim300 {
+			board-id = <0x0000001f>;
+		};
+
+	};
+
+	board-subtype-hlos-subtype {
+		subtype0 {
+			board-subtype  = <0x00000000>;
+		};
+
+		subtype1 {
+			board-subtype  = <0x00000001>;
+		};
+
+		subtype2 {
+			board-subtype  = <0x00000002>;
+		};
+
+		subtype3 {
+			board-subtype  = <0x00000003>;
+		};
+
+		subtype4 {
+			board-subtype  = <0x00000004>;
+		};
+
+		subtype5 {
+			board-subtype  = <0x00000005>;
+		};
+
+		subtype6 {
+			board-subtype  = <0x00000006>;
+		};
+
+	};
+
+
+	board-subtype-storage-type {
+		emmc {
+			board-subtype = <0x00000000>;
+		};
+
+		ufs {
+			board-subtype = <0x00001000>;
+		};
+
+		nand {
+			board-subtype = <0x00002000>;
+		};
+
+	};
+
+
+	board-subtype-memory-size {
+		256MB {
+			board-subtype = <0x00000100>;
+		};
+
+		512MB {
+			board-subtype = <0x00000200>;
+		};
+
+		1GB {
+			board-subtype = <0x00000300>;
+		};
+
+		2GB {
+			board-subtype = <0x00000400>;
+		};
+
+		3GB {
+			board-subtype = <0x00000500>;
+		};
+
+		4GB {
+			board-subtype = <0x00000600>;
+		};
+
+		4GB+ {
+			board-subtype = <0x00000000>;
+		};
+
+	};
+
+	softsku {
+		softsku0 {
+			softsku-id = <0x0>;
+		};
+
+		softsku1 {
+			softsku-id = <0x1>;
+		};
+
+	};
+
+	pmic {
+	};
+
+	oem {
+	};
+
+};
