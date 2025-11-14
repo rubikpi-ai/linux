@@ -14,6 +14,8 @@
 #include <linux/platform_device.h>
 #include <linux/pm_runtime.h>
 #include <linux/reset.h>
+#include <linux/soc/qcom/smem.h>
+#include <linux/soc/qcom/socinfo.h>
 
 #include "msm_mdss.h"
 #include "msm_kms.h"
@@ -176,6 +178,24 @@ static int _msm_mdss_irq_domain_add(struct msm_mdss *msm_mdss)
 	return 0;
 }
 
+int mdss_get_ddr_type(void)
+{
+	int ddr_type;
+	size_t ddr_item_sz;
+	struct ddrinfo *ddr;
+
+	ddr = qcom_smem_get(QCOM_SMEM_HOST_ANY, SMEM_DDR_BUILD_ID,
+				&ddr_item_sz);
+	if (IS_ERR(ddr)) {
+		pr_err("Unable to find ddr_info\n");
+		return PTR_ERR(ddr);
+	}
+
+	ddr_type = ddr->device_type;
+	pr_debug("DDR Type %d.\n", ddr_type);
+	return ddr_type;
+}
+
 static void msm_mdss_setup_ubwc_dec_20(struct msm_mdss *msm_mdss)
 {
 	const struct msm_mdss_data *data = msm_mdss->mdss_data;
@@ -186,8 +206,18 @@ static void msm_mdss_setup_ubwc_dec_20(struct msm_mdss *msm_mdss)
 static void msm_mdss_setup_ubwc_dec_30(struct msm_mdss *msm_mdss)
 {
 	const struct msm_mdss_data *data = msm_mdss->mdss_data;
-	u32 value = (data->ubwc_swizzle & 0x1) |
-		    (data->highest_bank_bit & 0x3) << 4 |
+	u32 value, highest_bank_bit;
+	int ddr_type = mdss_get_ddr_type();
+
+	/* Setting default ddr type as LP4 */
+	if (ddr_type < 0)
+		ddr_type = DDR_TYPE_LP4;
+
+	highest_bank_bit = (ddr_type == DDR_TYPE_LP5) ?
+		data->highest_bank_bit[1] : data->highest_bank_bit[0];
+
+	value = (data->ubwc_swizzle & 0x1) |
+		    (highest_bank_bit & 0x3) << 4 |
 		    (data->macrotile_mode & 0x1) << 12;
 
 	if (data->ubwc_enc_version == UBWC_3_0)
@@ -202,9 +232,19 @@ static void msm_mdss_setup_ubwc_dec_30(struct msm_mdss *msm_mdss)
 static void msm_mdss_setup_ubwc_dec_40(struct msm_mdss *msm_mdss)
 {
 	const struct msm_mdss_data *data = msm_mdss->mdss_data;
-	u32 value = (data->ubwc_swizzle & 0x7) |
+	u32 value, highest_bank_bit;
+	int ddr_type = mdss_get_ddr_type();
+
+	/* Setting default ddr type as LP4 */
+	if (ddr_type < 0)
+		ddr_type = DDR_TYPE_LP4;
+
+	highest_bank_bit = (ddr_type == DDR_TYPE_LP5) ?
+		data->highest_bank_bit[1] : data->highest_bank_bit[0];
+
+	value = (data->ubwc_swizzle & 0x7) |
 		    (data->ubwc_static & 0x1) << 3 |
-		    (data->highest_bank_bit & 0x7) << 4 |
+		    (highest_bank_bit & 0x7) << 4 |
 		    (data->macrotile_mode & 0x1) << 12;
 
 	writel_relaxed(value, msm_mdss->mmio + UBWC_STATIC);
@@ -517,13 +557,13 @@ static int mdss_remove(struct platform_device *pdev)
 static const struct msm_mdss_data msm8998_data = {
 	.ubwc_enc_version = UBWC_1_0,
 	.ubwc_dec_version = UBWC_1_0,
-	.highest_bank_bit = 2,
+	.highest_bank_bit = {0x2, 0x2},
 	.reg_bus_bw = 76800,
 };
 
 static const struct msm_mdss_data qcm2290_data = {
 	/* no UBWC */
-	.highest_bank_bit = 0x2,
+	.highest_bank_bit = {0x2, 0x2},
 	.reg_bus_bw = 76800,
 };
 
@@ -531,7 +571,7 @@ static const struct msm_mdss_data sc7180_data = {
 	.ubwc_enc_version = UBWC_2_0,
 	.ubwc_dec_version = UBWC_2_0,
 	.ubwc_static = 0x1e,
-	.highest_bank_bit = 0x1,
+	.highest_bank_bit = {0x1, 0x1},
 	.reg_bus_bw = 76800,
 };
 
@@ -540,7 +580,7 @@ static const struct msm_mdss_data sc7280_data = {
 	.ubwc_dec_version = UBWC_4_0,
 	.ubwc_swizzle = 6,
 	.ubwc_static = 1,
-	.highest_bank_bit = 1,
+	.highest_bank_bit = {0x1, 0x2},
 	.macrotile_mode = 1,
 	.reg_bus_bw = 74000,
 };
@@ -548,7 +588,7 @@ static const struct msm_mdss_data sc7280_data = {
 static const struct msm_mdss_data sc8180x_data = {
 	.ubwc_enc_version = UBWC_3_0,
 	.ubwc_dec_version = UBWC_3_0,
-	.highest_bank_bit = 3,
+	.highest_bank_bit = {0x3, 0x3},
 	.macrotile_mode = 1,
 	.reg_bus_bw = 76800,
 };
@@ -558,7 +598,7 @@ static const struct msm_mdss_data sc8280xp_data = {
 	.ubwc_dec_version = UBWC_4_0,
 	.ubwc_swizzle = 6,
 	.ubwc_static = 1,
-	.highest_bank_bit = 2,
+	.highest_bank_bit = {0x2, 0x2},
 	.macrotile_mode = 1,
 	.reg_bus_bw = 76800,
 };
@@ -566,7 +606,7 @@ static const struct msm_mdss_data sc8280xp_data = {
 static const struct msm_mdss_data sdm845_data = {
 	.ubwc_enc_version = UBWC_2_0,
 	.ubwc_dec_version = UBWC_2_0,
-	.highest_bank_bit = 2,
+	.highest_bank_bit = {0x2, 0x2},
 	.reg_bus_bw = 76800,
 };
 
@@ -575,14 +615,14 @@ static const struct msm_mdss_data sm6350_data = {
 	.ubwc_dec_version = UBWC_2_0,
 	.ubwc_swizzle = 6,
 	.ubwc_static = 0x1e,
-	.highest_bank_bit = 1,
+	.highest_bank_bit = {0x1, 0x1},
 	.reg_bus_bw = 76800,
 };
 
 static const struct msm_mdss_data sm8150_data = {
 	.ubwc_enc_version = UBWC_3_0,
 	.ubwc_dec_version = UBWC_3_0,
-	.highest_bank_bit = 2,
+	.highest_bank_bit = {0x2, 0x2},
 	.reg_bus_bw = 76800,
 };
 
@@ -591,7 +631,7 @@ static const struct msm_mdss_data sm6115_data = {
 	.ubwc_dec_version = UBWC_2_0,
 	.ubwc_swizzle = 7,
 	.ubwc_static = 0x11f,
-	.highest_bank_bit = 0x1,
+	.highest_bank_bit = {0x1, 0x1},
 	.reg_bus_bw = 76800,
 };
 
@@ -599,6 +639,14 @@ static const struct msm_mdss_data sm6125_data = {
 	.ubwc_enc_version = UBWC_1_0,
 	.ubwc_dec_version = UBWC_3_0,
 	.ubwc_swizzle = 1,
+	.highest_bank_bit = {0x1, 0x1},
+	.reg_bus_bw = 76800,
+};
+
+static const struct msm_mdss_data sm6150_data = {
+	.ubwc_enc_version = UBWC_2_0,
+	.ubwc_dec_version = UBWC_2_0,
+	.ubwc_static = 0x10,
 	.highest_bank_bit = 1,
 	.reg_bus_bw = 76800,
 };
@@ -608,8 +656,7 @@ static const struct msm_mdss_data sm8250_data = {
 	.ubwc_dec_version = UBWC_4_0,
 	.ubwc_swizzle = 6,
 	.ubwc_static = 1,
-	/* TODO: highest_bank_bit = 2 for LP_DDR4 */
-	.highest_bank_bit = 3,
+	.highest_bank_bit = {0x3, 0x3},
 	.macrotile_mode = 1,
 	.reg_bus_bw = 76800,
 };
@@ -619,8 +666,7 @@ static const struct msm_mdss_data sm8350_data = {
 	.ubwc_dec_version = UBWC_4_0,
 	.ubwc_swizzle = 6,
 	.ubwc_static = 1,
-	/* TODO: highest_bank_bit = 2 for LP_DDR4 */
-	.highest_bank_bit = 3,
+	.highest_bank_bit = {0x3, 0x3},
 	.macrotile_mode = 1,
 	.reg_bus_bw = 74000,
 };
@@ -630,7 +676,7 @@ static const struct msm_mdss_data qcs8300_data = {
 	.ubwc_dec_version = UBWC_4_0,
 	.ubwc_swizzle = 6,
 	.ubwc_static = 1,
-	.highest_bank_bit = 3,
+	.highest_bank_bit = {0x3, 0x3},
 	.macrotile_mode = 1,
 };
 
@@ -639,7 +685,7 @@ static const struct msm_mdss_data sa8775p_data = {
 	.ubwc_dec_version = UBWC_4_0,
 	.ubwc_swizzle = 4,
 	.ubwc_static = 1,
-	.highest_bank_bit = 0,
+	.highest_bank_bit = {0, 0},
 	.macrotile_mode = 1,
 };
 
@@ -648,8 +694,7 @@ static const struct msm_mdss_data sm8550_data = {
 	.ubwc_dec_version = UBWC_4_3,
 	.ubwc_swizzle = 6,
 	.ubwc_static = 1,
-	/* TODO: highest_bank_bit = 2 for LP_DDR4 */
-	.highest_bank_bit = 3,
+	.highest_bank_bit = {0x2, 0x3},
 	.macrotile_mode = 1,
 	.reg_bus_bw = 57000,
 };
@@ -664,6 +709,7 @@ static const struct of_device_id mdss_dt_match[] = {
 	{ .compatible = "qcom,sc8280xp-mdss", .data = &sc8280xp_data },
 	{ .compatible = "qcom,sm6115-mdss", .data = &sm6115_data },
 	{ .compatible = "qcom,sm6125-mdss", .data = &sm6125_data },
+	{ .compatible = "qcom,sm6150-mdss", .data = &sm6150_data },
 	{ .compatible = "qcom,sm6350-mdss", .data = &sm6350_data },
 	{ .compatible = "qcom,sm6375-mdss", .data = &sm6350_data },
 	{ .compatible = "qcom,sm8150-mdss", .data = &sm8150_data },

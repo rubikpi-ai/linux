@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
- * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2023,2025 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/arm-smccc.h>
@@ -123,7 +123,7 @@ static bool gh_has_qcom_extensions(void)
 	uuid_t uuid;
 	u32 *up;
 
-	arm_smccc_1_1_smc(GH_QCOM_EXT_CALL_UUID_ID, &res);
+	arm_smccc_1_1_invoke(GH_QCOM_EXT_CALL_UUID_ID, &res);
 
 	up = (u32 *)&uuid.b[0];
 	up[0] = lower_32_bits(res.a0);

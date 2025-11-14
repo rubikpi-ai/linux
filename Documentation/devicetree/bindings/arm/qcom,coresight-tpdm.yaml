@@ -29,6 +29,7 @@ select:
       contains:
         enum:
           - qcom,coresight-tpdm
+          - qcom,coresight-static-tpdm
   required:
     - compatible
 
@@ -36,9 +37,12 @@ properties:
   $nodename:
     pattern: "^tpdm(@[0-9a-f]+)$"
   compatible:
-    items:
-      - const: qcom,coresight-tpdm
-      - const: arm,primecell
+    oneof:
+      items:
+        - const: qcom,coresight-tpdm
+        - const: arm,primecell
+      items:
+        - const: qcom,coresight-static-tpdm
 
   device-name:
     $ref: /schemas/types.yaml#/definitions/string

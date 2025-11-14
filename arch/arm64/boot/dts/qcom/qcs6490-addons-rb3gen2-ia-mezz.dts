@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: BSD-3-Clause
 /*
  * Copyright (c) 2023-2025 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 /dts-v1/;
@@ -34,6 +35,58 @@
 		qcom,ground-jack-type-normally-closed = <1>;
 		qcom,always-on-supply;
 		#sound-dai-cells = <1>;
+	};
+
+	hdmi-connector {
+		status = "disabled";
+	};
+
+	panel_lvds: panel-lvds@0 {
+		compatible = "panel-lvds";
+
+		data-mapping = "vesa-24";
+
+		width-mm = <476>;
+		height-mm = <268>;
+
+		status = "okay";
+
+		panel-timing {
+			clock-frequency = <148500000>;
+			hactive = <1920>;
+			vactive = <1080>;
+			hfront-porch = <88>;
+			hback-porch = <148>;
+			hsync-len = <44>;
+			vfront-porch = <4>;
+			vback-porch = <36>;
+			vsync-len = <5>;
+			de-active = <1>;
+		};
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				dual-lvds-odd-pixels;
+				panel_in_lvds_odd: endpoint {
+					remote-endpoint = <&lt9211c_out_odd>;
+				};
+			};
+
+			port@1 {
+				reg = <1>;
+
+				dual-lvds-even-pixels;
+				panel_in_lvds_even: endpoint {
+					remote-endpoint = <&lt9211c_out_even>;
+				};
+
+			};
+		};
 	};
 
 	qps615_rc0_resx_vreg: qps615-rc0-resx-vreg {
@@ -122,6 +175,44 @@
 		};
 	};
 
+	lt9211c_codec: lvds-bridge@29 {
+		compatible = "lontium,lt9211c";
+		reg = <0x29>;
+		status = "okay";
+
+		reset-gpios = <&tlmm 117 GPIO_ACTIVE_HIGH>;
+
+		ports {
+			#address-cells = <1>;
+			#size-cells = <0>;
+
+			port@0 {
+				reg = <0>;
+
+				lt9211c_in: endpoint {
+					data-lanes = <0 1 2 3>;
+					remote-endpoint = <&mdss_dsi0_out>;
+				};
+			};
+
+			port@2 {
+				reg = <2>;
+
+				lt9211c_out_odd: endpoint {
+					remote-endpoint = <&panel_in_lvds_odd>;
+				};
+			};
+
+			port@3 {
+				reg = <3>;
+
+				lt9211c_out_even: endpoint {
+					remote-endpoint = <&panel_in_lvds_even>;
+				};
+			};
+		};
+	};
+
 	qps615_rc0_switch: pcie-switch-0@33 {
 		compatible = "qcom,switch-i2c";
 		reg = <0x33>;
@@ -201,6 +292,21 @@
 	bias-bus-hold;
 };
 
+&lt9611_codec {
+	status = "disabled";
+};
+
+&mdss_dsi {
+	ports {
+		port@1 {
+			reg = <1>;
+			mdss_dsi0_out: endpoint {
+				data-lanes = <0 1 2 3>;
+				remote-endpoint = <&lt9211c_in>;
+			};
+		};
+	};
+};
 
 &pcie0 {
 	bus-range = <0x80 0xff>;
@@ -379,7 +485,7 @@
 
 &sound {
 	compatible = "qcom,qcs6490-rb3gen2-ia-sndcard";
-	model = "qcm6490-rb3-ia-snd-card";
+	model = "qcs6490-rb3gen2-ia-snd-card";
 	audio-routing =
 		"SpkrLeft IN", "WSA_SPK1 OUT",
 		"SpkrRight IN", "WSA_SPK2 OUT",
@@ -531,7 +637,7 @@
 
 			map4 {
 				trip = <&b_bcl_lvl0>;
-				cooling-device = <&cdsp_sw 2 2>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 
 			map5 {
@@ -567,7 +673,7 @@
 
 			map1 {
 				trip = <&b_bcl_lvl1>;
-				cooling-device = <&cdsp_sw 4 4>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 
 			map2 {
@@ -593,7 +699,7 @@
 		cooling-maps {
 			map0 {
 				trip = <&b_bcl_lvl2>;
-				cooling-device = <&cdsp_sw 5 5>;
+				cooling-device = <&cdsp_sw THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
 			};
 		};
 	};

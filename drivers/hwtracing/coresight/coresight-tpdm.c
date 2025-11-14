@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0
 /*
- * Copyright (c) 2023-2024 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) Qualcomm Technologies, Inc. and/or its subsidiaries.
  */
 
 #include <linux/amba/bus.h>
@@ -15,6 +15,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/of.h>
+#include <linux/platform_device.h>
 
 #include "coresight-priv.h"
 #include "coresight-tpdm.h"
@@ -1382,7 +1383,172 @@ static struct amba_driver tpdm_driver = {
 	.remove		= tpdm_remove,
 };
 
-module_amba_driver(tpdm_driver);
+static int static_tpdm_enable(struct coresight_device *csdev,
+			       struct perf_event *event, enum cs_mode mode)
+{
+	int ret = 0;
+	struct tpdm_drvdata *drvdata =
+		 dev_get_drvdata(csdev->dev.parent);
+
+	if (drvdata->enable) {
+		dev_err(drvdata->dev,
+			"TPDM setup already enabled,Skipping enable\n");
+		return ret;
+	}
+
+	ret = coresight_get_aggre_atid(csdev);
+	if (ret < 0)
+		return ret;
+
+	drvdata->traceid = ret;
+	coresight_csr_set_etr_atid(csdev, drvdata->traceid, true);
+	drvdata->enable = true;
+
+	dev_info(drvdata->dev, "TPDM tracing enabled\n");
+
+	return 0;
+}
+
+static void static_tpdm_disable(struct coresight_device *csdev,
+				 struct perf_event *event)
+{
+	struct tpdm_drvdata *drvdata =
+		 dev_get_drvdata(csdev->dev.parent);
+
+	if (!drvdata->enable) {
+		dev_err(drvdata->dev,
+			"TPDM setup already disabled, Skipping disable\n");
+		return;
+	}
+
+	coresight_csr_set_etr_atid(csdev, drvdata->traceid, false);
+	drvdata->traceid = 0;
+	drvdata->enable = false;
+
+	dev_info(drvdata->dev, "TPDM tracing disabled\n");
+}
+
+static const struct coresight_ops_source static_tpdm_source_ops = {
+	.enable		= static_tpdm_enable,
+	.disable	= static_tpdm_disable,
+};
+
+static const struct coresight_ops static_tpdm_cs_ops = {
+	.source_ops	= &static_tpdm_source_ops,
+};
+
+static struct attribute *static_tpdm_attrs[] = {
+	&dev_attr_traceid.attr,
+	NULL,
+};
+
+static struct attribute_group static_tpdm_attr_grp = {
+	.attrs = static_tpdm_attrs,
+};
+
+static const struct attribute_group *static_tpdm_attr_grps[] = {
+	&static_tpdm_attr_grp,
+	NULL,
+};
+
+static int static_tpdm_probe(struct platform_device *pdev)
+{
+	struct device *dev = &pdev->dev;
+	struct coresight_platform_data *pdata;
+	struct tpdm_drvdata *drvdata;
+	struct coresight_desc desc = { 0 };
+
+	desc.name = coresight_alloc_device_name(&tpdm_devs, dev);
+	if (!desc.name)
+		return -ENOMEM;
+
+	desc.type = CORESIGHT_DEV_TYPE_SOURCE;
+	desc.subtype.source_subtype =
+				CORESIGHT_DEV_SUBTYPE_SOURCE_SOFTWARE;
+	desc.ops = &static_tpdm_cs_ops;
+	desc.groups = static_tpdm_attr_grps;
+
+	pdata = coresight_get_platform_data(dev);
+	if (IS_ERR(pdata))
+		return PTR_ERR(pdata);
+	pdev->dev.platform_data = pdata;
+
+	drvdata = devm_kzalloc(dev, sizeof(*drvdata), GFP_KERNEL);
+	if (!drvdata)
+		return -ENOMEM;
+
+	drvdata->dev = &pdev->dev;
+	platform_set_drvdata(pdev, drvdata);
+
+	desc.pdata = pdev->dev.platform_data;
+	desc.dev = &pdev->dev;
+	drvdata->csdev = coresight_register(&desc);
+	if (IS_ERR(drvdata->csdev))
+		return PTR_ERR(drvdata->csdev);
+
+	pm_runtime_enable(dev);
+
+	dev_dbg(dev, "static tpdm initialized\n");
+
+	return 0;
+}
+
+static int static_tpdm_remove(struct platform_device *pdev)
+{
+	struct tpdm_drvdata *drvdata = platform_get_drvdata(pdev);
+	struct device *dev = &pdev->dev;
+
+	pm_runtime_disable(dev);
+
+	coresight_unregister(drvdata->csdev);
+	return 0;
+}
+
+static const struct of_device_id static_tpdm_match[] = {
+	{.compatible = "qcom,coresight-static-tpdm"},
+	{}
+};
+
+MODULE_DEVICE_TABLE(of, static_tpdm_match);
+
+static struct platform_driver static_tpdm_driver = {
+	.probe          = static_tpdm_probe,
+	.remove          = static_tpdm_remove,
+	.driver         = {
+		.name   = "coresight-static-tpdm",
+		/* THIS_MODULE is taken care of by platform_driver_register() */
+		.of_match_table = static_tpdm_match,
+		.suppress_bind_attrs = true,
+	},
+};
+
+static int __init tpdm_init(void)
+{
+	int ret;
+
+	ret = platform_driver_register(&static_tpdm_driver);
+	if (ret) {
+		pr_info("Error registering platform driver\n");
+		return ret;
+	}
+
+	ret = amba_driver_register(&tpdm_driver);
+	if (ret) {
+		pr_info("Error registering amba driver\n");
+		platform_driver_unregister(&static_tpdm_driver);
+	}
+
+	return ret;
+}
+
+static void __exit tpdm_exit(void)
+{
+	platform_driver_unregister(&static_tpdm_driver);
+	amba_driver_unregister(&tpdm_driver);
+}
+
+module_init(tpdm_init);
+module_exit(tpdm_exit);
 
 MODULE_LICENSE("GPL");
 MODULE_DESCRIPTION("Trace, Profiling & Diagnostic Monitor driver");

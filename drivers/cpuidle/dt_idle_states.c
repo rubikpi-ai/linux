@@ -79,6 +79,9 @@ static int init_state_node(struct cpuidle_state *idle_state,
 	idle_state->flags = CPUIDLE_FLAG_RCU_IDLE;
 	if (of_property_read_bool(state_node, "local-timer-stop"))
 		idle_state->flags |= CPUIDLE_FLAG_TIMER_STOP;
+
+	if (of_property_read_bool(state_node, "boot-lpm-disable"))
+		idle_state->flags |= CPUIDLE_FLAG_OFF;
 	/*
 	 * TODO:
 	 *	replace with kstrdup and pointer assignment when name
