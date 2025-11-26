@@ -1716,12 +1716,17 @@
 / {
 	vreg_m2_1p8: verg_m2_1p8 {
 		compatible = "regulator-fixed";
+
 		regulator-name = "vreg_m2_1p8";
-		gpio = <&tlmm 56 0>;
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
-		enable-active-high;
 		regulator-enable-ramp-delay = <50000>;
+
+		gpio = <&tlmm 56 0>;
+		enable-active-high;
+
+		regulator-always-on;
+		regulator-boot-on;
 	};
 };
 
@@ -1730,8 +1735,6 @@
 
 	pinctrl-0 = <&pcie1_reset_n>, <&pcie1_wake_n>, <&pcie1_clkreq_n>;
 	pinctrl-names = "default";
-
-	vdda-supply = <&vreg_m2_1p8>;
 
 	status = "okay";
 
