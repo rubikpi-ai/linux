@@ -21,6 +21,8 @@
 
 #define ICS43432_RATE_MIN 7190 /* Hz, from data sheet */
 #define ICS43432_RATE_MAX 52800  /* Hz, from data sheet */
+#define ICS43434_RATE_MIN 6250 /* Hz, from data sheet */
+#define ICS43434_RATE_MAX 51600 /* Hz, from data sheet */
 
 #define ICS43432_FORMATS (SNDRV_PCM_FMTBIT_S24_LE | SNDRV_PCM_FMTBIT_S32)
 
@@ -37,6 +39,19 @@ static struct snd_soc_dai_driver ics43432_dai = {
 	},
 };
 
+static struct snd_soc_dai_driver ics43434_dai = {
+	.name = "ics43434-hifi",
+	.capture = {
+		.stream_name = "Capture",
+		.channels_min = 1,
+		.channels_max = 2,
+		.rate_min = ICS43434_RATE_MIN,
+		.rate_max = ICS43434_RATE_MAX,
+		.rates = SNDRV_PCM_RATE_CONTINUOUS,
+		.formats = ICS43432_FORMATS,
+	},
+};
+
 static const struct snd_soc_component_driver ics43432_component_driver = {
 	.idle_bias_on		= 1,
 	.use_pmdown_time	= 1,
@@ -45,6 +60,12 @@ static const struct snd_soc_component_driver ics43432_component_driver = {
 
 static int ics43432_probe(struct platform_device *pdev)
 {
+	if (of_device_is_compatible(pdev->dev.of_node, "invensense,ics43434")){
+		return devm_snd_soc_register_component(&pdev->dev,
+			&ics43432_component_driver,
+			&ics43434_dai, 1);
+	}
+
 	return devm_snd_soc_register_component(&pdev->dev,
 			&ics43432_component_driver,
 			&ics43432_dai, 1);
@@ -54,6 +75,7 @@ static int ics43432_probe(struct platform_device *pdev)
 static const struct of_device_id ics43432_ids[] = {
 	{ .compatible = "invensense,ics43432", },
 	{ .compatible = "cui,cmm-4030d-261", },
+	{ .compatible = "invensense,ics43434", },
 	{ }
 };
 MODULE_DEVICE_TABLE(of, ics43432_ids);
