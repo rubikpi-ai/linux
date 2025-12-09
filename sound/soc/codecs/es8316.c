@@ -44,8 +44,6 @@ struct es8316_priv {
 	struct snd_pcm_hw_constraint_list sysclk_constraints;
 	bool jd_inverted;
 	int use_init_regs;
-	int use_pop_regs;
-	struct delayed_work pcm_pop_work;
 };
 
 static struct snd_soc_jack es8316_jack;
@@ -643,12 +641,22 @@ static int es8316_pcm_hw_params(struct snd_pcm_substream *substream,
 		snd_soc_component_write(component, ES8316_CLKMGR_CLKSEL, 0x09);
 		snd_soc_component_update_bits(component, ES8316_ADC_PDN_LINSEL, 0xcf, 0x00);
 		snd_soc_component_write(component, ES8316_SERDATA_ADC, 0x00);
+		snd_soc_component_write(component, ES8316_CLKMGR_CLKSW, 0x7F);
 		snd_soc_component_write(component, ES8316_SYS_PDN, 0x00);
-
-		if (es8316->use_pop_regs == 1) {
-			queue_delayed_work(system_wq, &es8316->pcm_pop_work,
-						 msecs_to_jiffies(20));
-		}
+		snd_soc_component_write(component, ES8316_SYS_LP1, 0x00);
+		snd_soc_component_write(component, ES8316_SYS_LP2, 0x00);
+		snd_soc_component_write(component, ES8316_DAC_PDN, 0x00);
+		snd_soc_component_write(component, ES8316_HPMIX_SWITCH, 0x88);
+		snd_soc_component_write(component, ES8316_HPMIX_PDN, 0x00);
+		snd_soc_component_write(component, ES8316_HPMIX_VOL, 0xBB);
+		snd_soc_component_write(component, ES8316_CPHP_PDN2, 0x10);
+		snd_soc_component_write(component, ES8316_CPHP_LDOCTL, 0x30);
+		snd_soc_component_write(component, ES8316_CPHP_PDN1, 0x03);
+		snd_soc_component_write(component, ES8316_CPHP_ICAL_VOL, 0x11);
+		snd_soc_component_write(component, ES8316_ADC_PDN_LINSEL, 0x30);
+		msleep(5);
+		snd_soc_component_write(component, ES8316_RESET, 0xC0);
+		snd_soc_component_write(component, ES8316_CPHP_OUTEN, 0x66);
 
 		return 0;
 	}
@@ -832,8 +840,9 @@ static irqreturn_t es8316_irq(int irq, void *data)
 			snd_soc_jack_report(es8316->jack,
 					    SND_JACK_HEADPHONE,
 					    SND_JACK_HEADSET);
-			/* No longer need mic-gnd-short detection */
-			es8316_disable_micbias_for_mic_gnd_short_detect(comp);
+			if (!es8316->use_init_regs)
+				/* No longer need mic-gnd-short detection */
+				es8316_disable_micbias_for_mic_gnd_short_detect(comp);
 		}
 	} else if (es8316->jack->status & SND_JACK_MICROPHONE) {
 		/* Interrupt while jack inserted, report button state */
@@ -919,17 +928,6 @@ static int es8316_set_jack(struct snd_soc_component *component,
 	return 0;
 }
 
-static void pcm_pop_work_events(struct work_struct *work)
-{
-	struct es8316_priv *es8316 = container_of(work, struct es8316_priv,
-								pcm_pop_work.work);
-	struct snd_soc_component *component = es8316->component;
-
-	/*oepn dac output here*/
-	es8316_parse_regs(component, "pop-regs");
-	es8316->use_pop_regs = 0;
-}
-
 static int es8316_probe(struct snd_soc_component *component)
 {
 	struct es8316_priv *es8316 = snd_soc_component_get_drvdata(component);
@@ -962,8 +960,6 @@ static int es8316_probe(struct snd_soc_component *component)
 		else
 			snd_soc_component_set_jack(component, &es8316_jack, NULL);
 	}
-
-	INIT_DELAYED_WORK(&es8316->pcm_pop_work, pcm_pop_work_events);
 
 	if (es8316->use_init_regs) {
 		ret = snd_soc_component_read(component, ES8316_CLKMGR_ADCDIV2);
@@ -1104,11 +1100,6 @@ static int es8316_i2c_probe(struct i2c_client *i2c_client)
 	if (of_property_present(dev->of_node, "init-regs")) {
 		dev_info(dev, "init-regs provided.\n");
 		es8316->use_init_regs = 1;
-	}
-
-	if (of_property_present(dev->of_node, "pop-regs")) {
-		dev_info(dev, "pop-regs provided.\n");
-		es8316->use_pop_regs = 1;
 	}
 
 	if (es8316->irq > 0) {
